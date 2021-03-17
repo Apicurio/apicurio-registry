@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -35,11 +35,11 @@ public class ContentValue extends AbstractMessageValue {
      * @param content
      */
     public static final ContentValue create(ActionType action, ArtifactType artifactType, ContentHandle content) {
-        ContentValue key = new ContentValue();
-        key.setAction(action);
-        key.setArtifactType(artifactType);
-        key.setContent(content);
-        return key;
+        ContentValue value = new ContentValue();
+        value.setAction(action);
+        value.setArtifactType(artifactType);
+        value.setContent(content);
+        return value;
     }
 
     /**

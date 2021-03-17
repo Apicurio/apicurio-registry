@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -389,7 +388,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     public List<Long> listArtifactVersions(String artifactId) {
-        SortedSet<String> versions = storage.getArtifactVersions(null, artifactId);
+        List<String> versions = storage.getArtifactVersions(null, artifactId);
         return versions.stream().map(vstr -> VersionUtil.toLong(vstr)).collect(Collectors.toList());
     }
 

@@ -84,7 +84,7 @@ public interface RegistryStorageFacade {
     CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String version,
             SchemaContent request);
 
-    <T> T parseVersionString(String subject, String versionString, Function<Long, T> then);
+    <T> T parseVersionString(String subject, String versionString, Function<String, T> then);
 
     RuleConfigurationDto getGlobalRule(RuleType ruleType);
 

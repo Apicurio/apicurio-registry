@@ -19,6 +19,8 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+
 /**
  * Provides a mapping from a message type to the {@link MessageKey} for that message type.
  * @author eric.wittmann@gmail.com

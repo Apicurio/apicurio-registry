@@ -29,9 +29,9 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
  * @author eric.wittmann@gmail.com
  */
 public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
-    
+
     public static final StoredArtifactMapper instance = new StoredArtifactMapper();
-    
+
     /**
      * Constructor.
      */
@@ -43,13 +43,14 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
      */
     @Override
     public StoredArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
-        Long globalId = rs.getLong("globalId");
-        Long version = rs.getLong("version");
+        long globalId = rs.getLong("globalId");
+        String version = rs.getString("version");
+        int versionId = rs.getInt("version");
         Long contentId = rs.getLong("contentId");
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
-        
-        return StoredArtifactDto.builder().content(content).contentId(contentId).globalId(globalId).version(version).build();
+
+        return StoredArtifactDto.builder().content(content).contentId(contentId).globalId(globalId).version(version).versionId(versionId).build();
     }
 
 }

@@ -46,7 +46,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -98,8 +97,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return parseVersionString(subject, versionString,
-                versionId -> {
-                    String version = VersionUtil.toString(versionId);
+                version -> {
                     if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
                         throw new VersionNotFoundException(null, subject, version);
                     }
@@ -113,6 +111,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 .stream()
                 .map(VersionUtil::toLong)
                 .map(FacadeConverter::convertUnsigned)
+                .sorted()
                 .collect(Collectors.toList());
     }
 
@@ -146,8 +145,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public int deleteSchema(String subject, String versionString) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        return FacadeConverter.convertUnsigned(parseVersionString(subject, versionString, version -> {
-            storage.deleteArtifactVersion(null, subject, VersionUtil.toString(version));
+        return VersionUtil.toInteger(parseVersionString(subject, versionString, version -> {
+            storage.deleteArtifactVersion(null, subject, version);
             return version;
         }));
     }
@@ -174,8 +173,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String version,
             SchemaContent request) {
 
-        return parseVersionString(subject, version, parsedVersion -> {
-            String v = VersionUtil.toString(parsedVersion);
+        return parseVersionString(subject, version, v -> {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage
                         .getArtifactVersionMetaData(null, subject, v);
@@ -217,17 +215,19 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
      * Optionally provide an "else" function that will receive the exception that would be otherwise thrown.
      */
     @Override
-    public <T> T parseVersionString(String subject, String versionString, Function<Long, T> then) {
-        long version;
+    public <T> T parseVersionString(String subject, String versionString, Function<String, T> then) {
+        String version;
+        // TODO possibly need to ignore
         if ("latest".equals(versionString)) {
-            SortedSet<String> versions = storage.getArtifactVersions(null, subject);
-            version = VersionUtil.toLong(versions.last());
+            ArtifactMetaDataDto latest = storage.getArtifactMetaData(null, subject);
+            version = latest.getVersion();
         } else {
             try {
-                version = Integer.parseUnsignedInt(versionString); // required by the spec, ignoring the possible leading "+"
+                Integer.parseUnsignedInt(versionString); // required by the spec, ignoring the possible leading "+"
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Illegal version format: " + versionString, e);
             }
+            version = versionString;
         }
         return then.apply(version);
     }

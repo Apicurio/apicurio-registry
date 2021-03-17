@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 import java.util.Map;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -42,10 +42,10 @@ public class GroupValue extends AbstractMessageValue {
      * @param action
      */
     public static final GroupValue create(ActionType action, boolean onlyArtifacts) {
-        GroupValue key = new GroupValue();
-        key.setAction(action);
-        key.setOnlyArtifacts(onlyArtifacts);
-        return key;
+        GroupValue value = new GroupValue();
+        value.setAction(action);
+        value.setOnlyArtifacts(onlyArtifacts);
+        return value;
     }
 
     /**
@@ -54,16 +54,16 @@ public class GroupValue extends AbstractMessageValue {
      * @param group metadata
      */
     public static final GroupValue create(ActionType action, GroupMetaDataDto meta) {
-        GroupValue key = new GroupValue();
-        key.setAction(action);
-        key.setDescription(meta.getDescription());
-        key.setArtifactsType(meta.getArtifactsType());
-        key.setCreatedBy(meta.getCreatedBy());
-        key.setCreatedOn(meta.getCreatedOn());
-        key.setModifiedBy(meta.getModifiedBy());
-        key.setModifiedOn(meta.getModifiedOn());
-        key.setProperties(meta.getProperties());
-        return key;
+        GroupValue value = new GroupValue();
+        value.setAction(action);
+        value.setDescription(meta.getDescription());
+        value.setArtifactsType(meta.getArtifactsType());
+        value.setCreatedBy(meta.getCreatedBy());
+        value.setCreatedOn(meta.getCreatedOn());
+        value.setModifiedBy(meta.getModifiedBy());
+        value.setModifiedOn(meta.getModifiedOn());
+        value.setProperties(meta.getProperties());
+        return value;
     }
 
     /**

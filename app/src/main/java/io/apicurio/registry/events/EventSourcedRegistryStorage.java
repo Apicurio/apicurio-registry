@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -136,8 +135,8 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public SortedSet<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        SortedSet<String> set = storage.deleteArtifact(groupId, artifactId);
+    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        List<String> set = storage.deleteArtifact(groupId, artifactId);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -280,7 +279,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public SortedSet<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersions(groupId, artifactId);
     }
 

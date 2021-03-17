@@ -19,7 +19,6 @@ package io.apicurio.registry.storage;
 
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -134,7 +133,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public SortedSet<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Deletes all artifacts in the given group. DOES NOT delete the group.
@@ -353,7 +352,7 @@ public interface RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    public SortedSet<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
+    public List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Fetch the versions of the given artifact

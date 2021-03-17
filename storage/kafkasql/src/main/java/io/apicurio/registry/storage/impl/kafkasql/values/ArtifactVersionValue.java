@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactState;
 
 /**
@@ -35,11 +35,11 @@ public class ArtifactVersionValue extends AbstractMessageValue {
      * @param metaData
      */
     public static final ArtifactVersionValue create(ActionType action, ArtifactState state, EditableArtifactMetaDataDto metaData) {
-        ArtifactVersionValue key = new ArtifactVersionValue();
-        key.setAction(action);
-        key.setState(state);
-        key.setMetaData(metaData);
-        return key;
+        ArtifactVersionValue value = new ArtifactVersionValue();
+        value.setAction(action);
+        value.setState(state);
+        value.setMetaData(metaData);
+        return value;
     }
     
     /**

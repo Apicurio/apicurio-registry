@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,10 +32,10 @@ public class ArtifactRuleValue extends AbstractMessageValue {
      * @param config
      */
     public static final ArtifactRuleValue create(ActionType action, RuleConfigurationDto config) {
-        ArtifactRuleValue key = new ArtifactRuleValue();
-        key.setAction(action);
-        key.setConfig(config);
-        return key;
+        ArtifactRuleValue value = new ArtifactRuleValue();
+        value.setAction(action);
+        value.setConfig(config);
+        return value;
     }
     
     /**

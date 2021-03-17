@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.keys;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.RuleType;
 
 /**

@@ -111,6 +111,12 @@ public interface SqlStatements {
     public String updateArtifactLatestGlobalId();
 
     /**
+     * A statement used to update the 'version' column of the 'versions' table by globalId.  The value of the "versionId"
+     * column is copied into the "version" column.
+     */
+    public String autoUpdateVersionForGlobalId();
+
+    /**
      * A statement used to insert a row in the versions table.
      */
     public String insertVersion(boolean firstVersion);
@@ -394,5 +400,6 @@ public interface SqlStatements {
      * A statement used to select a single group in groups table by groupId.
      */
     public String selectGroupByGroupId();
+
 
 }

@@ -41,6 +41,7 @@ public class SearchedVersionDto {
     private long globalId;
     private long contentId;
     private String version;
+    private int versionId;
 
     /**
      * Constructor.
@@ -200,6 +201,20 @@ public class SearchedVersionDto {
      */
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+    /**
+     * @return the versionId
+     */
+    public int getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * @param versionId the versionId to set
+     */
+    public void setVersionId(int versionId) {
+        this.versionId = versionId;
     }
 
 }

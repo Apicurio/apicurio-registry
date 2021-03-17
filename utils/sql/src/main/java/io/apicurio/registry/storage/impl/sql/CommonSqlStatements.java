@@ -149,15 +149,23 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#autoUpdateVersionForGlobalId()
+     */
+    @Override
+    public String autoUpdateVersionForGlobalId() {
+        return "UPDATE versions SET version = (SELECT versionId FROM versions WHERE tenantId = ? AND globalId = ?) WHERE tenantId = ? AND globalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
      */
     @Override
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, (SELECT MAX(version) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -201,7 +209,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
@@ -224,7 +232,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, c.contentId, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -232,7 +240,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, c.contentId, c.content FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
@@ -242,7 +250,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactContent() {
-        return "SELECT v.globalId, v.version, c.contentId, c.content FROM artifacts a "
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "JOIN content c ON v.contentId = c.contentId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
@@ -253,7 +261,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactMetaData() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
@@ -409,7 +417,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactMetaDataByGlobalId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
                 + "WHERE v.tenantId = ? AND v.globalId = ?";

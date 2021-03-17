@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.kafkasql.keys;
+package io.apicurio.registry.storage.impl.kafkasql;
 
 import java.util.HashMap;
 import java.util.Map;

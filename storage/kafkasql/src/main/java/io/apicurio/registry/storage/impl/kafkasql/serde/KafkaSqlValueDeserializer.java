@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageTypeToValueClass;

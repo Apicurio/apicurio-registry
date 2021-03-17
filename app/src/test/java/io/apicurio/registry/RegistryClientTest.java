@@ -302,9 +302,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactVersionState(groupId, artifactId, "1", us);
-        waitForVersionState(groupId, artifactId, 1, ArtifactState.DISABLED);
+        waitForVersionState(groupId, artifactId, "1", ArtifactState.DISABLED);
         clientV2.updateArtifactVersionState(groupId, artifactId, "3", us);
-        waitForVersionState(groupId, artifactId, 3, ArtifactState.DISABLED);
+        waitForVersionState(groupId, artifactId, "3", ArtifactState.DISABLED);
 
         //Execution
         // Check that the search results still include the DISABLED versions
@@ -856,7 +856,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         ArtifactMetaData meta = clientV2.getArtifactMetaData(null, artifactId);
         assertNull(meta.getGroupId());
 
-        VersionMetaData vmeta = clientV2.getArtifactVersionMetaData(null, artifactId, Long.toString(meta.getVersion()));
+        VersionMetaData vmeta = clientV2.getArtifactVersionMetaData(null, artifactId, meta.getVersion());
         assertNull(vmeta.getGroupId());
 
         vmeta = clientV2.getArtifactVersionMetaDataByContent(null, artifactId, content);

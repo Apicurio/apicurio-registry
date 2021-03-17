@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.keys;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -23,7 +25,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
 
     private String groupId;
     private String artifactId;
-    private Long version;
+    private String version;
 
     /**
      * Creator method.
@@ -32,7 +34,7 @@ public class ArtifactVersionKey extends AbstractMessageKey {
      * @param artifactId
      * @param version
      */
-    public static final ArtifactVersionKey create(String tenantId, String groupId, String artifactId, Long version) {
+    public static final ArtifactVersionKey create(String tenantId, String groupId, String artifactId, String version) {
         ArtifactVersionKey key = new ArtifactVersionKey();
         key.setTenantId(tenantId);
         key.setGroupId(groupId);
@@ -88,14 +90,14 @@ public class ArtifactVersionKey extends AbstractMessageKey {
     /**
      * @return the version
      */
-    public Long getVersion() {
+    public String getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(Long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

@@ -28,9 +28,9 @@ public class TupleId implements Serializable {
     private String groupId;
     private String id;
     private String version;
-    private Long versionId;
+    private int versionId;
 
-    public TupleId(String groupId, String id, String version, Long versionId) {
+    public TupleId(String groupId, String id, String version, int versionId) {
         this.groupId = groupId;
         this.id = id;
         this.version = version;
@@ -49,7 +49,7 @@ public class TupleId implements Serializable {
         return version;
     }
 
-    public Long getVersionId() {
+    public int getVersionId() {
         return versionId;
     }
 

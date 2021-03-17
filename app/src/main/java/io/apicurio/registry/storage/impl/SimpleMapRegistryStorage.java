@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.kafka.connect.errors.AlreadyExistsException;
 import org.jetbrains.annotations.NotNull;
 
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -124,17 +125,7 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
     }
 
     private static class SimpleStorageMap implements StorageMap {
-        private final Map<ArtifactKey, Map<Long, Map<String, String>>> root = new ConcurrentHashMap<>();
-//
-//        @Override
-//        public Map<String, Map<Long, Map<String, String>>> asMap() {
-//            return root;
-//        }
-//
-//        @Override
-//        public void putAll(Map<String, Map<Long, Map<String, String>>> map) {
-//            root.putAll(map);
-//        }
+        private final Map<ArtifactKey, Map<String, Map<String, String>>> root = new ConcurrentHashMap<>();
 
         @Override
         public Set<ArtifactKey> keySet() {
@@ -142,8 +133,8 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
         }
 
         @Override
-        public Map<Long, Map<String, String>> get(ArtifactKey artifactKey) {
-            Map<Long, Map<String, String>> map = root.get(artifactKey);
+        public Map<String, Map<String, String>> get(ArtifactKey artifactKey) {
+            Map<String, Map<String, String>> map = root.get(artifactKey);
             if (map == null) {
                 throw new ArtifactNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId());
             }
@@ -151,39 +142,37 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
         }
 
         @Override
-        public Map<Long, Map<String, String>> compute(ArtifactKey artifactKey) {
-            Map<Long, Map<String, String>> rval = root.compute(artifactKey, (a, m) -> m != null ? m : new ConcurrentHashMap<>());
+        public Map<String, Map<String, String>> compute(ArtifactKey artifactKey) {
+            Map<String, Map<String, String>> rval = root.compute(artifactKey, (a, m) -> m != null ? m : new ConcurrentHashMap<>());
             return rval;
         }
 
         @Override
-        public void createVersion(ArtifactKey artifactKey, long version, Map<String, String> contents) {
+        public void createVersion(ArtifactKey artifactKey, String version, Map<String, String> contents) {
             Map<String, String> previous = putIfAbsent(artifactKey, version, contents);
-            while (previous != null) {
-                version++;
-                contents.put(MetaDataKeys.VERSION, Long.toString(version));
-                previous = putIfAbsent(artifactKey, version, contents);
+            if (previous != null) {
+                throw new AlreadyExistsException("Version " + version + " of artifact " + artifactKey.getArtifactId() + " already exists.");
             }
         }
 
-        private Map<String, String> putIfAbsent(ArtifactKey artifactKey, long version, Map<String, String> contents) {
+        private Map<String, String> putIfAbsent(ArtifactKey artifactKey, String version, Map<String, String> contents) {
             return get(artifactKey).putIfAbsent(version, contents);
         }
 
         @Override
         public void put(ArtifactKey artifactKey, String key, String value) {
-            long version = compute(artifactKey).entrySet()
+            String version = compute(artifactKey).entrySet()
                     .stream()
                     .filter(AbstractMapRegistryStorage.statesFilter(ArtifactStateExt.ACTIVE_STATES))
                     .map(Map.Entry::getKey)
-                    .max(Long::compareTo)
+                    .max(String::compareTo)
                     .orElseThrow(() -> new ArtifactNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId()));
             put(artifactKey, version, key, value);
         }
 
         @Override
-        public void put(ArtifactKey artifactKey, long version, String key, String value) {
-            Map<Long, Map<String, String>> map = get(artifactKey);
+        public void put(ArtifactKey artifactKey, String version, String key, String value) {
+            Map<String, Map<String, String>> map = get(artifactKey);
             Map<String, String> content = map.get(version);
             if (content == null) {
                 throw new VersionNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId(), version);
@@ -199,13 +188,13 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
         }
 
         @Override
-        public Long remove(ArtifactKey artifactKey, long version) {
+        public Long remove(ArtifactKey artifactKey, String version) {
             Map<String, String> content = removeInternal(artifactKey, version, true);
             return Long.parseLong(content.get(MetaDataKeys.VERSION));
         }
 
-        private Map<String, String> removeInternal(ArtifactKey artifactKey, long version, boolean remove) {
-            Map<Long, Map<String, String>> map = get(artifactKey);
+        private Map<String, String> removeInternal(ArtifactKey artifactKey, String version, boolean remove) {
+            Map<String, Map<String, String>> map = get(artifactKey);
             Map<String, String> content = remove ? map.remove(version) : map.get(version);
             if (content == null) {
                 throw new VersionNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId(), version);
@@ -217,13 +206,13 @@ public abstract class SimpleMapRegistryStorage extends AbstractMapRegistryStorag
         }
 
         @Override
-        public void remove(ArtifactKey artifactKey, long version, String key) {
+        public void remove(ArtifactKey artifactKey, String version, String key) {
             removeInternal(artifactKey, version, false).remove(key);
         }
 
         @Override
-        public Map<Long, Map<String, String>> remove(ArtifactKey artifactKey) {
-            Map<Long, Map<String, String>> map = root.remove(artifactKey);
+        public Map<String, Map<String, String>> remove(ArtifactKey artifactKey) {
+            Map<String, Map<String, String>> map = root.remove(artifactKey);
             if (map == null) {
                 throw new ArtifactNotFoundException(artifactKey.getGroupId(), artifactKey.getArtifactId());
             }

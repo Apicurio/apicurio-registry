@@ -18,7 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
  * @author eric.wittmann@gmail.com

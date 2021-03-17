@@ -119,28 +119,28 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Artifact
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action,
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData) {
         ArtifactKey key = ArtifactKey.create(tenantId, groupId, artifactId);
-        ArtifactValue value = ArtifactValue.create(action, artifactType, contentHash, createdBy, createdOn, metaData);
+        ArtifactValue value = ArtifactValue.create(action, version, artifactType, contentHash, createdBy, createdOn, metaData);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action) {
-        return this.submitArtifact(tenantId, groupId, artifactId, action,  null, null, null, null, null);
+        return this.submitArtifact(tenantId, groupId, artifactId, null, action, null, null, null, null, null);
     }
 
 
     /* ******************************************************************************************
      * Version
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String groupId, String artifactId, long version, ActionType action, ArtifactState state,
+    public CompletableFuture<UUID> submitArtifactVersion(String tenantId, String groupId, String artifactId, String version, ActionType action, ArtifactState state,
             EditableArtifactMetaDataDto metaData) {
         ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
         ArtifactVersionValue value = ArtifactVersionValue.create(action, state, metaData);
         return send(key, value);
     }
-    public CompletableFuture<UUID> submitVersion(String tenantId, String groupId, String artifactId, long version, ActionType action) {
+    public CompletableFuture<UUID> submitVersion(String tenantId, String groupId, String artifactId, String version, ActionType action) {
         return submitArtifactVersion(tenantId, groupId, artifactId, version, action, null, null);
     }
 
@@ -189,7 +189,7 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Tombstones
      * ****************************************************************************************** */
-    public void submitArtifactVersionTombstone(String tenantId, String groupId, String artifactId, long version) {
+    public void submitArtifactVersionTombstone(String tenantId, String groupId, String artifactId, String version) {
         ArtifactVersionKey key = ArtifactVersionKey.create(tenantId, groupId, artifactId, version);
         send(key, null);
     }

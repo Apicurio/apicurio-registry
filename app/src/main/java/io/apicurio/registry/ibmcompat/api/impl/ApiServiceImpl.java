@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -344,7 +343,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public Response apiSchemasSchemaidDelete(String schemaid)
     throws ArtifactNotFoundException {
-        SortedSet<String> ids = storage.deleteArtifact(null, schemaid);
+        List<String> ids = storage.deleteArtifact(null, schemaid);
         return Response.status(Response.Status.NO_CONTENT).entity(ids).build();
     }
 

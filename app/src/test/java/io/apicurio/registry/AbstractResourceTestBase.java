@@ -358,7 +358,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @param state
      * @throws Exception
      */
-    protected void waitForVersionState(String groupId, String artifactId, int version, ArtifactState state) throws Exception {
+    protected void waitForVersionState(String groupId, String artifactId, String version, ArtifactState state) throws Exception {
         TestUtils.retry(() -> {
             validateMetaDataResponseState(given()
                 .when()

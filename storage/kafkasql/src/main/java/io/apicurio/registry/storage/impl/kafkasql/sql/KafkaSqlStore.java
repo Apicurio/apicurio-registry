@@ -79,7 +79,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId,
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
@@ -89,12 +89,12 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
 
-        return super.createArtifactWithMetadata(groupId, artifactId, artifactType, contentId, createdBy, createdOn,
+        return super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
                 metaData, globalIdGenerator);
     }
 
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId,
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
@@ -104,12 +104,12 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
 
-        return super.updateArtifactWithMetadata(groupId, artifactId, artifactType, contentId, createdBy, createdOn,
+        return super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
                 metaData, globalIdGenerator);
     }
 
     @Transactional
-    public void updateArtifactVersionMetaDataAndState(String groupId, String artifactId, long version,
+    public void updateArtifactVersionMetaDataAndState(String groupId, String artifactId, String version,
             EditableArtifactMetaDataDto metaData, ArtifactState state) {
         this.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
         this.updateArtifactState(groupId, artifactId, version, state);

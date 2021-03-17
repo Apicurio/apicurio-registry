@@ -79,7 +79,7 @@ jobs:
         run: |
           cd registry
           mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pkafkasql -DskipTests -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Examples
         run: |

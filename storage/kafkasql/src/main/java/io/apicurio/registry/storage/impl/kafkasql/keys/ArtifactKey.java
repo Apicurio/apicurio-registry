@@ -18,6 +18,8 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 
 import java.util.UUID;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+
 /**
  * @author eric.wittmann@gmail.com
  */

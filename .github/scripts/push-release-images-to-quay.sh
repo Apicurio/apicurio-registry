@@ -11,14 +11,10 @@ case $BRANCH_NAME in
        echo "Pushing Release Images for Branch '$BRANCH_NAME'"
        docker push quay.io/apicurio/apicurio-registry-mem:latest-release
        docker push quay.io/apicurio/apicurio-registry-mem:${VERSION}
-       docker push quay.io/apicurio/apicurio-registry-infinispan:latest-release
-       docker push quay.io/apicurio/apicurio-registry-infinispan:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-kafkasql:latest-release
        docker push quay.io/apicurio/apicurio-registry-kafkasql:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-sql:latest-release
        docker push quay.io/apicurio/apicurio-registry-sql:${VERSION}
-       docker push quay.io/apicurio/apicurio-registry-streams:latest-release
-       docker push quay.io/apicurio/apicurio-registry-streams:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-release
        docker push quay.io/apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;
@@ -27,14 +23,10 @@ case $BRANCH_NAME in
        echo "Pushing Release Images for Branch '$BRANCH_NAME'"
        docker push quay.io/apicurio/apicurio-registry-mem:${BRANCH_NAME}-release
        docker push quay.io/apicurio/apicurio-registry-mem:${VERSION}
-       docker push quay.io/apicurio/apicurio-registry-infinispan:${BRANCH_NAME}-release
-       docker push quay.io/apicurio/apicurio-registry-infinispan:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-kafkasql:${BRANCH_NAME}-release
        docker push quay.io/apicurio/apicurio-registry-kafkasql:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-sql:${BRANCH_NAME}-release
        docker push quay.io/apicurio/apicurio-registry-sql:${VERSION}
-       docker push quay.io/apicurio/apicurio-registry-streams:${BRANCH_NAME}-release
-       docker push quay.io/apicurio/apicurio-registry-streams:${VERSION}
        docker push quay.io/apicurio/apicurio-registry-tenant-manager-api:${BRANCH_NAME}-release
        docker push quay.io/apicurio/apicurio-registry-tenant-manager-api:${VERSION}
        ;;

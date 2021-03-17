@@ -134,8 +134,8 @@ public abstract class DistributedService<K, S> implements AutoCloseable {
         }
         ArrayList<S> services = new ArrayList<>(smetas.size());
         for (StreamsMetadata smeta : smetas) {
-            // only use stores that have some active partitions
-            if (smeta.topicPartitions().size() > 0) {
+            // only use stores that have some active partitions and have the store active
+            if (smeta.topicPartitions().size() > 0 && smeta.stateStoreNames().contains(storeName)) {
                 services.add(serviceForHostInfo(smeta.hostInfo(), null));
             }
         }

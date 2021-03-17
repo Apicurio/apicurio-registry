@@ -123,6 +123,8 @@ public class RegistryFacade {
         }
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
         Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
             case infinispan:
@@ -213,8 +215,6 @@ public class RegistryFacade {
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
                         "-Dquarkus.http.port=" + httpPort,
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;
@@ -435,8 +435,6 @@ public class RegistryFacade {
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
                         "-Dquarkus.http.port=8081",
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;

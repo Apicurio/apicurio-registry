@@ -67,11 +67,9 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
     protected RegistryClient createRegistryClient() {
         if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
-            RegistryClient c1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
             int c2port = TestUtils.getRegistryPort() + 1;
-            RegistryClient c2 = RegistryClientFactory.create("http://localhost:" + c2port + "/apis/registry/v2");
 
-            return new LoadBalanceRegistryClient(Arrays.asList(c1, c2));
+            return new LoadBalanceRegistryClient(Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port));
         } else {
             return RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
         }

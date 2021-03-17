@@ -20,8 +20,8 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -42,23 +42,36 @@ import io.apicurio.registry.types.RuleType;
  */
 public class LoadBalanceRegistryClient implements RegistryClient {
 
+    private LinkedList<RegistryClientHolder> targets;
 
-    private LinkedList<RegistryClient> targets;
+    private class RegistryClientHolder {
+        RegistryClient client;
+        String host;
+    }
 
     /**
      * Constructor.
      * @param endpoint
      */
-    public LoadBalanceRegistryClient(List<RegistryClient> targets) {
+    public LoadBalanceRegistryClient(List<String> hosts) {
 
-        this.targets = new LinkedList<RegistryClient>(targets);
+        this.targets = new LinkedList<>();
+
+        hosts.stream()
+            .forEach(h -> {
+                RegistryClientHolder c = new RegistryClientHolder();
+                c.client = RegistryClientFactory.create(h + "/apis/registry/v2");
+                c.host = h;
+                targets.add(c);
+            });
 
     }
 
     private synchronized RegistryClient getTarget() {
-        RegistryClient t = this.targets.poll();
+        RegistryClientHolder t = this.targets.poll();
         this.targets.addLast(t);
-        return t;
+        System.out.println("Request to " + t.host);
+        return t.client;
     }
 
     /**

@@ -16,11 +16,10 @@
 
 package io.apicurio.registry.services.tenant;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
-import io.apicurio.registry.mt.metadata.TenantMetadataDto;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.mt.TenantMetadataService;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.quarkus.oidc.common.runtime.OidcCommonConfig.Tls.Verification;
@@ -50,8 +49,7 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     @Inject
-    @Current
-    RegistryStorage registryStorage;
+    TenantMetadataService tenantMetadataService;
 
     @Inject
     TenantContext tenantContext;
@@ -84,12 +82,12 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
 
         log.debug("Resolving authz config for tenant {}", tenantId);
 
-        final TenantMetadataDto registryTenant = registryStorage.getTenantMetadata(tenantId);
+        final RegistryTenant registryTenant = tenantMetadataService.getTenant(tenantId);
         final OidcTenantConfig config = new OidcTenantConfig();
 
         config.setTenantId(registryTenant.getTenantId());
         config.setAuthServerUrl(registryTenant.getAuthServerUrl());
-        config.setClientId(registryTenant.getClientId());
+        config.setClientId(registryTenant.getAuthClientId());
 
         if (tlsVerification.isPresent() && tlsVerification.get().equalsIgnoreCase("none")) {
             config.tls.verification = Optional.of(Verification.NONE);

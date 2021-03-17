@@ -23,7 +23,6 @@ import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.events.dto.ArtifactId;
 import io.apicurio.registry.events.dto.ArtifactRuleChange;
 import io.apicurio.registry.events.dto.ArtifactStateChange;
@@ -71,6 +70,22 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
         if (error == null && data != null) {
             eventsService.triggerEvent(type, Optional.ofNullable(artifactId), data);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     */
+    @Override
+    public String storageName() {
+        return storage.storageName();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     */
+    @Override
+    public boolean supportsMultiTenancy() {
+        return storage.supportsMultiTenancy();
     }
 
     @Override
@@ -363,11 +378,6 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
-        return storage.getTenantMetadata(tenantId);
-    }
-
-    @Override
     public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
         return storage.getLogConfiguration(logger);
     }
@@ -399,7 +409,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetadata(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
-import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.quarkus.test.junit.QuarkusTest;
@@ -80,7 +80,7 @@ public class TenantManagerClientTest {
     }
 
     private void testTenantNotFound(String tenantId) {
-        Assertions.assertThrows(TenantManagerClientException.class, () -> {
+        Assertions.assertThrows(RegistryTenantNotFoundException.class, () -> {
             client.getTenant(tenantId);
         });
     }

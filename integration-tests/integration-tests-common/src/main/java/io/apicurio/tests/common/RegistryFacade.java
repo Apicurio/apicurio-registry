@@ -62,7 +62,7 @@ public class RegistryFacade {
 
     private KeycloakContainer keycloakContainer;
 
-    private String tenantManagerUrl = "http://localhost:8080";
+    private String tenantManagerUrl = "http://localhost:8585";
 
     private static RegistryFacade instance;
 
@@ -123,6 +123,8 @@ public class RegistryFacade {
         }
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
         Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
             case infinispan:
@@ -180,8 +182,6 @@ public class RegistryFacade {
             } catch (Throwable e) {
                 throw new Exception(e);
             }
-
-
         } else {
             TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
@@ -191,7 +191,7 @@ public class RegistryFacade {
 
             if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                 TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
-                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8080, "Tenant Manager"));
+                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
 
                 TestUtils.waitFor("Tenant Manager reports is ready",
                         Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
@@ -213,8 +213,6 @@ public class RegistryFacade {
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
                         "-Dquarkus.http.port=" + httpPort,
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;
@@ -272,7 +270,6 @@ public class RegistryFacade {
                 cmd.add("java");
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=8080",
                         "-Dquarkus.log.console.level=DEBUG",
                         "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
@@ -435,8 +432,6 @@ public class RegistryFacade {
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
                         "-Dquarkus.http.port=8081",
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;

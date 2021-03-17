@@ -14,6 +14,7 @@ public interface StreamsProperties {
     String getContentStoreName();
     String getStorageTopic();
     String getGlobalIdTopic();
+    String getContentTopic();
     String getApplicationServer();
     boolean ignoreAutoCreate();
 }

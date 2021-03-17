@@ -2,6 +2,7 @@ package io.apicurio.registry.streams;
 
 import com.google.common.collect.ImmutableMap;
 import io.apicurio.registry.storage.proto.Str;
+import io.apicurio.registry.streams.topology.StreamsTopologyProvider;
 import io.apicurio.registry.streams.utils.ArtifactKeySerde;
 import io.apicurio.registry.streams.utils.StateService;
 import io.apicurio.registry.streams.utils.WaitForDataService;
@@ -122,6 +123,7 @@ public class StreamsRegistryConfiguration {
                 Set<String> topicNames = new LinkedHashSet<>();
                 topicNames.add(properties.getStorageTopic());
                 topicNames.add(properties.getGlobalIdTopic());
+                topicNames.add(properties.getContentTopic());
                 KafkaUtil.createTopics(admin, topicNames);
             }
         }

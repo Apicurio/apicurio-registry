@@ -49,6 +49,13 @@ message ArtifactData {
     map<string, string> metadata = 4;
 }
 
+message ArtifactContentValue {
+    int32 artifactType = 1;
+    fixed64 id = 2;
+    ContentValue content = 3;
+    map<string, string> metadata = 4;
+}
+
 message MetaDataValue {
     string name = 1;
     string description = 2;
@@ -92,6 +99,7 @@ enum ValueType {
     LOGCONFIG = 6;
     GROUP = 7;
     ARTIFACT_DATA = 8;
+    ARTIFACT_CONTENT_VALUE = 9;
 }
 
 message StorageValue {
@@ -108,6 +116,7 @@ message StorageValue {
         LogConfigValue logConfig = 10;
         GroupMetaDataValue group = 11;
         ArtifactData artifactData = 12;
+        ArtifactContentValue artifactContentValue = 13;
     }
 }
 

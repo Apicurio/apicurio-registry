@@ -111,10 +111,10 @@ public class LogConfigurationService {
 
     public NamedLogConfiguration setLogLevel(String loggerName, LogLevel logLevel) {
         try {
+            LOGGER.info("Changing log level for logger " + loggerName + " to " + logLevel);
             Logger logger = Logger.getLogger(loggerName);
             logger.setLevel(Level.parse(logLevel.value()));
-            LOGGER.info("Changing log level for logger " + loggerName + " to " + logLevel);
-        } catch ( Exception e ) {
+        } catch (Exception e) {
             throw new BadRequestException("level is not a valid log level");
         }
 

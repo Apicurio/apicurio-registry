@@ -430,7 +430,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            assertEquals(level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
+            assertEquals("Log value for logger " + testLoggerName + " was not actually set, even though the server reported it was.",
+                    level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
@@ -450,7 +451,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
 
         //remove default log level to avoid conflicts with the checkLogLevel daemon process
-        List<LogLevel> levels =  EnumSet.allOf(LogLevel.class)
+        List<LogLevel> levels = EnumSet.allOf(LogLevel.class)
             .stream()
             .filter(l -> !l.value().equals(defaultLogLevel))
             .collect(Collectors.toList());

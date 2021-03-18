@@ -40,8 +40,7 @@ import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.storage.RegistryStorage;
 
 /**
- * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
- * use any ORM technology - it simply uses native SQL for all operations.
+ * An in-memory SQL implementation of the {@link RegistryStorage} interface.
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped

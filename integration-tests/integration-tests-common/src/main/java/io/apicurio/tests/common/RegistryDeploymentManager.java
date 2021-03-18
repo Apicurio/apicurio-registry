@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
-
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -54,7 +52,7 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
         }
         try {
             registry.waitForRegistryReady();
-        } catch (TimeoutException e) {
+        } catch (Exception e) {
             if (!TestUtils.isExternalRegistry()) {
                 try {
                     Path logsPath = RegistryUtils.getLogsPath(context.getRequiredTestClass(), context.getDisplayName());

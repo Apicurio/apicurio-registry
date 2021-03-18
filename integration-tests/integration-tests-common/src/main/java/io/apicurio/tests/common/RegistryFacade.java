@@ -34,11 +34,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.junit.jupiter.api.function.ThrowingConsumer;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.slf4j.Logger;
@@ -62,7 +62,7 @@ public class RegistryFacade {
 
     private KeycloakContainer keycloakContainer;
 
-    private String tenantManagerUrl = "http://localhost:8080";
+    private String tenantManagerUrl = "http://localhost:8585";
 
     private static RegistryFacade instance;
 
@@ -116,7 +116,6 @@ public class RegistryFacade {
             throw new IllegalStateException("Only sql storage allowed for multitenancy tests");
         }
 
-
         String path = getJarPath();
         if (path == null) {
             throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +
@@ -124,12 +123,10 @@ public class RegistryFacade {
         }
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
         Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
-            case infinispan:
-                break;
-            case streams:
-                setupKafkaStorage(appEnv);
                 break;
             case sql:
                 setupSQLStorage(appEnv);
@@ -139,33 +136,114 @@ public class RegistryFacade {
                 break;
         }
 
-        if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
-            appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-            runKeycloak(appEnv);
-            runTenantManager(appEnv);
-        }
+        if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
-        runRegistry(path, appEnv);
+            Map<String, String> node1Env = new HashMap<>(appEnv);
+            runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
+
+            Map<String, String> node2Env = new HashMap<>(appEnv);
+            runRegistryNode(path, node2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
+
+        } else {
+            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+                appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
+                runKeycloak(appEnv);
+                runTenantManager(appEnv);
+            }
+
+            runRegistry(path, appEnv);
+        }
 
     }
 
-    public void waitForRegistryReady() throws TimeoutException {
-        TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
+    public void waitForRegistryReady() throws Exception {
 
-        TestUtils.waitFor("Registry reports is ready",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
+        if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
-        if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
-            TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
-                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8080, "Tenant Manager"));
+            ThrowingConsumer<Integer> nodeIsReady = (port) -> {
+                TestUtils.waitFor("Cannot connect to registries on node :" + port + " in timeout!",
+                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", port, "registry node"));
 
-            TestUtils.waitFor("Tenant Manager reports is ready",
-                    Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
-                    () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", false, "Tenant Manager"),
-                    () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", true, "Tenant Manager"));
+                TestUtils.waitFor("Registry reports is ready",
+                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY,
+                        () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", false, "registry node"),
+                        () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", true, "registry node"));
+            };
+
+            try {
+                nodeIsReady.accept(TestUtils.getRegistryPort());
+                nodeIsReady.accept(TestUtils.getRegistryPort() + 1);
+            } catch (Throwable e) {
+                throw new Exception(e);
+            }
+        } else {
+            TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);
+
+            TestUtils.waitFor("Registry reports is ready",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
+
+            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+                TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
+                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
+
+                TestUtils.waitFor("Tenant Manager reports is ready",
+                        Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
+                        () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", false, "Tenant Manager"),
+                        () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", true, "Tenant Manager"));
+            }
         }
 
+    }
+
+    private void runRegistryNode(String path, Map<String, String> appEnv, String httpPort) {
+        Exec executor = new Exec();
+        LOGGER.info("Starting Registry app from: {}", path);
+        CompletableFuture.supplyAsync(() -> {
+            try {
+
+                List<String> cmd = new ArrayList<>();
+                cmd.add("java");
+                cmd.addAll(Arrays.asList(
+                        // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
+                        "-Dquarkus.http.port=" + httpPort,
+                        "-jar", path));
+                int timeout = executor.execute(cmd, appEnv);
+                return timeout == 0;
+            } catch (Exception e) {
+                LOGGER.error("Failed to start registry (could not find runner JAR).", e);
+                System.exit(1);
+                return false;
+            }
+        }, runnable -> new Thread(runnable).start());
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return "registry-node" + httpPort;
+            }
+
+            @Override
+            public void close() throws Exception {
+                executor.stop();
+            }
+
+            @Override
+            public String getStdOut() {
+                return executor.stdOut();
+            }
+
+            @Override
+            public String getStdErr() {
+                return executor.stdErr();
+            }
+
+            @Override
+            public boolean isContainer() {
+                return false;
+            }
+
+        });
     }
 
     private void runTenantManager(Map<String, String> registryAppEnv) throws Exception {
@@ -186,7 +264,6 @@ public class RegistryFacade {
                 cmd.add("java");
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=8080",
                         "-Dquarkus.log.console.level=DEBUG",
                         "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
@@ -332,9 +409,6 @@ public class RegistryFacade {
         }
 
         appEnv.put("KAFKA_BOOTSTRAP_SERVERS", kafkaFacade.bootstrapServers());
-        if (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams) {
-            appEnv.put("APPLICATION_ID", "test-application");
-        }
         processes.add(kafkaFacade);
     }
 
@@ -349,8 +423,6 @@ public class RegistryFacade {
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
                         "-Dquarkus.http.port=8081",
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;

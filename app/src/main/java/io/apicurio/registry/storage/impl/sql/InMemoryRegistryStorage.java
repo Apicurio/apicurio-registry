@@ -60,4 +60,12 @@ public class InMemoryRegistryStorage extends AbstractSqlRegistryStorage {
         log.info("Using In Memory (H2) SQL storage.");
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     */
+    @Override
+    public String storageName() {
+        return "in-memory";
+    }
+
 }

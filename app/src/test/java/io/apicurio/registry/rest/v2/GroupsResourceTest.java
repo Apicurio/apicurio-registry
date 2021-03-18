@@ -622,6 +622,20 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(400);
 
+        // Create another new version of the artifact with a custom version #
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-Version", "3.0.0.Final")
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo("3.0.0.Final"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
     }
 
     @Test
@@ -1637,5 +1651,112 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("description", not(equalTo("An example API design using OpenAPI.")));
 
     }
+
+    @Test
+    public void testCustomArtifactVersion() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        String groupId = "testCustomArtifactVersion";
+        String artifactId = "MyVersionedAPI";
+
+        // Create OpenAPI artifact version 1.0.0
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+                .header("X-Registry-Version", "1.0.0")
+                .body(artifactContent)
+            .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("groupId", equalTo(groupId))
+                .body("version", equalTo("1.0.0"));
+        waitForArtifact(groupId, artifactId);
+
+        // Make sure we can get the artifact content by version
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .pathParam("version", "1.0.0")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}")
+            .then()
+                .statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+
+        // Make sure we can get the artifact meta-data by version
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .pathParam("version", "1.0.0")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("groupId", equalTo(groupId))
+                .body("version", equalTo("1.0.0"));
+
+        // Add version 1.0.1
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-Version", "1.0.1")
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(artifactContent.replace("Empty API", "Empty API (Version 1.0.1)"))
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("version", equalTo("1.0.1"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // List the artifact versions
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("versions[0].version", equalTo("1.0.0"))
+                .body("versions[1].version", equalTo("1.0.1"));
+
+        // Add version 1.0.2
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .header("X-Registry-Version", "1.0.2")
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(artifactContent.replace("Empty API", "Empty API (Version 1.0.2)"))
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("version", equalTo("1.0.2"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // List the artifact versions
+        given()
+            .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("count", equalTo(3))
+                .body("versions[0].version", equalTo("1.0.0"))
+                .body("versions[1].version", equalTo("1.0.1"))
+                .body("versions[2].version", equalTo("1.0.2"));
+
+    }
+
 
 }

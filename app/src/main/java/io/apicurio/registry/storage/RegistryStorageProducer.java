@@ -16,19 +16,21 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.registry.events.EventSourcedRegistryStorage;
-import io.apicurio.registry.events.EventsService;
-import io.apicurio.registry.storage.impl.InMemoryRegistryStorage;
-import io.apicurio.registry.types.Current;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.events.EventSourcedRegistryStorage;
+import io.apicurio.registry.events.EventsService;
+import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.apicurio.registry.types.Current;
 
 /**
  * @author Ales Justin
@@ -52,7 +54,7 @@ public class RegistryStorageProducer {
     public RegistryStorage realImpl() {
 
         RegistryStorage impl = null;
-        
+
         if (provider.isResolvable()) {
             impl= provider.get().storage();
         } else {
@@ -77,7 +79,7 @@ public class RegistryStorageProducer {
                 return impl;
             }
         }
-        
+
         throw new IllegalStateException("No RegistryStorage available on the classpath!");
     }
 }

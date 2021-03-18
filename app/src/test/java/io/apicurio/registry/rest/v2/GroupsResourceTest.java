@@ -226,6 +226,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("groupId", equalTo(GROUP))
+                .body("version", equalTo("1"))
                 .body("id", equalTo("testCreateArtifact/EmptyAPI/2"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
@@ -276,6 +277,23 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400);
+
+        // Create OpenAPI artifact - provide a custom version #
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customVersion")
+                .header("X-Registry-Version", "1.0.2")
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("version", equalTo("1.0.2"))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customVersion"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
     }
 
     @Test

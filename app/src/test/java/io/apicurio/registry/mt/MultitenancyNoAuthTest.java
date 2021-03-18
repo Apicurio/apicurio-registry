@@ -61,12 +61,8 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
     @Test
     public void testMultitenantRegistry() throws Exception {
 
-        try {
-            storage.getTenantMetadata("foo");
-        } catch (Exception e) {
-            if (e instanceof UnsupportedOperationException) {
-                throw new TestAbortedException("Multitenancy not supported - aborting test", e);
-            }
+        if (!storage.supportsMultiTenancy()) {
+            throw new TestAbortedException("Multitenancy not supported - aborting test");
         }
 
         RegistryClient clientTenant1 = RegistryClientFactory.create("http://localhost:8081/t/" + UUID.randomUUID().toString() + "/apis/registry/v2" );

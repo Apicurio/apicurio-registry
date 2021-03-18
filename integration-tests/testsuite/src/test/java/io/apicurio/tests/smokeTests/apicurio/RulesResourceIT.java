@@ -115,9 +115,9 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
         TestUtils.retry(() -> {
-            List<Long> artifactVersions = listArtifactVersions(groupId, artifactId);
+            List<String> artifactVersions = listArtifactVersions(groupId, artifactId);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
-            assertThat(artifactVersions, hasItems(1L, 2L));
+            assertThat(artifactVersions, hasItems("1", "2"));
         });
     }
 
@@ -165,13 +165,13 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
         TestUtils.retry(() -> {
-            List<Long> artifactVersions = listArtifactVersions(groupId, artifactId1);
+            List<String> artifactVersions = listArtifactVersions(groupId, artifactId1);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId1, artifactVersions.toString());
-            assertThat(artifactVersions, hasItems(1L, 2L));
+            assertThat(artifactVersions, hasItems("1", "2"));
 
             artifactVersions = listArtifactVersions(groupId, artifactId2);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId2, artifactVersions.toString());
-            assertThat(artifactVersions, hasItems(1L, 2L));
+            assertThat(artifactVersions, hasItems("1", "2"));
         });
     }
 

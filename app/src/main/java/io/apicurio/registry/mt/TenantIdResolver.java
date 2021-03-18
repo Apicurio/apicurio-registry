@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.RegistryApplicationServletFilter;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.ext.web.RoutingContext;
 
@@ -33,7 +34,7 @@ import io.vertx.ext.web.RoutingContext;
  * This class centralizes the logic to resolve the tenantId from an http request.
  *
  * In deployments with authentication enabled the {@link io.apicurio.registry.services.tenant.CustomTenantConfigResolver} will
- * get triggered first and it will attempt to resolve the tenantId before {@link io.apicurio.registry.mt.TenantRequestFilter}, but
+ * get triggered first and it will attempt to resolve the tenantId before {@link RegistryApplicationServletFilter}, but
  * the TenantRequestFilter will attempt to resolve the tenantId anyway.
  *
  * @author Fabian Martinez

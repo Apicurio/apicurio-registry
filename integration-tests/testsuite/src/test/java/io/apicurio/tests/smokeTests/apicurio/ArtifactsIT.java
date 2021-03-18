@@ -111,10 +111,10 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
-        List<Long> apicurioVersions = listArtifactVersions(groupId, artifactId);
+        List<String> apicurioVersions = listArtifactVersions(groupId, artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
-        assertThat(apicurioVersions, hasItems(1L, 2L));
+        assertThat(apicurioVersions, hasItems("1", "2"));
 
         InputStream version1 = registryClient.getArtifactVersion(groupId, artifactId, "1");
         response = mapper.readTree(version1);
@@ -181,10 +181,10 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        List<Long> artifactVersions = listArtifactVersions(groupId, artifactId);
+        List<String> artifactVersions = listArtifactVersions(groupId, artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
-        assertThat(artifactVersions, hasItems(1L, 2L));
+        assertThat(artifactVersions, hasItems("1", "2"));
     }
 
     @Test
@@ -263,7 +263,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         TestUtils.retry(() -> {
             ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            assertEquals(3, actualMD.getVersion());
+            assertEquals("3", actualMD.getVersion());
 
             // Verify v1
             VersionMetaData actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
@@ -284,7 +284,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
             // Verify artifact (now v3)
             ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
-            assertEquals(3, actualMD.getVersion()); // version 2 is active (3 is disabled)
+            assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
             VersionMetaData actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.mt.metadata;
+package io.apicurio.registry.mt;
 
 import io.apicurio.registry.types.RegistryException;
 

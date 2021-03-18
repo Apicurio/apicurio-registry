@@ -29,6 +29,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 
@@ -99,6 +100,8 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
+            } else if (res.statusCode() == 404) {
+                throw new RegistryTenantNotFoundException(res.toString());
             }
             throw new TenantManagerClientException(res.toString());
         } catch ( IOException | InterruptedException e ) {

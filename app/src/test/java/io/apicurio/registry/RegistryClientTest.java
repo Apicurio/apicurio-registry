@@ -799,9 +799,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final List<NamedLogConfiguration> namedLogConfigurations = clientV2.listLogConfigurations();
         assertEquals(0, namedLogConfigurations.size());
 
-        setLogLevel(logger, LogLevel.FINE);
+        setLogLevel(logger, LogLevel.DEBUG);
         final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
-        assertEquals(LogLevel.FINE, logConfiguration.getLevel());
+        assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
         assertEquals(logger, logConfiguration.getName());
 
         final List<NamedLogConfiguration> logConfigurations = clientV2.listLogConfigurations();

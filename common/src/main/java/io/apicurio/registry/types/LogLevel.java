@@ -9,10 +9,12 @@ import com.fasterxml.jackson.annotation.JsonValue;
 @io.quarkus.runtime.annotations.RegisterForReflection
 public enum LogLevel {
 
-    DEBUG("DEBUG"),
-    TRACE("TRACE"),
-    WARN("WARN"),
-    ERROR("ERROR"),
+// I think we can only support java.util.Logger values?
+//    DEBUG("DEBUG"),
+//    TRACE("TRACE"),
+//    WARN("WARN"),
+//    ERROR("ERROR"),
+    OFF("OFF"),
     SEVERE("SEVERE"),
     WARNING("WARNING"),
     INFO("INFO"),

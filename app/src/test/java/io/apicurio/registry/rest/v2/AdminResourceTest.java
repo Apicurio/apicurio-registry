@@ -430,7 +430,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            assertEquals("Log value for logger " + testLoggerName + " was not actually set, even though the server reported it was.",
+            assertEquals("Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "', even though the server reported it was.",
                     level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
         };
 

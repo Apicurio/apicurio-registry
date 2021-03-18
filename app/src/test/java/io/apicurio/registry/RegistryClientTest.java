@@ -795,14 +795,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void smokeLogLevels() {
-
         final String logger = "smokeLogLevels";
         final List<NamedLogConfiguration> namedLogConfigurations = clientV2.listLogConfigurations();
         assertEquals(0, namedLogConfigurations.size());
 
-        setLogLevel(logger, LogLevel.DEBUG);
+        setLogLevel(logger, LogLevel.FINE);
         final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
-        assertEquals(LogLevel.DEBUG, logConfiguration.getLevel());
+        assertEquals(LogLevel.FINE, logConfiguration.getLevel());
         assertEquals(logger, logConfiguration.getName());
 
         final List<NamedLogConfiguration> logConfigurations = clientV2.listLogConfigurations();

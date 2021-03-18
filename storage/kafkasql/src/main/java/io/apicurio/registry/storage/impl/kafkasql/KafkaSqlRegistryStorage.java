@@ -51,6 +51,7 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -64,7 +65,6 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.mt.metadata.TenantMetadataDto;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -167,6 +167,22 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     */
+    @Override
+    public String storageName() {
+        return "kafkasql";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     */
+    @Override
+    public boolean supportsMultiTenancy() {
+        return true;
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.AbstractRegistryStorage#isReady()
      */
     @Override
@@ -199,7 +215,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         topicProperties.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
         Properties adminProperties = configuration.adminProperties();
         adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
-        KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
+        try {
+            KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
+        } catch (TopicExistsException e) {
+            log.info("Topic already exists, skipping");
+        }
     }
 
     /**
@@ -732,15 +752,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Delete));
         coordinator.waitForResponse(reqId);
     }
-
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getTenantMetadata(String)
-     */
-    @Override
-    public TenantMetadataDto getTenantMetadata(String tenantId) throws RegistryStorageException {
-        return sqlStore.getTenantMetadata(tenantId);
-    }
-
 
     private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
         ArtifactStateExt.applyState(

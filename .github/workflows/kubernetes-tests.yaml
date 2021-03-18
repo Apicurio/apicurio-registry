@@ -32,8 +32,11 @@ jobs:
           version: '11'
           architecture: x64
 
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: ./mvnw clean install -Pprod -Psql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build The Tagged Docker Images
         run: |

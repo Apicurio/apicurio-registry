@@ -29,7 +29,7 @@ public class RegistryUtils {
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))
-                .orElse(null);
+                .orElse("");
 
     private RegistryUtils() {
         //utils class

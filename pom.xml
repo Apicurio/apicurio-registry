@@ -108,6 +108,8 @@
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
+        <module>multitenancy/tenant-manager-datamodel</module>
+        <module>multitenancy/tenant-manager-client</module>
     </modules>
 
     <properties>
@@ -819,8 +821,6 @@
         <profile>
             <id>multitenancy</id>
             <modules>
-                <module>multitenancy/tenant-manager-datamodel</module>
-                <module>multitenancy/tenant-manager-client</module>
                 <module>multitenancy/tenant-manager-api</module>
             </modules>
         </profile>

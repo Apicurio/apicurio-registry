@@ -40,8 +40,9 @@ public class SearchedVersionDto {
     private ArtifactState state;
     private long globalId;
     private long contentId;
-    private long version;
-    
+    private String version;
+    private int versionId;
+
     /**
      * Constructor.
      */
@@ -177,14 +178,14 @@ public class SearchedVersionDto {
     /**
      * @return the version
      */
-    public long getVersion() {
+    public String getVersion() {
         return version;
     }
 
     /**
      * @param version the version to set
      */
-    public void setVersion(long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 
@@ -200,6 +201,20 @@ public class SearchedVersionDto {
      */
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+    /**
+     * @return the versionId
+     */
+    public int getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * @param versionId the versionId to set
+     */
+    public void setVersionId(int versionId) {
+        this.versionId = versionId;
     }
 
 }

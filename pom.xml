@@ -96,9 +96,7 @@
         <module>ui</module>
         <module>utils/converter</module>
         <module>utils/kafka</module>
-        <module>utils/streams</module>
         <module>utils/maven-plugin</module>
-        <module>utils/sql</module>
         <module>utils/tools</module>
         <module>schema-compatibility/json</module>
         <module>utils/tests</module>
@@ -142,9 +140,6 @@
         <protobuf.version>3.15.6</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
-
-        <!-- Storage types -->
-        <infinispan.version>12.0.1.Final</infinispan.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>
@@ -258,16 +253,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-streams</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-kafka</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
@@ -303,17 +288,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-asyncmem</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-streams</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -376,16 +351,6 @@
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-data-models</artifactId>
                 <version>${apicurio-data-models.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-commons</artifactId>
-                <version>${infinispan.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
@@ -854,27 +819,9 @@
             </modules>
         </profile>
         <profile>
-            <id>infinispan</id>
-            <modules>
-                <module>storage/infinispan</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>asyncmem</id>
-            <modules>
-                <module>storage/asyncmem</module>
-            </modules>
-        </profile>
-        <profile>
             <id>sql</id>
             <modules>
                 <module>storage/sql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>streams</id>
-            <modules>
-                <module>storage/streams</module>
             </modules>
         </profile>
         <profile>

@@ -13,6 +13,7 @@ public enum LogLevel {
     TRACE("TRACE"),
     WARN("WARN"),
     ERROR("ERROR"),
+    OFF("OFF"),
     SEVERE("SEVERE"),
     WARNING("WARNING"),
     INFO("INFO"),

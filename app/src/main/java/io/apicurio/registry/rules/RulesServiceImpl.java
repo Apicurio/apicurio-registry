@@ -74,7 +74,7 @@ public class RulesServiceImpl implements RulesService {
     private void applyGlobalAndArtifactRules(String groupId, String artifactId, ArtifactType artifactType,
             ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent,
             List<RuleType> artifactRules) {
-        
+
         Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
             .collect(Collectors.toMap(ruleType -> ruleType, ruleType -> storage.getArtifactRule(groupId, artifactId, ruleType)));
 
@@ -134,7 +134,7 @@ public class RulesServiceImpl implements RulesService {
      * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, java.lang.String, long, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public void applyRules(String groupId, String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
             throws RuleViolationException {
         StoredArtifactDto versionContent = storage.getArtifactVersion(groupId, artifactId, artifactVersion);
         applyGlobalAndArtifactRules(groupId, artifactId, artifactType, versionContent.getContent(), updatedContent, storage.getArtifactRules(groupId, artifactId));

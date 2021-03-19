@@ -107,7 +107,7 @@ public class SearchedVersion {
      */
     @JsonProperty("version")
     @JsonPropertyDescription("")
-    private Long version;
+    private String version;
     /**
      * User-defined name-value pairs. Name and value must be strings.
      * 
@@ -290,7 +290,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public Long getVersion() {
+    public String getVersion() {
         return version;
     }
 
@@ -300,7 +300,7 @@ public class SearchedVersion {
      * 
      */
     @JsonProperty("version")
-    public void setVersion(Long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 

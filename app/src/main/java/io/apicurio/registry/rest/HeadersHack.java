@@ -32,14 +32,14 @@ public class HeadersHack {
             Supplier<ArtifactState> stateSupplier,
             String groupId,
             String artifactId,
-            Number version,
+            Object version,
             Response.ResponseBuilder builder
     ) {
         if (stateSupplier.get() == ArtifactState.DEPRECATED) {
             builder.header(Headers.DEPRECATED, true);
             builder.header(Headers.GROUP_ID, groupId);
             builder.header(Headers.ARTIFACT_ID, artifactId);
-            builder.header(Headers.VERSION, version);
+            builder.header(Headers.VERSION, version != null ? String.valueOf(version) : null);
         }
     }
 }

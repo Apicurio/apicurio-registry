@@ -23,7 +23,7 @@ jobs:
           uses: actions/checkout@v2
             
         - name: Build Registry
-          run: ./mvnw clean install -Pprod -Psql -Pstreams -Pkafkasql -Pmultitenancy -Pinfinispan -Dquarkus.version=999-SNAPSHOT
+          run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -Dquarkus.version=999-SNAPSHOT
 
         - name: Set test profile to all
           run: echo "test_profile=all" >> $GITHUB_ENV
@@ -31,14 +31,8 @@ jobs:
         - name: Build integration-tests-common
           run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common -Dquarkus.version=999-SNAPSHOT
 
-        - name: Run Integration Tests - streams
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
-
         - name: Run Integration Tests - sql
           run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
-
-        - name: Run Integration Tests - infinispan
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pinfinispan -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
 
         - name: Run Integration Tests - kafkasql
           run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
@@ -46,9 +40,6 @@ jobs:
         - name: Run Integration Tests - multitenancy
           run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -Dquarkus.version=999-SNAPSHOT 
 
-        - name: Run Legacy Tests - streams
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
-            
         - name: Run Legacy Tests - sql
           run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
 

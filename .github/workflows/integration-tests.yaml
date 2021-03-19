@@ -55,29 +55,30 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build All Variants
-        run: ./mvnw clean install -Pprod -Psql -Pstreams -Pkafkasql -Pmultitenancy -Pinfinispan -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
-
+        run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
+
       - name: Run UI tests - only PRs
         if: github.ref != 'refs/heads/master'
         run: ./mvnw verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Integration Tests - streams
-        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      - name: Run Integration Tests - streams clustered
-        run: ./mvnw verify -Pintegration-tests -Pclustered -Pstreams -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      
       - name: Run Integration Tests - sql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      - name: Run Integration Tests - infinispan
-        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pinfinispan -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - sql clustered
+        run: ./mvnw verify -Pintegration-tests -Pclustered -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - kafkasql clustered
+        run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - multitenancy
         run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      - name: Run Legacy Tests - streams
-        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pstreams -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Run Legacy Tests - kafkasql
+        run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Legacy Tests - sql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
+
       - name: Collect logs
         if: failure()
         run: ./.github/scripts/collect_logs.sh

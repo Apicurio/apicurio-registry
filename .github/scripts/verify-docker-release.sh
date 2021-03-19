@@ -12,7 +12,7 @@
 ##                                                                                                                                                                                         ##
 ## USAGE: The script accepts image names as paramaters. We can pass as many image names as we want.                                                                                        ##
 ##                                                                                                                                                                                         ##
-## EXAMPLE: ./verify-docker-release.sh apicurio/apicurio-registry-infinispan:1.2.3.Final apicurio/apicurio-registry-infinispan:latest apicurio/apicurio-registry-infinispan:latest-release ## 
+## EXAMPLE: ./verify-docker-release.sh apicurio/apicurio-registry-sql:1.2.3.Final apicurio/apicurio-registry-sql:latest apicurio/apicurio-registry-sql:latest-release ## 
 ##                                                                                                                                                                                         ##
 ############################################################################################################################################################################################# 
 

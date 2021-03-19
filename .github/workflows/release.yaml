@@ -113,7 +113,7 @@ jobs:
         run: |
           cd registry
           mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-          ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pkafkasql -DskipTests  -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests  -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Examples
         run: |
@@ -268,15 +268,9 @@ jobs:
       - name: Verify Docker Release For mem
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-mem:latest-release 
      
-      - name: Verify Docker Release For streams
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-streams:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-streams:latest-release 
-    
       - name: Verify Docker Release For sql
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-sql:latest-release 
     
-      - name: Verify Docker Release For infinispan
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-infinispan:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-infinispan:latest-release 
- 
       - name: Verify Docker Release For kafkasql
         run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-kafkasql:latest-release 
 

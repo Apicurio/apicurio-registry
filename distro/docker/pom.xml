@@ -17,9 +17,6 @@
         <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
         <docker.sql.file>app-files/apicurio-registry-storage-sql-${project.version}-all.tar.gz</docker.sql.file>
         <docker.kafkasql.file>app-files/apicurio-registry-storage-kafkasql-${project.version}-all.tar.gz</docker.kafkasql.file>
-        <docker.infinispan.file>app-files/apicurio-registry-storage-infinispan-${project.version}-all.tar.gz</docker.infinispan.file>
-        <docker.asyncmem.file>app-files/apicurio-registry-storage-asyncmem-${project.version}-all.tar.gz</docker.asyncmem.file>
-        <docker.streams.file>app-files/apicurio-registry-storage-streams-${project.version}-all.tar.gz</docker.streams.file>
     </properties>
 
     <build>
@@ -56,30 +53,6 @@
                                 </resource>
                                 <resource>
                                     <directory>${basedir}/../../storage/kafkasql/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/infinispan/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/asyncmem/target</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>apicurio-*.tar.gz</include>
-                                        <include>apicurio-*runner</include>
-                                    </includes>
-                                </resource>
-                                <resource>
-                                    <directory>${basedir}/../../storage/streams/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>apicurio-*.tar.gz</include>
@@ -152,7 +125,7 @@
     <profiles>
 
         <profile>
-            <id>native</id>
+            <id>mem</id>
             <build>
                 <plugins>
 
@@ -263,138 +236,6 @@
                                             <build>
                                                 <contextDir>${project.build.directory}/docker</contextDir>
                                                 <dockerFile>./Dockerfile.kafkasql.jvm</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>infinispan</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-infinispan</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-infinispan:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.infinispan.jvm</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>asyncmem</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-asyncmem</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-asyncmem:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.asyncmem.jvm</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>streams</id>
-            <dependencies>
-                <dependency>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-storage-streams</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-streams:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.streams.jvm</dockerFile>
                                                 <tags combine.children="append">
                                                     <tag>latest</tag>
                                                 </tags>

@@ -16,6 +16,21 @@
 
 package io.apicurio.registry.storage;
 
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -29,19 +44,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.util.SortedSet;
-import javax.inject.Inject;
 
 @QuarkusTest
 public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
@@ -71,6 +73,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         }
     }
 
+    @Override
     @BeforeEach
     public void beforeEach() throws Exception {
         super.beforeEach();
@@ -90,15 +93,15 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
     public void testArtifactsAndMeta() throws Exception {
         String artifactId1 = TestUtils.generateArtifactId();
         createArtifact(artifactId1, ArtifactType.JSON, "{}");
-        
+
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content1")));
+        ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1")));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_1);
-        ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, ArtifactType.JSON, ContentHandle.create("content2")));
+        ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2")));
         this.waitForGlobalId(meta2.getGlobalId());
-        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, ArtifactType.AVRO, ContentHandle.create("content3")));
+        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3")));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_2);
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
@@ -113,7 +116,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         ArtifactMetaDataDto metaLatest = getStorage().getArtifactMetaData(GROUP_ID, ARTIFACT_ID_1);
         assertEquals(meta2, metaLatest);
 
-        SortedSet<Long> versions = getStorage().getArtifactVersions(GROUP_ID, ARTIFACT_ID_1);
+        List<String> versions = getStorage().getArtifactVersions(GROUP_ID, ARTIFACT_ID_1);
         assertEquals(2, versions.size());
         assertTrue(versions.contains(a1.getVersion()));
 
@@ -133,7 +136,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             return null;
         });
 
-        SortedSet<Long> deleted = getStorage().deleteArtifact(GROUP_ID, ARTIFACT_ID_1);
+        List<String> deleted = getStorage().deleteArtifact(GROUP_ID, ARTIFACT_ID_1);
         assertEquals(2, deleted.size());
         assertTrue(deleted.contains(a1.getVersion()));
         // delete can be async
@@ -145,7 +148,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
                 // ok
             }
 
-            SortedSet<Long> set = getStorage().deleteArtifact(GROUP_ID, ARTIFACT_ID_2);
+            List<String> set = getStorage().deleteArtifact(GROUP_ID, ARTIFACT_ID_2);
             assertEquals(1, set.size());
             return set;
         });
@@ -153,8 +156,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testRules() throws Exception {
-        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, ArtifactType.JSON, ContentHandle.create("content1")));
-        
+        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1")));
+
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_3);
 
         assertEquals(0, getStorage().getArtifactRules(GROUP_ID, ARTIFACT_ID_3).size());
@@ -174,7 +177,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
             assertEquals(1, getStorage().getGlobalRules().size());
             assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
-            
+
             return null;
         });
 
@@ -189,16 +192,16 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
         try {
             ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId0, ArtifactType.JSON, ContentHandle.create("{}")));
+                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}")));
             this.waitForArtifact(GROUP_ID, testId0);
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
             ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId1, ArtifactType.JSON, ContentHandle.create("{}")));
+                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}")));
             ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId2, ArtifactType.JSON, ContentHandle.create("{}")));
+                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}")));
 
             this.waitForArtifact(GROUP_ID, testId1);
             this.waitForArtifact(GROUP_ID, testId2);

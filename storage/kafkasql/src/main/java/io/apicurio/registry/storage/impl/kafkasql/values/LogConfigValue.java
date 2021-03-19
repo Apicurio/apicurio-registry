@@ -17,7 +17,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,10 +32,10 @@ public class LogConfigValue extends AbstractMessageValue {
      * @param config
      */
     public static final LogConfigValue create(ActionType action, LogConfigurationDto config) {
-        LogConfigValue key = new LogConfigValue();
-        key.setAction(action);
-        key.setConfig(config);
-        return key;
+        LogConfigValue value = new LogConfigValue();
+        value.setAction(action);
+        value.setConfig(config);
+        return value;
     }
 
     /**

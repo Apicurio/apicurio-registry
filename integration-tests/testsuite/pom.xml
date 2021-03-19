@@ -299,13 +299,6 @@
         </profile>
 
         <profile>
-            <id>streams</id>
-            <properties>
-                <test.storage>streams</test.storage>
-            </properties>
-        </profile>
-
-        <profile>
             <id>sql</id>
             <properties>
                 <test.storage>sql</test.storage>
@@ -316,13 +309,6 @@
             <id>kafkasql</id>
             <properties>
                 <test.storage>kafkasql</test.storage>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>infinispan</id>
-            <properties>
-                <test.storage>infinispan</test.storage>
             </properties>
         </profile>
     </profiles>

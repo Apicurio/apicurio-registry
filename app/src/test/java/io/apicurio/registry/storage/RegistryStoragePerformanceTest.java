@@ -46,21 +46,21 @@ import io.quarkus.test.junit.QuarkusTest;
  */
 @QuarkusTest
 public class RegistryStoragePerformanceTest {
-    
+
     private static final String GROUP_ID = RegistryStoragePerformanceTest.class.getSimpleName();
 
     private static final int NUM_ARTIFACTS = 50000;
 //    private static final int NUM_VERSIONS = 5;
-    
-    private static final String OPENAPI_CONTENT_TEMPLATE = "{" + 
-            "    \"openapi\": \"3.0.2\"," + 
-            "    \"info\": {" + 
-            "        \"title\": \"TITLE\"," + 
-            "        \"version\": \"VERSION\"," + 
-            "        \"description\": \"DESCRIPTION\"" + 
-            "    }" + 
+
+    private static final String OPENAPI_CONTENT_TEMPLATE = "{" +
+            "    \"openapi\": \"3.0.2\"," +
+            "    \"info\": {" +
+            "        \"title\": \"TITLE\"," +
+            "        \"version\": \"VERSION\"," +
+            "        \"description\": \"DESCRIPTION\"" +
+            "    }" +
             "}";
-    
+
     @Inject
     @Current
     RegistryStorage storage;
@@ -72,7 +72,7 @@ public class RegistryStoragePerformanceTest {
     private boolean isTestEnabled() {
         return "enabled".equals(System.getProperty(RegistryStoragePerformanceTest.class.getSimpleName()));
     }
-    
+
     @Test
     public void testStoragePerformance() throws Exception {
         if (!isTestEnabled()) {
@@ -84,7 +84,7 @@ public class RegistryStoragePerformanceTest {
         System.out.println("========================================================================");
 
         String artifactIdPrefix = "testStoragePerformance-";
-        
+
         long startCreate = System.currentTimeMillis();
         for (int idx = 1; idx <= NUM_ARTIFACTS; idx++) {
             String artifactId = artifactIdPrefix + idx;
@@ -103,15 +103,15 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("VERSION", String.valueOf(idx)));
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
                     properties);
-            storage.createArtifactWithMetadata(GROUP_ID, artifactId, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
-            
+            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+
             System.out.print(".");
             if (idx % 100 == 0) {
                 System.out.println(" " + idx);
             }
         }
         long endCreate = System.currentTimeMillis();
-        
+
         long startGetArtifact = System.currentTimeMillis();
         StoredArtifactDto storedArtifact = storage.getArtifact(GROUP_ID, artifactIdPrefix + "77");
         long endGetArtifact = System.currentTimeMillis();
@@ -128,7 +128,7 @@ public class RegistryStoragePerformanceTest {
         long endAllSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
-        
+
         long startNameSearch = System.currentTimeMillis();
         filters = Collections.singleton(new SearchFilter(SearchFilterType.name, "testStoragePerformance-9999"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);

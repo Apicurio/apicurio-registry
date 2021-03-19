@@ -70,7 +70,7 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
         try {
             TestUtils.retry(() -> {
                 ArtifactMetaData amd = client2.getArtifactMetaData(groupId, artifactId);
-                Assertions.assertEquals(1, amd.getVersion());
+                Assertions.assertEquals("1", amd.getVersion());
             }, "ClusterIT-SmokeTest-CreateArtifact", 10);
 
             String name = UUID.randomUUID().toString();

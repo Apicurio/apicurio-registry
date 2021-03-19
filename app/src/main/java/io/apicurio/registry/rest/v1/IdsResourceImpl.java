@@ -77,7 +77,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
     @Context
     HttpServletRequest request;
 
-    public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {
+    public void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 

@@ -127,10 +127,6 @@ public class RegistryFacade {
         appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
-            case infinispan:
-                break;
-            case streams:
-                setupKafkaStorage(appEnv);
                 break;
             case sql:
                 setupSQLStorage(appEnv);
@@ -143,11 +139,9 @@ public class RegistryFacade {
         if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
             Map<String, String> node1Env = new HashMap<>(appEnv);
-            node1Env.put("APPLICATION_SERVER_PORT", "9000");
             runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
 
             Map<String, String> node2Env = new HashMap<>(appEnv);
-            node2Env.put("APPLICATION_SERVER_PORT", "9001");
             runRegistryNode(path, node2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
 
         } else {
@@ -415,9 +409,6 @@ public class RegistryFacade {
         }
 
         appEnv.put("KAFKA_BOOTSTRAP_SERVERS", kafkaFacade.bootstrapServers());
-        if (RegistryUtils.REGISTRY_STORAGE == RegistryStorageType.streams) {
-            appEnv.put("APPLICATION_ID", "test-application");
-        }
         processes.add(kafkaFacade);
     }
 

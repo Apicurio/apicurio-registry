@@ -22,6 +22,7 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
@@ -30,7 +31,6 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
@@ -202,11 +202,11 @@ public class KafkaSqlSink {
         try {
             switch (value.getAction()) {
                 case Create:
-                    return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getArtifactType(),
+                    return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
                 case Update:
-                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getArtifactType(),
+                    return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
                 case Delete:

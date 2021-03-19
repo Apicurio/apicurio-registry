@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -52,6 +51,7 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
@@ -91,7 +91,6 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
@@ -216,7 +215,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         topicProperties.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
         Properties adminProperties = configuration.adminProperties();
         adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
-        KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
+        try {
+            KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
+        } catch (TopicExistsException e) {
+            log.info("Topic already exists, skipping");
+        }
     }
 
     /**
@@ -315,25 +318,21 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return contentHash;
     }
 
-
-    //TODO implement is Ready and is alive checking if the state is fully updated
-
-
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, artifactType, content, null);
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType,
-            ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
@@ -347,7 +346,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
 
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, ActionType.Create, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 
@@ -355,17 +354,17 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
-    public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, ActionType.Delete));
-        SortedSet<Long> versionIds = (SortedSet<Long>) coordinator.waitForResponse(reqId);
+        List<String> versionIds = (List<String>) coordinator.waitForResponse(reqId);
 
         // Add tombstone messages for all version metda-data updates
         versionIds.forEach(vid -> {
-            submitter.submitArtifactVersionTombstone(tenantContext.tenantId(), groupId, artifactId, vid.intValue());
+            submitter.submitArtifactVersionTombstone(tenantContext.tenantId(), groupId, artifactId, vid);
         });
 
         // Add tombstone messages for all artifact rules
@@ -413,20 +412,20 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, artifactType, content, null);
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType,
-            ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, String version,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
@@ -440,7 +439,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
 
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, ActionType.Update, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 
@@ -586,7 +585,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override
-    public SortedSet<Long> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactVersions(groupId, artifactId);
     }
 
@@ -608,61 +607,61 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, long)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version)
+    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactVersion(groupId, artifactId, version);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, long)
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactVersionMetaData(groupId, artifactId, version);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, long)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void deleteArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException,
+    public void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException,
             VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, (int) version, ActionType.Delete));
+            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Delete));
             coordinator.waitForResponse(reqId);
 
             // Add a tombstone message for this version's metadata
-            submitter.submitArtifactVersionTombstone(tenantContext.tenantId(), groupId, artifactId, (int) version);
+            submitter.submitArtifactVersionTombstone(tenantContext.tenantId(), groupId, artifactId, version);
 
             return null;
         });
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, long, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, long version, EditableArtifactMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, ArtifactStateExt.ACTIVE_STATES, value -> {
             UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                    (int) version, ActionType.Update, value.getState(), metaData));
+                    version, ActionType.Update, value.getState(), metaData));
             return coordinator.waitForResponse(reqId);
         });
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, long)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version)
+    public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, (int) version, ActionType.Clear));
+            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Clear));
             return coordinator.waitForResponse(reqId);
         });
     }
@@ -678,7 +677,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    private <T> T handleVersion(String groupId, String artifactId, long version, EnumSet<ArtifactState> states, Function<ArtifactVersionMetaDataDto, T> handler)
+    private <T> T handleVersion(String groupId, String artifactId, String version, EnumSet<ArtifactState> states, Function<ArtifactVersionMetaDataDto, T> handler)
             throws ArtifactNotFoundException, RegistryStorageException {
 
         ArtifactVersionMetaDataDto metadata = sqlStore.getArtifactVersionMetaData(groupId, artifactId, version);
@@ -754,11 +753,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         coordinator.waitForResponse(reqId);
     }
 
-    private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, Number version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
+    private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
         ArtifactStateExt.applyState(
             s ->  {
                 UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                        version.longValue(), ActionType.Update, newState, metaData));
+                        version, ActionType.Update, newState, metaData));
                 coordinator.waitForResponse(reqId);
             },
             currentState,
@@ -781,10 +780,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.Long, io.apicurio.registry.types.ArtifactState)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state)
+    public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         ArtifactVersionMetaDataDto metadata = sqlStore.getArtifactVersionMetaData(groupId, artifactId, version);
         EditableArtifactMetaDataDto metaDataDto = new EditableArtifactMetaDataDto();
@@ -820,8 +819,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         dto.setLogger(logger);
         UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.Delete, dto));
         coordinator.waitForResponse(reqId);
-
-        // TODO we could partition more granularly on the logger name, then we could tombstone them when removing the config
     }
 
     /**

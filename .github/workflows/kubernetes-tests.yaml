@@ -36,15 +36,14 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build All Variants
-        run: ./mvnw clean install -Pprod -Psql -Pinfinispan -Pstreams -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build The Tagged Docker Images
         run: |
           cd distro/docker
           mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
           mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
@@ -75,15 +74,14 @@ jobs:
           architecture: x64
 
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Build The Tagged Docker Images
         run: |
           cd distro/docker
           mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
           mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=clustered ./.github/scripts/test_apicurio_kubernetes.sh

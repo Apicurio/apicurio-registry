@@ -70,7 +70,7 @@ public class IdsResourceImpl implements IdsResource {
     @Current
     RegistryStorage storage;
 
-    private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, Number version, Response.ResponseBuilder builder) {
+    private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
@@ -109,7 +109,7 @@ public class IdsResourceImpl implements IdsResource {
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);
         return builder.build();
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(java.lang.String)
      */

@@ -73,18 +73,18 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
         this.waitForGlobalId(amd3.getGlobalId());
 
         ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
-        Assertions.assertEquals(3, amd.getVersion());
+        Assertions.assertEquals("3", amd.getVersion());
 
         // disable latest
         clientV2.updateArtifactState(groupId, artifactId, toUpdateState(ArtifactState.DISABLED));
-        this.waitForVersionState(groupId, artifactId, 3, ArtifactState.DISABLED);
+        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.DISABLED);
 
         VersionMetaData tvmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, "3");
-        Assertions.assertEquals(3, tvmd.getVersion());
+        Assertions.assertEquals("3", tvmd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tvmd.getState());
 
         ArtifactMetaData tamd = clientV2.getArtifactMetaData(groupId, artifactId);
-        Assertions.assertEquals(3, tamd.getVersion());
+        Assertions.assertEquals("3", tamd.getVersion());
         Assertions.assertEquals(ArtifactState.DISABLED, tamd.getState());
         Assertions.assertNull(tamd.getDescription());
 
@@ -103,16 +103,16 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         retry(() -> {
             ArtifactMetaData innerAmd = clientV2.getArtifactMetaData(groupId, artifactId);
-            Assertions.assertEquals(3, innerAmd.getVersion());
+            Assertions.assertEquals("3", innerAmd.getVersion());
             Assertions.assertEquals(description, innerAmd.getDescription());
             return null;
         });
 
         clientV2.updateArtifactVersionState(groupId, artifactId, "3", toUpdateState(ArtifactState.DEPRECATED));
-        this.waitForVersionState(groupId, artifactId, 3, ArtifactState.DEPRECATED);
+        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.DEPRECATED);
 
         tamd = clientV2.getArtifactMetaData(groupId, artifactId);
-        Assertions.assertEquals(3, tamd.getVersion()); // should be back to v3
+        Assertions.assertEquals("3", tamd.getVersion()); // should be back to v3
         Assertions.assertEquals(ArtifactState.DEPRECATED, tamd.getState());
         Assertions.assertEquals(tamd.getDescription(), description);
 
@@ -127,7 +127,7 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         retry(() -> {
             ArtifactMetaData innerAmd = clientV2.getArtifactMetaData(groupId, artifactId);
-            Assertions.assertEquals(3, innerAmd.getVersion());
+            Assertions.assertEquals("3", innerAmd.getVersion());
             Assertions.assertEquals(description, innerAmd.getDescription());
             Assertions.assertEquals(ArtifactState.DEPRECATED, innerAmd.getState());
             return null;
@@ -135,11 +135,11 @@ public class ArtifactStateTest extends AbstractResourceTestBase {
 
         // can revert back to enabled from deprecated
         clientV2.updateArtifactVersionState(groupId, artifactId, "3", toUpdateState(ArtifactState.ENABLED));
-        this.waitForVersionState(groupId, artifactId, 3, ArtifactState.ENABLED);
+        this.waitForVersionState(groupId, artifactId, "3", ArtifactState.ENABLED);
 
         retry(() -> {
             ArtifactMetaData innerAmd = clientV2.getArtifactMetaData(groupId, artifactId);
-            Assertions.assertEquals(3, innerAmd.getVersion()); // should still be latest (aka 3)
+            Assertions.assertEquals("3", innerAmd.getVersion()); // should still be latest (aka 3)
             Assertions.assertEquals(description, innerAmd.getDescription());
 
             VersionMetaData innerVmd = clientV2.getArtifactVersionMetaData(groupId, artifactId, "1");

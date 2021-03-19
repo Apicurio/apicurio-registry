@@ -127,7 +127,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         return meta;
     }
 
-    protected List<Long> listArtifactVersions(String groupId, String artifactId) {
+    protected List<String> listArtifactVersions(String groupId, String artifactId) {
         return registryClient.listArtifactVersions(groupId, artifactId, 0, 10)
                 .getVersions()
                 .stream()

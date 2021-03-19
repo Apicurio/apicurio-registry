@@ -25,17 +25,19 @@ import lombok.Value;
  */
 @Value
 @Builder
-public class StoredArtifactDto { // TODO rename this to ArtifactVersion
+public class StoredArtifactDto {
 
     private Long globalId;
 
     // TODO add artifactId
 
-    private Long version;
+    private String version;
+
+    private int versionId;
 
     private Long contentId;
 
     // TODO Can the CH be used multiple times?
     private ContentHandle content;
-    
+
 }

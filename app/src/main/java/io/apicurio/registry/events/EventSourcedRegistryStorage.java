@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.CompletionStage;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -109,45 +108,50 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void updateArtifactState(String groupId, String artifactId, Long version, ArtifactState state) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.updateArtifactState(groupId, artifactId, version, state);
         ArtifactStateChange data = new ArtifactStateChange();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
         data.setState(state.value());
-        data.setVersion(Long.toString(version));
+        data.setVersion(version);
         fireEvent(RegistryEventType.ARTIFACT_STATE_CHANGED, artifactId, data, null);
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
+    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId,
+            String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return storage.createArtifact(groupId, artifactId, artifactType, content)
+        return storage.createArtifact(groupId, artifactId, version, artifactType, content)
                 .whenComplete((meta, ex) -> {
                     ArtifactId data = new ArtifactId();
                     data.setGroupId(groupId);
                     data.setArtifactId(artifactId);
-                    data.setVersion(Long.toString(meta.getVersion()));
+                    data.setVersion(meta.getVersion());
+                    fireEvent(RegistryEventType.ARTIFACT_CREATED, artifactId, data, ex);
+                });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     */
+    @Override
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return storage.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData)
+                .whenComplete((meta, ex) -> {
+                    ArtifactId data = new ArtifactId();
+                    data.setGroupId(groupId);
+                    data.setArtifactId(artifactId);
+                    data.setVersion(meta.getVersion());
                     fireEvent(RegistryEventType.ARTIFACT_CREATED, artifactId, data, ex);
                 });
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content,
-            EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return storage.createArtifactWithMetadata(groupId, artifactId, artifactType, content, metaData)
-                .whenComplete((meta, ex) -> {
-                    ArtifactId data = new ArtifactId();
-                    data.setGroupId(groupId);
-                    data.setArtifactId(artifactId);
-                    data.setVersion(Long.toString(meta.getVersion()));
-                    fireEvent(RegistryEventType.ARTIFACT_CREATED, artifactId, data, ex);
-                });
-    }
-
-    @Override
-    public SortedSet<Long> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
-        SortedSet<Long> set = storage.deleteArtifact(groupId, artifactId);
+    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+        List<String> set = storage.deleteArtifact(groupId, artifactId);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -179,27 +183,27 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content)
+    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.updateArtifact(groupId, artifactId, artifactType, content)
+        return storage.updateArtifact(groupId, artifactId, version, artifactType, content)
                 .whenComplete((meta, ex) -> {
                     ArtifactId data = new ArtifactId();
                     data.setGroupId(groupId);
                     data.setArtifactId(artifactId);
-                    data.setVersion(Long.toString(meta.getVersion()));
+                    data.setVersion(meta.getVersion());
                     fireEvent(RegistryEventType.ARTIFACT_UPDATED, artifactId, data, ex);
                 });
     }
 
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, ArtifactType artifactType, ContentHandle content,
+    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, String version, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        return storage.updateArtifactWithMetadata(groupId, artifactId, artifactType, content, metaData)
+        return storage.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData)
                 .whenComplete((meta, ex) -> {
                     ArtifactId data = new ArtifactId();
                     data.setGroupId(groupId);
                     data.setArtifactId(artifactId);
-                    data.setVersion(Long.toString(meta.getVersion()));
+                    data.setVersion(meta.getVersion());
                     fireEvent(RegistryEventType.ARTIFACT_UPDATED, artifactId, data, ex);
                 });
     }
@@ -290,7 +294,7 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public SortedSet<Long> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> getArtifactVersions(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
         return storage.getArtifactVersions(groupId, artifactId);
     }
 
@@ -306,34 +310,34 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return storage.getArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
-    public void deleteArtifactVersion(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.deleteArtifactVersion(groupId, artifactId, version);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
-        data.setVersion(Long.toString(version));
+        data.setVersion(version);
         fireEvent(RegistryEventType.ARTIFACT_DELETED, artifactId, data, null);
     }
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, long version)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return storage.getArtifactVersionMetaData(groupId, artifactId, version);
     }
 
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, long version, EditableArtifactMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
     }
 
     @Override
-    public void deleteArtifactVersionMetaData(String groupId, String artifactId, long version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         storage.deleteArtifactVersionMetaData(groupId, artifactId, version);
     }
 

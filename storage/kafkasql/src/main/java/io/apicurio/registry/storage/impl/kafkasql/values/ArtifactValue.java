@@ -19,14 +19,15 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 import java.util.Date;
 
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class ArtifactValue extends ArtifactVersionValue {
-    
+
+    private String version;
     private ArtifactType artifactType;
     private String contentHash;
     private String createdBy;
@@ -34,25 +35,20 @@ public class ArtifactValue extends ArtifactVersionValue {
 
     /**
      * Creator method.
-     * @param action
-     * @param artifactType
-     * @param contentHash
-     * @param createdBy
-     * @param createdOn
-     * @param metaData
      */
-    public static final ArtifactValue create(ActionType action, ArtifactType artifactType, String contentHash, String createdBy, 
+    public static final ArtifactValue create(ActionType action, String version, ArtifactType artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData) {
-        ArtifactValue key = new ArtifactValue();
-        key.setAction(action);
-        key.setArtifactType(artifactType);
-        key.setContentHash(contentHash);
-        key.setCreatedBy(createdBy);
-        key.setCreatedOn(createdOn);
-        key.setMetaData(metaData);
-        return key;
+        ArtifactValue value = new ArtifactValue();
+        value.setAction(action);
+        value.setVersion(version);
+        value.setArtifactType(artifactType);
+        value.setContentHash(contentHash);
+        value.setCreatedBy(createdBy);
+        value.setCreatedOn(createdOn);
+        value.setMetaData(metaData);
+        return value;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
      */
@@ -115,6 +111,20 @@ public class ArtifactValue extends ArtifactVersionValue {
      */
     public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
+    }
+
+    /**
+     * @return the version
+     */
+    public String getVersion() {
+        return version;
+    }
+
+    /**
+     * @param version the version to set
+     */
+    public void setVersion(String version) {
+        this.version = version;
     }
 
 }

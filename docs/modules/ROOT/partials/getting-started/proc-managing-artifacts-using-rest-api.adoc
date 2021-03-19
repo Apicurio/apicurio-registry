@@ -21,13 +21,13 @@ NOTE: When adding artifacts in {registry} using the REST API, if you do not spec
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/api/artifacts
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/apis/registry/v2/groups/my-group/artifacts
 ----
 +
 This example shows adding an Avro schema artifact with an artifact ID of `share-price`.
 +
 ifdef::apicurio-registry[]
-`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080/api/artifacts`.
+`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
 endif::[]
 
 ifdef::rh-service-registry[]
@@ -38,7 +38,7 @@ endif::[]
 +
 [source,bash]
 ----
-{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
 ----
 
 . Retrieve the artifact from the registry using its artifact ID. For example, in this case the specified ID is `share-price`:

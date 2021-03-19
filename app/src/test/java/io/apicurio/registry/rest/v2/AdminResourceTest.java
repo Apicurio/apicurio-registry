@@ -430,8 +430,10 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-            assertEquals("Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "', even though the server reported it was.",
-                    level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
+
+            String actualLevel = Logger.getLogger(testLoggerName).getLevel().getName();
+            assertEquals(level.value(), actualLevel,
+                    "Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "' it was '" + actualLevel + "', even though the server reported it was.");
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
@@ -446,7 +448,9 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .findAny()
                     .isPresent());
 
-            assertEquals(level.value(), Logger.getLogger(testLoggerName).getLevel().getName());
+            String actualLevel = Logger.getLogger(testLoggerName).getLevel().getName();
+            assertEquals(level.value(), actualLevel,
+                    "Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "' it was '" + actualLevel + "', even though the server reported it was.");
         };
 
 
@@ -467,13 +471,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         LogLevel firstLevel = testLevels.get("first");
         LogLevel secondLevel = testLevels.get("second");
 
+        System.out.println("Going to test log level change from " + defaultLogLevel + " to " + firstLevel.name() + " and then to " + secondLevel.name());
+
         setLog.accept(firstLevel);
-        TestUtils.retry(() -> verifyLogLevel(testLoggerName, firstLevel));
-        TestUtils.retry(() -> verifyLevel.accept(firstLevel));
+        verifyLogLevel(testLoggerName, firstLevel);
+        verifyLevel.accept(firstLevel);
 
         setLog.accept(secondLevel);
-        TestUtils.retry(() -> verifyLogLevel(testLoggerName, secondLevel));
-        TestUtils.retry(() -> verifyLevel.accept(secondLevel));
+        verifyLogLevel(testLoggerName, secondLevel);
+        verifyLevel.accept(secondLevel);
 
         clearLogConfig(testLoggerName);
 

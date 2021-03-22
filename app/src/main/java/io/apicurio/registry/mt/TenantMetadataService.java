@@ -16,14 +16,10 @@
 
 package io.apicurio.registry.mt;
 
-import java.util.Optional;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.client.TenantManagerClient;
@@ -45,34 +41,28 @@ public class TenantMetadataService {
     RegistryStorage storage;
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy")
-    boolean multitenancyEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.url")
-    Optional<String> tenantManagerUrl;
+    MultitenancyProperties mtProperties;
 
     private TenantManagerClient tenantManagerClient;
 
     public void init(@Observes StartupEvent ev) {
-        System.out.println("Current profile " + ProfileManager.getActiveProfile());
         //we check if profile is prod, because some tests will fail to start quarkus app.
         //Those tests checks if multitenancy is supported and abort the test if needed
-        if ("prod".equals(ProfileManager.getActiveProfile()) && multitenancyEnabled && !storage.supportsMultiTenancy()) {
+        if ("prod".equals(ProfileManager.getActiveProfile()) && mtProperties.isMultitenancyEnabled() && !storage.supportsMultiTenancy()) {
             throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled "
                     + "but the storage implementation being used (" + storage.storageName() + ") does not support multitenancy");
         }
-        if (multitenancyEnabled && tenantManagerUrl.isEmpty()) {
+        if (mtProperties.isMultitenancyEnabled() && mtProperties.getTenantManagerUrl().isEmpty()) {
             throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled "
                     + "but the no \"registry.tenant.manager.url\" is provided");
         }
-        if (multitenancyEnabled) {
-            this.tenantManagerClient = new TenantManagerClientImpl(tenantManagerUrl.get());
+        if (mtProperties.isMultitenancyEnabled()) {
+            this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
         }
     }
 
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
-        if (!multitenancyEnabled) {
+        if (!mtProperties.isMultitenancyEnabled()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");
         }
 

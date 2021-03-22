@@ -30,6 +30,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
+
 /**
  * @author Fabian Martinez
  */
@@ -38,7 +40,12 @@ public class DisabledApisMatcherService {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
+    private static final String UI_PATTERN = "/ui/.*";
+
     private List<Pattern> disabledPatternsList;
+
+    @Inject
+    MultitenancyProperties mtProperties;
 
     @Inject
     @ConfigProperty(name = "registry.disable.apis")
@@ -47,10 +54,15 @@ public class DisabledApisMatcherService {
     @PostConstruct
     public void init() {
         disabledPatternsList = new ArrayList<>();
-        if (disableRegexps.isEmpty()) {
-            return;
+        List<String> regexps = new ArrayList<>();
+        if (mtProperties.isMultitenancyEnabled()) {
+            log.debug("Adding UI to disabled APIs, direct access to UI is disabled in multitenancy deployments");
+            regexps.add(UI_PATTERN);
         }
-        for (String regexp : disableRegexps.get()) {
+        if (disableRegexps.isPresent()) {
+            regexps.addAll(disableRegexps.get());
+        }
+        for (String regexp : regexps) {
             try {
                 Pattern p = Pattern.compile(regexp);
                 disabledPatternsList.add(p);

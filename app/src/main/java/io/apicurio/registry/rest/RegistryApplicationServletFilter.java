@@ -17,7 +17,6 @@
 package io.apicurio.registry.rest;
 
 import java.io.IOException;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -32,6 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 
@@ -58,6 +58,9 @@ public class RegistryApplicationServletFilter implements Filter {
     @Inject
     DisabledApisMatcherService disabledApisMatcherService;
 
+    @Inject
+    MultitenancyProperties mtProperties;
+
     /**
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
@@ -70,7 +73,7 @@ public class RegistryApplicationServletFilter implements Filter {
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
 
-            boolean resolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
+            boolean tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
                     (tenantId) -> {
 
                         String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
@@ -84,13 +87,14 @@ public class RegistryApplicationServletFilter implements Filter {
 
                     });
 
-            boolean rewriteRequest = resolved && rewriteContext.length() != 0;
+            boolean rewriteRequest = tenantResolved && rewriteContext.length() != 0;
             String evaluatedURI = requestURI;
             if (rewriteRequest) {
                 evaluatedURI = rewriteContext.toString();
             }
 
             boolean disabled = disabledApisMatcherService.isDisabled(evaluatedURI);
+
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();

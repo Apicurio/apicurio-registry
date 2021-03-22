@@ -21,7 +21,6 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,24 +45,19 @@ public class TenantIdResolver {
 
     private static final int TENANT_ID_POSITION = 2;
 
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.base.path")
-    String nameMultitenancyBasePath;
-
     String multitenancyBasePath;
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy")
-    boolean multitenancyEnabled;
+    MultitenancyProperties mtProperties;
 
     @Inject
     TenantContext tenantContext;
 
     void init(@Observes StartupEvent ev) {
-        if (multitenancyEnabled) {
+        if (mtProperties.isMultitenancyEnabled()) {
             log.info("Registry running with multitenancy enabled");
         }
-        multitenancyBasePath = "/" + nameMultitenancyBasePath + "/";
+        multitenancyBasePath = "/" + mtProperties.getNameMultitenancyBasePath() + "/";
     }
 
     public boolean resolveTenantId(RoutingContext ctx) {
@@ -71,7 +65,7 @@ public class TenantIdResolver {
     }
 
     public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
-        if (multitenancyEnabled) {
+        if (mtProperties.isMultitenancyEnabled()) {
             log.debug("Resolving tenantId for request {}", uri);
 
             if (uri.startsWith(multitenancyBasePath)) {

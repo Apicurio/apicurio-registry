@@ -174,6 +174,42 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void testSearchArtifactSorByCreatedOn() throws Exception {
+        //PReparation
+        final String groupId = "testSearchArtifact";
+        clientV2.listArtifactsInGroup(groupId);
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
+        byte[] content = ("{\"type\":\"record\",\"title\":\"" + name+ "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                .getBytes(StandardCharsets.UTF_8);
+
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toStream(content));
+        long id = amd.getGlobalId();
+
+        this.waitForGlobalId(id);
+
+        String artifactId2 = UUID.randomUUID().toString();
+        ArtifactMetaData amd2 = clientV2.createArtifact(groupId, artifactId2, ArtifactType.JSON, IoUtil.toStream(content));
+        this.waitForGlobalId(amd2.getGlobalId());
+
+        //Execution
+        ArtifactSearchResults results = clientV2.searchArtifacts(null, name, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 10);
+
+        //Assertions
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount());
+        Assertions.assertEquals(2, results.getArtifacts().size());
+        Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+        Assertions.assertEquals(artifactId2, results.getArtifacts().get(0).getId());
+
+        // Try searching for *everything*.  This test was added due to Issue #661
+        results = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);
+        Assertions.assertNotNull(results);
+        Assertions.assertTrue(results.getCount() > 0);
+    }
+
+    @Test
     void testSearchVersion() throws Exception {
         //Preparation
         final String groupId = "testSearchVersion";

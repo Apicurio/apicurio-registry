@@ -20,7 +20,7 @@ Typically, {registry} automatically detects and generates these settings, but th
 .Procedure
 Configure the following environment variables to override the default URLs:
 
-* `REGISTRY_UI_CONFIG_APIURL`: Set the URL for the backend {registry} REST API. For example,`\https://registry.my-domain.com/api`
+* `REGISTRY_UI_CONFIG_APIURL`: Set the URL for the backend {registry} REST API. For example,`\https://registry.my-domain.com/apis`
 * `REGISTRY_UI_CONFIG_UIURL`: Set the URL for the frontend {registry} web console. For example, `\https://registry.my-domain.com/ui`
 
 [discrete]

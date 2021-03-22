@@ -1,0 +1,74 @@
+// Metadata created by nebel
+
+[id="registry-security"]
+
+= Configuring {registry} authentication and authorization
+
+This section explains how to configure authentication and authorization for {registry} based on OpenID Connect (OIDC) using {keycloak}. {registry} authentication and authorization are disabled by default. 
+
+
+.Procedure
+* Set the following environment variables to configure {registry} authentication:
+
+.Environment variables for {registry} authentication settings
+//[%header,cols="5,5,2,5"]
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+|===
+|Name
+|Description
+|Type
+|Default
+|`AUTH_ENABLED`
+|If set to true, the other environment variables are required.
+|String
+|`false`
+|`KEYCLOAK_URL`
+|The URL of the authentication server to be used. Must end with `/auth`.
+|String
+|
+|`KEYCLOAK_REALM`
+|The realm used for {registry} authentication.
+|String
+|
+|`KEYCLOAK_API_CLIENT_ID`
+|The client ID for the {registry} REST API.
+|String
+|`registry-api`
+|`KEYCLOAK_UI_CLIENT_ID`
+|The client ID for the {registry} user interface.
+|String
+|`apicurio-registry`
+|===
+
+.Default user roles
+{registry} provides the following default user roles and associated permissions.
+
+.Default roles for {registry} authentication and authorization
+//[%header,cols="5,5,2,5"]
+[.table-expandable,width="100%",cols="3,2,2,2",options="header"]
+|===
+|Role
+|Read artifacts
+|Write artifacts
+|Global rules
+|`sr-admin`
+|Yes
+|Yes
+|Yes
+|`sr-developer`
+|Yes
+|Yes
+|No
+|`sr-readonly`
+|Yes
+|No
+|No
+|===
+
+.Additional resources
+ifdef::apicurio-registry[]
+* For details on how to use {keycloak} for authentication and authorization, see the link:https://www.keycloak.org/documentation[Keycloak documentation]. 
+endif::[]
+ifdef::rh-service-registry[]
+* For details on how to use {keycloak} for authentication and authorization, see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[Red Hat SSO documentation].
+endif::[]

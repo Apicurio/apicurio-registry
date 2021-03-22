@@ -460,8 +460,8 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ArtifactSearchResults results = registryClient.searchArtifacts(group, null, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 10);
 
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(2, results.getCount());
-        Assertions.assertEquals(2, results.getArtifacts().size());
+        Assertions.assertEquals(5, results.getCount());
+        Assertions.assertEquals(5, results.getArtifacts().size());
         Assertions.assertEquals("test-0", results.getArtifacts().get(0).getId());
 
     }

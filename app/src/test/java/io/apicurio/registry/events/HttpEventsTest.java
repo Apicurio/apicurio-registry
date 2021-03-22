@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.Disabled;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.events.dto.RegistryEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;

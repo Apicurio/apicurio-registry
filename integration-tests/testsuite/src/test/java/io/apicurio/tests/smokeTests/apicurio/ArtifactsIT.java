@@ -454,6 +454,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "test-" + idx;
+            Thread.sleep(idx == 0 ? 0 : 1500/idx);
             this.createArtifact(group, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
         }
 

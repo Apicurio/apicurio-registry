@@ -46,9 +46,6 @@ jobs:
       - name: Build and Test All Variants
         run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-      - name: Build Asyncmem Variant
-        run: ./mvnw install -Pprod -DskipTests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
-
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin

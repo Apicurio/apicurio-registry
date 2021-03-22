@@ -25,6 +25,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.events.dto.ArtifactId;
 import io.apicurio.registry.events.dto.ArtifactRuleChange;
 import io.apicurio.registry.events.dto.ArtifactStateChange;
+import io.apicurio.registry.events.dto.RegistryEventType;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;

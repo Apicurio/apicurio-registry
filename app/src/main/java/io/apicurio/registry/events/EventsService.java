@@ -17,6 +17,8 @@ package io.apicurio.registry.events;
 
 import java.util.Optional;
 
+import io.apicurio.registry.events.dto.RegistryEventType;
+
 /**
  * @author Fabian Martinez
  */

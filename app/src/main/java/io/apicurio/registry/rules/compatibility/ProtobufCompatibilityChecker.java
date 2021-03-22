@@ -38,35 +38,43 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
             return CompatibilityExecutionResult.compatible();
         }
         switch (compatibilityLevel) {
-            case BACKWARD: {
-                ProtobufFile fileBefore = new ProtobufFile(existingSchemas.get(existingSchemas.size() - 1));
-                ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
-                ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
-                if (checker.validate()) {
-                    return CompatibilityExecutionResult.compatible();
-                } else {
-                    return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not backward compatible.");
-                }
+            case BACKWARD:
+            case FORWARD:
+            case FULL: {
+                return checkCompatibilityToPreviousVersion(compatibilityLevel, existingSchemas, proposedSchema);
             }
             case BACKWARD_TRANSITIVE:
-                ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
-                for (String existing : existingSchemas) {
-                    ProtobufFile fileBefore = new ProtobufFile(existing);
-                    ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
-                    if (checker.validate()) {
-                        return CompatibilityExecutionResult.compatible();
-                    } else {
-                        return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not backward compatible.");
-                    }
-                }
-                return CompatibilityExecutionResult.compatible();
-            case FORWARD:
             case FORWARD_TRANSITIVE:
-            case FULL:
-            case FULL_TRANSITIVE:
-                throw new IllegalStateException("Compatibility level " + compatibilityLevel + " not supported for Protobuf schemas");
+            case FULL_TRANSITIVE: {
+                return checkCompatibilityTransitive(compatibilityLevel, existingSchemas, proposedSchema);
+            }
             default:
                 return CompatibilityExecutionResult.compatible();
         }
+    }
+
+    private CompatibilityExecutionResult checkCompatibilityToPreviousVersion(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+        ProtobufFile fileBefore = new ProtobufFile(existingSchemas.get(existingSchemas.size() - 1));
+        ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
+        ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
+        if (checker.validate()) {
+            return CompatibilityExecutionResult.compatible();
+        } else {
+            return CompatibilityExecutionResult.incompatible(String.format("The new version of the protobuf artifact is not %s compatible.", compatibilityLevel.toString()));
+        }
+    }
+
+    private CompatibilityExecutionResult checkCompatibilityTransitive(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+        ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
+        for (String existing : existingSchemas) {
+            ProtobufFile fileBefore = new ProtobufFile(existing);
+            ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
+            if (checker.validate()) {
+                return CompatibilityExecutionResult.compatible();
+            } else {
+                return CompatibilityExecutionResult.incompatible(String.format("The new version of the protobuf artifact is not %s compatible.", compatibilityLevel.toString()));
+            }
+        }
+        return CompatibilityExecutionResult.compatible();
     }
 }

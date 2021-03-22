@@ -208,7 +208,7 @@ class ProtobufCompatibilityCheckerImpl {
 
     /**
      * Determine if any field type has been changed.
-     *
+     **
      * @return number of issues
      */
     public int checkNoChangingFieldTypes() {
@@ -253,14 +253,17 @@ class ProtobufCompatibilityCheckerImpl {
         Map<String, Map<Integer, String>> after = new HashMap<>(fileAfter.getFieldsById());
         after.putAll(fileAfter.getEnumFieldsById());
 
+        Map<String, Set<Object>> afterReservedFields = fileAfter.getReservedFields();
+
         for (Map.Entry<String, Map<Integer, String>> entry : before.entrySet()) {
             Map<Integer, String> afterMap = after.get(entry.getKey());
+            Set<Object> reserved = afterReservedFields.getOrDefault(entry.getKey(), Collections.emptySet());
 
             if (afterMap != null) {
                 for (Map.Entry<Integer, String> beforeKV : entry.getValue().entrySet()) {
                     String nameAfter = afterMap.get(beforeKV.getKey());
 
-                    if (!beforeKV.getValue().equals(nameAfter)) {
+                    if (!beforeKV.getValue().equals(nameAfter) && !(reserved.contains(beforeKV.getValue()) && reserved.contains(beforeKV.getKey()))) {
                         issues++;
                     }
                 }

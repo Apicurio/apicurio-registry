@@ -17,8 +17,6 @@
 package io.apicurio.registry.rest;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -53,8 +51,6 @@ import io.apicurio.registry.services.DisabledApisMatcherService;
 public class RegistryApplicationServletFilter implements Filter {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    private Pattern uiPattern = Pattern.compile("/ui/.*");
 
     @Inject
     TenantIdResolver tenantIdResolver;
@@ -98,12 +94,6 @@ public class RegistryApplicationServletFilter implements Filter {
             }
 
             boolean disabled = disabledApisMatcherService.isDisabled(evaluatedURI);
-
-            //UI is disabled multitenancy is enabled
-            if (mtProperties.isMultitenancyEnabled() && uiPattern.matcher(evaluatedURI).matches()) {
-                log.debug("Disabling request, direct access to UI is disabled in multitenancy deployments");
-                disabled = true;
-            }
 
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;

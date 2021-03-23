@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Managing {registry} content using the REST API
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter describes the Registry REST API and shows how to use it manage artifacts stored in the registry:
+This chapter describes the {registry} core REST API and shows how to use it to manage schema and API artifacts stored in the registry:
 
 * xref:registry-rest-api[] 
 * xref:managing-artifacts-using-rest-api[]

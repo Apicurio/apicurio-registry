@@ -30,9 +30,11 @@ When a schema or API design is added as an artifact in the registry, client appl
 
 == Schema and API groups
 
-You can create optional _artifact groups_ to organize your schemas and API designs in {registry}. For example, you could create groups to match your `sales` and `engineering` organizations, or your `development` and `production` environments, or your `protobuf` and `openapi` schema and API types. 
+An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization. 
 
-Schema and API groups can also contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, and AsyncAPI schema and API artifacts all in the same group.    
+You can create artifact groups to organize your schemas and API designs in {registry}. For example, you could create groups to match your `development` and `production` application environment, or your `sales` and `engineering` organization. 
+
+Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, and AsyncAPI schema and API artifacts all in the same group.    
 
 You can create schema and API artifacts and groups using the {registry} web console, core REST API, or Maven plug-in.  The following simple example shows using the REST API: 
 
@@ -43,8 +45,8 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 
 This example adds an Avro schema with an artifact ID of `share-price` in an artifact group named `my-group`.
 
-NOTE: Schema and API groups groups are optional when using the {registry} web console. However, when using the v2 REST API or Maven plug-in, if you do not wish to create a unique group, you must specify the `default` group in the API path.  
+NOTE: Schema and API groups are optional when using the {registry} web console. However, when using the v2 REST API or Maven plug-in, if you do not wish to create a unique group, you must specify the `default` group in the API path.  
 
 .Additional resources
 
-* For more details on groups, see the link:https://github.com/cloudevents/spec/blob/master/schemaregistry/schemaregistry.md[Cloud Native Computing Foundation (CNCF) Schema Registry API Version 0.1].
+* For more details on schemas and groups, see the link:https://github.com/cloudevents/spec/blob/master/schemaregistry/schemaregistry.md[Cloud Native Computing Foundation (CNCF) Schema Registry API Version 0.1].

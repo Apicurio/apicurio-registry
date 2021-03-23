@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility;
+package io.apicurio.registry.protobuf;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -80,6 +80,11 @@ public class ProtobufFile {
 //        Location location = Location.get(file.getAbsolutePath());
         List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
         element = toProtoFileElement(String.join("\n", data));
+        buildIndexes();
+    }
+
+    public ProtobufFile(ProtoFileElement element) {
+        this.element = element;
         buildIndexes();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility;
-
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
+package io.apicurio.registry.rules.compatibility.protobuf;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +23,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.squareup.wire.schema.internal.parser.EnumConstantElement;
+import com.squareup.wire.schema.internal.parser.FieldElement;
+
+import io.apicurio.registry.protobuf.ProtobufFile;
+
 /**
  * Provides compatibility validation functions for changes between two versions of a Protobuf schema document.
  *
@@ -33,14 +35,13 @@ import java.util.Set;
  * @author Ales Justin
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  */
-class ProtobufCompatibilityCheckerImpl {
-
-    // TODO https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
+public class ProtobufCompatibilityCheckerLibrary {
+ // TODO https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
 
     private final ProtobufFile fileBefore;
     private final ProtobufFile fileAfter;
 
-    public ProtobufCompatibilityCheckerImpl(ProtobufFile fileBefore, ProtobufFile fileAfter) {
+    public ProtobufCompatibilityCheckerLibrary(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         this.fileBefore = fileBefore;
         this.fileAfter = fileAfter;
     }

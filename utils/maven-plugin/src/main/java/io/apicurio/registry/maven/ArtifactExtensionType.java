@@ -8,7 +8,6 @@ import io.apicurio.registry.types.ArtifactType;
 public enum ArtifactExtensionType {
     AVRO(ArtifactType.AVRO, "avsc"),
     PROTOBUF(ArtifactType.PROTOBUF, "proto"),
-    PROTOBUF_FD(ArtifactType.PROTOBUF_FD, "json"),
     JSON(ArtifactType.JSON, "json"),
     OPENAPI(ArtifactType.OPENAPI, "json"),
     ASYNCAPI(ArtifactType.ASYNCAPI, "json"),

@@ -19,9 +19,7 @@ package io.apicurio.registry.serde;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
@@ -48,6 +46,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     private IdOption idOption;
 
     /**
+     * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
+     */
+    @Override
+    public void reset() {
+        super.reset();
+        schemaCacheByContentId.clear();
+    }
+
+    /**
      * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
      */
     @Override
@@ -63,77 +70,38 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, Optional)
+     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
      */
     @Override
-    public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
+    public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
         Objects.requireNonNull(topic);
         Objects.requireNonNull(data);
-        Objects.requireNonNull(parsedSchema);
 
         final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
 
-        {
-            Long globalId = globalIdCacheByArtifactReference.get(artifactReference);
-            if (globalId != null) {
-                SchemaLookupResult<S> schema = schemaCacheByGlobalId.get(globalId);
-                if (schema != null) {
-                    return schema;
-                }
+        Long globalId = globalIdCacheByArtifactReference.get(artifactReference);
+        if (globalId != null) {
+            SchemaLookupResult<S> schema = schemaCacheByGlobalId.get(globalId);
+            if (schema != null) {
+                return schema;
             }
         }
 
-        if (autoCreateArtifact && parsedSchema.isPresent()) {
-
-            byte[] rawSchema = parsedSchema.get().getRawSchema();
-            String rawSchemaString = IoUtil.toString(rawSchema);
-
-            Long globalId = globalIdCacheByContent.computeIfAbsent(rawSchemaString, key -> {
-                ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(), schemaParser.artifactType(), this.autoCreateBehavior, false, IoUtil.toStream(rawSchema));
-
-                SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-                loadFromArtifactMetaData(artifactMetadata, result);
-
-                S schema = parsedSchema.get().getParsedSchema();
-                result.rawSchema(rawSchema);
-                result.schema(schema);
-
-                Long newGlobalId = artifactMetadata.getGlobalId();
-                schemaCacheByGlobalId.put(newGlobalId, result.build());
-                globalIdCacheByArtifactReference.put(artifactReference, newGlobalId);
-                return newGlobalId;
-            });
-
-            return schemaCacheByGlobalId.get(globalId);
-        } else if (findLatest || artifactReference.getVersion() != null) {
-
-            return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
-
-        } else if (parsedSchema.isPresent()) {
-
-            byte[] rawSchema = parsedSchema.get().getRawSchema();
-            String rawSchemaString = IoUtil.toString(rawSchema);
-
-            Long globalId = globalIdCacheByContent.computeIfAbsent(rawSchemaString, key -> {
-                VersionMetaData artifactMetadata = client.getArtifactVersionMetaDataByContent(artifactReference.getGroupId(), artifactReference.getArtifactId(), true, IoUtil.toStream(rawSchema));
-
-                SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-                loadFromArtifactMetaData(artifactMetadata, result);
-
-                S schema = parsedSchema.get().getParsedSchema();
-                result.rawSchema(rawSchema);
-                result.schema(schema);
-
-                Long artifactGlobalId = artifactMetadata.getGlobalId();
-                schemaCacheByGlobalId.put(artifactGlobalId, result.build());
-                globalIdCacheByArtifactReference.put(artifactReference, artifactGlobalId);
-                return artifactGlobalId;
-            });
-
-            return schemaCacheByGlobalId.get(globalId);
+        if (autoCreateArtifact) {
+            //keep operations with parsedSchema in it's own if sentences, because parsedSchema methods may have side effects
+            if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+                return handleAutoCreateArtifact(parsedSchema, artifactReference);
+            }
         }
+
+        if (findLatest || artifactReference.getVersion() != null) {
+            return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
+        }
+
+        if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+            return handleResolveSchemaByContent(parsedSchema, artifactReference);
+        }
+
         return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
     }
 
@@ -214,13 +182,54 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
         });
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
-     */
-    @Override
-    public void reset() {
-        super.reset();
-        schemaCacheByContentId.clear();
+    private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
+            final ArtifactReference artifactReference) {
+        byte[] rawSchema = parsedSchema.getRawSchema();
+        String rawSchemaString = IoUtil.toString(rawSchema);
+
+        Long globalId = globalIdCacheByContent.computeIfAbsent(rawSchemaString, key -> {
+            VersionMetaData artifactMetadata = client.getArtifactVersionMetaDataByContent(artifactReference.getGroupId(), artifactReference.getArtifactId(), true, IoUtil.toStream(rawSchema));
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            loadFromArtifactMetaData(artifactMetadata, result);
+
+            S schema = parsedSchema.getParsedSchema();
+            result.rawSchema(rawSchema);
+            result.schema(schema);
+
+            Long artifactGlobalId = artifactMetadata.getGlobalId();
+            schemaCacheByGlobalId.put(artifactGlobalId, result.build());
+            globalIdCacheByArtifactReference.put(artifactReference, artifactGlobalId);
+            return artifactGlobalId;
+        });
+
+        return schemaCacheByGlobalId.get(globalId);
+    }
+
+    private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
+            final ArtifactReference artifactReference) {
+        byte[] rawSchema = parsedSchema.getRawSchema();
+        String rawSchemaString = IoUtil.toString(rawSchema);
+
+        Long globalId = globalIdCacheByContent.computeIfAbsent(rawSchemaString, key -> {
+            ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(), schemaParser.artifactType(), this.autoCreateBehavior, false, IoUtil.toStream(rawSchema));
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            loadFromArtifactMetaData(artifactMetadata, result);
+
+            S schema = parsedSchema.getParsedSchema();
+            result.rawSchema(rawSchema);
+            result.schema(schema);
+
+            Long newGlobalId = artifactMetadata.getGlobalId();
+            schemaCacheByGlobalId.put(newGlobalId, result.build());
+            globalIdCacheByArtifactReference.put(artifactReference, newGlobalId);
+            return newGlobalId;
+        });
+
+        return schemaCacheByGlobalId.get(globalId);
     }
 
 }

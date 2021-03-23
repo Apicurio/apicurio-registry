@@ -24,26 +24,32 @@ import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
-import com.google.protobuf.Descriptors.FileDescriptor;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.google.protobuf.Message;
 
-import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.ParsedSchemaImpl;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
+import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
  * @author Hiram Chirino
  * @author Fabian Martinez
  */
-public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<FileDescriptor, U> {
+public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSerializer<ProtobufSchema, U> {
 
-    private MessageTypeSerdeHeaders serdeHeaders;
+    private Boolean validationEnabled;
+
+    private ProtobufSerdeHeaders serdeHeaders;
     private ProtobufSchemaParser parser = new ProtobufSchemaParser();
 
     public ProtobufKafkaSerializer() {
@@ -51,8 +57,8 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     }
 
     public ProtobufKafkaSerializer(RegistryClient client,
-            ArtifactResolverStrategy<FileDescriptor> artifactResolverStrategy,
-            SchemaResolver<FileDescriptor, U> schemaResolver) {
+            ArtifactResolverStrategy<ProtobufSchema> artifactResolverStrategy,
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -60,21 +66,25 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
         super(client);
     }
 
-    public ProtobufKafkaSerializer(SchemaResolver<FileDescriptor, U> schemaResolver) {
+    public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(schemaResolver);
     }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
-        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
+        ProtobufKafkaSerializerConfig config = new ProtobufKafkaSerializerConfig(configs);
+        super.configure(config, isKey);
+
+        serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
+
+        validationEnabled = config.validationEnabled();
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<FileDescriptor> schemaParser() {
+    public SchemaParser<ProtobufSchema> schemaParser() {
         return parser;
     }
 
@@ -82,11 +92,14 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
      */
     @Override
-    protected ParsedSchema<FileDescriptor> getSchemaFromData(U data) {
-        byte[] rawSchema = parser.serializeSchema(data.getDescriptorForType());
+    protected ParsedSchema<ProtobufSchema> getSchemaFromData(U data) {
+        ProtoFileElement protoFileElement = parser.toProtoFileElement(data.getDescriptorForType().getFile());
+        ProtobufSchema protobufSchema = new ProtobufSchema(data.getDescriptorForType().getFile(), protoFileElement);
 
-        return new ParsedSchema<FileDescriptor>()
-                .setParsedSchema(data.getDescriptorForType().getFile())
+        byte[] rawSchema = IoUtil.toBytes(protoFileElement.toSchema());
+
+        return new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(protobufSchema)
                 .setRawSchema(rawSchema);
     }
 
@@ -94,7 +107,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<FileDescriptor> schema, U data, OutputStream out) throws IOException {
+    protected void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
         serializeData(null, schema, data, out);
     }
 
@@ -102,20 +115,38 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<FileDescriptor> schema, U data, OutputStream out) throws IOException {
+    protected void serializeData(Headers headers, ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
+        if (validationEnabled) {
+
+            if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(data.getDescriptorForType().getName()) == null) {
+                throw new SerializationException("Missing message type " + data.getDescriptorForType().getName() + " in the protobuf schema");
+            }
+
+            if (!validate(schema, data)) {
+                //TODO add useful information about the schema being used
+                throw new SerializationException("The data to send is not compatible with the schema");
+            }
+
+        }
+
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
+            serdeHeaders.addProtobufTypeNameHeader(headers, data.getDescriptorForType().getName());
+        } else {
+            Ref ref = Ref.newBuilder()
+                    .setName(data.getDescriptorForType().getName())
+                    .build();
+            ref.writeDelimitedTo(out);
         }
 
-        if (schema.getParsedSchema() != null && schema.getParsedSchema().findMessageTypeByName(data.getDescriptorForType().getName()) == null) {
-            throw new SerializationException("Missing message type " + data.getDescriptorForType().getName() + " in the protobuf schema");
-        }
-
-        Serde.Ref ref = Serde.Ref.newBuilder()
-                .setName(data.getDescriptorForType().getName())
-                .build();
-        ref.writeDelimitedTo(out);
         data.writeTo(out);
+    }
+
+    private boolean validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, U data) {
+        ProtobufFile fileBefore = schemaFromRegistry.getParsedSchema().getProtobufFile();
+        ProtobufFile fileAfter = new ProtobufFile(parser.toProtoFileElement(data.getDescriptorForType().getFile()));
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
+        return checker.validate();
     }
 
 }

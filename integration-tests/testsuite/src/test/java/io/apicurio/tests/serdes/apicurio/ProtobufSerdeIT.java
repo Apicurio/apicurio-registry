@@ -129,6 +129,29 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
+    void testWrongSchemaFindLatest() throws Exception {
+        String topicName = TestUtils.generateSubject();
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String artifactId = topicName + "-value";
+
+        ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
+        ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
+
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
+
+        new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            //note, we use an incorrect wrong data generator in purpose
+            .withDataGenerator(schemaB::generateMessage)
+            .build()
+            .test();
+    }
+
+    @Test
     void testArtifactNotFound() throws Exception {
         String topicName = TestUtils.generateSubject();
         kafkaCluster.createTopic(topicName, 1, 1);

@@ -64,7 +64,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
 
-        ParsedSchema<T> parsedSchema = new ParsedSchema<T>()
+        ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
                 .setRawSchema(schema.getRawSchema())
                 .setParsedSchema(schema.getSchema());
 
@@ -89,7 +89,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
             int length = buffer.limit();
             int start = buffer.position();
 
-            ParsedSchema<T> parsedSchema = new ParsedSchema<T>()
+            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
                     .setRawSchema(schema.getRawSchema())
                     .setParsedSchema(schema.getSchema());
 

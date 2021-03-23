@@ -19,8 +19,8 @@ package io.apicurio.registry.rules.validity;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.compatibility.ProtobufFile;
 import io.apicurio.registry.types.RuleType;
 
 /**
@@ -29,13 +29,13 @@ import io.apicurio.registry.types.RuleType;
  */
 @ApplicationScoped
 public class ProtobufContentValidator implements ContentValidator {
-    
+
     /**
      * Constructor.
      */
     public ProtobufContentValidator() {
     }
-    
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */

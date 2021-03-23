@@ -179,7 +179,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void testSearchArtifactSorByCreatedOn() throws Exception {
+    void testSearchArtifactSortByCreatedOn() throws Exception {
         //PReparation
         final String groupId = "testSearchArtifact";
         clientV2.listArtifactsInGroup(groupId);

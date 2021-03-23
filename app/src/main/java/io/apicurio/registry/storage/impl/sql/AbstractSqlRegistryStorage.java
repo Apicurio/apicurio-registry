@@ -1027,7 +1027,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
 
             // Add order by to artifact query
-            orderByQuery.append(" ORDER BY coalesce(v." + orderBy.name() + ", a.artifactId) ");
+            switch (orderBy) {
+                case name:
+                    orderByQuery.append(" ORDER BY coalesce(v." + orderBy.name() + ", a.artifactId) ");
+                    break;
+                case createdOn:
+                    orderByQuery.append(" ORDER BY v." + orderBy.name() + " ");
+                    break;
+                default:
+                    break;
+            }
             orderByQuery.append(orderDirection.name());
 
             // Add limit and offset to artifact query

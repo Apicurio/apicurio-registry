@@ -42,6 +42,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -67,6 +70,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 public class RegistryClientTest extends AbstractResourceTestBase {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
@@ -166,6 +171,50 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
         Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+
+        // Try searching for *everything*.  This test was added due to Issue #661
+        results = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);
+        Assertions.assertNotNull(results);
+        Assertions.assertTrue(results.getCount() > 0);
+    }
+
+    @Test
+    void testSearchArtifactSortByCreatedOn() throws Exception {
+        //PReparation
+        final String groupId = "testSearchArtifactSortByCreatedOn";
+        clientV2.listArtifactsInGroup(groupId);
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
+        byte[] content = ("{\"type\":\"record\",\"title\":\"" + name+ "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                .getBytes(StandardCharsets.UTF_8);
+
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toStream(content));
+        long id = amd.getGlobalId();
+        this.waitForGlobalId(id);
+        LOGGER.info("created " + amd.getId() + " - " + amd.getCreatedOn());
+
+        Thread.sleep(1500);
+
+        String artifactId2 = UUID.randomUUID().toString();
+        ArtifactMetaData amd2 = clientV2.createArtifact(groupId, artifactId2, ArtifactType.JSON, IoUtil.toStream(content));
+        this.waitForGlobalId(amd2.getGlobalId());
+        LOGGER.info("created " + amd2.getId() + " - " + amd2.getCreatedOn());
+
+        //Execution
+        ArtifactSearchResults results = clientV2.searchArtifacts(null, name, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 10);
+
+        //Assertions
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount());
+        Assertions.assertEquals(2, results.getArtifacts().size());
+//        Assertions.assertEquals(name, results.getArtifacts().get(0).getName());
+
+        LOGGER.info("search");
+        LOGGER.info(results.getArtifacts().get(0).getId() + " - " + results.getArtifacts().get(0).getCreatedOn());
+        LOGGER.info(results.getArtifacts().get(1).getId() + " - " + results.getArtifacts().get(1).getCreatedOn());
+
+        Assertions.assertEquals(artifactId, results.getArtifacts().get(0).getId());
 
         // Try searching for *everything*.  This test was added due to Issue #661
         results = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, null);

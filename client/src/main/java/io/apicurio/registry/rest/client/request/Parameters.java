@@ -24,11 +24,11 @@ public class Parameters {
     public static String LIMIT = "limit";
     public static String OFFSET = "offset";
     public static String SORT_ORDER = "order";
-    public static String ORDER_BY = "order_by";
+    public static String ORDER_BY = "orderby";
     public static String CANONICAL = "canonical";
     public static String NAME = "name";
     public static String GROUP = "group";
-    public static String DESCRIPTION = "";
+    public static String DESCRIPTION = "description";
     public static String PROPERTIES = "properties";
     public static String LABELS = "labels";
     public static String IF_EXISTS = "ifExists";

@@ -20,7 +20,10 @@ import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactState;
@@ -44,6 +47,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -440,6 +444,27 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.getLatestArtifact(groupId, artifactId);
 
         ArtifactUtils.getArtifact(groupId, artifactId);
+    }
+
+    @Test
+    @Tag(ACCEPTANCE)
+    public void testSearchOrderBy() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+
+        for (int idx = 0; idx < 5; idx++) {
+            String artifactId = "test-" + idx;
+            Thread.sleep(idx == 0 ? 0 : 1500/idx);
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, new ByteArrayInputStream(content.getBytes()));
+        }
+
+        ArtifactSearchResults results = registryClient.searchArtifacts(group, null, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 10);
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount());
+        Assertions.assertEquals(5, results.getArtifacts().size());
+        Assertions.assertEquals("test-0", results.getArtifacts().get(0).getId());
+
     }
 
     @AfterEach

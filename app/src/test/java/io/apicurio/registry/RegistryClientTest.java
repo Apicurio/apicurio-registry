@@ -181,7 +181,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     void testSearchArtifactSortByCreatedOn() throws Exception {
         //PReparation
-        final String groupId = "testSearchArtifact";
+        final String groupId = "testSearchArtifactSortByCreatedOn";
         clientV2.listArtifactsInGroup(groupId);
 
         String artifactId = UUID.randomUUID().toString();

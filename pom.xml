@@ -120,7 +120,6 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <docker.tag.name>latest-release</docker.tag.name>
         <tar.long.file.mode>gnu</tar.long.file.mode>
         
         <!-- UI Build Tools -->

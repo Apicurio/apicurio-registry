@@ -68,6 +68,8 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQU
  */
 public class RequestHandler {
 
+    private static final String BASE_PATH = "/apis/registry/v2/";
+
     private final HttpClient client;
     private final String endpoint;
     private Auth auth;
@@ -77,6 +79,9 @@ public class RequestHandler {
     public RequestHandler(String endpoint, Map<String, Object> configs, Auth auth) {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
+        }
+        if (!endpoint.endsWith(BASE_PATH)) {
+            endpoint += BASE_PATH;
         }
 
         final HttpClient.Builder httpClientBuilder = handleConfiguration(configs);

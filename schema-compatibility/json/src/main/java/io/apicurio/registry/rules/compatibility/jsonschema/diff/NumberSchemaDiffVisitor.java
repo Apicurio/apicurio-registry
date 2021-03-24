@@ -90,10 +90,10 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitMinimum(Number minimum) {
-        boolean isOriginalMinimumExclusive = original.getExclusiveMinimumLimit() != null ? true : original.isExclusiveMinimum();
+        boolean isOriginalMinimumExclusive = original.getExclusiveMinimumLimit() != null || original.isExclusiveMinimum();;
         Number originalMinimum = original.getExclusiveMinimumLimit() != null ? original.getExclusiveMinimumLimit() : original.getMinimum();
 
-        boolean isUpdatedMinimumExclusive = schema.getExclusiveMinimumLimit() != null ? true : schema.isExclusiveMinimum();
+        boolean isUpdatedMinimumExclusive = schema.getExclusiveMinimumLimit() != null || schema.isExclusiveMinimum();
         Number updatedMinimum = schema.getExclusiveMinimumLimit() != null ? schema.getExclusiveMinimumLimit() : schema.getMinimum();
 
         if (diffNumber(ctx.sub("minimum"), originalMinimum, updatedMinimum,
@@ -128,10 +128,10 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitMaximum(Number maximum) {
-        boolean isOriginalMaximumExclusive = original.getExclusiveMaximumLimit() != null ? true : original.isExclusiveMaximum();
+        boolean isOriginalMaximumExclusive = original.getExclusiveMaximumLimit() != null || original.isExclusiveMaximum();
         Number originalMaximum = original.getExclusiveMaximumLimit() != null ? original.getExclusiveMaximumLimit() : original.getMaximum();
 
-        boolean isUpdatedMaximumExclusive = schema.getExclusiveMaximumLimit() != null ? true : schema.isExclusiveMaximum();
+        boolean isUpdatedMaximumExclusive = schema.getExclusiveMaximumLimit() != null || schema.isExclusiveMaximum();
         Number updatedMaximum = schema.getExclusiveMaximumLimit() != null ? schema.getExclusiveMaximumLimit() : schema.getMaximum();
 
         if (diffNumber(ctx.sub("maximum"), originalMaximum, updatedMaximum,

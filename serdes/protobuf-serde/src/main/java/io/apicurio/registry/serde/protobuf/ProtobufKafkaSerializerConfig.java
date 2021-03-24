@@ -34,7 +34,7 @@ public class ProtobufKafkaSerializerConfig extends BaseKafkaSerDeConfig {
 
     private static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
-                .define(VALIDATION_ENABLED, Type.BOOLEAN, VALIDATION_ENABLED_DEFAULT, Importance.MEDIUM, "Whether to validate the data being sent is adheres to the schema being used");
+                .define(VALIDATION_ENABLED, Type.BOOLEAN, VALIDATION_ENABLED_DEFAULT, Importance.MEDIUM, "Whether to validate the data being sent adheres to the schema being used");
         return configDef;
     }
 

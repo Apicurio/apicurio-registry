@@ -90,7 +90,7 @@ public class NumberSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitMinimum(Number minimum) {
-        boolean isOriginalMinimumExclusive = original.getExclusiveMinimumLimit() != null || original.isExclusiveMinimum();;
+        boolean isOriginalMinimumExclusive = original.getExclusiveMinimumLimit() != null || original.isExclusiveMinimum();
         Number originalMinimum = original.getExclusiveMinimumLimit() != null ? original.getExclusiveMinimumLimit() : original.getMinimum();
 
         boolean isUpdatedMinimumExclusive = schema.getExclusiveMinimumLimit() != null || schema.isExclusiveMinimum();

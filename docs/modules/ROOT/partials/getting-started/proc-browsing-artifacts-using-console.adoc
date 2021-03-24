@@ -17,14 +17,14 @@ You can use the {registry} web console to browse the event schema and API design
 +
 `*\http://MY_REGISTRY_URL/ui*`
 
-. Browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific *Name*, *Description*, *Label*, or *Everything*.  
+. Browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific *Name*, *Group*, *Description*, or *Labels*.  
 +
 .Browse artifacts in {registry} web console
 image::images/getting-started/registry-web-console.png[Browse artifacts in Registry web console]
 +
 . Click *View artifact* to view the *Artifact Details*:
 
-** *Info*: Displays the artifact name, description, lifecycle status, when created, and last modified. You can click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
+** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. Click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
 ** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 

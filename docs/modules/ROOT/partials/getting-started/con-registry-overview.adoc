@@ -42,7 +42,7 @@ endif::[]
 
 * Cloud-native Quarkus Java runtime for low memory footprint and fast deployment times
 
-* Compatibility with existing Confluent schema registry client applications
+* Compatibility with existing Confluent or IBM schema registry client applications
 
 * Operator-based installation of {registry} on OpenShift
 

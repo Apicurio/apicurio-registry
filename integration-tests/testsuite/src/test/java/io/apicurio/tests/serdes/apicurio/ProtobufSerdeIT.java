@@ -495,4 +495,58 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
         assertEquals(1, versions);
     }
 
+    @Test
+    public void testAutoRegisterAndUseBody() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(schema::generateMessage)
+                .withDataValidator(schema::validateMessage)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
+    }
+
+    @Test
+    public void testFindLatestAndUseBody() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(schema::generateMessage)
+                .withDataValidator(schema::validateDynamicMessage)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .build()
+                .test();
+    }
+
 }

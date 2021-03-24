@@ -40,10 +40,9 @@ jobs:
 
       - name: Build The Tagged Docker Images
         run: |
-          cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          make IMAGE_TAG=latest-ci build-mem-container
+          make IMAGE_TAG=latest-ci build-sql-container
+          make IMAGE_TAG=latest-ci build-kafkasql-container
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
@@ -78,10 +77,9 @@ jobs:
 
       - name: Build The Tagged Docker Images
         run: |
-          cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Psql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
-          mvn package -Pprod -Pkafkasql -DskipTests -Ddocker -Ddocker.tag.name=latest-ci
+          make IMAGE_TAG=latest-ci build-mem-container
+          make IMAGE_TAG=latest-ci build-sql-container
+          make IMAGE_TAG=latest-ci build-kafkasql-container
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=clustered ./.github/scripts/test_apicurio_kubernetes.sh

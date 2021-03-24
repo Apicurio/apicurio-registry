@@ -17,8 +17,6 @@
 package io.apicurio.registry.serde;
 
 import java.util.Map;
-import java.util.Optional;
-
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -48,10 +46,10 @@ public interface SchemaResolver<SCHEMA, DATA> {
      * @param topic
      * @param headers, can be null
      * @param data
-     * @param parsedSchema
+     * @param parsedSchema, can be null
      * @return SchemaLookupResult
      */
-    public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, Optional<ParsedSchema<SCHEMA>> parsedSchema);
+    public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, ParsedSchema<SCHEMA> parsedSchema);
 
     /**
      * Used by Deserializers to lookup the schema for a given kafka record.

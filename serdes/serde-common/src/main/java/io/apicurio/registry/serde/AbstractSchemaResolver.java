@@ -19,7 +19,6 @@ package io.apicurio.registry.serde;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kafka.common.header.Headers;
@@ -153,8 +152,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param data
      * @param parsedSchema
      */
-    protected ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, Optional<ParsedSchema<S>> parsedSchema) {
-        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, parsedSchema.map(ParsedSchema<S>::getParsedSchema).orElse(null));
+    protected ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
+
+        S schema = null;
+        if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
+            schema = parsedSchema.getParsedSchema();
+        }
+
+        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, schema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
                 .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)

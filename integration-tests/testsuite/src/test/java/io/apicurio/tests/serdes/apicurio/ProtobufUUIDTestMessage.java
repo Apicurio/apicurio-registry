@@ -20,8 +20,9 @@ import java.io.InputStream;
 import java.util.Date;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
-import io.apicurio.registry.common.proto.Serde;
+import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.common.serdes.proto.TestCmmn;
 
@@ -31,7 +32,7 @@ import io.apicurio.tests.common.serdes.proto.TestCmmn;
 public class ProtobufUUIDTestMessage {
 
     public TestCmmn.UUID generateMessage(int count) {
-        return TestCmmn.UUID.newBuilder().setLsb(new Date().getTime()).setMsb(new Date().getTime()).build();
+        return TestCmmn.UUID.newBuilder().setLsb(321).setMsb(new Date().getTime()).build();
     }
 
     public boolean validateMessage(DynamicMessage message) {
@@ -43,26 +44,20 @@ public class ProtobufUUIDTestMessage {
         return lsb != null && msb != null;
     }
 
-    public Serde.Schema generateSchema() {
-        return toSchemaProto(
-                TestCmmn.UUID.newBuilder().build().getDescriptorForType().getFile());
+    public boolean validateTypeMessage(TestCmmn.UUID message) {
+        return message.getLsb() == 321L && message.getMsb() > 0;
+    }
+
+    public ProtoFileElement generateSchema() {
+        return FileDescriptorUtils.fileDescriptorToProtoFile(TestCmmn.UUID.newBuilder().build().getDescriptorForType().getFile().toProto());
     }
 
     public InputStream generateSchemaStream() {
-        return IoUtil.toStream(generateSchema().toByteArray());
+        return IoUtil.toStream(generateSchema().toSchema());
     }
 
     public byte[] generateSchemaBytes() {
-        return generateSchema().toByteArray();
-    }
-
-    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
-        Serde.Schema.Builder b = Serde.Schema.newBuilder();
-        b.setFile(file.toProto());
-        for (Descriptors.FileDescriptor d : file.getDependencies()) {
-            b.addImport(toSchemaProto(d));
-        }
-        return b.build();
+        return IoUtil.toBytes(generateSchema().toSchema());
     }
 
 }

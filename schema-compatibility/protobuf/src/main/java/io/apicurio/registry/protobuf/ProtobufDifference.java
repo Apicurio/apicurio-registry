@@ -14,21 +14,30 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.protobuf;
+
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  * @author Fabian Martinez
  */
-public interface ParsedSchema<T> {
+@EqualsAndHashCode
+@ToString
+public class ProtobufDifference {
 
-    /**
-     * @return the parsedSchema
-     */
-    public T getParsedSchema();
+    private final String message;
 
-    /**
-     * @return the rawSchema
-     */
-    public byte[] getRawSchema();
+    public static ProtobufDifference from(String message) {
+        return new ProtobufDifference(message);
+    }
+
+    public ProtobufDifference(String message) {
+        this.message = message;
+    }
+
+    public String getMessage() {
+        return this.message;
+    }
 
 }

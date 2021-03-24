@@ -36,4 +36,11 @@ public interface ArtifactResolverStrategy<T> {
      */
     ArtifactReference artifactReference(String topic, boolean isKey, T schema);
 
+    /**
+     * Whether or not to load and pass the parsed schema to the {@link ArtifactResolverStrategy#artifactReference(String, boolean, Object)} lookup method
+     */
+    default boolean loadSchema() {
+        return true;
+    }
+
 }

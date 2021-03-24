@@ -19,16 +19,44 @@ package io.apicurio.registry.serde;
 /**
  * @author Fabian Martinez
  */
-public interface ParsedSchema<T> {
+public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
+
+    private T parsedSchema;
+    private byte[] rawSchema;
+
+    public ParsedSchemaImpl() {
+        //empty
+    }
 
     /**
      * @return the parsedSchema
      */
-    public T getParsedSchema();
+    @Override
+    public T getParsedSchema() {
+        return parsedSchema;
+    }
+
+    /**
+     * @param parsedSchema the parsedSchema to set
+     */
+    public ParsedSchemaImpl<T> setParsedSchema(T parsedSchema) {
+        this.parsedSchema = parsedSchema;
+        return this;
+    }
 
     /**
      * @return the rawSchema
      */
-    public byte[] getRawSchema();
+    @Override
+    public byte[] getRawSchema() {
+        return rawSchema;
+    }
 
+    /**
+     * @param rawSchema the rawSchema to set
+     */
+    public ParsedSchemaImpl<T> setRawSchema(byte[] rawSchema) {
+        this.rawSchema = rawSchema;
+        return this;
+    }
 }

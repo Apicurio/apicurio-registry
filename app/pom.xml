@@ -33,6 +33,10 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -109,10 +113,6 @@
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.wire</groupId>
-            <artifactId>wire-schema</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

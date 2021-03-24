@@ -129,6 +129,29 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
+    void testWrongSchemaFindLatest() throws Exception {
+        String topicName = TestUtils.generateSubject();
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String artifactId = topicName + "-value";
+
+        ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
+        ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
+
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaStream());
+
+        new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            //note, we use an incorrect wrong data generator in purpose
+            .withDataGenerator(schemaB::generateMessage)
+            .build()
+            .test();
+    }
+
+    @Test
     void testArtifactNotFound() throws Exception {
         String topicName = TestUtils.generateSubject();
         kafkaCluster.createTopic(topicName, 1, 1);
@@ -142,6 +165,90 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
             .withSerializer(serializer)
             .withStrategy(TopicIdStrategy.class)
             .withDataGenerator(schema::generateMessage)
+            .build()
+            .test();
+    }
+
+    /**
+     * This test creates one artifact with two versions, v1 and v2 each one incompatile with the other.
+     * This test verifies the ability of the protobuf serdes to find a specific version of the artifact, to find the latest or to find the artifact by content.
+     * At the same time the test verifies the serdes perform validation before serializing and they fail
+     * when the serdes is configured to use one schema but the data passed does not correspond to that schema
+     */
+    @Test
+    void testValidation() throws Exception {
+        String topicName = TestUtils.generateSubject();
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        String artifactId = topicName + "-value";
+
+        ProtobufTestMessageFactory schemaV1 = new ProtobufTestMessageFactory();
+        ProtobufUUIDTestMessage schemaV2 = new ProtobufUUIDTestMessage();
+
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schemaV1.generateArtificialSchemaStream());
+        updateArtifact(null, artifactId, schemaV2.generateSchemaStream());
+
+        //by default the artifact is found by content so this should work by finding the version 1 of the artifact
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1")
+            .withDataGenerator(schemaV1::generateMessage)
+            .withDataValidator(schemaV1::validateMessage)
+            .build()
+            .test();
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schemaV1::generateMessage)
+            .withDataValidator(schemaV1::validateMessage)
+            .build()
+            .test();
+        new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withDataGenerator(schemaV2::generateMessage)
+            .withDataValidator(schemaV2::validateTypeMessage)
+            .build()
+            .test();
+
+        //if find latest is enabled and we use the v1 schema it should fail. Validation is enabled by default
+        new WrongConfiguredSerdesTesterBuilder<ProtobufTestMessage>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            //note, we use an incorrect wrong data generator in purpose
+            //find latest will find the v2 artifact but we try to send with v1 artifact, this should fail
+            .withDataGenerator(schemaV1::generateMessage)
+            .build()
+            .test();
+
+        //if find latest is enabled and we use the v2 schema it should work. Validation is enabled by default
+        new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+            .withDataGenerator(schemaV2::generateMessage)
+            .withDataValidator(schemaV2::validateTypeMessage)
+            .build()
+            .test();
+        new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>()
+            .withTopic(topicName)
+            .withSerializer(serializer)
+            .withDeserializer(deserializer)
+            .withStrategy(TopicIdStrategy.class)
+            .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "2")
+            .withDataGenerator(schemaV2::generateMessage)
+            .withDataValidator(schemaV2::validateTypeMessage)
             .build()
             .test();
     }
@@ -386,6 +493,60 @@ public class ProtobufSerdeIT extends ApicurioV2BaseIT {
 
         int versions = registryClient.listArtifactVersions(null, artifactId, 0, 10).getCount();
         assertEquals(1, versions);
+    }
+
+    @Test
+    public void testAutoRegisterAndUseBody() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>()
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(schema::generateMessage)
+                .withDataValidator(schema::validateMessage)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
+    }
+
+    @Test
+    public void testFindLatestAndUseBody() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        //because of using TopicIdStrategy
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
+
+        createArtifact(null, artifactId, ArtifactType.PROTOBUF, schema.generateSchemaStream());
+
+        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>()
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(schema::generateMessage)
+                .withDataValidator(schema::validateDynamicMessage)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
+                .build()
+                .test();
     }
 
 }

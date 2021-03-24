@@ -16,29 +16,22 @@
 
 package io.apicurio.registry.serde.protobuf;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.kafka.common.errors.SerializationException;
 
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
-import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
-import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Fabian Martinez
  */
-public class ProtobufSchemaParser implements SchemaParser<FileDescriptor> {
+public class ProtobufSchemaParser implements SchemaParser<ProtobufSchema> {
 
     /**
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
@@ -52,37 +45,15 @@ public class ProtobufSchemaParser implements SchemaParser<FileDescriptor> {
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public FileDescriptor parseSchema(byte[] rawSchema) {
+    public ProtobufSchema parseSchema(byte[] rawSchema) {
         try {
             //textual .proto file
             ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, IoUtil.toString(rawSchema));
-            return FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
+            FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
+            return new ProtobufSchema(fileDescriptor, fileElem);
         } catch (DescriptorValidationException pe) {
-            //compatibility
-            //official protobuf file descriptor set (.desc files)
-            try {
-                DescriptorProtos.FileDescriptorSet set = DescriptorProtos.FileDescriptorSet.parseFrom(rawSchema);
-                return FileDescriptor.buildFrom(set.getFile(0), FileDescriptorUtils.baseDependencies());
-            } catch (InvalidProtocolBufferException | DescriptorValidationException e1) {
-                //old PROTOBUF_FD format, with our custom protobuf message
-                try {
-                    Serde.Schema s = Serde.Schema.parseFrom(rawSchema);
-                    return toFileDescriptor(s);
-                } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
-                    pe.addSuppressed(e1);
-                    pe.addSuppressed(e);
-                    throw new SerializationException("Error parsing protobuf schema ", pe);
-                }
-            }
+            throw new SerializationException("Error parsing protobuf schema ", pe);
         }
-    }
-
-    private FileDescriptor toFileDescriptor(Serde.Schema s) throws DescriptorValidationException {
-        List<FileDescriptor> imports = new ArrayList<>();
-        for (Serde.Schema i : s.getImportList()) {
-            imports.add(toFileDescriptor(i));
-        }
-        return FileDescriptor.buildFrom(s.getFile(), imports.toArray(new FileDescriptor[0]));
     }
 
     /**
@@ -90,10 +61,12 @@ public class ProtobufSchemaParser implements SchemaParser<FileDescriptor> {
      * @param fileDescriptor
      * @return textual protobuf representation
      */
-    public byte[] serializeSchema(Descriptor fileDescriptor) {
-        FileDescriptorProto fileProto = fileDescriptor.getFile().toProto();
-        ProtoFileElement fileElement = FileDescriptorUtils.fileDescriptorToProtoFile(fileProto);
-        return IoUtil.toBytes(fileElement.toSchema());
+    public ProtoFileElement toProtoFileElement(FileDescriptor fileDescriptor) {
+        return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
+    }
+
+    public byte[] serializeSchema(ProtoFileElement protoFileElement) {
+        return IoUtil.toBytes(protoFileElement.toSchema());
     }
 
 }

@@ -32,6 +32,7 @@ import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.ParsedSchemaImpl;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
@@ -102,7 +103,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     @Override
     protected ParsedSchema<Schema> getSchemaFromData(U data) {
         Schema schema = avroDatumProvider.toSchema(data);
-        return new ParsedSchema<Schema>()
+        return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
                 .setRawSchema(IoUtil.toBytes(schema.toString()));
     }

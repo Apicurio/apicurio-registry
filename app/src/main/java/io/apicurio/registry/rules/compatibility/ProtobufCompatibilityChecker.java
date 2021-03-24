@@ -20,6 +20,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
+import io.apicurio.registry.protobuf.ProtobufFile;
+import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
+
 /**
  * @author Ales Justin
  */
@@ -41,7 +44,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
             case BACKWARD: {
                 ProtobufFile fileBefore = new ProtobufFile(existingSchemas.get(existingSchemas.size() - 1));
                 ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
-                ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
+                ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
                 if (checker.validate()) {
                     return CompatibilityExecutionResult.compatible();
                 } else {
@@ -52,7 +55,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
                 ProtobufFile fileAfter = new ProtobufFile(proposedSchema);
                 for (String existing : existingSchemas) {
                     ProtobufFile fileBefore = new ProtobufFile(existing);
-                    ProtobufCompatibilityCheckerImpl checker = new ProtobufCompatibilityCheckerImpl(fileBefore, fileAfter);
+                    ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
                     if (checker.validate()) {
                         return CompatibilityExecutionResult.compatible();
                     } else {

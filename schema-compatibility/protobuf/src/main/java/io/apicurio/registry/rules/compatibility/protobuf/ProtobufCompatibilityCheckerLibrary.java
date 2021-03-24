@@ -321,7 +321,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                 diff.removeAll(afterSet);
             }
 
-            issues.add(ProtobufDifference.from(String.format("%d rpc services removed, message %s", diff.size(), entry.getKey())));
+            if (diff.size() > 0) {
+                issues.add(ProtobufDifference.from(String.format("%d rpc services removed, message %s", diff.size(), entry.getKey())));
+            }
 
         }
 

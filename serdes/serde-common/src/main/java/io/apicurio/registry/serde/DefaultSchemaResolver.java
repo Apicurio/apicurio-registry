@@ -182,6 +182,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
         });
     }
 
+    /**
+     * Search by content may not work for some usecases of our Serdes implementations.
+     * For example when serializing protobuf messages, the schema inferred from the data
+     * may not be equal to the .proto file schema uploaded in the registry.
+     */
     private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
             final ArtifactReference artifactReference) {
         byte[] rawSchema = parsedSchema.getRawSchema();

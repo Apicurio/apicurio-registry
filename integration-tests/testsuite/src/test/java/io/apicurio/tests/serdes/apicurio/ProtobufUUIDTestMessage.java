@@ -32,7 +32,7 @@ import io.apicurio.tests.common.serdes.proto.TestCmmn;
 public class ProtobufUUIDTestMessage {
 
     public TestCmmn.UUID generateMessage(int count) {
-        return TestCmmn.UUID.newBuilder().setLsb(new Date().getTime()).setMsb(new Date().getTime()).build();
+        return TestCmmn.UUID.newBuilder().setLsb(321).setMsb(new Date().getTime()).build();
     }
 
     public boolean validateMessage(DynamicMessage message) {
@@ -42,6 +42,10 @@ public class ProtobufUUIDTestMessage {
         Object msb = message.getField(descriptor.findFieldByName("msb"));
 
         return lsb != null && msb != null;
+    }
+
+    public boolean validateTypeMessage(TestCmmn.UUID message) {
+        return message.getLsb() == 321L && message.getMsb() > 0;
     }
 
     public ProtoFileElement generateSchema() {

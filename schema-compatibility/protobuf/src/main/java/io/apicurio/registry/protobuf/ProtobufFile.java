@@ -93,6 +93,10 @@ public class ProtobufFile {
         return parser.readProtoFile();
     }
 
+    public String getPackageName() {
+        return element.getPackageName();
+    }
+
     /*
      * message name -> Set { Integer/tag || String/name }
      */

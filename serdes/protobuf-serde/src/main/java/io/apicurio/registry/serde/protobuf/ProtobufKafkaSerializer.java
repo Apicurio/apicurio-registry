@@ -19,6 +19,7 @@ package io.apicurio.registry.serde.protobuf;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
@@ -27,6 +28,7 @@ import org.apache.kafka.common.header.Headers;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.google.protobuf.Message;
 
+import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
@@ -122,9 +124,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
                 throw new SerializationException("Missing message type " + data.getDescriptorForType().getName() + " in the protobuf schema");
             }
 
-            if (!validate(schema, data)) {
-                //TODO add useful information about the schema being used
-                throw new SerializationException("The data to send is not compatible with the schema");
+            List<ProtobufDifference> diffs = validate(schema, data);
+            if (!diffs.isEmpty()) {
+                throw new SerializationException("The data to send is not compatible with the schema. " + diffs);
             }
 
         }
@@ -142,11 +144,11 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
         data.writeTo(out);
     }
 
-    private boolean validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, U data) {
+    private List<ProtobufDifference> validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, U data) {
         ProtobufFile fileBefore = schemaFromRegistry.getParsedSchema().getProtobufFile();
         ProtobufFile fileAfter = new ProtobufFile(parser.toProtoFileElement(data.getDescriptorForType().getFile()));
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
-        return checker.validate();
+        return checker.findDifferences();
     }
 
 }

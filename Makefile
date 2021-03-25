@@ -54,8 +54,8 @@ build-tenant-manager-native:
 
 
 
-.PHONY: build-mem-container ## Builds docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-mem-container:
+.PHONY: build-mem-image ## Builds docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-mem-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Image For In-Memory Storage Variant"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -64,8 +64,8 @@ build-mem-container:
 	docker build -f $(DOCKER_BUILD_WORKSPACE)/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
-.PHONY: push-mem-container ## Pushes docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-mem-container:
+.PHONY: push-mem-image ## Pushes docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-mem-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Pushing Image For In-Memory Storage Variant"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -75,8 +75,8 @@ push-mem-container:
 
 
 
-.PHONY: build-sql-container ## Builds docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-sql-container:
+.PHONY: build-sql-image ## Builds docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-sql-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Image For SQL Storage Variant "
 	@echo " Repository: $(IMAGE_REPO)"
@@ -85,8 +85,8 @@ build-sql-container:
 	docker build -f $(DOCKER_BUILD_WORKSPACE)/Dockerfile.sql.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
-.PHONY: push-sql-container ## Pushes docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-sql-container:
+.PHONY: push-sql-image ## Pushes docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-sql-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Pushing Image For SQL Storage Variant"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -96,8 +96,8 @@ push-sql-container:
 
 
 
-.PHONY: build-kafkasql-container ## Builds docker image for kafkasql storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-kafkasql-container:
+.PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Image For Kafkasql Storage Variant "
 	@echo " Repository: $(IMAGE_REPO)"
@@ -106,8 +106,8 @@ build-kafkasql-container:
 	docker build -f $(DOCKER_BUILD_WORKSPACE)/Dockerfile.kafkasql.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
-.PHONY: push-kafkasql-container ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-kafkasql-container:
+.PHONY: push-kafkasql-image ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Pushing Image For Kafkasql Storage Variant"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -117,8 +117,8 @@ push-kafkasql-container:
 
 
 
-.PHONY: build-tenant-manager-container ## Builds docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-tenant-manager-container:
+.PHONY: build-tenant-manager-image ## Builds docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-tenant-manager-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Image For Tenant Manager API"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -127,8 +127,8 @@ build-tenant-manager-container:
 	docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) ./multitenancy/tenant-manager-api/
 
 
-.PHONY: push-tenant-manager-container ## Pushes docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-tenant-manager-container:
+.PHONY: push-tenant-manager-image ## Pushes docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-tenant-manager-image:
 	@echo "------------------------------------------------------------------------"
 	@echo " Pushing Image For Tenant Manager API"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -138,9 +138,9 @@ push-tenant-manager-container:
 
 
 
-.PHONY: build-tenant-manager-container-native ## Builds native docker image for tenant manager. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+.PHONY: build-tenant-manager-image-native ## Builds native docker image for tenant manager. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 # example image quay.io/famargon/apicurio-registry-tenant-manager-api:native
-build-tenant-manager-container-native:
+build-tenant-manager-image-native:
 	@echo "------------------------------------------------------------------------"
 	@echo " Building Native Image For Tenant Manager"
 	@echo " Repository: $(IMAGE_REPO)"
@@ -150,12 +150,12 @@ build-tenant-manager-container-native:
 
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-container build-sql-container build-kafkasql-container build-tenant-manager-container
+build-all-images: build-mem-image build-sql-image build-kafkasql-image build-tenant-manager-image
 
 
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-container push-sql-container push-kafkasql-container push-tenant-manager-container
+push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-manager-image
 
 
 

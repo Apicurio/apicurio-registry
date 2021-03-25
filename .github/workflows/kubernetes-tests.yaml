@@ -36,13 +36,13 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build All Variants
-        run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
-
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+        
       - name: Build The Tagged Docker Images
         run: |
-          make IMAGE_TAG=latest-ci build-mem-container
-          make IMAGE_TAG=latest-ci build-sql-container
-          make IMAGE_TAG=latest-ci build-kafkasql-container
+          make IMAGE_TAG=latest-ci build-mem-image
+          make IMAGE_TAG=latest-ci build-sql-image
+          make IMAGE_TAG=latest-ci build-kafkasql-image
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
@@ -77,9 +77,9 @@ jobs:
 
       - name: Build The Tagged Docker Images
         run: |
-          make IMAGE_TAG=latest-ci build-mem-container
-          make IMAGE_TAG=latest-ci build-sql-container
-          make IMAGE_TAG=latest-ci build-kafkasql-container
+          make IMAGE_TAG=latest-ci build-mem-image
+          make IMAGE_TAG=latest-ci build-sql-image
+          make IMAGE_TAG=latest-ci build-kafkasql-image
 
       - name: Kubernetes Tests
         run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=clustered ./.github/scripts/test_apicurio_kubernetes.sh

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
     steps:
-      - name: Checkout Code with Ref '${{ github.ref }}' 
+      - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
       - name: Set up JDK 11
@@ -52,7 +52,7 @@ jobs:
 
       - name: Build The Images for Docker.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot null
+        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
 
       - name: List All The Images
         run: docker images
@@ -67,11 +67,11 @@ jobs:
 
       - name: Build The Images for Quay.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot null
+        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
 
       - name: List All The Images
         run: docker images
 
       - name: Push The Images To Quay.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot null
+        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot

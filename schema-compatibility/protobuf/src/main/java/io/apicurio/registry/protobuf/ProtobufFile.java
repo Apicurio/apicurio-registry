@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rules.compatibility;
+package io.apicurio.registry.protobuf;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -83,9 +83,18 @@ public class ProtobufFile {
         buildIndexes();
     }
 
+    public ProtobufFile(ProtoFileElement element) {
+        this.element = element;
+        buildIndexes();
+    }
+
     public static ProtoFileElement toProtoFileElement(String data) {
         ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
         return parser.readProtoFile();
+    }
+
+    public String getPackageName() {
+        return element.getPackageName();
     }
 
     /*

@@ -31,4 +31,13 @@ public class TopicIdStrategy<T> implements ArtifactResolverStrategy<T> {
                 .artifactId(String.format("%s-%s", topic, isKey ? "key" : "value"))
                 .build();
     }
+
+    /**
+     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#loadSchema()
+     */
+    @Override
+    public boolean loadSchema() {
+        return false;
+    }
+
 }

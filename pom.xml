@@ -99,6 +99,7 @@
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>schema-compatibility/json</module>
+        <module>schema-compatibility/protobuf</module>
         <module>utils/tests</module>
         <module>serdes/serde-common</module>
         <module>serdes/avro-serde</module>
@@ -248,6 +249,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

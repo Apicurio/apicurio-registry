@@ -32,4 +32,12 @@ public class SimpleTopicIdStrategy<T> implements ArtifactResolverStrategy<T> {
                 .build();
     }
 
+    /**
+     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#loadSchema()
+     */
+    @Override
+    public boolean loadSchema() {
+        return false;
+    }
+
 }

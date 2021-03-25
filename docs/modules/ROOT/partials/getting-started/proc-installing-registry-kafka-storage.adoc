@@ -12,11 +12,6 @@ endif::[]
 
 This topic explains how to install and run {registry} with Kafka storage from a container image. This storage option is suitable for production environments. 
 
-The following Kafka-based systems are supported:
-
-* Apache Kafka 2.2.x
-* Apache Kafka 2.3
-
 .Prerequisites
 
 * You must have Docker installed and the Docker daemon running.
@@ -83,14 +78,13 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/api/artifacts
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v2/groups/my-group/artifacts
 ----
-
 . Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
 +
 [source,bash]
 ----
-{"createdOn":1578310374517,"modifiedOn":1578310374517,"id":"share-price","version":1,"type":"AVRO","globalId":8}
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
 ----
 
 .Additional resources

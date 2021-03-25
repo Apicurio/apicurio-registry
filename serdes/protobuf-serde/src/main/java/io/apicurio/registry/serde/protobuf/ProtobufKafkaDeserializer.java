@@ -32,18 +32,17 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
 import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
-import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.ParsedSchema;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.serde.utils.Utils;
 
 /**
@@ -51,7 +50,7 @@ import io.apicurio.registry.serde.utils.Utils;
  * @author Hiram Chirino
  * @author Fabian Martinez
  */
-public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaDeserializer<Descriptors.FileDescriptor, U> {
+public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaDeserializer<ProtobufSchema, U> {
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
@@ -63,7 +62,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
 
     private Map<String, Method> parseMethodsCache = new ConcurrentHashMap<>();
 
-    private MessageTypeSerdeHeaders serdeHeaders;
+    private ProtobufSerdeHeaders serdeHeaders;
 
 
     public ProtobufKafkaDeserializer() {
@@ -71,7 +70,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     }
 
     public ProtobufKafkaDeserializer(RegistryClient client,
-            SchemaResolver<FileDescriptor, U> schemaResolver) {
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, schemaResolver);
     }
 
@@ -79,7 +78,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
         super(client);
     }
 
-    public ProtobufKafkaDeserializer(SchemaResolver<FileDescriptor, U> schemaResolver) {
+    public ProtobufKafkaDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(schemaResolver);
     }
 
@@ -105,14 +104,14 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
 
         deriveClass = config.deriveClass();
 
-        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
+        serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<FileDescriptor> schemaParser() {
+    public SchemaParser<ProtobufSchema> schemaParser() {
         return parser;
     }
 
@@ -120,7 +119,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
      * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected U readData(Headers headers, ParsedSchema<FileDescriptor> schema, ByteBuffer buffer, int start, int length) {
+    protected U readData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(headers, schema, buffer, start, length);
     }
 
@@ -128,19 +127,35 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
      * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected U readData(ParsedSchema<FileDescriptor> schema, ByteBuffer buffer, int start, int length) {
+    protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(null, schema, buffer, start, length);
     }
 
     @SuppressWarnings("unchecked")
-    protected U internalReadData(Headers headers, ParsedSchema<FileDescriptor> schema, ByteBuffer buff, int start, int length) {
+    protected U internalReadData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buff, int start, int length) {
         try {
             byte[] bytes = new byte[length];
             System.arraycopy(buff.array(), start, bytes, 0, length);
 
             ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-            Serde.Ref ref = Serde.Ref.parseDelimitedFrom(is);
-            Descriptor descriptor = schema.getParsedSchema().findMessageTypeByName(ref.getName());
+
+            Descriptor descriptor = null;
+            if (headers != null) {
+                String messageTypeName = serdeHeaders.getProtobufTypeName(headers);
+                if (messageTypeName != null) {
+                    descriptor = schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(messageTypeName);
+                }
+            }
+            if (descriptor == null){
+                try {
+                    Ref ref = Ref.parseDelimitedFrom(is);
+                    descriptor = schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(ref.getName());
+                } catch (IOException e) {
+                    is = new ByteArrayInputStream(bytes);
+                    //use the first message type found
+                    descriptor = schema.getParsedSchema().getFileDescriptor().getMessageTypes().get(0);
+                }
+            }
 
             if (specificReturnClassParseMethod != null) {
                 try {

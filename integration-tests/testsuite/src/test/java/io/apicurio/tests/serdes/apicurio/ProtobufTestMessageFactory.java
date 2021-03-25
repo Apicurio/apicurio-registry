@@ -21,7 +21,9 @@ import java.util.Date;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Timestamp;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
+import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.protobuf.Header;
 import io.apicurio.tests.protobuf.Point;
@@ -62,6 +64,11 @@ public class ProtobufTestMessageFactory {
 
     public byte[] generateSchemaBytes() {
         return IoUtil.toBytes(generateSchemaStream());
+    }
+
+    public InputStream generateArtificialSchemaStream() {
+        ProtoFileElement element = FileDescriptorUtils.fileDescriptorToProtoFile(ProtobufTestMessage.newBuilder().build().getDescriptorForType().getFile().toProto());
+        return IoUtil.toStream(element.toSchema());
     }
 
 }

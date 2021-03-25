@@ -56,9 +56,9 @@ public class ArtifactTypeOrdUtil {
                 case PROTOBUF:
                     index(artifactType, 7);
                     break;
-                case PROTOBUF_FD:
-                    index(artifactType, 8);
-                    break;
+//                case PROTOBUF_FD:
+//                    index(artifactType, 8);
+//                    break;
                 case WSDL:
                     index(artifactType, 9);
                     break;

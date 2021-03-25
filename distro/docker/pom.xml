@@ -82,36 +82,6 @@
             </plugin>
 
             <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>0.34.1</version>
-                <executions>
-                    <execution>
-                        <id>docker-build</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                        <configuration>
-                            <images>
-                                <image>
-                                    <name>apicurio/apicurio-registry-mem:${project.version}</name>
-                                    <build>
-                                        <contextDir>${project.build.directory}/docker</contextDir>
-                                        <dockerFile>./Dockerfile.jvm</dockerFile>
-                                        <tags combine.children="append">
-                                            <tag>latest</tag>
-                                            <tag>${docker.tag.name}</tag>
-                                        </tags>
-                                    </build>
-                                </image>
-                            </images>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
@@ -123,45 +93,7 @@
     </build>
 
     <profiles>
-
-        <profile>
-            <id>mem</id>
-            <build>
-                <plugins>
-
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-mem:${project.version}-native</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.native</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                </plugins>
-            </build>
-        </profile>
-
+    
         <profile>
             <id>sql</id>
             <dependencies>
@@ -172,38 +104,6 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-sql:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.sql.jvm</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
 
         <profile>
@@ -216,52 +116,6 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.34.1</version>
-                        <executions>
-                            <execution>
-                                <id>docker-build</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                                <configuration>
-                                    <images>
-                                        <image>
-                                            <name>apicurio/apicurio-registry-kafkasql:${project.version}</name>
-                                            <build>
-                                                <contextDir>${project.build.directory}/docker</contextDir>
-                                                <dockerFile>./Dockerfile.kafkasql.jvm</dockerFile>
-                                                <tags combine.children="append">
-                                                    <tag>latest</tag>
-                                                </tags>
-                                            </build>
-                                        </image>
-                                    </images>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>skipDocker</id>
-            <activation>
-                <property>
-                    <name>!docker</name>
-                </property>
-            </activation>
-
-            <properties>
-                <docker.skip>true</docker.skip>
-            </properties>
-
         </profile>
 
     </profiles>

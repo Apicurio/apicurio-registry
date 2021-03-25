@@ -435,7 +435,6 @@ public interface GroupsResource {
    *
    * * Avro (`AVRO`)
    * * Protobuf (`PROTOBUF`)
-   * * Protobuf File Descriptor (`PROTOBUF_FD`)
    * * JSON Schema (`JSON`)
    * * Kafka Connect (`KCONNECT`)
    * * OpenAPI (`OPENAPI`)

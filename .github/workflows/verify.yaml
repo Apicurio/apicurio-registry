@@ -59,7 +59,7 @@ jobs:
 
       - name: Push The Images To Docker.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot null
+        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'

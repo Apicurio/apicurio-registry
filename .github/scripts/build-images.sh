@@ -1,12 +1,14 @@
 #!/bin/bash
 set -euxo pipefail
 
+defvalue="foo"
+
 # Initializing the variable with the Passed Parameter
 
 BRANCH_NAME="$1"       # Git Branch
 IMAGE_REPOSITORY="$2"  # Image Repository, e.g. docker.io, quay.io
 RELEASE_TYPE="$3"      # Either 'snapshot' or 'release'
-RELEASE_VERSION="$4"   # Release version (pass 'null' for snapshot release)
+RELEASE_VERSION=${4:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version)
 
 
 
@@ -26,10 +28,10 @@ fi
 
 
 
-# If it is not a snapshot release, We also need to build images tagged with the 'release version'
-if [[ $RELEASE_TYPE == "release" ]]
+# If release version is passed as a parameter, build images tagged with the 'RELEASE_VERSION'
+if [[ $RELEASE_VERSION != "foo" ]]
 then
-    echo "Not a Snapshot Release. Building Images With '${RELEASE_VERSION}' Tag."
+    echo "Building Images With '${RELEASE_VERSION}' Tag."
     make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${RELEASE_VERSION} build-all-images
 fi
 

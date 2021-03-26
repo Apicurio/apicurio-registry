@@ -14,24 +14,31 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.kafkasql;
+package io.apicurio.registry.storage.impl.kafkasql.values;
 
-import java.util.Properties;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface KafkaSqlConfiguration {
+public class GlobalIdValue extends AbstractMessageValue {
 
-    public String bootstrapServers();
-    public String topic();
-    public Properties topicProperties();
-    public boolean isTopicAutoCreate();
-    public Integer startupLag();
-    public Integer pollTimeout();
-    public Integer responseTimeout();
-    public Properties producerProperties();
-    public Properties consumerProperties();
-    public Properties adminProperties();
+    /**
+     * Creator method.
+     * @param action
+     */
+    public static final GlobalIdValue create(ActionType action) {
+        GlobalIdValue value = new GlobalIdValue();
+        value.setAction(action);
+        return value;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
+     */
+    @Override
+    public MessageType getType() {
+        return MessageType.GlobalId;
+    }
 
 }

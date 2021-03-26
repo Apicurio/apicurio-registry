@@ -25,7 +25,7 @@ ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
 CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
 
-CREATE SEQUENCE globalidsequence;
+CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE CACHE 100;
 
 CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);

@@ -55,6 +55,9 @@ public class MessageTypeToValueClass {
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionValue.class);
                     break;
+                case GlobalId:
+                    index.put(type, GlobalIdValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

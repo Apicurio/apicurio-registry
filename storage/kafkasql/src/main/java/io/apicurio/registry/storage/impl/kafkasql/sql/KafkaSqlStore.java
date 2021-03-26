@@ -36,6 +36,16 @@ import io.apicurio.registry.types.RuleType;
 @Logged
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
+    @Transactional
+    public long nextGlobalId() {
+        return withHandle( handle -> {
+            String sql = sqlStatements().selectNextGlobalId();
+            return handle.createQuery(sql)
+                    .mapTo(Long.class)
+                    .one();
+        });
+    }
+
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
         return withHandle( handle -> {
             String sql = sqlStatements().selectContentCountByHash();

@@ -27,6 +27,7 @@ import io.apicurio.registry.types.ArtifactType;
  */
 public class ArtifactValue extends ArtifactVersionValue {
 
+    private Long globalId;
     private String version;
     private ArtifactType artifactType;
     private String contentHash;
@@ -36,10 +37,11 @@ public class ArtifactValue extends ArtifactVersionValue {
     /**
      * Creator method.
      */
-    public static final ArtifactValue create(ActionType action, String version, ArtifactType artifactType, String contentHash, String createdBy,
+    public static final ArtifactValue create(ActionType action, Long globalId, String version, ArtifactType artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData) {
         ArtifactValue value = new ArtifactValue();
         value.setAction(action);
+        value.setGlobalId(globalId);
         value.setVersion(version);
         value.setArtifactType(artifactType);
         value.setContentHash(contentHash);
@@ -125,6 +127,20 @@ public class ArtifactValue extends ArtifactVersionValue {
      */
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    /**
+     * @return the globalId
+     */
+    public Long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * @param globalId the globalId to set
+     */
+    public void setGlobalId(Long globalId) {
+        this.globalId = globalId;
     }
 
 }

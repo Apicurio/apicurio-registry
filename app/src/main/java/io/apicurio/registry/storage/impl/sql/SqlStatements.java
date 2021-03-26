@@ -396,5 +396,10 @@ public interface SqlStatements {
      */
     public String selectGroupByGroupId();
 
+    /**
+     * As statement used to get the next generated/sequenced globalId.
+     */
+    public String selectNextGlobalId();
+
 
 }

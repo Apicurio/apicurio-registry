@@ -296,6 +296,18 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
+     * Generate a new globalId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
+     * guaranteed to generate the same globalId.
+     *
+     * TODO we can improve performance of this by reserving batches of globalIds instead of doing it one at a time.  Not yet done
+     *      due to a desire to avoid premature optimization.
+     */
+    private long nextGlobalId() {
+        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Create));
+        return (long) coordinator.waitForResponse(uuid);
+    }
+
+    /**
      * Ensures that the given content exists in the database.  If it's already in the DB, then this just
      * returns the content hash.  If the content does not yet exist in the DB, then it is added (by sending
      * the appropriate message to the Kafka topic and awaiting the response).
@@ -345,8 +357,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        long globalId = nextGlobalId();
+
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 
@@ -438,8 +452,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        long globalId = sqlStore.nextGlobalId();
+
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 

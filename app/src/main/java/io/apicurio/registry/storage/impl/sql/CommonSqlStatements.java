@@ -34,6 +34,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectNextGlobalId()
+     */
+    @Override
+    public String selectNextGlobalId() {
+        return "SELECT nextval('globalidsequence')";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseInitialization()
      */
     @Override

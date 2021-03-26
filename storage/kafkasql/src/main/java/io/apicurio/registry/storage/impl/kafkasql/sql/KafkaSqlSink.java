@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
@@ -35,6 +36,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
@@ -119,13 +121,6 @@ public class KafkaSqlSink {
         MessageKey key = record.key();
         MessageValue value = record.value();
 
-        GlobalIdGenerator globalIdGenerator = () -> {
-            int partition = record.partition();
-            long offset = record.offset();
-            Long globalId = toGlobalId(offset, partition);
-            return globalId;
-        };
-
         String tenantId = key.getTenantId();
         tenantContext.tenantId(tenantId);
         try {
@@ -134,7 +129,7 @@ public class KafkaSqlSink {
                 case Group:
                     return processGroupMessage((GroupKey) key, (GroupValue) value);
                 case Artifact:
-                    return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value, globalIdGenerator);
+                    return processArtifactMessage((ArtifactKey) key, (ArtifactValue) value);
                 case ArtifactRule:
                     return processArtifactRuleMessage((ArtifactRuleKey) key, (ArtifactRuleValue) value);
                 case ArtifactVersion:
@@ -143,6 +138,8 @@ public class KafkaSqlSink {
                     return processContent((ContentKey) key, (ContentValue) value);
                 case GlobalRule:
                     return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
+                case GlobalId:
+                    return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
                 case LogConfig:
                     return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
                 default:
@@ -196,10 +193,15 @@ public class KafkaSqlSink {
      * Process a Kafka message of type "artifact".  This includes creating, updating, and deleting artifacts.
      * @param key
      * @param value
-     * @param globalIdGenerator
      */
-    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value, GlobalIdGenerator globalIdGenerator) throws RegistryStorageException {
+    private Object processArtifactMessage(ArtifactKey key, ArtifactValue value) throws RegistryStorageException {
         try {
+            GlobalIdGenerator globalIdGenerator = new GlobalIdGenerator() {
+                @Override
+                public Long generate() {
+                    return value.getGlobalId();
+                }
+            };
             switch (value.getAction()) {
                 case Create:
                     return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
@@ -326,6 +328,25 @@ public class KafkaSqlSink {
     }
 
     /**
+     * Process a Kafka message of type "global id".  This is typically used to generate a new globalId that
+     * is unique and consistent across the cluster.
+     * @param key
+     * @param value
+     */
+    private Object processGlobalId(GlobalIdKey key, GlobalIdValue value) {
+        switch (value.getAction()) {
+            case Create:
+                return sqlStore.nextGlobalId();
+            case Update:
+            case Delete:
+            case Clear:
+            default:
+                log.warn("Unsupported global id message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported global-id message action: " + value.getAction());
+        }
+    }
+
+    /**
      * Process a Kafka message of type "log config".  This includes updating and deleting
      * log configurations.
      * @param key
@@ -343,16 +364,6 @@ public class KafkaSqlSink {
                 log.warn("Unsupported log config message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported log config message action: " + value.getAction());
         }
-    }
-
-    public long toGlobalId(long offset, int partition) {
-        return getBaseOffset() + (offset << 16) + partition;
-    }
-
-    // just to make sure we can always move the whole system
-    // and not get duplicates; e.g. after move baseOffset = max(globalId) + 1
-    public long getBaseOffset() {
-        return configuration.baseOffset();
     }
 
 }

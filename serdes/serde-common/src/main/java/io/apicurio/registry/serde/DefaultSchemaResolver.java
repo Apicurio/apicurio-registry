@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -111,10 +110,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
         //TODO add here more conditions whenever we support referencing by contentHash or some other thing
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
-                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
-            }
+        if (idOption == IdOption.contentId && reference.getContentId() != null) {
             return resolveSchemaByContentId(reference.getContentId());
         }
         if (reference.getGlobalId() == null) {

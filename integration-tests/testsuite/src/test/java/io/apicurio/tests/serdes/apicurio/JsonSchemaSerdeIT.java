@@ -18,10 +18,13 @@ package io.apicurio.tests.serdes.apicurio;
 
 import java.util.Map;
 
+import org.apache.kafka.connect.json.JsonSerializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
@@ -200,4 +203,35 @@ public class JsonSchemaSerdeIT extends ApicurioV2BaseIT {
             .build()
             .test();
     }
+
+    @Test
+    void testDefaultFallback() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+
+        String groupId = TestUtils.generateSubject();
+        String artifactId = TestUtils.generateSubject();
+        JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, schema.getSchemaStream());
+
+        //this test will produce messages using JsonSerializer, which does nothing with the registry and just serializes as json
+        //the produced messages won't have the id of the artifact
+        //the consumer will read the messages and because there is no id information in the messages the resolver will fail
+        //the default fallback will kick in and use the artifact from the configured properties
+        new SimpleSerdesTesterBuilder<JsonNode, ValidMessage>()
+            .withTopic(topicName)
+            .withSerializer(JsonSerializer.class)
+            .withDeserializer(deserializer)
+            .withStrategy(SimpleTopicIdStrategy.class)
+            .withDataGenerator(schema::generateMessageJsonNode)
+            .withDataValidator(schema::validateMessage)
+            .withConsumerProperty(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId)
+            .withConsumerProperty(SerdeConfig.FALLBACK_ARTIFACT_ID, artifactId)
+            .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, ValidMessage.class.getName())
+            .build()
+            .test();
+    }
+
 }

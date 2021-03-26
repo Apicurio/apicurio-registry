@@ -67,7 +67,6 @@ public class DefaultHeadersHandler implements HeadersHandler {
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {
         if (idOption == IdOption.contentId) {
-            //TODO leave this exception or fallback to other options? if the latter it's recommended to remove a similar exception from DefaultSchemaResolver
             if (reference.getContentId() == null) {
                 throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }

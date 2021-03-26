@@ -6,8 +6,8 @@
 
 {registry} provides Kafka client serializer and deserializer classes for JSON Schema to make using JSON Schema as easy as possible:
 
-* `io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer`
-* `io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer`
+* `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer`
+* `iio.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer`
 
 Unlike Apache Avro, JSON Schema is not actually a serialization technology - it is instead a validation
 technology. As a result, configuration options for JSON Schema are quite different. For example, there is no

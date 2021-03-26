@@ -7,8 +7,8 @@
 
 {registry} provides Kafka client serializer and deserializer classes for Google Protobuf to make using Protobuf as easy as possible:
 
-* `io.apicurio.registry.utils.serde.ProtobufKafkaSerializer`
-* `io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer`
 
 .Configure the Protobuf serializer
 

@@ -4,11 +4,10 @@
 [id='registry-serdes-types-avro-{context}']
 = Configure Avro SerDe with {registry}
 
-{registry} provides Kafka client serializer and deserializer classes for Apache Avro to make using Avro as
-easy as possible:
+{registry} provides Kafka client serializer and deserializer classes for Apache Avro to make using Avro as easy as possible:
 
-* `io.apicurio.registry.utils.serde.AvroKafkaSerializer`
-* `io.apicurio.registry.utils.serde.AvroKafkaDeserializer`
+* `io.apicurio.registry.serde.avro.AvroKafkaSerializer`
+* `io.apicurio.registry.serde.avro.AvroKafkaDeserializer`
 
 
 .Configure the Avro serializer

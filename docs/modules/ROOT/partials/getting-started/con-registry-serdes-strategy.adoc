@@ -2,7 +2,7 @@
 // assembly-using-kafka-client-serdes
 
 [id='registry-serdes-concepts-strategy-{context}']
-= Strategies to look up a schema
+= Strategies to look up a schema in {registry}
 
 [role="_abstract"]
 The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and the global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactResolverStrategy` Java interface to return a reference to an artifact in the registry.
@@ -86,7 +86,7 @@ Using the `DefaultSchemaResolver`, you can configure the following application p
 
 |`apicurio.registry.check-period-ms` 
 |`String`
-|Configures the remote schema lookup period in milliseconds.
+|Specify how long to cache the global ID in milliseconds. If this is not configured, the global ID is fetched every time.  
 |`-`
 
 |===

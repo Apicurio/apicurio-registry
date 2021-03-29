@@ -2080,6 +2080,58 @@
                 "description": "Returns a paginated list of all artifacts with at least one version that matches the\nposted content.\n"
             }
         },
+        "/admin/export": {
+            "summary": "Provides a way to export registry data.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/zip": {
+
+                            }
+                        },
+                        "description": "Response when the export is successful."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "exportData",
+                "summary": "Export registry data",
+                "description": "Exports registry data as a ZIP archive."
+            }
+        },
+        "/admin/import": {
+            "summary": "Provides a way to import data into the registry.",
+            "post": {
+                "requestBody": {
+                    "description": "The ZIP file representing the previously exported registry data.",
+                    "content": {
+                        "application/zip": {
+
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Indicates that the import was successful."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "importData",
+                "summary": "Import registry data",
+                "description": "Imports registry data that was previously exported using the `/admin/export` operation."
+            }
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {

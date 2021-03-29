@@ -110,7 +110,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
         //TODO add here more conditions whenever we support referencing by contentHash or some other thing
-        if (idOption == IdOption.contentId && reference.getContentId() != null) {
+        if (reference.getContentId() != null) {
             return resolveSchemaByContentId(reference.getContentId());
         }
         if (reference.getGlobalId() == null) {

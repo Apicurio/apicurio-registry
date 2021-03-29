@@ -591,6 +591,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
                 .withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord)
                 .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {
@@ -622,6 +623,7 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
                 .withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord)
                 .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withAfterProduceValidator(() -> {

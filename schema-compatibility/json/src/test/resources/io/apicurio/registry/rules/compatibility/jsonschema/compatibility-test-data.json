@@ -443,6 +443,22 @@
     },
     {
       "enabled": true,
+      "id": "Number: exclusiveMinimum 5",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "number",
+        "minimum": 10,
+        "exclusiveMinimum": true
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMinimum": 10
+      }
+    },
+    {
+      "enabled": true,
       "id": "Number: exclusiveMaximum 1",
       "compatibility": "backward",
       "original": {
@@ -498,6 +514,22 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "number",
         "exclusiveMaximum": 10
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "exclusiveMaximum": 10
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Number: exclusiveMaximum 5",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "number",
+        "maximum": 10,
+        "exclusiveMaximum": true
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",

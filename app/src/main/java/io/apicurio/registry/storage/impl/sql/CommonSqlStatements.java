@@ -618,4 +618,44 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT g.* FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRules()
+     */
+    @Override
+    public String exportArtifactRules() {
+        return "SELECT * FROM rules r WHERE r.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactVersions()
+     */
+    @Override
+    public String exportArtifactVersions() {
+        return "SELECT v.*, a.type, a.latest FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId WHERE v.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContent()
+     */
+    @Override
+    public String exportContent() {
+        return "SELECT * FROM content c";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGlobalRules()
+     */
+    @Override
+    public String exportGlobalRules() {
+        return "SELECT * FROM globalrules r WHERE r.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroups()
+     */
+    @Override
+    public String exportGroups() {
+        return "SELECT * FROM groups g WHERE g.tenantId = ?";
+    }
+
 }

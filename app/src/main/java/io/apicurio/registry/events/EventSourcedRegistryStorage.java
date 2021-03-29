@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.events.dto.ArtifactId;
@@ -49,6 +50,8 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -457,6 +460,14 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return storage.getArtifactVersionsByContentId(contentId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     */
+    @Override
+    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+        storage.export(handler);
     }
 
 }

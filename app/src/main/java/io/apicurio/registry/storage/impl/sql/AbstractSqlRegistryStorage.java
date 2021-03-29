@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,12 +29,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jdbi.v3.core.Handle;
@@ -81,10 +82,22 @@ import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.storage.impexp.ContentEntity;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityType;
+import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
+import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
@@ -96,6 +109,7 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * A SQL implementation of the {@link io.apicurio.registry.storage.RegistryStorage} interface.  This impl does not
@@ -2066,6 +2080,107 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             });
         } catch (IllegalStateException e) {
             throw new GroupNotFoundException(groupId);
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     */
+    @Override
+    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+        try {
+            // Export all content
+            /////////////////////////////////
+            this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.exportContent();
+                Stream<ContentEntity> stream = handle.createQuery(sql)
+                        .setFetchSize(50)
+                        .map(ContentEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(EntityType.Content, entity);
+                    });
+                }
+                return null;
+            });
+
+            // Export all groups
+            /////////////////////////////////
+            this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.exportGroups();
+                Stream<GroupEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
+                        .setFetchSize(50)
+                        .map(GroupEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(EntityType.Group, entity);
+                    });
+                }
+                return null;
+            });
+
+            // Export all artifact versions
+            /////////////////////////////////
+            this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.exportArtifactVersions();
+                Stream<ArtifactVersionEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
+                        .setFetchSize(50)
+                        .map(ArtifactVersionEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(EntityType.ArtifactVersion, entity);
+                    });
+                }
+                return null;
+            });
+
+            // Export all artifact rules
+            /////////////////////////////////
+            this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.exportArtifactRules();
+                Stream<ArtifactRuleEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
+                        .setFetchSize(50)
+                        .map(ArtifactRuleEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(EntityType.ArtifactRule, entity);
+                    });
+                }
+                return null;
+            });
+
+            // Export all global rules
+            /////////////////////////////////
+            this.jdbi.withHandle(handle -> {
+                String sql = sqlStatements.exportGlobalRules();
+                Stream<GlobalRuleEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
+                        .setFetchSize(50)
+                        .map(GlobalRuleEntityMapper.instance)
+                        .stream();
+                // Process and then close the stream.
+                try (stream) {
+                    stream.forEach(entity -> {
+                        handler.apply(EntityType.GlobalRule, entity);
+                    });
+                }
+                return null;
+            });
+
+
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }

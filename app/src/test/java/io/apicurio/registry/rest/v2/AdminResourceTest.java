@@ -19,37 +19,45 @@ package io.apicurio.registry.rest.v2;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import io.vertx.core.json.JsonObject;
 
 /**
@@ -493,7 +501,49 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
 
         assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
+    }
 
+    @Test
+    void testExport() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "export-group";
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+        }
+
+        ValidatableResponse response = given()
+            .when()
+                .get("/registry/v2/admin/export")
+            .then()
+                .statusCode(200);
+        InputStream body = response.extract().asInputStream();
+        ZipInputStream zip = new ZipInputStream(body);
+
+        AtomicInteger contentCounter = new AtomicInteger(0);
+        AtomicInteger versionCounter = new AtomicInteger(0);
+
+        ZipEntry entry = zip.getNextEntry();
+        while (entry != null) {
+            String name = entry.getName();
+            System.out.println("Processed an entry: " + name);
+
+            if (name.startsWith("/content/")) {
+                contentCounter.incrementAndGet();
+            } else if (name.startsWith("/groups/export-group/")) {
+                versionCounter.incrementAndGet();
+            }
+
+            // Next entry.
+            entry = zip.getNextEntry();
+        }
+
+        Assertions.assertTrue(contentCounter.get() >= 5);
+        Assertions.assertTrue(versionCounter.get() >= 5);
     }
 
 }

@@ -401,5 +401,19 @@ public interface SqlStatements {
      */
     public String selectNextGlobalId();
 
+    /*
+     * The next few statements support exporting data from the DB.
+     */
+
+    public String exportContent();
+
+    public String exportGlobalRules();
+
+    public String exportGroups();
+
+    public String exportArtifactRules();
+
+    public String exportArtifactVersions();
+
 
 }

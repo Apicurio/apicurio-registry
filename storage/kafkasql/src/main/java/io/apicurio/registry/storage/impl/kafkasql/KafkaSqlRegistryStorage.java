@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.annotation.PreDestroy;
@@ -88,6 +89,8 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
@@ -908,6 +911,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return sqlStore.getArtifactVersionsByContentId(contentId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     */
+    @Override
+    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+        sqlStore.export(handler);
     }
 
 }

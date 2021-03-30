@@ -33,8 +33,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_CONTAINED_ITEMS_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_CONTAINED_ITEMS_SCHEMA_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_EXTENDED;
@@ -48,12 +46,9 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_FALSE_TO_TRUE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_BOOLEAN_UNCHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_TRUE_TO_FALSE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSchemaOrTrue;

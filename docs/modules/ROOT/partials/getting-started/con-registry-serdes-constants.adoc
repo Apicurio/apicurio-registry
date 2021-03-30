@@ -4,7 +4,7 @@
 [id='registry-serdes-concepts-constants-{context}']
 = {registry} serializer/deserializer configuration
 
-You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or instance. 
+You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
 The following sections show examples of some of the available SerDe constants and configuration options.
 
@@ -78,26 +78,23 @@ public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
 <1> Avro Datum provider to write data to a schema.
 <2> Specify this option to use an Avro-specific datum reader. 
 
+
 .Additional resources
 
-* For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroKafkaSerdeConfig.java[AvroKafkaSerdeConfig Java class]
-* For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]
+* For more details, see xref:registry-serdes-types-avro-registry[]
+
+[discrete]
+== Configuration for JSON Schema Serde 
+
+For details, see xref:registry-serdes-types-json-registry[].
   
 
 [discrete]
 == Configuration for Protobuf SerDe
 
-* For details on Protobuf configuration, see the following: 
-** link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/protobuf-serde/src/main/java/io/apicurio/registry/serde/protobuf/ProtobufKafkaDeserializerConfig.java[ProtobufKafkaDeserializerConfig Java class]
-** link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/protobuf-serde/src/main/java/io/apicurio/registry/serde/protobuf/ProtobufKafkaSerializerConfig.java[ProtobufKafkaSerializerConfig Java class]
-* For example applications, see the link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Find Latest examples] 
+For details, see xref:registry-serdes-types-protobuf-registry[].
 
 
-[discrete]
-== Configuration for JSON Schema validation 
 
-* For details on JSON Schema configuration, see the following:
-** link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/jsonschema-serde/src/main/java/io/apicurio/registry/serde/jsonschema/JsonSchemaKafkaDeserializerConfig.java[JsonSchemaKafkaDeserializerConfig Java class]
-** link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/jsonschema-serde/src/main/java/io/apicurio/registry/serde/jsonschema/JsonSchemaKafkaSerializerConfig.java[JsonSchemaKafkaSerializerConfig Java class]
-* For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple JSON Schema example]    
+
   

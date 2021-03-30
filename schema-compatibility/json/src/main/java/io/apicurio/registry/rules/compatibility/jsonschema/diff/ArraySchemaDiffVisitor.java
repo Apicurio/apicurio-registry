@@ -20,11 +20,14 @@ import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisi
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.ArraySchemaWrapper;
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.SchemaWrapper;
 import org.everit.json.schema.ArraySchema;
+import org.everit.json.schema.Schema;
 
 import java.util.List;
 
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_EXTENDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_NARROWED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_REMOVED;
@@ -33,6 +36,9 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_EXTENDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_NARROWED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEMS_SCHEMA_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_DECREASED;
@@ -50,8 +56,12 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSchemaOrTrue;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasAdded;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasRemoved;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.getExceptionally;
+import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -61,6 +71,7 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     private final DiffContext ctx;
     private final ArraySchema original;
+    private ArraySchemaWrapper schema;
 
     public ArraySchemaDiffVisitor(DiffContext ctx, ArraySchema original) {
         this.ctx = ctx;
@@ -70,6 +81,7 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitArraySchema(ArraySchemaWrapper arraySchema) {
         ctx.log("Visiting " + arraySchema + " at " + arraySchema.getWrapped().getLocation());
+        this.schema = arraySchema;
         super.visitArraySchema(arraySchema);
     }
 
@@ -117,21 +129,46 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitAdditionalItems(boolean additionalItems) {
         ctx.log("visitAdditionalItems: " + additionalItems);
-        diffBooleanTransition(ctx.sub("additionalItems"), original.permitsAdditionalItems(), additionalItems, true,
-            ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE,
-            ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE,
-            ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED);
+        if (diffBooleanTransition(ctx.sub("additionalItems"), original.permitsAdditionalItems(), additionalItems, true,
+                ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE,
+                ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE,
+                ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED)) {
+
+            if (additionalItems) {
+                // both original and updated permit additionalItems
+                Schema updatedSchemaOfAdditionalItems =
+                        schema.getSchemaOfAdditionalItems() == null ? null : schema.getSchemaOfAdditionalItems().getWrapped();
+                diffSchemaOrTrue(ctx.sub("schemaOfAdditionalItems"), original.getSchemaOfAdditionalItems(),
+                        updatedSchemaOfAdditionalItems, ARRAY_TYPE_ADDITIONAL_ITEMS_EXTENDED,
+                        ARRAY_TYPE_ADDITIONAL_ITEMS_NARROWED);
+            }
+        }
         super.visitAdditionalItems(additionalItems);
     }
 
-    // tuples -> schemas for each index
+    @Override
     public void visitItemSchemas(List<SchemaWrapper> itemSchemas) {
         ctx.log("visitItemSchemas: " + itemSchemas);
-        diffInteger(ctx.sub("items"), original.getItemSchemas().size(), itemSchemas.size(),
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_INCREASED,
-            ARRAY_TYPE_ITEMS_SCHEMAS_LENGTH_DECREASED);
+        int originalSize = original.getItemSchemas().size();
+        int updatedSize = itemSchemas.size();
+        int size = Math.min(originalSize, updatedSize);
+        for (int i = 0; i < size; ++i) {
+            visitItemSchema(i, itemSchemas.get(i));
+        }
+
+        if (updatedSize > size) { // adding items
+            diffSubSchemasAdded(ctx.sub("addItemSchema"), itemSchemas.subList(size, updatedSize),
+                    original.permitsAdditionalItems(), wrap(original.getSchemaOfAdditionalItems()),
+                    schema.permitsAdditionalItems(), ARRAY_TYPE_ITEMS_SCHEMA_EXTENDED,
+                    ARRAY_TYPE_ITEMS_SCHEMA_NARROWED, ARRAY_TYPE_ITEMS_SCHEMA_CHANGED);
+        }
+        if (originalSize > size) { // removing items
+            diffSubSchemasRemoved(ctx.sub("removeItemSchema"), wrap(original.getItemSchemas().subList(size, originalSize)),
+                    schema.permitsAdditionalItems(), schema.getSchemaOfAdditionalItems(),
+                    original.permitsAdditionalItems(), ARRAY_TYPE_ITEMS_SCHEMA_NARROWED,
+                    ARRAY_TYPE_ITEMS_SCHEMA_EXTENDED, ARRAY_TYPE_ITEMS_SCHEMA_CHANGED);
+        }
+
         super.visitItemSchemas(itemSchemas);
     }
 
@@ -150,13 +187,7 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitSchemaOfAdditionalItems(SchemaWrapper schemaOfAdditionalItems) {
-        ctx.log("visitSchemaOfAdditionalItems: " + schemaOfAdditionalItems);
-        DiffContext subCtx = ctx.sub("schemaOfAdditionalItems");
-        if (diffSubschemaAddedRemoved(subCtx, original.getSchemaOfAdditionalItems(), schemaOfAdditionalItems,
-            ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_ADDED,
-            ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_REMOVED)) {
-            schemaOfAdditionalItems.accept(new SchemaDiffVisitor(subCtx, original.getSchemaOfAdditionalItems()));
-        }
+        // This is also handled by visitAdditionalItems
         super.visitSchemaOfAdditionalItems(schemaOfAdditionalItems);
     }
 

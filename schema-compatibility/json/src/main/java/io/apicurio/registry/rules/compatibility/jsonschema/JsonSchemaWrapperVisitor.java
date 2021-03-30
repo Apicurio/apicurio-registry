@@ -112,11 +112,6 @@ public abstract class JsonSchemaWrapperVisitor {
 
 
     public void visitItemSchemas(List<SchemaWrapper> itemSchemas) {
-        if (itemSchemas != null) {
-            for (int i = 0; i < itemSchemas.size(); ++i) {
-                visitItemSchema(i, itemSchemas.get(i));
-            }
-        }
     }
 
     public void visitMinItems(Integer minItems) {

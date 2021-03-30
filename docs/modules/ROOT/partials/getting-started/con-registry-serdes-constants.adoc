@@ -66,22 +66,9 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 * For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
 
 [discrete]
-== Configuration for Avro data providers
+== Configuration for Avro Serde
 
-[source,java,subs="+quotes,attributes"]
-----
-public class AvroKafkaSerdeConfig extends BaseKafkaSerDeConfig {
-    
-   String AVRO_DATUM_PROVIDER = "apicurio.registry.avro-datum-provider"; <1>
-   String USE_SPECIFIC_AVRO_READER = "apicurio.registry.use-specific-avro-reader"; <2>
-----
-<1> Avro Datum provider to write data to a schema.
-<2> Specify this option to use an Avro-specific datum reader. 
-
-
-.Additional resources
-
-* For more details, see xref:registry-serdes-types-avro-registry[]
+For details, see xref:registry-serdes-types-avro-registry[]
 
 [discrete]
 == Configuration for JSON Schema Serde 

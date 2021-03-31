@@ -4,6 +4,7 @@
 [id='registry-serdes-config-producer-{context}']
 = Using a schema from a Kafka producer client
 
+[role="_abstract"]
 This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
 
 .Prerequisites

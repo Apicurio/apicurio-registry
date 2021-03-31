@@ -6,7 +6,7 @@
 = Kafka client applications and {registry}
 
 [role="_abstract"]
-Using {registry} decouples schema management from client application configuration. You can enable a client application to use a schema from the registry by specifying its URL in your client code.
+{registry} decouples schema management from client application configuration. You can enable a client application to use a schema from the registry by specifying its URL in your client code.
 
 You can store the schemas in the registry to serialize and deserialize messages, which are referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
 
@@ -20,7 +20,7 @@ Schemas can evolve, so you can define rules in {registry}, for example, to ensur
 * Protobuf
 * JSON Schema
 
-These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDe) services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} might vary. See the sections that follow for more details about each schema type.
+These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDe) services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
 
 [discrete]
 == Producer schema configuration
@@ -37,7 +37,7 @@ To enable a producer to use {registry} for serialization:
 ** Strategy to map the Kafka message to a schema artifact in {registry}
 ** Strategy to look up or register the schema used for serialization in {registry}
 
-After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages sent to the Kafka broker topic by the producer.  Alternatively, depending on configuration, the producer can automatically register the schema on first use.
+After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages sent to the Kafka broker topic by the producer. Alternatively, depending on configuration, the producer can automatically register the schema on first use.
 
 If a schema already exists, you can create a new version using the registry REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves. A group ID, artifact ID, and version represents a unique tuple that identifies a schema.
 
@@ -53,9 +53,10 @@ To enable a consumer to use {registry} for deserialization:
 ** {registry} deserializer to use with the messages
 ** Input data stream for deserialization
 
-The schema is then retrieved by the deserializer using a global ID specified in the message being consumed. The schema global ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.
+.Retrieve schemas from {registry} using a global ID
+By default, the schema is retrieved from {registry} by the deserializer using a global ID, which is specified in the message being consumed. The schema global ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.
 
-When locating the global ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the global ID, and then the message data as normal. For example:
+When locating the global ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the global ID, and the message data as normal. For example:
 
 [source,shell,subs="+quotes,attributes"]
 ----
@@ -66,3 +67,8 @@ When locating the global ID in the message payload, the format of the data begin
 ----
 
 Then when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.
+
+.Retrieve schemas from {registry} using a content ID
+Alternatively, you can configure to retrieve schemas from {registry} based on the content ID, which is the unique ID of the artifact content. The global ID is the unique ID of an artifact version. 
+
+The content ID does not uniquely identify a version, but uniquely identifies the version content. If multiple versions share the exact same content, they have a different global ID but the same content ID. The Confluent schema registry uses content ID by default.

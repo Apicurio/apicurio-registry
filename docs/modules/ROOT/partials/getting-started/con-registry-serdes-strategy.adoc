@@ -5,7 +5,7 @@
 = Strategies to look up a schema in {registry}
 
 [role="_abstract"]
-The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and the global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactResolverStrategy` Java interface to return a reference to an artifact in the registry.
+The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactResolverStrategy` Java interface to return a reference to an artifact in the registry.
 
 The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDe are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
 
@@ -52,13 +52,13 @@ However, you can use alternative conventions for the mapping by using a strategy
 
 The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
  
-The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements io.apicurio.registry.serde.SchemaResolver. However, it is recommended to use the DefaultSchemaResolver and specify configuration properties instead.
+The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.serde.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
 
 [discrete]
 [id='configuring-globalid-strategy-{context}']
-== Global ID strategy configuration
+== Strategies to return a global ID
 
-Using the `DefaultSchemaResolver`, you can configure the following application properties for the global ID strategy: 
+When using the `DefaultSchemaResolver`, you can configure the following application properties for the global ID strategy: 
 
 .{registry} global ID strategy configuration options
 [%header,cols="5,2,5,2"] 
@@ -71,25 +71,25 @@ Using the `DefaultSchemaResolver`, you can configure the following application p
 
 |`apicurio.registry.find-latest`
 |`boolean`
-|Specify whether the serializer classes try to find the latest artifact in the registry for the corresponding group ID and artifact ID.
+|Specify whether the serializer tries to find the latest artifact in the registry for the corresponding group ID and artifact ID.
 |`false`
 
 |`apicurio.registry.use-id`
 |`String`
-|Instructs the serializer to write the specified ID to the Kafka record and instructs the deserializer to use this ID to find the schema.
+|Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema.
 |`-`
 
 |`apicurio.registry.auto-register`
 |`boolean`
-|Specify whether the serializer classes should try to create an artifact in the registry. The JSON Schema serializer does not support this yet.
+|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this.
 |`false`
 
 |`apicurio.registry.check-period-ms` 
 |`String`
-|Specify how long to cache the global ID in milliseconds. If this is not configured, the global ID is fetched every time.  
+|Specify how long to cache the global ID in milliseconds. If not configured, the global ID is fetched every time.  
 |`-`
 
 |===
 
-NOTE: You can configure application properties as Java system properties or include them in the Quarkus
+TIP: You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

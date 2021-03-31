@@ -4,6 +4,7 @@
 [id='registry-serdes-types-json-{context}']
 = Configure JSON Schema SerDe with {registry}
 
+[role="_abstract"]
 {registry} provides the following Kafka client serializer and deserializer classes for JSON Schema:
 
 * `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer`
@@ -15,9 +16,9 @@ Unlike Apache Avro, JSON Schema is not a serialization technology, and is instea
 
 You can configure the JSON Schema serializer class as follows:
 
-* {registry} location as a URL
+* {registry} URL
 * Artifact resolver strategy 
-* Schema resolver strategy 
+* Global ID strategy 
 * Validation enabled/disabled
 
 The only non-standard configuration property is whether JSON Schema validation is enabled or
@@ -31,12 +32,13 @@ props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE)`
 
 You can configure the JSON Schema deserializer class in the following ways:
 
-* {registry} location as a URL
+* {registry} URL
 * Validation enabled/disabled
 
 You must provide the location of {registry} so that the schema can be loaded. The only other configuration is whether or not to perform validation. These configuration properties are the same as for the serializer.
 
 NOTE: Deserializer validation only works if the serializer passes the global ID in the Kafka message, which will only happen when validation is enabled in the serializer.
 
+[role="_additional-resources"]
 .Additional resources
 * For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple JSON Schema example]    

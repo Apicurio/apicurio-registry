@@ -4,13 +4,8 @@
 [id='registry-serdes-types-serde-{context}']
 = Using different client serializer/deserializer types
 
-When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case and preference. {registry} provides SerDe Java classes for the following schema technologies:
-
-* Apache Avro 
-* JSON Schema
-* Google Protobuf
-
-The following sections explain how to configure Kafka applications to use each type. 
+[role="_abstract"]
+When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf. The following sections explain how to configure Kafka applications to use each type. 
 
 You can also use Kafka to implement custom serializer and deserializer classes, and leverage {registry} functionality using the {registry} REST Java client.
 
@@ -31,11 +26,11 @@ private static Producer<Object, Object> createKafkaProducer() {
     props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + TOPIC_NAME);
     props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
     
-    // Use a {registry}-provided Kafka serializer for Avro
+    // Use {registry}-provided Kafka serializer for Avro
     props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
 
-    // Configure registry location
+    // Configure the {registry} location
     props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
     
     // Register the schema artifact if not found in the registry.
@@ -68,9 +63,9 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
     // Configure the {registry} location
     props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
     
-    // No other configuration needed because the globalId of the schema the deserializer 
-    // uses is sent ub the payload. The deserializer simply extracts that globalId and 
-    // uses it to look up the schema from the registry.
+    // No other configuration needed because the schema globalId the deserializer uses is sent 
+    // in the payload. The deserializer extracts the globalId and uses it to look up the schema 
+    // from the registry.
 
     // Create the Kafka consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
@@ -78,5 +73,6 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 }
 ----
 
+[role="_additional-resources"]
 .Additional resources
 * For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]

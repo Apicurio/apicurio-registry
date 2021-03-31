@@ -17,7 +17,6 @@
 package io.apicurio.registry.rest.client;
 
 
-import io.apicurio.registry.rest.client.impl.Interceptor;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;

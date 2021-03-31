@@ -33,8 +33,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class InterceptableHttpClient extends HttpClient {
 
@@ -158,42 +156,5 @@ public class InterceptableHttpClient extends HttpClient {
                 return response;
             });
         }
-    }
-
-    public interface Builder extends HttpClient.Builder {
-
-        @Override
-        Builder cookieHandler(CookieHandler cookieHandler);
-
-        @Override
-        Builder connectTimeout(Duration duration);
-
-        @Override
-        Builder sslContext(SSLContext sslContext);
-
-        @Override
-        Builder sslParameters(SSLParameters sslParameters);
-
-        @Override
-        Builder executor(Executor executor);
-
-        @Override
-        Builder followRedirects(Redirect redirect);
-
-        @Override
-        Builder version(Version version);
-
-        @Override
-        Builder priority(int i);
-
-        @Override
-        Builder proxy(ProxySelector proxySelector);
-
-        @Override
-        Builder authenticator(Authenticator authenticator);
-
-        Builder decorator(Consumer<HttpRequest.Builder> decorator);
-
-        <T> Builder interceptor(Function<HttpRequest, T> onRequest, BiConsumer<HttpResponse<?>, T> onResponse, BiConsumer<Throwable, T> onError);
     }
 }

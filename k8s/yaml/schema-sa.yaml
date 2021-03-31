@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: schema-registry-zenon-test
+  name: schema-registry
   annotations:
     iam.gke.io/gcp-service-account: spanner-service@es-s2-eval-d.iam.gserviceaccount.com
 
@@ -11,18 +11,18 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: schema-registry-zenon-test
+    app: schema-registry
   name: schema-registry-svc
   namespace: default
 spec:
-  externalTrafficPolicy: Cluster
+  externalTrafficPolicy: Local
   ports:
     - name: http
       port: 80
       protocol: TCP
       targetPort: 8080
   selector:
-    app: schema-registry-zenon-test
+    app: schema-registry
   sessionAffinity: None
   type: NodePort
 
@@ -30,7 +30,7 @@ spec:
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
-  name: schema-registry-cert-zenon
+  name: schema-registry-cert
 spec:
   domains:
     - sctemporary.ess2evald.zebra.engineering
@@ -41,8 +41,8 @@ kind: Ingress
 metadata:
   annotations:
     kubernetes.io/ingress.class: gce
-    kubernetes.io/ingress.global-static-ip-name: schema-registry-static-ip-zenon
-    networking.gke.io/managed-certificates: schema-registry-cert-zenon
+    kubernetes.io/ingress.global-static-ip-name: schema-registry-static-ip
+    networking.gke.io/managed-certificates: schema-registry-cert
   name: schema-registry-ingress
   namespace: default
 spec:

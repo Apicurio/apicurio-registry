@@ -102,16 +102,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     //Once Quarkus support both basic and bearer working at the same time against Keycloak, we can remove this
     private static class BearerTokenExtractor {
 
-        /**
-         * A comma separated list of patterns and charsets. The pattern is a regular expression.
-         * <p>
-         * Because different browsers user different encodings this allows for the correct encoding to be selected based
-         * on the current browser. In general though it is recommended that BASIC auth not be used when passwords contain
-         * characters outside ASCII, as some browsers use the current locate to determine encoding.
-         * <p>
-         * This list must have an even number of elements, as it is interpreted as pattern,charset,pattern,charset,...
-         */
-
         private final String BASIC = "basic";
         private final String BASIC_PREFIX = BASIC + " ";
         private final String LOWERCASE_BASIC_PREFIX = BASIC_PREFIX.toLowerCase(Locale.ENGLISH);

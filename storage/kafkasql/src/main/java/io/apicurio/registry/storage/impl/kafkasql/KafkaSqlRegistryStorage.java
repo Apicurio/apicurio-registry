@@ -921,13 +921,13 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
         sqlStore.exportData(handler);
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
      */
     @Override
     public void importData(EntityInputStream entities) throws RegistryStorageException {
-        // TODO implement this!
+        throw new RegistryStorageException("Not yet implmented.");
     }
 
 }

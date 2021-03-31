@@ -65,7 +65,7 @@ class EntityReaderTest extends AbstractRegistryTestBase {
                 }
             }
             
-            Assertions.assertEquals(3, contentCounter);
+            Assertions.assertEquals(1003, contentCounter);
             Assertions.assertEquals(5, versionCounter);
             Assertions.assertEquals(1, artyRuleCounter);
             Assertions.assertEquals(1, globalRuleCounter);

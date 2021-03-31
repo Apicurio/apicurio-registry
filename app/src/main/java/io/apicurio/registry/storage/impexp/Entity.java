@@ -16,9 +16,14 @@
 
 package io.apicurio.registry.storage.impexp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 public abstract class Entity {
+    
+    @JsonIgnore
+    public abstract EntityType getEntityType();
 
 }

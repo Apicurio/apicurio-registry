@@ -45,7 +45,7 @@ public class H2SqlStatements extends CommonSqlStatements {
     public boolean isPrimaryKeyViolation(Exception error) {
         return error.getMessage() != null && error.getMessage().contains("primary key violation");
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isForeignKeyViolation(java.lang.Exception)
      */
@@ -67,7 +67,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "MERGE INTO content (canonicalHash, contentHash, content) KEY (contentHash) VALUES(?, ?, ?)";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -76,5 +76,21 @@ public class H2SqlStatements extends CommonSqlStatements {
     @Override
     public String upsertLogConfiguration() {
         return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.CommonSqlStatements#updateContentIdSequence()
+     */
+    @Override
+    public String updateContentIdSequence() {
+        return "ALTER SEQUENCE contentidsequence RESTART WITH ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.CommonSqlStatements#updateGlobalIdSequence()
+     */
+    @Override
+    public String updateGlobalIdSequence() {
+        return "ALTER SEQUENCE globalidsequence RESTART WITH ?";
     }
 }

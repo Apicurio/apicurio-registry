@@ -23,7 +23,15 @@ import io.apicurio.registry.types.RuleType;
  */
 public class GlobalRuleEntity extends Entity {
 
-    public RuleType type;
+    public RuleType ruleType;
     public String configuration;
+
+    /**
+     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.GlobalRule;
+    }
 
 }

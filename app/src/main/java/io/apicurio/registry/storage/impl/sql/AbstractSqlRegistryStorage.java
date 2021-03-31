@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
@@ -86,6 +87,7 @@ import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.storage.impexp.ContentEntity;
 import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
 import io.apicurio.registry.storage.impexp.GroupEntity;
@@ -580,22 +582,45 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // iff a row doesn't already exist.  We use the canonical hash to determine whether
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
-        String sql = sqlStatements.upsertContent();
+        String sql;
         Long contentId;
-        if ("postgresql".equals(sqlStatements.dbType()) || "h2".equals(sqlStatements.dbType())) {
+        if ("postgresql".equals(sqlStatements.dbType())) {
+            sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
-                    .bind(0, canonicalContentHash)
-                    .bind(1, contentHash)
-                    .bind(2, contentBytes)
+                    .bind(0, nextContentId(handle))
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, contentBytes)
                     .execute();
             sql = sqlStatements.selectContentIdByHash();
             contentId = handle.createQuery(sql)
                     .bind(0, contentHash)
                     .mapTo(Long.class)
                     .one();
+        } else if ("h2".equals(sqlStatements.dbType())) {
+            sql = sqlStatements.selectContentIdByHash();
+            Optional<Long> contentIdOptional = handle.createQuery(sql)
+                    .bind(0, contentHash)
+                    .mapTo(Long.class)
+                    .findOne();
+            if (contentIdOptional.isPresent()) {
+                contentId = contentIdOptional.get();
+            } else {
+                sql = sqlStatements.upsertContent();
+                handle.createUpdate(sql)
+                    .bind(0, nextContentId(handle))
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, contentBytes)
+                    .execute();
+                sql = sqlStatements.selectContentIdByHash();
+                contentId = handle.createQuery(sql)
+                        .bind(0, contentHash)
+                        .mapTo(Long.class)
+                        .one();
+            }
         } else {
-            // Handle other supported DBs here in the case that they handle UPSERT differently.
-            contentId = 0l;
+            throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
         }
         return contentId;
     }
@@ -1232,8 +1257,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRuleAsync(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override @Transactional
-    public CompletionStage<Void> createArtifactRuleAsync(String groupId, String artifactId, RuleType rule,
-            RuleConfigurationDto config)
+    public CompletionStage<Void> createArtifactRuleAsync(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         log.debug("Inserting an artifact rule row for artifact: {} {} rule: {}", groupId, artifactId, rule.name());
         try {
@@ -2086,10 +2110,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
      */
     @Override
-    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+    @Transactional
+    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
         try {
             // Export all content
             /////////////////////////////////
@@ -2186,6 +2211,211 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     */
+    @Override
+    @Transactional
+    public void importData(EntityInputStream entities) throws RegistryStorageException {
+        withHandle( handle -> {
+            Entity entity = null;
+            while ( (entity = entities.nextEntity()) != null ) {
+                if (entity != null) {
+                    importEntity(handle, entity);
+                }
+            }
+
+            // Make sure the contentId sequence is set high enough
+            resetContentId(handle);
+
+            // Make sure the globalId sequence is set high enough
+            resetGlobalId(handle);
+
+            return null;
+        });
+    }
+    protected void resetGlobalId(Handle handle) {
+        String sql = sqlStatements.selectMaxGlobalId();
+        long maxGlobalId = handle.createQuery(sql)
+                .mapTo(Long.class)
+                .one();
+
+        sql = sqlStatements.updateGlobalIdSequence();
+        handle.createUpdate(sql)
+            .bind(0, maxGlobalId + 1)
+            .execute();
+    }
+
+    protected void resetContentId(Handle handle) {
+        String sql = sqlStatements.selectMaxContentId();
+        long maxContentId = handle.createQuery(sql)
+                .mapTo(Long.class)
+                .one();
+
+        sql = sqlStatements.updateContentIdSequence();
+        handle.createUpdate(sql)
+            .bind(0, maxContentId + 1)
+            .execute();
+    }
+
+    protected void importEntity(Handle handle, Entity entity) throws RegistryStorageException {
+        switch (entity.getEntityType()) {
+            case ArtifactRule:
+                importArtifactRule(handle, (ArtifactRuleEntity) entity);
+                break;
+            case ArtifactVersion:
+                importArtifactVersion(handle, (ArtifactVersionEntity) entity);
+                break;
+            case Content:
+                importContent(handle, (ContentEntity) entity);
+                break;
+            case GlobalRule:
+                importGlobalRule(handle, (GlobalRuleEntity) entity);
+                break;
+            case Group:
+                importGroup(handle, (GroupEntity) entity);
+                break;
+            default:
+                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
+        }
+    }
+    protected void importArtifactRule(Handle handle, ArtifactRuleEntity entity) {
+        if (isArtifactExists(entity.groupId, entity.artifactId)) {
+            try {
+                String sql = sqlStatements.importArtifactRule();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(entity.groupId))
+                    .bind(2, entity.artifactId)
+                    .bind(3, entity.type.name())
+                    .bind(4, entity.configuration)
+                    .execute();
+                log.info("Content entity imported successfully.");
+            } catch (Exception e) {
+                log.warn("Failed to import content entity.", e);
+            }
+        } else {
+            log.warn("Artifact rule import failed: artifact not found.");
+        }
+    }
+    protected void importArtifactVersion(Handle handle, ArtifactVersionEntity entity) {
+        if (!isArtifactExists(entity.groupId, entity.artifactId)) {
+            String sql = sqlStatements.insertArtifact();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .bind(1, normalizeGroupId(entity.groupId))
+                .bind(2, entity.artifactId)
+                .bind(3, entity.artifactType.name())
+                .bind(4, entity.createdBy)
+                .bind(5, new Date(entity.createdOn))
+                .execute();
+            log.info("Artifact created successfully.");
+        }
+
+        try {
+            String sql = sqlStatements.importArtifactVersion();
+            handle.createUpdate(sql)
+                .bind(0, entity.globalId)
+                .bind(1, tenantContext.tenantId())
+                .bind(2, normalizeGroupId(entity.groupId))
+                .bind(3, entity.artifactId)
+                .bind(4, entity.version)
+                .bind(5, entity.versionId)
+                .bind(6, entity.state)
+                .bind(7, entity.name)
+                .bind(8, entity.description)
+                .bind(9, entity.createdBy)
+                .bind(10, new Date(entity.createdOn))
+                .bind(11, entity.labels)
+                .bind(12, entity.properties)
+                .bind(13, entity.contentId)
+                .execute();
+            log.info("Content entity imported successfully.");
+
+            // Insert labels into the "labels" table
+            if (entity.labels != null && !entity.labels.isEmpty()) {
+                entity.labels.forEach(label -> {
+                    String sqli = sqlStatements.insertLabel();
+                    handle.createUpdate(sqli)
+                          .bind(0, entity.globalId)
+                          .bind(1, label.toLowerCase())
+                          .execute();
+                });
+            }
+
+            // Insert properties into the "properties" table
+            if (entity.properties != null && !entity.properties.isEmpty()) {
+                entity.properties.forEach((k,v) -> {
+                    String sqli = sqlStatements.insertProperty();
+                    handle.createUpdate(sqli)
+                          .bind(0, entity.globalId)
+                          .bind(1, k.toLowerCase())
+                          .bind(2, v.toLowerCase())
+                          .execute();
+                });
+            }
+
+            if (entity.isLatest) {
+                // Update the "latest" column in the artifacts table with the globalId of the new version
+                sql = sqlStatements.updateArtifactLatest();
+                handle.createUpdate(sql)
+                      .bind(0, entity.globalId)
+                      .bind(1, tenantContext.tenantId())
+                      .bind(2, normalizeGroupId(entity.groupId))
+                      .bind(3, entity.artifactId)
+                      .execute();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to import content entity.", e);
+        }
+    }
+    protected void importContent(Handle handle, ContentEntity entity) {
+        try {
+            String sql = sqlStatements.importContent();
+            handle.createUpdate(sql)
+                .bind(0, entity.contentId)
+                .bind(1, entity.canonicalHash)
+                .bind(2, entity.contentHash)
+                .bind(3, entity.contentBytes)
+                .execute();
+            log.info("Content entity imported successfully.");
+        } catch (Exception e) {
+            log.warn("Failed to import content entity.", e);
+        }
+    }
+    protected void importGlobalRule(Handle handle, GlobalRuleEntity entity) {
+        try {
+            String sql = sqlStatements.importGlobalRule();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext().tenantId())
+                .bind(1, entity.ruleType.name())
+                .bind(2, entity.configuration)
+                .execute();
+            log.info("Global Rule entity imported successfully.");
+        } catch (Exception e) {
+            log.warn("Failed to import content entity.", e);
+        }
+    }
+    protected void importGroup(Handle handle, GroupEntity entity) {
+        try {
+            String sql = sqlStatements.importGroup();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext().tenantId())
+                .bind(1, SqlUtil.normalizeGroupId(entity.groupId))
+                .bind(2, entity.description)
+                .bind(3, entity.artifactsType.name())
+                .bind(4, entity.createdBy)
+                .bind(5, new Date(entity.createdOn))
+                .bind(6, entity.modifiedBy)
+                .bind(7, new Date(entity.modifiedOn))
+                .bind(8, SqlUtil.serializeProperties(entity.properties))
+                .execute();
+            log.info("Group entity imported successfully.");
+        } catch (Exception e) {
+            log.warn("Failed to import group entity.", e);
+        }
+    }
+
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return withHandle( handle -> {
             String sql = sqlStatements().selectArtifactCountById();
@@ -2259,6 +2489,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
         }
         return false;
+    }
+
+    private static long nextContentId(Handle handle) {
+        return handle.createQuery("SELECT nextval('contentidsequence')")
+                .mapTo(Long.class)
+                .one();
     }
 
 }

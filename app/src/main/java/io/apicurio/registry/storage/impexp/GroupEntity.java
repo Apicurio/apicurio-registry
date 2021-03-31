@@ -34,4 +34,12 @@ public class GroupEntity extends Entity {
     public long modifiedOn;
     public Map<String, String> properties;
 
+    /**
+     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.Group;
+    }
+
 }

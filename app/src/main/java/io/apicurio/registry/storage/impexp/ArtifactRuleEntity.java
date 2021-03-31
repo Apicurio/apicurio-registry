@@ -28,4 +28,11 @@ public class ArtifactRuleEntity extends Entity {
     public RuleType type;
     public String configuration;
 
+    /**
+     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.ArtifactRule;
+    }
 }

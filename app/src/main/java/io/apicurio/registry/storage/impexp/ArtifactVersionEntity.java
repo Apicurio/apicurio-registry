@@ -20,23 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
- *
- * globalId BIGINT NOT NULL,
-    groupId VARCHAR(512) NOT NULL,
-    artifactId VARCHAR(512) NOT NULL,
-    version VARCHAR(256),
-    versionId INT NOT NULL,
-    state VARCHAR(64) NOT NULL,
-    name VARCHAR(512),
-    description VARCHAR(1024),
-    createdBy VARCHAR(256),
-    createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    labels TEXT,
-    properties TEXT,
-    contentId BIGINT NOT NULL);
  */
 public class ArtifactVersionEntity extends Entity {
 
@@ -45,6 +32,7 @@ public class ArtifactVersionEntity extends Entity {
     public String artifactId;
     public String version;
     public int versionId;
+    public ArtifactType artifactType;
     public ArtifactState state;
     public String name;
     public String description;
@@ -52,5 +40,15 @@ public class ArtifactVersionEntity extends Entity {
     public long createdOn;
     public List<String> labels;
     public Map<String, String> properties;
+    public boolean isLatest;
+    public long contentId;
+
+    /**
+     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.ArtifactVersion;
+    }
 
 }

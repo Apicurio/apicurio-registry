@@ -20,9 +20,6 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,8 +36,6 @@ import io.apicurio.registry.storage.impexp.GroupEntity;
  * @author eric.wittmann@gmail.com
  */
 public class EntityWriter {
-
-    private static final Logger log = LoggerFactory.getLogger(EntityWriter.class);
 
     private static final ObjectMapper mapper;
     static {
@@ -88,14 +83,11 @@ public class EntityWriter {
     }
 
     private void writeEntity(ContentEntity entity) throws IOException {
-        log.info("Exporting a content entity.");
-        ZipEntry mdEntry = new ZipEntry("/content/" + entity.contentHash + ".md.json");
-        ZipEntry dataEntry = new ZipEntry("/content/" + entity.contentHash + ".data");
+        ZipEntry mdEntry = createZipEntry(EntityType.Content, entity.contentHash, "json");
+        ZipEntry dataEntry = createZipEntry(EntityType.Content, entity.contentHash, "data");
 
         // Write the meta-data file.
-        zip.putNextEntry(mdEntry);
-        mapper.writerFor(ContentEntity.class).writeValue(zip, entity);
-        zip.closeEntry();
+        write(mdEntry, entity, ContentEntity.class);
 
         // Write the content file.
         zip.putNextEntry(dataEntry);
@@ -104,43 +96,61 @@ public class EntityWriter {
     }
 
     private void writeEntity(GroupEntity entity) throws IOException {
-        log.info("Exporting a group entity.");
-        ZipEntry mdEntry = new ZipEntry(asZipPath(entity.groupId) + ".json");
-        zip.putNextEntry(mdEntry);
-        mapper.writerFor(GlobalRuleEntity.class).writeValue(zip, entity);
-        zip.closeEntry();
+        ZipEntry mdEntry = createZipEntry(EntityType.Group, entity.groupId, "json");
+        write(mdEntry, entity, GroupEntity.class);
     }
 
     private void writeEntity(ArtifactVersionEntity entity) throws IOException {
-        log.info("Exporting an artifact version entity.");
-        ZipEntry mdEntry = new ZipEntry(asZipPath(entity.groupId, entity.artifactId) + "/versions/" + entity.version + ".md.json");
-        zip.putNextEntry(mdEntry);
-        mapper.writerFor(ArtifactVersionEntity.class).writeValue(zip, entity);
-        zip.closeEntry();
+        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactVersion, entity.groupId, entity.artifactId, entity.version, "json");
+        write(mdEntry, entity, ArtifactVersionEntity.class);
     }
 
     private void writeEntity(ArtifactRuleEntity entity) throws IOException {
-        log.info("Exporting an artifact rule entity.");
-        ZipEntry mdEntry = new ZipEntry(asZipPath(entity.groupId, entity.artifactId) + "/rules/" + entity.type.name() + ".json");
-        zip.putNextEntry(mdEntry);
-        mapper.writerFor(GlobalRuleEntity.class).writeValue(zip, entity);
-        zip.closeEntry();
+        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactRule, entity.groupId, entity.artifactId, entity.type.name(), "json");
+        write(mdEntry, entity, ArtifactRuleEntity.class);
     }
 
     private void writeEntity(GlobalRuleEntity entity) throws IOException {
-        log.info("Exporting a global rule entity.");
-        ZipEntry mdEntry = new ZipEntry("/rules/" + entity.type.name() + ".json");
-        zip.putNextEntry(mdEntry);
-        mapper.writerFor(GlobalRuleEntity.class).writeValue(zip, entity);
+        ZipEntry mdEntry = createZipEntry(EntityType.GlobalRule, entity.ruleType.name(), "json");
+        write(mdEntry, entity, GlobalRuleEntity.class);
+    }
+
+    private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
+        return createZipEntry(type, null, null, fileName, fileExt);
+    }
+    private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName, String fileExt) {
+        // TODO encode groupId, artifactId, and filename as path elements
+        String path = null;
+        switch (type) {
+            case ArtifactRule:
+                path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                break;
+            case ArtifactVersion:
+                path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                break;
+            case Content:
+                path = String.format("content/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case GlobalRule:
+                path = String.format("rules/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case Group:
+                path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            default:
+                throw new RuntimeException("Unhandled entity type: " + type.name());
+        }
+        return new ZipEntry(path);
+    }
+    
+    private String groupOrDefault(String groupId) {
+        return groupId == null ? "default" : groupId;
+    }
+
+    private void write(ZipEntry entry, Entity entity, Class<?> entityClass) throws IOException {
+        zip.putNextEntry(entry);
+        mapper.writerFor(entityClass).writeValue(zip, entity);
         zip.closeEntry();
-    }
-
-    private String asZipPath(String groupId) {
-        return "/groups/" + groupId;
-    }
-
-    private String asZipPath(String groupId, String artifactId) {
-        return "/groups/" + groupId + "/artifacts/" + artifactId;
     }
 
 }

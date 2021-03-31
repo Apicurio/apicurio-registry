@@ -530,11 +530,10 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         ZipEntry entry = zip.getNextEntry();
         while (entry != null) {
             String name = entry.getName();
-            System.out.println("Processed an entry: " + name);
 
-            if (name.startsWith("/content/")) {
+            if (name.endsWith(".Content.json")) {
                 contentCounter.incrementAndGet();
-            } else if (name.startsWith("/groups/export-group/")) {
+            } else if (name.endsWith(".ArtifactVersion.json")) {
                 versionCounter.incrementAndGet();
             }
 
@@ -544,6 +543,39 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(contentCounter.get() >= 5);
         Assertions.assertTrue(versionCounter.get() >= 5);
+    }
+
+    @Test
+    void testImport() throws Exception {
+        try (InputStream data = resourceToInputStream("export.zip")) {
+            given()
+                .when()
+                    .contentType("application/zip")
+                    .body(data)
+                    .post("/registry/v2/admin/import")
+                .then()
+                    .statusCode(204)
+                    .body(anything());
+        }
+
+        // Verify global rules were imported
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/rules/COMPATIBILITY")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo("COMPATIBILITY"))
+                    .body("config", equalTo("BACKWARD"));
+        });
+
+        // Verify artifacts were imported
+
+        // Verify artifact rules were imported
+
+        // Verify all artifact versions were imported
+
     }
 
 }

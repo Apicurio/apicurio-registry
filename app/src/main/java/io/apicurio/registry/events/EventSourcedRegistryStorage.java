@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -463,11 +464,19 @@ public class EventSourcedRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
      */
     @Override
-    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
-        storage.export(handler);
+    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+        storage.exportData(handler);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     */
+    @Override
+    public void importData(EntityInputStream entities) throws RegistryStorageException {
+        storage.importData(entities);
     }
 
 }

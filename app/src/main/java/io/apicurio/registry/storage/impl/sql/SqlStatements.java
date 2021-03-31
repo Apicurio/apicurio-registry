@@ -416,4 +416,26 @@ public interface SqlStatements {
     public String exportArtifactVersions();
 
 
+    /*
+     * The next few statements support importing data into the DB.
+     */
+
+    public String importContent();
+
+    public String importGlobalRule();
+
+    public String importGroup();
+
+    public String importArtifactRule();
+
+    public String importArtifactVersion();
+
+    public String selectMaxContentId();
+
+    public String updateContentIdSequence();
+
+    public String updateGlobalIdSequence();
+
+    public String selectMaxGlobalId();
+
 }

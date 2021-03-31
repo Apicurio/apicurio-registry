@@ -90,6 +90,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
@@ -914,11 +915,19 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#export(java.util.function.BiFunction)
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
      */
     @Override
-    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
-        sqlStore.export(handler);
+    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+        sqlStore.exportData(handler);
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     */
+    @Override
+    public void importData(EntityInputStream entities) throws RegistryStorageException {
+        // TODO implement this!
     }
 
 }

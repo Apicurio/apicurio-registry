@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -45,6 +46,8 @@ import javax.ws.rs.core.StreamingOutput;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -54,6 +57,7 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.impexp.EntityReader;
 import io.apicurio.registry.rest.v2.impexp.EntityWriter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
@@ -61,6 +65,8 @@ import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
@@ -221,8 +227,25 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     public void importData(InputStream data) {
-        // TODO Auto-generated method stub
+        final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
+        final EntityReader reader = new EntityReader(zip);
+        EntityInputStream stream = new EntityInputStream() {
+            @Override
+            public Entity nextEntity() throws IOException {
+                try {
+                    return reader.readEntity();
+                } catch (Exception e) {
+                    LoggerFactory.getLogger(AdminResourceImpl.class).error("Error reading data from import ZIP file.", e);
+                    return null;
+                }
+            }
 
+            @Override
+            public void close() throws IOException {
+                zip.close();
+            }
+        };
+        this.storage.importData(stream);
     }
 
     /**
@@ -237,7 +260,7 @@ public class AdminResourceImpl implements AdminResource {
                     ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
                     EntityWriter writer = new EntityWriter(zip);
                     AtomicInteger errorCounter = new AtomicInteger(0);
-                    storage.export((entityType, entity) -> {
+                    storage.exportData((entityType, entity) -> {
                         try {
                             writer.writeEntity(entityType, entity);
                         } catch (Exception e) {

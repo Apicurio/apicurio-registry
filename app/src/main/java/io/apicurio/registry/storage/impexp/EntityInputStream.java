@@ -16,25 +16,17 @@
 
 package io.apicurio.registry.storage.impexp;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.io.Closeable;
+import java.io.IOException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ContentEntity extends Entity {
-
-    public long contentId;
-    public String canonicalHash;
-    public String contentHash;
-    @JsonIgnore
-    public byte[] contentBytes;
-
+public interface EntityInputStream extends Closeable {
+    
     /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     * Get the next import entity from the stream of entities being imported.
      */
-    @Override
-    public EntityType getEntityType() {
-        return EntityType.Content;
-    }
+    public Entity nextEntity() throws IOException;
 
 }

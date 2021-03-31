@@ -658,4 +658,62 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT * FROM groups g WHERE g.tenantId = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
+     */
+    @Override
+    public String importArtifactRule() {
+        return "INSERT INTO rules (tenantId, groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactVersion()
+     */
+    @Override
+    public String importArtifactVersion() {
+        return "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importContent()
+     */
+    @Override
+    public String importContent() {
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGlobalRule()
+     */
+    @Override
+    public String importGlobalRule() {
+        return "INSERT INTO globalrules (tenantId, type, configuration) VALUES (?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGroup()
+     */
+    @Override
+    public String importGroup() {
+        return "INSERT INTO groups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxContentId()
+     */
+    @Override
+    public String selectMaxContentId() {
+        return "SELECT MAX(contentId) FROM content";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxGlobalId()
+     */
+    @Override
+    public String selectMaxGlobalId() {
+        return "SELECT MAX(globalId) FROM versions";
+    }
+
 }

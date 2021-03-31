@@ -44,7 +44,7 @@ public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
     @Override
     public GlobalRuleEntity map(ResultSet rs, StatementContext ctx) throws SQLException {
         GlobalRuleEntity entity = new GlobalRuleEntity();
-        entity.type = RuleType.fromValue(rs.getString("type"));
+        entity.ruleType = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");
         return entity;
     }

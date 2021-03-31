@@ -37,6 +37,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -564,5 +565,12 @@ public interface RegistryStorage {
      * @param handler
      * @throws RegistryStorageException
      */
-    public void export(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException;
+    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException;
+
+    /**
+     * Called to import previously exported data into the registry.
+     * @param entities
+     * @throws RegistryStorageException
+     */
+    public void importData(EntityInputStream entities) throws RegistryStorageException;
 }

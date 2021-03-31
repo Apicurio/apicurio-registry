@@ -25,6 +25,7 @@ import org.jdbi.v3.core.statement.StatementContext;
 import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -57,6 +58,9 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.state = ArtifactState.valueOf(rs.getString("state"));
         entity.labels = SqlUtil.deserializeLabels(rs.getString("labels"));
         entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
+        entity.contentId = rs.getLong("contentId");
+        entity.isLatest = entity.globalId == rs.getLong("latest");
+        entity.artifactType = ArtifactType.fromValue(rs.getString("type"));
         return entity;
     }
 

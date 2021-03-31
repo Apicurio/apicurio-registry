@@ -22,7 +22,7 @@ package io.apicurio.registry.storage.impl.sql;
  * @author eric.wittmann@gmail.com
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
-    
+
     /**
      * Constructor.
      * @param config
@@ -37,7 +37,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String dbType() {
         return "postgresql";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
      */
@@ -61,13 +61,13 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String isDatabaseInitialized() {
         return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts' LIMIT 1";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (canonicalHash, contentHash, content) VALUES (?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
     }
 
     /**
@@ -76,6 +76,22 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     @Override
     public String upsertLogConfiguration() {
         return "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateContentIdSequence()
+     */
+    @Override
+    public String updateContentIdSequence() {
+        return "SELECT setval('contentidsequence', ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGlobalIdSequence()
+     */
+    @Override
+    public String updateGlobalIdSequence() {
+        return "SELECT setval('globalidsequence', ?)";
     }
 
 }

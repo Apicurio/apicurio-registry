@@ -56,15 +56,23 @@ public class RegistryClientImpl implements RegistryClient {
     private final RequestHandler requestHandler;
 
     public RegistryClientImpl(String endpoint) {
-        this(endpoint, Collections.emptyMap(), null);
+        this(endpoint, Collections.emptyMap(), null, Collections.emptyList());
     }
 
     public RegistryClientImpl(String endpoint, Map<String, Object> configs) {
-        this(endpoint, configs, null);
+        this(endpoint, configs, null, Collections.emptyList());
+    }
+
+    public RegistryClientImpl(String endpoint, Map<String, Object> configs, List<Interceptor<?>> interceptors) {
+        this(endpoint, configs, null, interceptors);
     }
 
     public RegistryClientImpl(String endpoint, Map<String, Object> configs, Auth auth) {
-        requestHandler = new RequestHandler(endpoint, configs, auth);
+        this(endpoint, configs, auth, Collections.emptyList());
+    }
+
+    public RegistryClientImpl(String endpoint, Map<String, Object> configs, Auth auth, List<Interceptor<?>> interceptors) {
+        requestHandler = new RequestHandler(endpoint, configs, auth, interceptors);
     }
 
     @Override

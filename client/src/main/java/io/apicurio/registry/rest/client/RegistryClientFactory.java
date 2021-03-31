@@ -17,8 +17,10 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.client.impl.Interceptor;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +36,15 @@ public class RegistryClientFactory {
         return new RegistryClientImpl(baseUrl, configs);
     }
 
+    public static RegistryClient create(String baseUrl, Map<String, Object> configs, List<Interceptor<?>> interceptors) {
+        return new RegistryClientImpl(baseUrl, configs, interceptors);
+    }
+
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
         return new RegistryClientImpl(baseUrl, configs, auth);
+    }
+
+    public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth, List<Interceptor<?>> interceptors) {
+        return new RegistryClientImpl(baseUrl, configs, auth, interceptors);
     }
 }

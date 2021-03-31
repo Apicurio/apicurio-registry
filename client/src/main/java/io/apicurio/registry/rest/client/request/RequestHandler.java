@@ -17,6 +17,8 @@
 package io.apicurio.registry.rest.client.request;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.client.impl.InterceptableHttpClient;
+import io.apicurio.registry.rest.client.impl.Interceptor;
 import io.apicurio.registry.utils.BooleanUtil;
 
 import org.apache.http.NameValuePair;
@@ -73,13 +75,13 @@ public class RequestHandler {
 
     private static final String BASE_PATH = "apis/registry/v2/";
 
-    private final HttpClient client;
+    private final InterceptableHttpClient client;
     private final String endpoint;
-    private Auth auth;
-    private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
+    private final Auth auth;
+    private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>(Map.of("Content-Type", "application/json", "Accept", "application/json"));
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
-    public RequestHandler(String endpoint, Map<String, Object> configs, Auth auth) {
+    public RequestHandler(String endpoint, Map<String, Object> configs, Auth auth, List<Interceptor<?>> interceptors) {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
@@ -91,9 +93,10 @@ public class RequestHandler {
         }
 
         final HttpClient.Builder httpClientBuilder = handleConfiguration(configs);
+        final HttpClient httpClient = httpClientBuilder.build();
+        client = new InterceptableHttpClient(httpClient, interceptors);
         this.endpoint = endpoint;
         this.auth = auth;
-        this.client = httpClientBuilder.build();
     }
 
     private static HttpClient.Builder handleConfiguration(Map<String, Object> configs) {

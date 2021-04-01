@@ -18,6 +18,13 @@ ifdef::rh-service-registry[]
 
 {registry} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
 
+[IMPORTANT]
+====
+{registry} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+
 endif::[]
 
 [discrete]
@@ -26,10 +33,10 @@ endif::[]
 * Support for multiple payload formats for standard event schemas and API specifications 
 
 ifdef::rh-service-registry[]
-* Pluggable storage options including AMQ Streams, embedded Infinispan, or PostgreSQL database 
+* Pluggable registry storage options in AMQ Streams or PostgreSQL database 
 endif::[]
 ifdef::apicurio-registry[]
-* Pluggable storage options including Apache Kafka, embedded Infinispan, or PostgreSQL database 
+* Pluggable registry storage options in Apache Kafka or PostgreSQL database 
 endif::[]
 
 * Registry content management using a web console, REST API command, Maven plug-in, or Java client

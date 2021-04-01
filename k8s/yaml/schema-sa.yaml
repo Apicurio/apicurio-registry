@@ -33,7 +33,7 @@ metadata:
   name: schema-registry-cert
 spec:
   domains:
-    - sr.ess2evald.zebra.engineering
+    - SCHEMA_REGISTRY_DOMAIN_NAME
 
 ---
 apiVersion: extensions/v1beta1

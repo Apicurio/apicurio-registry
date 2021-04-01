@@ -26,7 +26,6 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -42,7 +41,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
     private boolean autoCreateArtifact;
     private IfExists autoCreateBehavior;
     private boolean findLatest;
-    private IdOption idOption;
 
     /**
      * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
@@ -65,7 +63,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T>{
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
         this.findLatest = config.findLatest();
-        this.idOption = config.useIdOption();
     }
 
     /**

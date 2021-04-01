@@ -28,6 +28,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -574,6 +575,8 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
 
     }
 
+    //disabled because the setup process to have an artifact with different globalId/contentId is not reliable
+    @Disabled
     // test producer use contentId, consumer default
     @Test
     void testProducerUsesContentIdConsumerUsesDefault() throws Exception {
@@ -609,6 +612,8 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
 
     }
 
+    //disabled because the setup process to have an artifact with different globalId/contentId is not reliable
+    @Disabled
     // test producer use default, consumer use contentId
     @Test
     void testProducerUsesDefaultConsumerUsesContentId() throws Exception {

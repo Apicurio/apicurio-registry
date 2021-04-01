@@ -190,11 +190,18 @@ public class DiffUtil {
      *
      * @return true if they are equal
      */
-    public static boolean diffObjectIdentity(DiffContext ctx, Object original, Object updated,
-                                             DiffType addedType, DiffType removedType, DiffType changedType) {
+    public static boolean diffObjectIdentity(DiffContext ctx, Object original, Object updated, Object target,
+                                             DiffType addedType, DiffType removedType, DiffType extendedType,
+                                             DiffType narrowedType, DiffType changedType) {
         if (diffAddedRemoved(ctx, original, updated, addedType, removedType)
-            && original != updated) {
-            ctx.addDifference(changedType, original, updated);
+                && original != updated) {
+            if (updated == target) {
+                ctx.addDifference(extendedType, original, updated);
+            } else if (original == target) {
+                ctx.addDifference(narrowedType, original, updated);
+            } else {
+                ctx.addDifference(changedType, original, updated);
+            }
             return false;
         }
         return true;

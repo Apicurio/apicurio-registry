@@ -1575,6 +1575,186 @@
     },
     {
       "enabled": true,
+      "id": "Complex: allOf to anyOf",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "allOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: allOf to anyOf 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "allOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 200
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: allOf to anyOf 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "allOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          },
+          {
+            "minimum": 20
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf to anyOf",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "oneOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf to anyOf 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "oneOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 200
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Complex: oneOf to anyOf 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "oneOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "anyOf": [
+          {
+            "maximum": 100
+          },
+          {
+            "multipleOf": 6
+          },
+          {
+            "minimum": 20
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
       "id": "Complex: oneOf 1",
       "compatibility": "backward",
       "original": {

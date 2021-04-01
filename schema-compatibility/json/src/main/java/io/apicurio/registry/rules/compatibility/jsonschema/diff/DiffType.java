@@ -187,7 +187,8 @@ public enum DiffType {
     NUMBER_TYPE_INTEGER_REQUIRED_TRUE_TO_FALSE(true),
     NUMBER_TYPE_INTEGER_REQUIRED_UNCHANGED(true),
 
-
+    COMBINED_TYPE_CRITERION_EXTENDED(true),
+    COMBINED_TYPE_CRITERION_NARROWED(false),
     COMBINED_TYPE_CRITERION_CHANGED(false),
 
     COMBINED_TYPE_ONE_OF_SIZE_INCREASED(true), // As long as the existing subschemas maintain compatibility, checked separately.

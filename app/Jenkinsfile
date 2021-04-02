@@ -1,0 +1,257 @@
+@Library('phoenix') _
+pipeline {
+  agent {
+    label 'phoenix-001'
+  }
+  options {
+    disableConcurrentBuilds()
+  }
+ /* triggers {
+    upstream(upstreamProjects: "datalake-infrastructure/$BRANCH_NAME", threshold: hudson.model.Result.SUCCESS)
+  }
+  */
+  parameters {
+    string(name: 'FORCE_PROJECT_ID', defaultValue: '', description: 'Use Google Project ID despite the branch name')
+    booleanParam(name: 'FORCE_RUN_E2E', defaultValue: false, description: 'Run E2E test despite the branch name')
+    booleanParam(name: 'FORCE_SONAR', defaultValue: false, description: 'Run Sonar analysis despite the branch name')
+    booleanParam(name: 'FORCE_OWASP', defaultValue: false, description: 'Run OWASP analysis despite the branch name')
+  }
+  environment {
+    PROJECT_ID = or(params.FORCE_PROJECT_ID, inferProject("apicurio-registry"))
+    REGION = 'us-central1'
+    ZONE = 'us-central1-c'
+    BRANCH_SHORT = BRANCH_NAME.tokenize('/').last()
+    IMAGE_TAG = "$BRANCH_SHORT-$GIT_COMMIT"
+    SERVICE_NAME = "apicurio-registry"
+    PROXY_NAME = 'example-proxy-name'
+    PROXY_DESCRIPTION = 'Example pipeline'
+    PROXY_PATH = '/v2/TODO_REPLACE/'
+    NEXUS = credentials("nexus")
+    ZAP_PROXY_PORT='2380'
+    NEXUS_URL= relaxedEnv("nexus_url")
+  }
+  stages {
+    stage("Build") {
+      steps {
+        //slackSend(color: '#8d8d8d', message: "STARTED: Job <$RUN_DISPLAY_URL|$JOB_NAME [$BUILD_NUMBER]>")
+        container('maven') {
+          dir("app") {
+           sh "mvn clean install"
+          }
+        }
+      }
+    }
+    stage("Test") {
+      steps {
+        container('maven') {
+          dir("services/example-service") {
+            // always exit true for demo
+            sh "mvn clean package -DskipTests || exit 0"
+          }
+        }
+      }
+      post {
+        always {
+          junit '**/build/test-results/test/*.xml'
+        }
+      }
+    }
+/*
+    stage("Analyze & Deploy") {
+      parallel {
+        stage("Sonar") {
+          when {
+            expression { return params.FORCE_SONAR || BRANCH_SHORT == 'develop' }
+          }
+          environment {
+            SONAR_HOST = relaxedEnv("sonar-host")
+            SONAR_KEY = credentials("sonar-key")
+          }
+          steps {
+            container('gradle') {
+              sh "gradle -p core :common:scanAndCheckQualityGate :$SERVICE_NAME:scanAndCheckQualityGate  -Dsonar.host.url=${SONAR_HOST} -Dsonar.login=${SONAR_KEY}"
+            }
+          }
+        }
+        stage("Deploy") {
+          stages {
+            stage('Docker') {
+              environment {
+                GOOGLE_APPLICATION_CREDENTIALS = credentials("${PROJECT_ID}_service-account-key")
+              }
+              steps {
+                container('docker') {
+                  dir("core/services/$SERVICE_NAME") {
+                    sh "docker login -u _json_key --password-stdin https://gcr.io < $GOOGLE_APPLICATION_CREDENTIALS"
+                    sh "docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG ."
+                    sh "docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG"
+                  }
+                }
+              }
+            }
+            stage('Terraform') {
+              environment {
+                GOOGLE_APPLICATION_CREDENTIALS = credentials("${PROJECT_ID}_service-account-key")
+              }
+              steps {
+                container('terraform-0-14-5') {
+                  dir("core/services/$SERVICE_NAME/terraform") {
+                    sh "terraform init -lock-timeout=60s -no-color -backend-config=bucket=${PROJECT_ID}-terraform-state"
+                    sh "terraform plan -lock-timeout=60s -no-color -var project=${PROJECT_ID} -var region=$REGION -var zone=$ZONE"
+                    sh "terraform apply -lock-timeout=60s -no-color -auto-approve -var project=$PROJECT_ID -var region=$REGION -var zone=$ZONE"
+                  }
+                }
+              }
+            }
+            stage('Kubernetes') {
+              environment {
+                GOOGLE_APPLICATION_CREDENTIALS = credentials("${PROJECT_ID}_service-account-key")
+              }
+              steps {
+                container('kubernetes') {
+                  dir("core/services/$SERVICE_NAME") {
+                    sh "gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS --project=$PROJECT_ID"
+                    sh "gcloud container clusters get-credentials --zone $ZONE primary"
+                    sh "sed -i 's/{{PROJECT_ID}}/$PROJECT_ID/g' deployment.yaml"
+                    sh "sed -i 's/{{TAG}}/$IMAGE_TAG/g' deployment.yaml"
+                    sh 'kubectl --namespace=default apply -f .'
+                  }
+                }
+              }
+            }
+            stage('Apigee') {
+              environment {
+                PROXY_DIR = "core/services/$SERVICE_NAME/apigee"
+                PROXY_DEFAULT_QUOTA_LIMIT = '100'
+                PROXY_DEFAULT_SPIKE = '500ps'
+                K8S_DOMAIN = credentials("${PROJECT_ID}_rest-api-domain")
+                K8S_HOST = "$SERVICE_NAME.${K8S_DOMAIN}"
+                IAP_CLIENT_ID = credentials("${PROJECT_ID}_iap-client-id")
+                APIGEE_USER = credentials("apigee-user")
+                APIGEE_PSW = credentials("apigee-password")
+              }
+              steps {
+                container('apigee') {
+                  // APIGEE will copy all the content of parent folder
+                  dir("core/services/$SERVICE_NAME") {
+                    sh "mkdir -p apigee/apiproxy"
+                    sh "cp -R apiproxy apigee"
+                  }
+                  sh '/deploy.sh'
+                  sh "${BRANCH_SHORT == 'master' ? '/deploy.sh zebra-prod sandbox' : 'echo Skipped sandbox'}"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    stage('Start ZAP Proxy') {
+       when {
+          expression { return (params.FORCE_OWASP && params.FORCE_RUN_E2E) || BRANCH_SHORT == 'develop' }
+       }
+       environment {
+          APIGEE_HOST = relaxedEnv("${PROJECT_ID}_apigee-host")
+       }
+       steps {
+          container('owasp-zap') {
+             owasp {
+                setupProxy(ZAP_PROXY_PORT)
+             }
+          }
+       }
+    }
+    stage('E2E') {
+        when {
+           expression { return params.FORCE_RUN_E2E || BRANCH_SHORT == 'develop' || BRANCH_SHORT == 'stage' }
+        }
+        environment {
+           GOOGLE_CLOUD_PROJECT = "$PROJECT_ID"
+           GOOGLE_APPLICATION_CREDENTIALS = credentials("${PROJECT_ID}_service-account-key")
+           APIGEE_HOST = credentials("${PROJECT_ID}_apigee-host")
+           APIGEE_API_KEY = credentials("${PROJECT_ID}_apigee-api-key")
+           APIGEE_LIMITED_API_KEY = credentials("${PROJECT_ID}_apigee-limited-api-key")
+        }
+        steps {
+           container('gradle') {
+             dir('e2e/e2e-java') {
+               sh "gradle --info :cleanTest :test " +
+                  "-Ptag=$SERVICE_NAME " +
+                  "-DapigeePrefix=$APIGEE_HOST " +
+                  "-DapigeeKey=$APIGEE_API_KEY " +
+                  "-DlimitedApiKey=$APIGEE_LIMITED_API_KEY " +
+                  "${params.FORCE_OWASP ? '-DproxyUrl=127.0.0.1:$ZAP_PROXY_PORT' : ''}"
+               sh 'chmod -R o+xw build'
+             }
+           }
+
+        }
+        post {
+            always {
+              dir('e2e/e2e-java') {
+                junit 'build/test-results/test/*.xml'
+                script {
+                  allure([
+                      includeProperties: false,
+                      jdk: '',
+                      properties: [],
+                      reportBuildPolicy: 'ALWAYS',
+                      results: [[path: 'build/allure-results']]
+                  ])
+                }
+              }
+            }
+        }
+    }
+    stage ('Active and Passive scan') {
+        when {
+            expression { return (params.FORCE_OWASP && params.FORCE_RUN_E2E) || BRANCH_SHORT == 'develop' }
+            }
+        environment {
+            APIGEE_HOST = relaxedEnv("${PROJECT_ID}_apigee-host")
+            REPORT_DIR='owasp'
+        }
+        steps {
+          container('owasp-zap') {
+            owasp {
+                activeScan(ZAP_PROXY_PORT, APIGEE_HOST+PROXY_PATH)
+                exportReports(ZAP_PROXY_PORT, REPORT_DIR)
+                shutDown(ZAP_PROXY_PORT)
+            }
+          }
+        }
+        post {
+          always {
+             publishHTML target: [
+                allowMissing: false,
+                alwaysLinkToLastBuild: false,
+                keepAll: true,
+                reportDir: 'owasp',
+                reportFiles: 'report.html',
+                reportName: 'owasp'
+             ]
+          }
+        }
+    }
+*/
+  }
+/*
+  post {
+    success {
+      slackSend(color: '#78b037', message:
+          "SUCCESSFUL: Job <$RUN_DISPLAY_URL|$JOB_NAME [$BUILD_NUMBER]> (<$JOB_URL/allure|allure>, <$JOB_URL/owasp|owasp>)\n" +
+          "Tests: ${testReport()}")
+    }
+    unstable {
+      slackSend(color: '#f5a623', message:
+          "UNSTABLE: Job <$RUN_DISPLAY_URL|$JOB_NAME [$BUILD_NUMBER]> (<$JOB_URL/allure|allure>, <$JOB_URL/owasp|owasp>)\n" +
+          "Tests: ${testReport()}")
+    }
+    failure {
+      slackSend(color: '#d24146', message:
+          "FAILED: Job <$RUN_DISPLAY_URL|$JOB_NAME [$BUILD_NUMBER]> (<$JOB_URL/allure|allure>, <$JOB_URL/owasp|owasp>)\n" +
+          "Tests: ${testReport()}")
+    }
+  }
+*/
+}

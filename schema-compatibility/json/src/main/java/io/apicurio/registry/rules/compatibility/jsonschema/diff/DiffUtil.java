@@ -256,8 +256,8 @@ public class DiffUtil {
         }
     }
 
-    public static void diffSchemaOrTrue(DiffContext ctx, Schema original, Schema updated,
-                                        DiffType extendedType, DiffType narrowedType) {
+    public static void diffSchemaOrTrue(DiffContext ctx, Schema original, Schema updated, DiffType bothType,
+                                        DiffType extendedType, DiffType narrowedType, DiffType noneType) {
         if (original != null && updated == null) {
             // schema => true
             ctx.addDifference(extendedType, original, updated);
@@ -266,14 +266,7 @@ public class DiffUtil {
             ctx.addDifference(narrowedType, original, updated);
         } else if (updated != null && original != null) {
             // schema => schema
-            if (isSchemaCompatible(original, updated, true)) {
-                // backward compatible
-                ctx.addDifference(extendedType, original, updated);
-            }
-            if (isSchemaCompatible(original, updated, false)) {
-                //forward compatible
-                ctx.addDifference(narrowedType, original, updated);
-            }
+            compareSchemaWhenExist(ctx, original, updated, bothType, extendedType, narrowedType, noneType);
         }
     }
 
@@ -282,23 +275,29 @@ public class DiffUtil {
                                      DiffType bothType,
                                      DiffType backwardNotForwardType,
                                      DiffType forwardNotBackwardType,
-                                     DiffType none) {
+                                     DiffType noneType) {
         if (diffAddedRemoved(ctx, original, updated, addedType, removedType)) {
-            boolean backward = isSchemaCompatible(original, updated, true);
-            boolean forward = isSchemaCompatible(original, updated, false);
+            compareSchemaWhenExist(ctx, original, updated, bothType, backwardNotForwardType, forwardNotBackwardType,
+                    noneType);
+        }
+    }
 
-            if (backward && forward) {
-                ctx.addDifference(bothType, original, updated);
-            }
-            if (backward && !forward) {
-                ctx.addDifference(backwardNotForwardType, original, updated);
-            }
-            if (!backward && forward) {
-                ctx.addDifference(forwardNotBackwardType, original, updated);
-            }
-            if (!backward && !forward) {
-                ctx.addDifference(none, original, updated);
-            }
+    public static void compareSchemaWhenExist(DiffContext ctx, Schema original, Schema updated, DiffType bothType,
+                                               DiffType backwardType, DiffType forwardType, DiffType noneType) {
+        boolean backward = isSchemaCompatible(original, updated, true);
+        boolean forward = isSchemaCompatible(original, updated, false);
+
+        if (backward && forward) {
+            ctx.addDifference(bothType, original, updated);
+        }
+        if (backward && !forward) {
+            ctx.addDifference(backwardType, original, updated);
+        }
+        if (!backward && forward) {
+            ctx.addDifference(forwardType, original, updated);
+        }
+        if (!backward && !forward) {
+            ctx.addDifference(noneType, original, updated);
         }
     }
 

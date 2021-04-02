@@ -46,6 +46,8 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_UNCHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_FALSE_TO_TRUE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_BOOLEAN_UNCHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_TRUE_TO_FALSE;
@@ -134,8 +136,9 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                 Schema updatedSchemaOfAdditionalItems =
                         schema.getSchemaOfAdditionalItems() == null ? null : schema.getSchemaOfAdditionalItems().getWrapped();
                 diffSchemaOrTrue(ctx.sub("schemaOfAdditionalItems"), original.getSchemaOfAdditionalItems(),
-                        updatedSchemaOfAdditionalItems, ARRAY_TYPE_ADDITIONAL_ITEMS_EXTENDED,
-                        ARRAY_TYPE_ADDITIONAL_ITEMS_NARROWED);
+                        updatedSchemaOfAdditionalItems, ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_UNCHANGED,
+                        ARRAY_TYPE_ADDITIONAL_ITEMS_EXTENDED, ARRAY_TYPE_ADDITIONAL_ITEMS_NARROWED,
+                        ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_CHANGED);
             }
         }
         super.visitAdditionalItems(additionalItems);

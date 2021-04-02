@@ -1128,6 +1128,37 @@
     },
     {
       "enabled": true,
+      "id": "Array: additionalItems 5",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": { "type": "integer" }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": { "type": "boolean" }
+      }
+    },
+    {
+      "enabled": true,
       "id": "Array: items added",
       "compatibility": "backward",
       "original": {

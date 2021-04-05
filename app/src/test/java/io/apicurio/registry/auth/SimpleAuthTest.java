@@ -58,8 +58,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     String developerClientId = "registry-api-dev";
     String readOnlyClientId = "registry-api-readonly";
 
-    String clientSecret = "test1";
-
     final String groupId = "authTestGroupId";
 
     private RegistryClient createClient(Auth auth) {

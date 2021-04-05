@@ -18,6 +18,10 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.types.ArtifactType;
+import org.apache.avro.Schema;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -25,6 +29,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Ales Justin
@@ -52,5 +62,38 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
             writer.write(content);
             writer.flush();
         }
+    }
+
+    protected void testRegister(RegisterRegistryMojo mojo) throws IOException, MojoFailureException, MojoExecutionException {
+        String keySubject = "TestSubject-key";
+        String valueSubject = "TestSubject-value";
+        Schema keySchema = Schema.create(Schema.Type.STRING);
+        Schema valueSchema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
+        File keySchemaFile = new File(this.tempDirectory, keySubject + ".avsc");
+        File valueSchemaFile = new File(this.tempDirectory, valueSubject + ".avsc");
+        writeContent(keySchemaFile, keySchema.toString(true).getBytes(StandardCharsets.UTF_8));
+        writeContent(valueSchemaFile, valueSchema.toString(true).getBytes(StandardCharsets.UTF_8));
+
+        assertTrue(keySchemaFile.isFile());
+        assertTrue(valueSchemaFile.isFile());
+
+        List<RegisterArtifact> artifacts = new ArrayList<>();
+
+        RegisterArtifact keySchemaArtifact = new RegisterArtifact();
+        keySchemaArtifact.setGroupId("RegisterRegistryMojoTest");
+        keySchemaArtifact.setArtifactId(keySubject);
+        keySchemaArtifact.setType(ArtifactType.AVRO);
+        keySchemaArtifact.setFile(keySchemaFile);
+        artifacts.add(keySchemaArtifact);
+
+        RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
+        valueSchemaArtifact.setGroupId("RegisterRegistryMojoTest");
+        valueSchemaArtifact.setArtifactId(valueSubject);
+        valueSchemaArtifact.setType(ArtifactType.AVRO);
+        valueSchemaArtifact.setFile(valueSchemaFile);
+        artifacts.add(valueSchemaArtifact);
+
+        mojo.artifacts = artifacts;
+        mojo.execute();
     }
 }

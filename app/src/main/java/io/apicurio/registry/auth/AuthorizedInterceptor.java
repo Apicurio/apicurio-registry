@@ -52,10 +52,15 @@ public class AuthorizedInterceptor {
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
     boolean enabled;
 
+    @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
+    String adminRole;
+
     @PostConstruct
     public void onConstruct() {
         if (isAuthEnabled()) {
             log.info("*** Only-only authorization is enabled ***");
+        } else {
+            log.info("*** Only-only authorization is NOT enabled ***");
         }
     }
 
@@ -81,6 +86,12 @@ public class AuthorizedInterceptor {
      */
     private boolean isAllowed(InvocationContext context) {
         System.out.println("isAllowed:: context");
+
+        if (isAdmin()) {
+            System.out.println("User is admin, allowing operation!");
+            return true;
+        }
+
         String groupId = getGroupId(context);
         String artifactId = getArtifactId(context);
 
@@ -99,11 +110,15 @@ public class AuthorizedInterceptor {
         }
     }
 
-    private String getGroupId(InvocationContext context) {
+    private boolean isAdmin() {
+        return securityIdentity.hasRole(adminRole);
+    }
+
+    private static String getGroupId(InvocationContext context) {
         return (String) context.getParameters()[0];
     }
 
-    private String getArtifactId(InvocationContext context) {
+    private static String getArtifactId(InvocationContext context) {
         return (String) context.getParameters()[1];
     }
 

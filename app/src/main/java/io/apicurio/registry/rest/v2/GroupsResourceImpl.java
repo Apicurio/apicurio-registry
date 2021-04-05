@@ -160,6 +160,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifact(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
+    @Authorized
     public CompletionStage<ArtifactMetaData> updateArtifact(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -175,6 +176,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
+    @Authorized
     public void deleteArtifact(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -198,6 +200,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
+    @Authorized
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -262,6 +265,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
+    @Authorized
     public void deleteArtifactRules(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -289,6 +293,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -306,6 +311,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -318,6 +324,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
+    @Authorized
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -395,6 +402,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
+    @Authorized
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -412,6 +420,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
+    @Authorized
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -424,6 +433,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
+    @Authorized
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             UpdateState data) {
         requireParameter("groupId", groupId);
@@ -551,6 +561,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
+    @Authorized
     public CompletionStage<VersionMetaData> createArtifactVersion(String groupId, String artifactId,
             String xRegistryVersion, InputStream data) {
         // TODO do something with the user-provided version info

@@ -49,8 +49,11 @@ public class AuthorizedInterceptor {
     @Current
     RegistryStorage storage;
 
+    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
+    boolean authenticationEnabled;
+
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean enabled;
+    boolean authorizationEnabled;
 
     @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
     String adminRole;
@@ -59,18 +62,15 @@ public class AuthorizedInterceptor {
     public void onConstruct() {
         if (isAuthEnabled()) {
             log.info("*** Only-only authorization is enabled ***");
-        } else {
-            log.info("*** Only-only authorization is NOT enabled ***");
         }
     }
 
     private boolean isAuthEnabled() {
-        return enabled;
+        return authenticationEnabled && authorizationEnabled;
     }
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
-        System.out.println("authorizeMethod:: context :: " + context.getMethod());
         if (!isAuthEnabled() || isAllowed(context)) {
             return context.proceed();
         } else {
@@ -85,25 +85,16 @@ public class AuthorizedInterceptor {
      * @param context
      */
     private boolean isAllowed(InvocationContext context) {
-        System.out.println("isAllowed:: context");
-
         if (isAdmin()) {
-            System.out.println("User is admin, allowing operation!");
             return true;
         }
 
         String groupId = getGroupId(context);
         String artifactId = getArtifactId(context);
 
-        System.out.println("groupId: " + groupId);
-        System.out.println("artifactId: " + artifactId);
-
         try {
             ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
-            System.out.println("DTO: " + dto);
             String createdBy = dto.getCreatedBy();
-            System.out.println("createdBy: " + createdBy);
-            System.out.println("authedusr: " + securityIdentity.getPrincipal().getName());
             return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
             return true;

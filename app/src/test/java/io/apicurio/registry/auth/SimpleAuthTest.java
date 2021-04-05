@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.auth;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -25,19 +34,13 @@ import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Fabian Martinez
@@ -166,8 +169,23 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         EditableMetaData updatedMetaData = new EditableMetaData();
         updatedMetaData.setName("Updated Name");
         // Dev user cannot edit the same artifact because Dev user is not the owner
-        Assertions.assertThrows(ForbiddenException.class, () -> {
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
             clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
         });
+
+        // But the admin user CAN make the change.
+        clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
+
+
+
+        // Now the Dev user will create an artifact
+        String artifactId2 = TestUtils.generateArtifactId();
+        clientDev.createArtifact(groupId, artifactId2, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        // And the Admin user will modify it (allowed because it's the Admin user)
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.createArtifactRule(groupId, artifactId2, rule );
     }
 }

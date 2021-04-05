@@ -15,6 +15,11 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.storage.impexp.ContentEntity;
+import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
+import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.types.ArtifactState;
@@ -39,10 +44,14 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     @Transactional
     public long nextGlobalId() {
         return withHandle( handle -> {
-            String sql = sqlStatements().selectNextGlobalId();
-            return handle.createQuery(sql)
-                    .mapTo(Long.class)
-                    .one();
+            return nextGlobalId(handle);
+        });
+    }
+
+    @Transactional
+    public long nextContentId() {
+        return withHandle( handle -> {
+            return nextContentId(handle);
         });
     }
 
@@ -81,9 +90,18 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
-    public void storeContent(String contentHash, ArtifactType artifactType, ContentHandle content) throws RegistryStorageException {
+    public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content) throws RegistryStorageException {
         withHandle( handle -> {
-            super.createOrUpdateContent(handle, artifactType, content);
+            if (!isContentExists(contentId)) {
+                byte [] contentBytes = content.bytes();
+                String sql = sqlStatements().importContent();
+                handle.createUpdate(sql)
+                    .bind(0, contentId)
+                    .bind(1, canonicalHash)
+                    .bind(2, contentHash)
+                    .bind(3, contentBytes)
+                    .execute();
+            }
             return null;
         });
     }
@@ -132,6 +150,62 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .bind(0, contentHash)
                     .mapTo(Long.class)
                     .one();
+        });
+    }
+
+    @Transactional
+    public void importArtifactRule(ArtifactRuleEntity entity) {
+        withHandle(handle -> {
+            super.importArtifactRule(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void importArtifactVersion(ArtifactVersionEntity entity) {
+        withHandle(handle -> {
+            super.importArtifactVersion(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void importContent(ContentEntity entity) {
+        withHandle(handle -> {
+            super.importContent(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void importGlobalRule(GlobalRuleEntity entity) {
+        withHandle(handle -> {
+            super.importGlobalRule(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void importGroup(GroupEntity entity) {
+        withHandle(handle -> {
+            super.importGroup(handle, entity);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void resetContentId() {
+        withHandle(handle -> {
+            super.resetContentId(handle);
+            return null;
+        });
+    }
+
+    @Transactional
+    public void resetGlobalId() {
+        withHandle(handle -> {
+            super.resetGlobalId(handle);
+            return null;
         });
     }
 

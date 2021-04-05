@@ -58,6 +58,9 @@ public class MessageTypeToValueClass {
                 case GlobalId:
                     index.put(type, GlobalIdValue.class);
                     break;
+                case ContentId:
+                    index.put(type, ContentIdValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

@@ -18,6 +18,11 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.storage.impexp.ContentEntity;
+import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
+import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
@@ -26,6 +31,7 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
@@ -35,6 +41,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
@@ -140,6 +147,8 @@ public class KafkaSqlSink {
                     return processGlobalRule((GlobalRuleKey) key, (GlobalRuleValue) value);
                 case GlobalId:
                     return processGlobalId((GlobalIdKey) key, (GlobalIdValue) value);
+                case ContentId:
+                    return processContentId((ContentIdKey) key, (ContentIdValue) value);
                 case LogConfig:
                     return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
                 default:
@@ -183,6 +192,17 @@ public class KafkaSqlSink {
                     sqlStore.deleteGroup(key.getGroupId());
                 }
                 return null;
+            case Import:
+                GroupEntity entity = new GroupEntity();
+                entity.artifactsType = value.getArtifactsType();
+                entity.createdBy = value.getCreatedBy();
+                entity.createdOn = value.getCreatedOn();
+                entity.description = value.getDescription();
+                entity.groupId = key.getGroupId();
+                entity.modifiedBy = value.getModifiedBy();
+                entity.modifiedOn = value.getModifiedOn();
+                entity.properties = value.getProperties();
+                sqlStore.importGroup(entity);
             default:
                 log.warn("Unsupported group message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported group message action: " + value.getAction());
@@ -213,7 +233,25 @@ public class KafkaSqlSink {
                             value.getMetaData(), globalIdGenerator);
                 case Delete:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
-                case Clear:
+                case Import:
+                    ArtifactVersionEntity entity = new ArtifactVersionEntity();
+                    entity.globalId = value.getGlobalId();
+                    entity.groupId = key.getGroupId();
+                    entity.artifactId = key.getArtifactId();
+                    entity.version = value.getVersion();
+                    entity.versionId = value.getVersionId();
+                    entity.artifactType = value.getArtifactType();
+                    entity.state = value.getState();
+                    entity.name = value.getMetaData().getName();
+                    entity.description = value.getMetaData().getDescription();
+                    entity.createdBy = value.getCreatedBy();
+                    entity.createdOn = value.getCreatedOn().getTime();
+                    entity.labels = value.getMetaData().getLabels();
+                    entity.properties = value.getMetaData().getProperties();
+                    entity.isLatest = value.getLatest();
+                    entity.contentId = value.getContentId();
+                    sqlStore.importArtifactVersion(entity);
+                    return null;
                 default:
                     log.warn("Unsupported artifact message action: %s", key.getType().name());
                     throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
@@ -244,7 +282,13 @@ public class KafkaSqlSink {
             case Delete:
                 sqlStore.deleteArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType());
                 return null;
-            case Clear:
+            case Import:
+                ArtifactRuleEntity entity = new ArtifactRuleEntity();
+                entity.groupId = key.getGroupId();
+                entity.artifactId = key.getArtifactId();
+                entity.type = key.getRuleType();
+                entity.configuration = value.getConfig().getConfiguration();
+                sqlStore.importArtifactRule(entity);
             default:
                 log.warn("Unsupported artifact rule message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported artifact-rule message action: " + value.getAction());
@@ -289,12 +333,19 @@ public class KafkaSqlSink {
         switch (value.getAction()) {
             case Create:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
-                    sqlStore.storeContent(key.getContentHash(), value.getArtifactType(), value.getContent());
+                    sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent());
                 }
                 break;
-            case Delete:
-            case Update:
-            case Clear:
+            case Import:
+                if (!sqlStore.isContentExists(key.getContentId())) {
+                    ContentEntity entity = new ContentEntity();
+                    entity.contentId = key.getContentId();
+                    entity.contentHash = key.getContentHash();
+                    entity.canonicalHash = value.getCanonicalHash();
+                    entity.contentBytes = value.getContent().bytes();
+                    sqlStore.importContent(entity);
+                }
+                break;
             default:
                 log.warn("Unsupported content message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported content message action: " + value.getAction());
@@ -320,7 +371,12 @@ public class KafkaSqlSink {
             case Delete:
                 sqlStore.deleteGlobalRule(key.getRuleType());
                 return null;
-            case Clear:
+            case Import:
+                GlobalRuleEntity entity = new GlobalRuleEntity();
+                entity.ruleType = key.getRuleType();
+                entity.configuration = value.getConfig().getConfiguration();
+                sqlStore.importGlobalRule(entity);
+                return null;
             default:
                 log.warn("Unsupported global rule message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
@@ -337,12 +393,31 @@ public class KafkaSqlSink {
         switch (value.getAction()) {
             case Create:
                 return sqlStore.nextGlobalId();
-            case Update:
-            case Delete:
-            case Clear:
+            case Reset:
+                sqlStore.resetGlobalId();
+                return null;
             default:
                 log.warn("Unsupported global id message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-id message action: " + value.getAction());
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "content id".  This is typically used to generate a new contentId that
+     * is unique and consistent across the cluster.
+     * @param key
+     * @param value
+     */
+    private Object processContentId(ContentIdKey key, ContentIdValue value) {
+        switch (value.getAction()) {
+            case Create:
+                return sqlStore.nextContentId();
+            case Reset:
+                sqlStore.resetContentId();
+                return null;
+            default:
+                log.warn("Unsupported content id message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported content-id message action: " + value.getAction());
         }
     }
 

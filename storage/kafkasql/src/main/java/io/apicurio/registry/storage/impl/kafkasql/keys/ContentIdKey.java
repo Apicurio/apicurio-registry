@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,20 +21,17 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ContentKey extends AbstractMessageKey {
+public class ContentIdKey extends AbstractMessageKey {
 
-    private String contentHash;
-    private long contentId;
+    private static final String CONTENT_ID_PARTITION_KEY = "__apicurio_registry_content_id__";
 
     /**
      * Creator method.
-     * @param contentId
-     * @param contentHash
+     * @param tenantId
+     * @param ruleType
      */
-    public static final ContentKey create(long contentId, String contentHash) {
-        ContentKey key = new ContentKey();
-        key.setContentId(contentId);
-        key.setContentHash(contentHash);
+    public static final ContentIdKey create() {
+        ContentIdKey key = new ContentIdKey();
         return key;
     }
 
@@ -43,7 +40,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public MessageType getType() {
-        return MessageType.Content;
+        return MessageType.ContentId;
     }
 
     /**
@@ -51,35 +48,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return contentHash;
-    }
-
-    /**
-     * @return the contentHash
-     */
-    public String getContentHash() {
-        return contentHash;
-    }
-
-    /**
-     * @param contentHash the contentHash to set
-     */
-    public void setContentHash(String contentHash) {
-        this.contentHash = contentHash;
-    }
-
-    /**
-     * @return the contentId
-     */
-    public long getContentId() {
-        return contentId;
-    }
-
-    /**
-     * @param contentId the contentId to set
-     */
-    public void setContentId(long contentId) {
-        this.contentId = contentId;
+        return getTenantId() + CONTENT_ID_PARTITION_KEY;
     }
 
     /**
@@ -87,7 +56,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String toString() {
-        return "ContentKey [contentHash=" + contentHash + ", contentId=" + contentId + "]";
+        return "ContentIdKey []";
     }
 
 }

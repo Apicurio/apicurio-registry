@@ -78,19 +78,4 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "MERGE INTO logconfiguration (logger, loglevel) KEY (logger) VALUES(?, ?)";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.CommonSqlStatements#updateContentIdSequence()
-     */
-    @Override
-    public String updateContentIdSequence() {
-        return "ALTER SEQUENCE contentidsequence RESTART WITH ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.CommonSqlStatements#updateGlobalIdSequence()
-     */
-    @Override
-    public String updateGlobalIdSequence() {
-        return "ALTER SEQUENCE globalidsequence RESTART WITH ?";
-    }
 }

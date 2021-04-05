@@ -37,6 +37,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
@@ -47,6 +48,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
@@ -96,9 +98,9 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(String tenantId, String groupId, String artifactId, String contentHash, ArtifactType artifactType, ContentHandle content) {
-        ContentKey key = ContentKey.create(tenantId, groupId, artifactId, contentHash);
-        ContentValue value = ContentValue.create(ActionType.Create, artifactType, content);
+    public CompletableFuture<UUID> submitContent(long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
+        ContentKey key = ContentKey.create(contentId, contentHash);
+        ContentValue value = ContentValue.create(action, canonicalHash, content);
         return send(key, value);
     }
 
@@ -123,10 +125,17 @@ public class KafkaSqlSubmitter {
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
             Long globalId, ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
-            EditableArtifactMetaDataDto metaData) {
+            EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId, Boolean latest) {
         ArtifactKey key = ArtifactKey.create(tenantId, groupId, artifactId);
-        ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData);
+        ArtifactValue value = ArtifactValue.create(action, globalId, version, artifactType, contentHash, createdBy, createdOn, metaData,
+                versionId, state, contentId, latest);
         return send(key, value);
+    }
+    public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, String version, ActionType action,
+            Long globalId, ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+            EditableArtifactMetaDataDto metaData) {
+        return submitArtifact(tenantId, groupId, artifactId, version, action, globalId, artifactType, contentHash, createdBy, createdOn,
+                metaData, null, null, null, null);
     }
     public CompletableFuture<UUID> submitArtifact(String tenantId, String groupId, String artifactId, ActionType action) {
         return this.submitArtifact(tenantId, groupId, artifactId, null, action, null, null, null, null, null, null);
@@ -195,6 +204,17 @@ public class KafkaSqlSubmitter {
         GlobalIdValue value = GlobalIdValue.create(action);
         return send(key, value);
     }
+
+
+    /* ******************************************************************************************
+     * Content ID
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitContentId(ActionType action) {
+        ContentIdKey key = ContentIdKey.create();
+        ContentIdValue value = ContentIdValue.create(action);
+        return send(key, value);
+    }
+
 
 
     /* ******************************************************************************************

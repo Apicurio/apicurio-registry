@@ -24,21 +24,21 @@ import java.util.Map;
  */
 public enum ActionType {
 
-    Create(1), Update(2), Delete(3), Clear(4);
+    Create(1), Update(2), Delete(3), Clear(4), Import(5), Reset(6);
 
     private final byte ord;
-    
+
     /**
      * Constructor.
      */
     private ActionType(int ord) {
         this.ord = (byte) ord;
     }
-    
+
     public final byte getOrd() {
         return this.ord;
     }
-    
+
     private static final Map<Byte, ActionType> ordIndex = new HashMap<>();
     static {
         for (ActionType at : ActionType.values()) {

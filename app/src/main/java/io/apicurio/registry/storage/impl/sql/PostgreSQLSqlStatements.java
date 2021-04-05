@@ -78,20 +78,4 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateContentIdSequence()
-     */
-    @Override
-    public String updateContentIdSequence() {
-        return "SELECT setval('contentidsequence', ?)";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGlobalIdSequence()
-     */
-    @Override
-    public String updateGlobalIdSequence() {
-        return "SELECT setval('globalidsequence', ?)";
-    }
-
 }

@@ -716,4 +716,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT MAX(globalId) FROM versions";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentExists()
+     */
+    @Override
+    public String selectContentExists() {
+        return "SELECT COUNT(contentId) FROM content WHERE contentId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalIdExists()
+     */
+    @Override
+    public String selectGlobalIdExists() {
+        return "SELECT COUNT(globalId) FROM versions WHERE globalId = ?";
+    }
+
 }

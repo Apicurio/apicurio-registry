@@ -20,6 +20,7 @@ import java.util.Date;
 
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -33,12 +34,16 @@ public class ArtifactValue extends ArtifactVersionValue {
     private String contentHash;
     private String createdBy;
     private Date createdOn;
+    private Integer versionId;
+    private Long contentId;
+    private Boolean latest;
 
     /**
      * Creator method.
      */
-    public static final ArtifactValue create(ActionType action, Long globalId, String version, ArtifactType artifactType, String contentHash, String createdBy,
-            Date createdOn, EditableArtifactMetaDataDto metaData) {
+    public static final ArtifactValue create(ActionType action, Long globalId, String version, ArtifactType artifactType, String contentHash,
+            String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, Integer versionId, ArtifactState state, Long contentId,
+            Boolean latest) {
         ArtifactValue value = new ArtifactValue();
         value.setAction(action);
         value.setGlobalId(globalId);
@@ -48,6 +53,10 @@ public class ArtifactValue extends ArtifactVersionValue {
         value.setCreatedBy(createdBy);
         value.setCreatedOn(createdOn);
         value.setMetaData(metaData);
+        value.setVersionId(versionId);
+        value.setState(state);
+        value.setContentId(contentId);
+        value.setLatest(latest);
         return value;
     }
 
@@ -141,6 +150,48 @@ public class ArtifactValue extends ArtifactVersionValue {
      */
     public void setGlobalId(Long globalId) {
         this.globalId = globalId;
+    }
+
+    /**
+     * @return the versionId
+     */
+    public Integer getVersionId() {
+        return versionId;
+    }
+
+    /**
+     * @param versionId the versionId to set
+     */
+    public void setVersionId(Integer versionId) {
+        this.versionId = versionId;
+    }
+
+    /**
+     * @return the contentId
+     */
+    public Long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
+    }
+
+    /**
+     * @return the latest
+     */
+    public Boolean getLatest() {
+        return latest;
+    }
+
+    /**
+     * @param latest the latest to set
+     */
+    public void setLatest(Boolean latest) {
+        this.latest = latest;
     }
 
 }

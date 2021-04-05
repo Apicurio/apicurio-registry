@@ -432,10 +432,10 @@ public interface SqlStatements {
 
     public String selectMaxContentId();
 
-    public String updateContentIdSequence();
-
-    public String updateGlobalIdSequence();
-
     public String selectMaxGlobalId();
+
+    public String selectContentExists();
+
+    public String selectGlobalIdExists();
 
 }

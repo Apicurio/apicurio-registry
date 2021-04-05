@@ -46,6 +46,9 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
     @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
     Integer configStatusResetWindowDurationSec;
 
+    @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.disableLogging", defaultValue = "false")
+    Boolean disableLogging;
+
     @PostConstruct
     void init() {
         init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
@@ -63,15 +66,23 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
 
     @Override
     public void suspect(String reason) {
-        log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck: {}", reason);
+        if (disableLogging != Boolean.TRUE) {
+            log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck: {}", reason);
+        }
         super.suspectSuper();
-        log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        if (disableLogging != Boolean.TRUE) {
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        }
     }
 
     @Override
     public void suspectWithException(Throwable reason) {
-        log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck because of an exception: ", reason);
+        if (disableLogging != Boolean.TRUE) {
+            log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck because of an exception: ", reason);
+        }
         super.suspectSuper();
-        log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        if (disableLogging != Boolean.TRUE) {
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        }
     }
 }

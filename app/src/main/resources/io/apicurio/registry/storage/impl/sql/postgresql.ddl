@@ -6,8 +6,8 @@ CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255))
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 
-CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE CACHE 100;
-CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE CACHE 100;
+CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
+CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;
 
 CREATE TABLE globalrules (tenantId VARCHAR(128) NOT NULL, type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (tenantId, type);

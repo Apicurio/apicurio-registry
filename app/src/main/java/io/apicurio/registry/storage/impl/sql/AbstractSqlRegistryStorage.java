@@ -466,7 +466,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String propertiesStr = SqlUtil.serializeProperties(properties);
 
         if (globalIdGenerator == null) {
-            globalIdGenerator = SqlGlobalIdGenerator.withHandle(handle);
+            globalIdGenerator = new GlobalIdGenerator() {
+                @Override
+                public Long generate() {
+                    return nextGlobalId(handle);
+                }
+            };
         }
 
         Long globalId = globalIdGenerator.generate();
@@ -2236,26 +2241,32 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
     protected void resetGlobalId(Handle handle) {
         String sql = sqlStatements.selectMaxGlobalId();
-        long maxGlobalId = handle.createQuery(sql)
+        Optional<Long> maxGlobalId = handle.createQuery(sql)
                 .mapTo(Long.class)
-                .one();
+                .findOne();
 
-        sql = sqlStatements.updateGlobalIdSequence();
-        handle.createUpdate(sql)
-            .bind(0, maxGlobalId + 1)
-            .execute();
+        if (maxGlobalId.isPresent()) {
+            long id = maxGlobalId.get();
+
+            log.info("Resetting globalId sequence to {}", id);
+            while (nextGlobalId(handle) < id) {}
+            log.info("Successfully reset globalId to {}", nextGlobalId(handle));
+        }
     }
 
     protected void resetContentId(Handle handle) {
         String sql = sqlStatements.selectMaxContentId();
-        long maxContentId = handle.createQuery(sql)
+        Optional<Long> maxContentId = handle.createQuery(sql)
                 .mapTo(Long.class)
-                .one();
+                .findOne();
 
-        sql = sqlStatements.updateContentIdSequence();
-        handle.createUpdate(sql)
-            .bind(0, maxContentId + 1)
-            .execute();
+        if (maxContentId.isPresent()) {
+            long id = maxContentId.get() + 1;
+
+            log.info("Resetting contentId sequence to {}", id);
+            while (nextContentId(handle) < id) {}
+            log.info("Successfully reset contentId to {}", nextContentId(handle));
+        }
     }
 
     protected void importEntity(Handle handle, Entity entity) throws RegistryStorageException {
@@ -2292,7 +2303,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .execute();
                 log.info("Content entity imported successfully.");
             } catch (Exception e) {
-                log.warn("Failed to import content entity.", e);
+                log.warn("Failed to import content entity (likely it already exists).");
             }
         } else {
             log.warn("Artifact rule import failed: artifact not found.");
@@ -2312,73 +2323,81 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.info("Artifact created successfully.");
         }
 
-        try {
-            String sql = sqlStatements.importArtifactVersion();
-            handle.createUpdate(sql)
-                .bind(0, entity.globalId)
-                .bind(1, tenantContext.tenantId())
-                .bind(2, normalizeGroupId(entity.groupId))
-                .bind(3, entity.artifactId)
-                .bind(4, entity.version)
-                .bind(5, entity.versionId)
-                .bind(6, entity.state)
-                .bind(7, entity.name)
-                .bind(8, entity.description)
-                .bind(9, entity.createdBy)
-                .bind(10, new Date(entity.createdOn))
-                .bind(11, entity.labels)
-                .bind(12, entity.properties)
-                .bind(13, entity.contentId)
-                .execute();
-            log.info("Content entity imported successfully.");
-
-            // Insert labels into the "labels" table
-            if (entity.labels != null && !entity.labels.isEmpty()) {
-                entity.labels.forEach(label -> {
-                    String sqli = sqlStatements.insertLabel();
-                    handle.createUpdate(sqli)
-                          .bind(0, entity.globalId)
-                          .bind(1, label.toLowerCase())
-                          .execute();
-                });
-            }
-
-            // Insert properties into the "properties" table
-            if (entity.properties != null && !entity.properties.isEmpty()) {
-                entity.properties.forEach((k,v) -> {
-                    String sqli = sqlStatements.insertProperty();
-                    handle.createUpdate(sqli)
-                          .bind(0, entity.globalId)
-                          .bind(1, k.toLowerCase())
-                          .bind(2, v.toLowerCase())
-                          .execute();
-                });
-            }
-
-            if (entity.isLatest) {
-                // Update the "latest" column in the artifacts table with the globalId of the new version
-                sql = sqlStatements.updateArtifactLatest();
+        if (!isGlobalIdExists(entity.globalId)) {
+            try {
+                String sql = sqlStatements.importArtifactVersion();
                 handle.createUpdate(sql)
-                      .bind(0, entity.globalId)
-                      .bind(1, tenantContext.tenantId())
-                      .bind(2, normalizeGroupId(entity.groupId))
-                      .bind(3, entity.artifactId)
-                      .execute();
+                    .bind(0, entity.globalId)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(entity.groupId))
+                    .bind(3, entity.artifactId)
+                    .bind(4, entity.version)
+                    .bind(5, entity.versionId)
+                    .bind(6, entity.state)
+                    .bind(7, entity.name)
+                    .bind(8, entity.description)
+                    .bind(9, entity.createdBy)
+                    .bind(10, new Date(entity.createdOn))
+                    .bind(11, entity.labels)
+                    .bind(12, entity.properties)
+                    .bind(13, entity.contentId)
+                    .execute();
+                log.info("Content entity imported successfully.");
+
+                // Insert labels into the "labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach(label -> {
+                        String sqli = sqlStatements.insertLabel();
+                        handle.createUpdate(sqli)
+                              .bind(0, entity.globalId)
+                              .bind(1, label.toLowerCase())
+                              .execute();
+                    });
+                }
+
+                // Insert properties into the "properties" table
+                if (entity.properties != null && !entity.properties.isEmpty()) {
+                    entity.properties.forEach((k,v) -> {
+                        String sqli = sqlStatements.insertProperty();
+                        handle.createUpdate(sqli)
+                              .bind(0, entity.globalId)
+                              .bind(1, k.toLowerCase())
+                              .bind(2, v.toLowerCase())
+                              .execute();
+                    });
+                }
+
+                if (entity.isLatest) {
+                    // Update the "latest" column in the artifacts table with the globalId of the new version
+                    sql = sqlStatements.updateArtifactLatest();
+                    handle.createUpdate(sql)
+                          .bind(0, entity.globalId)
+                          .bind(1, tenantContext.tenantId())
+                          .bind(2, normalizeGroupId(entity.groupId))
+                          .bind(3, entity.artifactId)
+                          .execute();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to import content entity.", e);
             }
-        } catch (Exception e) {
-            log.warn("Failed to import content entity.", e);
+        } else {
+            log.info("Duplicate globalId detected, skipping import of artifact version.");
         }
     }
     protected void importContent(Handle handle, ContentEntity entity) {
         try {
-            String sql = sqlStatements.importContent();
-            handle.createUpdate(sql)
-                .bind(0, entity.contentId)
-                .bind(1, entity.canonicalHash)
-                .bind(2, entity.contentHash)
-                .bind(3, entity.contentBytes)
-                .execute();
-            log.info("Content entity imported successfully.");
+            if (!isContentExists(entity.contentId)) {
+                String sql = sqlStatements.importContent();
+                handle.createUpdate(sql)
+                    .bind(0, entity.contentId)
+                    .bind(1, entity.canonicalHash)
+                    .bind(2, entity.contentHash)
+                    .bind(3, entity.contentBytes)
+                    .execute();
+                log.info("Content entity imported successfully.");
+            } else {
+                log.info("Duplicate content entity already exists, skipped.");
+            }
         } catch (Exception e) {
             log.warn("Failed to import content entity.", e);
         }
@@ -2393,7 +2412,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .execute();
             log.info("Global Rule entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import content entity.", e);
+            log.warn("Failed to import content entity (likely it already exists).");
         }
     }
     protected void importGroup(Handle handle, GroupEntity entity) {
@@ -2412,7 +2431,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .execute();
             log.info("Group entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import group entity.", e);
+            log.warn("Failed to import group entity (likely it already exists).");
         }
     }
 
@@ -2423,6 +2442,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(0, tenantContext().tenantId())
                     .bind(1, normalizeGroupId(groupId))
                     .bind(2, artifactId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
+    public boolean isContentExists(long contentId) throws RegistryStorageException {
+        return withHandle( handle -> {
+            String sql = sqlStatements().selectContentExists();
+            return handle.createQuery(sql)
+                    .bind(0, contentId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
+    public boolean isGlobalIdExists(long globalId) throws RegistryStorageException {
+        return withHandle( handle -> {
+            String sql = sqlStatements().selectGlobalIdExists();
+            return handle.createQuery(sql)
+                    .bind(0, globalId)
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -2491,8 +2530,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return false;
     }
 
-    private static long nextContentId(Handle handle) {
+    protected static long nextContentId(Handle handle) {
         return handle.createQuery("SELECT nextval('contentidsequence')")
+                .mapTo(Long.class)
+                .one();
+    }
+
+    protected static long nextGlobalId(Handle handle) {
+        return handle.createQuery("SELECT nextval('globalidsequence')")
                 .mapTo(Long.class)
                 .one();
     }

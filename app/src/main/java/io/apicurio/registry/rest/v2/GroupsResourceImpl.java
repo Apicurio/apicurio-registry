@@ -47,6 +47,7 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -247,6 +248,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);

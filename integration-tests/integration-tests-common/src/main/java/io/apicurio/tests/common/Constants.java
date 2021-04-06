@@ -56,5 +56,10 @@ public interface Constants {
      */
     String CLUSTERED = "clustered";
 
+    /**
+     * Tag for migration tests, the suite will deploy two registries and perform data migration between the two
+     */
+    String MIGRATION = "migration";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

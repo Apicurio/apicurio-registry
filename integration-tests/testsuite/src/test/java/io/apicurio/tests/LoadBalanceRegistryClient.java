@@ -633,4 +633,20 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().getHeaders();
     }
 
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#exportData()
+     */
+    @Override
+    public InputStream exportData() {
+        return getTarget().exportData();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#importData(java.io.InputStream)
+     */
+    @Override
+    public void importData(InputStream data) {
+        getTarget().importData(data);
+    }
+
 }

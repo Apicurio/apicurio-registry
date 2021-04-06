@@ -2254,6 +2254,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return null;
         });
     }
+
+    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetGlobalId(Handle handle) {
         String sql = sqlStatements.selectMaxGlobalId();
         Optional<Long> maxGlobalId = handle.createQuery(sql)
@@ -2269,6 +2271,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetContentId(Handle handle) {
         String sql = sqlStatements.selectMaxContentId();
         Optional<Long> maxContentId = handle.createQuery(sql)

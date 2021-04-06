@@ -48,6 +48,7 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -474,6 +475,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactsInGroup(java.lang.String)
      */
     @Override
+    @Authorized(AuthorizedStyle.GroupOnly)
     public void deleteArtifactsInGroup(String groupId) {
         requireParameter("groupId", groupId);
 

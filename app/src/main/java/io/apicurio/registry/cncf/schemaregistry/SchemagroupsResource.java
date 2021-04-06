@@ -1,6 +1,7 @@
 package io.apicurio.registry.cncf.schemaregistry;
 
 import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import java.io.InputStream;
@@ -43,6 +44,7 @@ public interface SchemagroupsResource {
   @Path("/{group-id}")
   @PUT
   @Consumes("application/json")
+  @Authorized(AuthorizedStyle.GroupOnly)
   void createGroup(@PathParam("group-id") String groupId, SchemaGroup data);
 
   /**
@@ -50,6 +52,7 @@ public interface SchemagroupsResource {
    */
   @Path("/{group-id}")
   @DELETE
+  @Authorized(AuthorizedStyle.GroupOnly)
   void deleteGroup(@PathParam("group-id") String groupId);
 
   /**
@@ -65,6 +68,7 @@ public interface SchemagroupsResource {
    */
   @Path("/{group-id}/schemas")
   @DELETE
+  @Authorized(AuthorizedStyle.GroupOnly)
   void deleteSchemasByGroup(@PathParam("group-id") String groupId);
 
   /**

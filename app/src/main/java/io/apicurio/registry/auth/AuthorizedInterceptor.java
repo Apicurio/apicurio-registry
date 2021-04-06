@@ -109,9 +109,14 @@ public class AuthorizedInterceptor {
     }
 
     private boolean verifyGroupCreatedBy(String groupId) {
-        GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
-        String createdBy = dto.getCreatedBy();
-        return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+        try {
+            GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
+            String createdBy = dto.getCreatedBy();
+            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+        } catch (NotFoundException nfe) {
+            // If the group is not found, then return true and let the operation proceed.
+            return true;
+        }
     }
 
     private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {

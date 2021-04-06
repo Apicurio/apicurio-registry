@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.types.Current;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -89,14 +90,39 @@ public class AuthorizedInterceptor {
             return true;
         }
 
-        String groupId = getGroupId(context);
-        String artifactId = getArtifactId(context);
+        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+        AuthorizedStyle mode = annotation.value();
 
+        if (mode == AuthorizedStyle.GroupAndArtifact) {
+            String groupId = getStringParam(context, 0);
+            String artifactId = getStringParam(context, 1);
+            return verifyArtifactCreatedBy(groupId, artifactId);
+        } else if (mode == AuthorizedStyle.GroupOnly) {
+            String groupId = getStringParam(context, 0);
+            return verifyGroupCreatedBy(groupId);
+        } else if (mode == AuthorizedStyle.ArtifactOnly) {
+            String artifactId = getStringParam(context, 1);
+            return verifyArtifactCreatedBy(null, artifactId);
+        } else {
+            return true;
+        }
+    }
+
+    private boolean verifyGroupCreatedBy(String groupId) {
+        GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
+        String createdBy = dto.getCreatedBy();
+        return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+    }
+
+    private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {
         try {
             ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
             String createdBy = dto.getCreatedBy();
             return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
+            // If the artifact is not found, then return true and let the operation proceed
+            // as normal. The result of which will typically be a 404 response, but sometimes
+            // will be some other result (e.g. creating an artifact that doesn't exist)
             return true;
         }
     }
@@ -105,12 +131,8 @@ public class AuthorizedInterceptor {
         return securityIdentity.hasRole(adminRole);
     }
 
-    private static String getGroupId(InvocationContext context) {
-        return (String) context.getParameters()[0];
-    }
-
-    private static String getArtifactId(InvocationContext context) {
-        return (String) context.getParameters()[1];
+    private static String getStringParam(InvocationContext context, int index) {
+        return (String) context.getParameters()[index];
     }
 
 }

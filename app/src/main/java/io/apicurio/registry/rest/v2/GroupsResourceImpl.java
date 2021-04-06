@@ -434,8 +434,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Authorized
-    public void updateArtifactVersionState(String groupId, String artifactId, String version,
-            UpdateState data) {
+    public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);

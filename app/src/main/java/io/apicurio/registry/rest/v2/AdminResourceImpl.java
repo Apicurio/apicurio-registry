@@ -260,9 +260,9 @@ public class AdminResourceImpl implements AdminResource {
                     ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
                     EntityWriter writer = new EntityWriter(zip);
                     AtomicInteger errorCounter = new AtomicInteger(0);
-                    storage.exportData((entityType, entity) -> {
+                    storage.exportData(entity -> {
                         try {
-                            writer.writeEntity(entityType, entity);
+                            writer.writeEntity(entity);
                         } catch (Exception e) {
                             // TODO do something interesting with this
                             e.printStackTrace();

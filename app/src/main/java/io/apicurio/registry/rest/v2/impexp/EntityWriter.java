@@ -56,12 +56,11 @@ public class EntityWriter {
 
     /**
      * Writes the given entity to the zip output stream.
-     * @param entityType
      * @param entity
      * @throws IOException
      */
-    public void writeEntity(EntityType entityType, Entity entity) throws IOException {
-        switch (entityType) {
+    public void writeEntity(Entity entity) throws IOException {
+        switch (entity.getEntityType()) {
             case Content:
                 writeEntity((ContentEntity) entity);
                 break;
@@ -78,7 +77,7 @@ public class EntityWriter {
                 writeEntity((GlobalRuleEntity) entity);
                 break;
             default:
-                throw new RuntimeException("Unhandled entity type: " + entityType.name());
+                throw new RuntimeException("Unhandled entity type: " + entity.getEntityType().name());
         }
     }
 
@@ -142,7 +141,7 @@ public class EntityWriter {
         }
         return new ZipEntry(path);
     }
-    
+
     private String groupOrDefault(String groupId) {
         return groupId == null ? "default" : groupId;
     }

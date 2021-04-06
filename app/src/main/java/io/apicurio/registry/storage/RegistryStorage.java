@@ -20,7 +20,7 @@ package io.apicurio.registry.storage;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
@@ -38,7 +38,6 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impexp.Entity;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -565,7 +564,7 @@ public interface RegistryStorage {
      * @param handler
      * @throws RegistryStorageException
      */
-    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException;
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException;
 
     /**
      * Called to import previously exported data into the registry.

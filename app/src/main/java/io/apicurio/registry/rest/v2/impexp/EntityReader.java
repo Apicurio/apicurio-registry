@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.impexp.Entity;
 import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
 import io.apicurio.registry.storage.impexp.GroupEntity;
+import io.apicurio.registry.storage.impexp.ManifestEntity;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
@@ -59,37 +60,47 @@ public class EntityReader {
         ZipEntry entry = zip.getNextEntry();
         if (entry != null) {
             String path = entry.getName();
-            if (isContent(path)) {
-                return readContent(entry);
-            } else if (isGlobalRule(path)) {
-                return readGlobalRule(entry);
-            } else if (isGroup(path)) {
-                return readGroup(entry);
-            } else if (isArtifactRule(path)) {
-                return readArtifactRule(entry);
-            } else if (isArtifactVersion(path)) {
-                return readArtifactVersion(entry);
+            EntityType entityType = parseEntityType(path);
+            if (entityType != null) {
+                switch (entityType) {
+                    case ArtifactRule:
+                        return readArtifactRule(entry);
+                    case ArtifactVersion:
+                        return readArtifactVersion(entry);
+                    case Content:
+                        return readContent(entry);
+                    case GlobalRule:
+                        return readGlobalRule(entry);
+                    case Group:
+                        return readGroup(entry);
+                    case Manifest:
+                        return readManifest(entry);
+                }
             }
         }
-        
+
         return null;
     }
 
     private ContentEntity readContent(ZipEntry entry) throws IOException {
         if (entry.getName().endsWith(".json")) {
             ContentEntity entity = this.readEntry(entry, ContentEntity.class);
-            
+
             ZipEntry dataEntry = zip.getNextEntry();
             if (!dataEntry.getName().endsWith(".Content.data")) {
                 // TODO what to do if this isn't the file we expect??
             }
-            
+
             entity.contentBytes = IoUtil.toBytes(zip, false);
             zip.read(entity.contentBytes);
             return entity;
         } else {
             throw new IOException("Not yet supported: found .Content.data file before .Content.json");
         }
+    }
+
+    private ManifestEntity readManifest(ZipEntry entry) throws IOException {
+        return readEntry(entry, ManifestEntity.class);
     }
 
     private GroupEntity readGroup(ZipEntry entry) throws IOException {
@@ -106,26 +117,6 @@ public class EntityReader {
 
     private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {
         return this.readEntry(entry, GlobalRuleEntity.class);
-    }
-    
-    private boolean isArtifactVersion(String path) {
-        return parseEntityType(path) == EntityType.ArtifactVersion;
-    }
-
-    private boolean isArtifactRule(String path) {
-        return parseEntityType(path) == EntityType.ArtifactRule;
-    }
-
-    private boolean isGroup(String path) {
-        return parseEntityType(path) == EntityType.Group;
-    }
-
-    private boolean isGlobalRule(String path) {
-        return parseEntityType(path) == EntityType.GlobalRule;
-    }
-    
-    private boolean isContent(String path) {
-        return parseEntityType(path) == EntityType.Content;
     }
 
     private EntityType parseEntityType(String path) {

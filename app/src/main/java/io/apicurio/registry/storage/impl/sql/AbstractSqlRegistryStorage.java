@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -51,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.agroal.api.AgroalDataSource;
+import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -88,9 +89,9 @@ import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.storage.impexp.ContentEntity;
 import io.apicurio.registry.storage.impexp.Entity;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
 import io.apicurio.registry.storage.impexp.GroupEntity;
+import io.apicurio.registry.storage.impexp.ManifestEntity;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
@@ -129,6 +130,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected TenantContext tenantContext() {
         return tenantContext;
     }
+
+    @Inject
+    System system;
 
     @Inject
     AgroalDataSource dataSource;
@@ -2115,12 +2119,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.Function)
      */
     @Override
     @Transactional
-    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
         try {
+            // Export a simple manifest file
+            /////////////////////////////////
+            ManifestEntity manifest = new ManifestEntity();
+            if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
+                manifest.exportedBy = securityIdentity.getPrincipal().getName();
+            }
+            manifest.systemName = system.getName();
+            manifest.systemDescription = system.getDescription();
+            manifest.systemVersion = system.getVersion();
+            handler.apply(manifest);
+
             // Export all content
             /////////////////////////////////
             this.jdbi.withHandle(handle -> {
@@ -2132,7 +2147,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Process and then close the stream.
                 try (stream) {
                     stream.forEach(entity -> {
-                        handler.apply(EntityType.Content, entity);
+                        handler.apply(entity);
                     });
                 }
                 return null;
@@ -2150,7 +2165,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Process and then close the stream.
                 try (stream) {
                     stream.forEach(entity -> {
-                        handler.apply(EntityType.Group, entity);
+                        handler.apply(entity);
                     });
                 }
                 return null;
@@ -2168,7 +2183,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Process and then close the stream.
                 try (stream) {
                     stream.forEach(entity -> {
-                        handler.apply(EntityType.ArtifactVersion, entity);
+                        handler.apply(entity);
                     });
                 }
                 return null;
@@ -2186,7 +2201,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Process and then close the stream.
                 try (stream) {
                     stream.forEach(entity -> {
-                        handler.apply(EntityType.ArtifactRule, entity);
+                        handler.apply(entity);
                     });
                 }
                 return null;
@@ -2204,7 +2219,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Process and then close the stream.
                 try (stream) {
                     stream.forEach(entity -> {
-                        handler.apply(EntityType.GlobalRule, entity);
+                        handler.apply(entity);
                     });
                 }
                 return null;
@@ -2285,6 +2300,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 break;
             case Group:
                 importGroup(handle, (GroupEntity) entity);
+                break;
+            case Manifest:
+                ManifestEntity manifest = (ManifestEntity) entity;
+                log.info("---------- Import Info ----------");
+                log.info("System Name:    {}", manifest.systemName);
+                log.info("System Desc:    {}", manifest.systemDescription);
+                log.info("System Version: {}", manifest.systemVersion);
+                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
+                log.info("---------- ----------- ----------");
+                // Ignore the manifest for now.
                 break;
             default:
                 throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());

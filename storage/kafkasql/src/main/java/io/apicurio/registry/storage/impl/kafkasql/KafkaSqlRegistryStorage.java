@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.annotation.PreDestroy;
@@ -96,7 +95,6 @@ import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.storage.impexp.ContentEntity;
 import io.apicurio.registry.storage.impexp.Entity;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impexp.EntityType;
 import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
 import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
@@ -943,7 +941,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
      */
     @Override
-    public void exportData(BiFunction<EntityType, Entity, Void> handler) throws RegistryStorageException {
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
         sqlStore.exportData(handler);
     }
 
@@ -959,6 +957,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                     importEntity(entity);
                 }
             }
+
+            // Because importing just pushes a bunch of Kafka messages, we may need to
+            // wait for a few seconds before we send the reset messages.  Due to partitioning,
+            // we can't guarantee ordering of these next two messages, and we NEED them to
+            // be consumed after all the import messages.
+            try { Thread.sleep(2000); } catch (Exception e) {}
 
             // Make sure the contentId sequence is set high enough
             resetContentId();
@@ -1027,10 +1031,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         submitter.submitGroup(tenantContext.tenantId(), ActionType.Import, group);
     }
     private void resetContentId() {
-        submitter.submitGlobalId(ActionType.Reset);
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Reset));
+        coordinator.waitForResponse(reqId);
     }
     private void resetGlobalId() {
-        submitter.submitContentId(ActionType.Reset);
+        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(ActionType.Reset));
+        coordinator.waitForResponse(reqId);
     }
 
     /**

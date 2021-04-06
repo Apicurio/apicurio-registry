@@ -16,11 +16,25 @@
 
 package io.apicurio.registry.storage.impexp;
 
+import java.util.Date;
+
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum EntityType {
+public class ManifestEntity extends Entity {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule
+    public String systemVersion;
+    public String systemName;
+    public String systemDescription;
+    public String exportVersion = "1.0";
+    public Date exportedOn = new Date();
+    public String exportedBy;
 
+    /**
+     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.Manifest;
+    }
 }

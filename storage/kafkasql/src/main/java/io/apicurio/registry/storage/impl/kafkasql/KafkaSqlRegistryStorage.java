@@ -481,7 +481,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
-        long globalId = sqlStore.nextGlobalId();
+        long globalId = nextClusterGlobalId();
 
         return submitter
                 .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, globalId, artifactType, contentHash, createdBy, createdOn, metaData)

@@ -71,7 +71,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIE
  */
 public class RequestHandler {
 
-    private static final String BASE_PATH = "/apis/registry/v2/";
+    private static final String BASE_PATH = "apis/registry/v2/";
 
     private final HttpClient client;
     private final String endpoint;

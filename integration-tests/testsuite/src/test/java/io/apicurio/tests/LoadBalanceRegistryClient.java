@@ -60,7 +60,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         hosts.stream()
             .forEach(h -> {
                 RegistryClientHolder c = new RegistryClientHolder();
-                c.client = RegistryClientFactory.create(h + "/apis/registry/v2");
+                c.client = RegistryClientFactory.create(h);
                 c.host = h;
                 targets.add(c);
             });

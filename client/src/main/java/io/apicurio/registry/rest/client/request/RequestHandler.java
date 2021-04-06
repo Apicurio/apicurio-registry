@@ -17,6 +17,8 @@
 package io.apicurio.registry.rest.client.request;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.utils.BooleanUtil;
+
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
@@ -62,6 +64,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQU
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -80,8 +83,11 @@ public class RequestHandler {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
-        if (!endpoint.endsWith(BASE_PATH)) {
-            endpoint += BASE_PATH;
+        Object disableAutoBasePathAppend = configs.get(REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND);
+        if (!BooleanUtil.toBoolean(disableAutoBasePathAppend)) {
+            if (!endpoint.endsWith(BASE_PATH)) {
+                endpoint += BASE_PATH;
+            }
         }
 
         final HttpClient.Builder httpClientBuilder = handleConfiguration(configs);

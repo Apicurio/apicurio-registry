@@ -206,7 +206,7 @@ public class RegistryFacade {
 
     public void waitForRegistryReady() throws Exception {
 
-        if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
+        if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
             ThrowingConsumer<Integer> nodeIsReady = (port) -> {
                 TestUtils.waitFor("Cannot connect to registries on node :" + port + " in timeout!",
@@ -231,7 +231,7 @@ public class RegistryFacade {
             TestUtils.waitFor("Registry reports is ready",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
 
-            if (!TestUtils.isExternalRegistry() && Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                 TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
                         Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
 

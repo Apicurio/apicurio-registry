@@ -96,6 +96,39 @@ public class RegistryFacade {
                 .build();
     }
 
+    public String getSourceRegistryUrl() {
+        if (TestUtils.isExternalRegistry()) {
+            String host = System.getenv().get("SOURCE_REGISTRY_HOST");
+            if (host == null) {
+                throw new IllegalStateException("missing SOURCE_REGISTRY_HOST env var");
+            }
+            Integer port = Integer.parseInt(System.getenv().getOrDefault("SOURCE_REGISTRY_PORT", "0"));
+            if (port == 0) {
+                throw new IllegalStateException("missing SOURCE_REGISTRY_PORT env var");
+            }
+            return "http://" + host + ":" + port + "/apis/registry/v2";
+        } else {
+            return "http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2";
+        }
+    }
+
+    public String getDestRegistryUrl() {
+        if (TestUtils.isExternalRegistry()) {
+            String host = System.getenv().get("DEST_REGISTRY_HOST");
+            if (host == null) {
+                throw new IllegalStateException("missing DEST_REGISTRY_HOST env var");
+            }
+            Integer port = Integer.parseInt(System.getenv().getOrDefault("DEST_REGISTRY_PORT", "0"));
+            if (port == 0) {
+                throw new IllegalStateException("missing DEST_REGISTRY_PORT env var");
+            }
+            return "http://" + host + ":" + port + "/apis/registry/v2";
+        } else {
+            int port = TestUtils.getRegistryPort() + 1;
+            return "http://localhost:" + port + "/apis/registry/v2";
+        }
+    }
+
     public boolean isRunning() {
         return !processes.isEmpty();
     }
@@ -125,6 +158,40 @@ public class RegistryFacade {
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("LOG_LEVEL", "DEBUG");
         appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
+
+        if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
+            Map<String, String> registry1Env = new HashMap<>(appEnv);
+            deployStorage(registry1Env);
+            runRegistryNode(path, registry1Env, String.valueOf(TestUtils.getRegistryPort()));
+            Map<String, String> registry2Env = new HashMap<>(appEnv);
+            deployStorage(registry2Env);
+            runRegistryNode(path, registry2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
+        } else {
+
+            deployStorage(appEnv);
+
+            if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
+
+                Map<String, String> node1Env = new HashMap<>(appEnv);
+                runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
+
+                Map<String, String> node2Env = new HashMap<>(appEnv);
+                runRegistryNode(path, node2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
+
+            } else {
+                if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+                    appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
+                    runKeycloak(appEnv);
+                    runTenantManager(appEnv);
+                }
+
+                runRegistry(path, appEnv);
+            }
+        }
+
+    }
+
+    private void deployStorage(Map<String, String> appEnv) throws Exception {
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
                 break;
@@ -135,25 +202,6 @@ public class RegistryFacade {
                 setupKafkaStorage(appEnv);
                 break;
         }
-
-        if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
-
-            Map<String, String> node1Env = new HashMap<>(appEnv);
-            runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
-
-            Map<String, String> node2Env = new HashMap<>(appEnv);
-            runRegistryNode(path, node2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
-
-        } else {
-            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
-                appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-                runKeycloak(appEnv);
-                runTenantManager(appEnv);
-            }
-
-            runRegistry(path, appEnv);
-        }
-
     }
 
     public void waitForRegistryReady() throws Exception {
@@ -183,7 +231,7 @@ public class RegistryFacade {
             TestUtils.waitFor("Registry reports is ready",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
 
-            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+            if (!TestUtils.isExternalRegistry() && Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                 TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
                         Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
 

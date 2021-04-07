@@ -34,9 +34,6 @@ import lombok.ToString;
 @ToString
 public class GroupMetaDataDto implements Serializable {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -9015518049780762742L;
 
     private String groupId;

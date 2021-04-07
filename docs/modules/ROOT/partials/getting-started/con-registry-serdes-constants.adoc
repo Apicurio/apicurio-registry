@@ -7,7 +7,7 @@
 [role="_abstract"]
 You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
-The following sections show examples of some of the available SerDe constants and configuration options.
+The following sections show examples of SerDe constants and configuration options.
 
 
 [discrete]
@@ -19,7 +19,7 @@ public class SerdeConfig {
 
    public static final String REGISTRY_URL = "apicurio.registry.url"; <1>
    public static final String ID_HANDLER = "apicurio.registry.id-handler"; <2>
-   public static final String REGISTRY_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
+   public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
 ----
 <1> The required URL of {registry}.
 <2> Extends ID handling to support other ID formats and make them compatible with {registry} SerDe services.
@@ -39,16 +39,14 @@ The setting should not be used with the `ID_HANDLER` option.
 ----
 public class SerdeConfig {
     
-   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; <1>
-   public static final String REGISTRY_GLOBAL_ID_STRATEGY = "apicurio.registry.global-id"; <2>
+   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; 
+...      
 ----
-<1> See xref:service-registry-concepts-artifactid-registry[].
-<2> See xref:configuring-globalid-strategy-registry[].
 
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 
+* For more details, see xref:registry-serdes-concepts-strategy-registry[]
 
 [discrete]
 == Configuration for Kafka converters

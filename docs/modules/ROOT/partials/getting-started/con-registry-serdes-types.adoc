@@ -17,7 +17,7 @@ Using the SerDe classes provided by {registry} in your Kafka application involve
 .Example serializer configuration in a Kafka producer
 [source,java,subs="+quotes,attributes"]
 ----
-// Create the Kafka producer.
+// Create the Kafka producer
 private static Producer<Object, Object> createKafkaProducer() {
     Properties props = new Properties();
 
@@ -45,7 +45,7 @@ private static Producer<Object, Object> createKafkaProducer() {
 .Example deserializer configuration in a Kafka consumer
 [source,java,subs="+quotes,attributes"]
 ----
-// Create the Kafka consumer.
+// Create the Kafka consumer
 private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
     Properties props = new Properties();
 

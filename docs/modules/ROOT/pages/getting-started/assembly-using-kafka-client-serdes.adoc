@@ -8,7 +8,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 {registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
 
-This chapter explains how to use Kafka client SerDe for Apache Avro, JSON Schema, and Google Protobuf in your producer and consumer client applications:
+This chapter explains how to use Kafka client SerDe in your producer and consumer client applications:
 
 * xref:registry-serdes-concepts-serde-{context}[]
 * xref:registry-serdes-concepts-strategy-{context}[]
@@ -24,8 +24,8 @@ This chapter explains how to use Kafka client SerDe for Apache Avro, JSON Schema
 
 .Prerequisites
 * You have read {registry-overview}
-* You have installed {registry}.
-* You have created Kafka producer and consumer client applications.
+* You have installed {registry}
+* You have created Kafka producer and consumer client applications
 +
 ifdef::rh-service-registry[]
 For more details on Kafka client applications, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift[Using AMQ Streams on Openshift].

@@ -58,9 +58,9 @@ The default schema resolver can look up an existing artifact version, or it can 
 [id='configuring-globalid-strategy-{context}']
 == Strategies to return a global ID
 
-When using the `DefaultSchemaResolver`, you can configure the following application properties for the global ID strategy: 
+When using the `DefaultSchemaResolver`, you can configure its behavior using application properties. The following table shows some commonly used examples: 
 
-.{registry} global ID strategy configuration options
+.{registry} global ID configuration options
 [%header,cols="5,2,5,2"] 
 
 |===
@@ -93,3 +93,8 @@ When using the `DefaultSchemaResolver`, you can configure the following applicat
 
 TIP: You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
+[role="_additional-resources"]
+.Additional resources 
+
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 

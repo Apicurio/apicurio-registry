@@ -44,17 +44,17 @@ public class Request<T> {
     private Request(Operation operation, String requestPath, Map<String, String> headers, Map<String, List<String>> queryParams, TypeReference<T> responseType, InputStream data, List<String> pathParams) {
         this.operation = operation;
         this.requestPath = requestPath;
-        this.headers = headers;
+        this.headers = new HashMap<>(headers);
         this.queryParams = queryParams;
         this.responseType = responseType;
         this.data = data;
         this.pathParams = pathParams;
 
-        if (!headers.containsKey(CONTENT_TYPE)) {
-            headers.put(CONTENT_TYPE, "application/json");
+        if (!this.headers.containsKey(CONTENT_TYPE)) {
+            this.headers.put(CONTENT_TYPE, "application/json");
         }
-        if (!headers.containsKey(ACCEPT)) {
-            headers.put(ACCEPT, "application/json");
+        if (!this.headers.containsKey(ACCEPT)) {
+            this.headers.put(ACCEPT, "application/json");
         }
     }
 
@@ -89,7 +89,7 @@ public class Request<T> {
     public static class RequestBuilder<T> {
         private Operation operation;
         private String path;
-        private Map<String, String> headers = new HashMap<String, String>();
+        private Map<String, String> headers = Collections.emptyMap();
         private Map<String, List<String>> queryParams = Collections.emptyMap();
         private TypeReference<T> typeReference;
         private InputStream data;

@@ -59,7 +59,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             globalIds.add(amd.getGlobalId());
         }
 
-        for (int idx = 0; idx < 5; idx++) {
+        for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
             String artifactId = "avro-" + idx;
 

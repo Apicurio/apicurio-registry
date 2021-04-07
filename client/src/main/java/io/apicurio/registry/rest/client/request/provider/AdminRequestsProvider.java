@@ -28,7 +28,9 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.apicurio.registry.rest.client.request.provider.Operation.DELETE;
 import static io.apicurio.registry.rest.client.request.provider.Operation.GET;
@@ -158,6 +160,7 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(EXPORT_PATH)
                 .responseType(new TypeReference<InputStream>(){})
+                .headers(new HashMap<>(Map.of(Request.ACCEPT, "application/zip")))
                 .build();
     }
 
@@ -167,6 +170,7 @@ public class AdminRequestsProvider {
                 .path(IMPORT_PATH)
                 .responseType(new TypeReference<Void>(){})
                 .data(data)
+                .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip")))
                 .build();
     }
 }

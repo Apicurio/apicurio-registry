@@ -21,6 +21,7 @@ import io.apicurio.registry.rest.client.request.provider.Operation;
 
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,10 @@ import java.util.Map;
  * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class Request<T> {
+
+    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String ACCEPT = "Accept";
+
     private final Operation operation;
     private final String requestPath;
     private final Map<String, String> headers;
@@ -44,6 +49,13 @@ public class Request<T> {
         this.responseType = responseType;
         this.data = data;
         this.pathParams = pathParams;
+
+        if (!headers.containsKey(CONTENT_TYPE)) {
+            headers.put(CONTENT_TYPE, "application/json");
+        }
+        if (!headers.containsKey(ACCEPT)) {
+            headers.put(ACCEPT, "application/json");
+        }
     }
 
     public Operation getOperation() {
@@ -77,7 +89,7 @@ public class Request<T> {
     public static class RequestBuilder<T> {
         private Operation operation;
         private String path;
-        private Map<String, String> headers = Collections.emptyMap();
+        private Map<String, String> headers = new HashMap<String, String>();
         private Map<String, List<String>> queryParams = Collections.emptyMap();
         private TypeReference<T> typeReference;
         private InputStream data;

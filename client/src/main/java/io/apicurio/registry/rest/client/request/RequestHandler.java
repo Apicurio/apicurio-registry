@@ -71,7 +71,7 @@ public class RequestHandler {
     private final HttpClient client;
     private final String endpoint;
     private Auth auth;
-    private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>(Map.of("Content-Type", "application/json", "Accept", "application/json"));
+    private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
     public RequestHandler(String endpoint, Map<String, Object> configs, Auth auth) {

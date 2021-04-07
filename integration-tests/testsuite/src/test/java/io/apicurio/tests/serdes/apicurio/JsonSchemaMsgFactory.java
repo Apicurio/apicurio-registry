@@ -20,6 +20,9 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.common.serdes.json.Msg;
 import io.apicurio.tests.common.serdes.json.ValidMessage;
@@ -54,6 +57,13 @@ public class JsonSchemaMsgFactory {
         msg.setMessage("Hello " + count);
         msg.setTime(new Date().getTime());
         return msg;
+    }
+
+    public JsonNode generateMessageJsonNode(int count) {
+        ValidMessage msg = new ValidMessage();
+        msg.setMessage("Hello " + count);
+        msg.setTime(new Date().getTime());
+        return new ObjectMapper().valueToTree(msg);
     }
 
     public boolean validateAsMap(Map<String, Object> map) {

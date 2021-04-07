@@ -105,6 +105,7 @@
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
+        <module>storage</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
@@ -135,9 +136,9 @@
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.50</json-schema-validator.version>
+        <json-schema-validator.version>1.0.51</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.15.6</protobuf.version>
+        <protobuf.version>3.15.7</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
@@ -166,10 +167,10 @@
         <jackson-dataformat-yaml.version>2.12.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.18</lombok.version>
+        <lombok.version>1.18.20</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.18.0</jdbi.version>
+        <jdbi.version>3.18.1</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <keycloak.version>11.0.3</keycloak.version>
@@ -204,10 +205,10 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.2</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.3</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.41</version.puppycrawl>
+        <version.puppycrawl>8.41.1</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

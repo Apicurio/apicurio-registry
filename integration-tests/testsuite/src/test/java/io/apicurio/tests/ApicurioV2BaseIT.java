@@ -71,7 +71,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
 
             return new LoadBalanceRegistryClient(Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port));
         } else {
-            return RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+            return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl());
         }
     }
 

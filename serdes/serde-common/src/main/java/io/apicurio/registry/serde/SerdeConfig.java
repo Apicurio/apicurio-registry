@@ -21,6 +21,8 @@ import java.util.Properties;
 import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
+import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.headers.DefaultHeadersHandler;
 import io.apicurio.registry.serde.headers.HeadersHandler;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
@@ -73,18 +75,21 @@ public class SerdeConfig {
     public static final boolean FIND_LATEST_ARTIFACT_DEFAULT = false;
 
     /**
+     * Only applicable for serializers
      * Optional, set explicitly the groupId used for querying/creating an artifact.
      * Overrides the groupId returned by the {@link ArtifactResolverStrategy}
      */
     public static final String EXPLICIT_ARTIFACT_GROUP_ID = "apicurio.registry.artifact.group-id";
 
     /**
+     * Only applicable for serializers
      * Optional, set explicitly the artifactId used for querying/creating an artifact.
      * Overrides the artifactId returned by the {@link ArtifactResolverStrategy}
      */
     public static final String EXPLICIT_ARTIFACT_ID = "apicurio.registry.artifact.artifact-id";
 
     /**
+     * Only applicable for serializers
      * Optional, set explicitly the version used for querying/creating an artifact.
      * Overrides the version returned by the {@link ArtifactResolverStrategy}
      */
@@ -201,6 +206,32 @@ public class SerdeConfig {
      */
     public static final String VALIDATION_ENABLED = "apicurio.registry.serde.validation-enabled";
     public static final boolean VALIDATION_ENABLED_DEFAULT = true;
+
+    /**
+     * Only applicable for deserializers
+     * Optional, set explicitly the groupId used as fallback for resolving the artifact used for deserialization.
+     */
+    public static final String FALLBACK_ARTIFACT_GROUP_ID = "apicurio.registry.fallback.group-id";
+
+    /**
+     * Only applicable for deserializers
+     * Optional, set explicitly the artifactId used as fallback for resolving the artifact used for deserialization.
+     */
+    public static final String FALLBACK_ARTIFACT_ID = "apicurio.registry.fallback.artifact-id";
+
+    /**
+     * Only applicable for deserializers
+     * Optional, set explicitly the version used as fallback for resolving the artifact used for deserialization.
+     */
+    public static final String FALLBACK_ARTIFACT_VERSION = "apicurio.registry.fallback.version";
+
+    /**
+     * Only applicable for deserializers
+     * Optional, allows to set a custom implementation of {@link FallbackArtifactProvider} , for resolving the artifact used for deserialization.
+     */
+    public static final String FALLBACK_ARTIFACT_PROVIDER = "apicurio.registry.fallback.provider";
+    public static final String FALLBACK_ARTIFACT_PROVIDER_DEFAULT = DefaultFallbackArtifactProvider.class.getName();
+
 
     /**
      * Fully qualified Java classname of a class that will be used as the return type for the deserializer. Aplicable for keys deserialization.

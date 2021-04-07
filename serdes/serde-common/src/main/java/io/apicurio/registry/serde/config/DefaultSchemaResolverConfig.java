@@ -47,8 +47,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
                 .define(CHECK_PERIOD_MS, Type.LONG, null, Importance.MEDIUM, "TODO docs")
 
                 .define(EXPLICIT_ARTIFACT_GROUP_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs")
-                .define(EXPLICIT_ARTIFACT_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs")
-                .define(EXPLICIT_ARTIFACT_VERSION, Type.STRING, null, Importance.MEDIUM, "TODO docs");
+                .define(EXPLICIT_ARTIFACT_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs");
 
         return configDef;
       }
@@ -106,7 +105,11 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
     }
 
     public String getExplicitArtifactVersion() {
-        return this.getString(EXPLICIT_ARTIFACT_VERSION);
+        Object version = this.originals().get(EXPLICIT_ARTIFACT_VERSION);
+        if (version == null) {
+            return null;
+        }
+        return version.toString();
     }
 
 }

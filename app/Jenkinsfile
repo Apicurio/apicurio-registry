@@ -15,6 +15,7 @@ pipeline {
     booleanParam(name: 'FORCE_RUN_E2E', defaultValue: false, description: 'Run E2E test despite the branch name')
     booleanParam(name: 'FORCE_SONAR', defaultValue: false, description: 'Run Sonar analysis despite the branch name')
     booleanParam(name: 'FORCE_OWASP', defaultValue: false, description: 'Run OWASP analysis despite the branch name')
+    string(name: 'SCHEMA_REGISTRY_DOMAIN_NAME', defaultValue: '', description: 'Domain name for Schema Registry')
   }
   environment {
     PROJECT_ID = or(params.FORCE_PROJECT_ID, inferProject("apicurio-registry"))

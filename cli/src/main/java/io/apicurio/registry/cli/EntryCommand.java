@@ -20,6 +20,8 @@ import picocli.CommandLine;
 
 import java.util.logging.Level;
 
+import io.apicurio.registry.cli.admin.ExportCommand;
+import io.apicurio.registry.cli.admin.ImportCommand;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
@@ -45,7 +47,9 @@ import io.quarkus.runtime.annotations.QuarkusMain;
                 DeleteCommand.class,
                 UpdateStateCommand.class,
                 UpdateMetadataCommand.class,
-                ListRulesCommand.class
+                ListRulesCommand.class,
+                ExportCommand.class,
+                ImportCommand.class
         }
 )
 public class EntryCommand implements Runnable, QuarkusApplication {

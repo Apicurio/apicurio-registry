@@ -50,18 +50,18 @@ public class RegistryDeploymentManager implements BeforeEachCallback, AfterEachC
         } else {
             LOGGER.info("Going to use already running registries on {}", TestUtils.getRegistryV1ApiUrl());
         }
-        try {
-            registry.waitForRegistryReady();
-        } catch (Exception e) {
-            if (!TestUtils.isExternalRegistry()) {
+        if (!TestUtils.isExternalRegistry()) {
+            try {
+                registry.waitForRegistryReady();
+            } catch (Exception e) {
                 try {
                     Path logsPath = RegistryUtils.getLogsPath(context.getRequiredTestClass(), context.getDisplayName());
                     registry.stopAndCollectLogs(logsPath);
                 } catch (IOException e1) {
                     e.addSuppressed(e1);
                 }
+                throw new IllegalStateException(e);
             }
-            throw new IllegalStateException(e);
         }
     }
 

@@ -1,0 +1,52 @@
+name: cli-release-build-native-win64
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install graalvm
+      uses: DeLaGuardo/setup-graalvm@4.0
+      with:
+        # GraalVM version, no pattern syntax available atm
+        graalvm: '21.0.0.2'
+        # Java version, optional, defaults to 'java8'. Available options are 'java8' and 'java11'.
+        java: 'java11'
+        # Architecture flag, optional, defaults to 'amd64'. Available options are 'amd64' and 'aarch64'. Later is available only for linux runners.
+        arch: 'amd64'
+    - name: Install native-image
+      run: |
+        %JAVA_HOME%/bin/gu.cmd install native-image
+      shell: cmd
+    - name: Configure Pagefile
+      # Increased the page-file size due to memory-consumption of native-image command
+      # For details see https://github.com/actions/virtual-environments/issues/785
+      uses: al-cheb/configure-pagefile-action@v1.2
+    - name: Set version
+      run: mvn versions:set -DnewVersion="${{ github.event.release.tag_name }}"
+      shell: cmd
+    - name: Build jvm jar
+      run: mvn -pl cli -am install
+    - name: Build native executable
+      # Invoke the native-image build with the necessary Visual Studio tooling/environment intialized
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+        mvn -pl cli package -Dnative
+      shell: cmd
+    - name: Upload native executable
+      id: upload-native-executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: cli/target/apicurio-registry-cli-${{ github.event.release.tag_name }}-runner.exe
+        asset_name: apicurio-registry-cli-${{ github.event.release.tag_name }}-win64.exe
+        asset_label: win64
+        asset_content_type: application/octet-stream

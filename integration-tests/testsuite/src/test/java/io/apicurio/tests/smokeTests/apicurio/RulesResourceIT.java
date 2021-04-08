@@ -194,12 +194,15 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         LOGGER.info("Created rule: {} - {} for artifact {}", rule.getType(), rule.getConfig(), artifactId1);
 
         registryClient.deleteArtifact(groupId, artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(groupId, artifactId1), true, errorCodeExtractor);
 
-        assertThat(0, is(registryClient.listArtifactsInGroup(groupId).getCount()));
+        TestUtils.retry(() -> {
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(groupId, artifactId1), true, errorCodeExtractor);
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(groupId, artifactId1), errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(groupId, artifactId1, RuleType.VALIDITY), errorCodeExtractor);
+            assertThat(registryClient.listArtifactsInGroup(groupId).getCount(), is(0));
+
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(groupId, artifactId1), errorCodeExtractor);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(groupId, artifactId1, RuleType.VALIDITY), errorCodeExtractor);
+        });
     }
 
     @AfterEach

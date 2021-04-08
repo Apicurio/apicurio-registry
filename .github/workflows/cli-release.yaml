@@ -1,4 +1,4 @@
-name: release-build
+name: cli-release-build
 
 on:
   release:

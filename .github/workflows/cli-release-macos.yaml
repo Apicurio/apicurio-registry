@@ -1,4 +1,4 @@
-name: release-build-native-macos
+name: cli-release-build-native-macos
 
 on:
   release:

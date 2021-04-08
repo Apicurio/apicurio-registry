@@ -24,8 +24,8 @@ mvn package -Pnative
 ```
 
 ### To ease the usage we suggest adding aliases:
-* if compiled to a jar: `alias rscli='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-runner.jar'`
-* if compiled to a native executable: `alias rscli=<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-runner`
+* if compiled to a jar: `alias rscli='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-*-runner.jar'`
+* if compiled to a native executable: `alias rscli=<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-*-runner`
 
 During the build you can also find completion script in target/ directory: `rscli_completion.sh`.
 You can `source` this script and get tab completion ootb.

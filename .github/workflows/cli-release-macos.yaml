@@ -1,0 +1,43 @@
+name: cli-release-build-native-macos
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install graalvm
+      uses: DeLaGuardo/setup-graalvm@4.0
+      with:
+        # GraalVM version, no pattern syntax available atm
+        graalvm: '21.0.0.2'
+        # Java version, optional, defaults to 'java8'. Available options are 'java8' and 'java11'.
+        java: 'java11'
+        # Architecture flag, optional, defaults to 'amd64'. Available options are 'amd64' and 'aarch64'. Later is available only for linux runners.
+        arch: 'amd64'
+    - name: Install native-image
+      run: gu install native-image
+    - name: Get maven wrapper
+      run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+    - name: Set version
+      run: ./mvnw versions:set -DnewVersion="${{ github.event.release.tag_name }}"
+    - name: Build jvm jar
+      run: ./mvnw -pl cli -am install
+    - name: Build native executable
+      run: ./mvnw -pl cli package -Dnative
+    - name: Upload native executable
+      id: upload-native-executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./cli/target/apicurio-registry-cli-${{ github.event.release.tag_name }}-runner
+        asset_name: apicurio-registry-cli-${{ github.event.release.tag_name }}-macos
+        asset_label: macos
+        asset_content_type: application/octet-stream

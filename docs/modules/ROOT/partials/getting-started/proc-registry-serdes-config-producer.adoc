@@ -4,6 +4,7 @@
 [id='registry-serdes-config-producer-{context}']
 = Using a schema from a Kafka producer client
 
+[role="_abstract"]
 This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
 
 .Prerequisites
@@ -17,9 +18,9 @@ This procedure describes how to configure a Kafka producer client written in Jav
 +
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl = "https://registry.example.com/api";
+String registryUrl = "https://registry.example.com/apis/registry/v2";
 Properties props = new Properties();
-props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl);
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
 ----
 
 . Configure the client with the serializer, and the strategy to look up the schema in {registry}. For example:
@@ -29,8 +30,8 @@ props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl);
 props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092");
 props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <1>
 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
-props.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM, FindLatestIdStrategy.class.getName()); <3>
+props.put(SerdeConfig.FIND_LATEST_ARTIFACT, FindLatestIdStrategy.class.getName()); <3>
 ----
 <1> The serializer for the message key provided by {registry}.
 <2> The serializer for the message value provided by {registry}.
-<3> Lookup strategy to find the global ID for the schema.
+<3> The lookup strategy to find the global ID for the schema.

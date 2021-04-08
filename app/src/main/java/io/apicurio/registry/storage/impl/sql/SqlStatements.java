@@ -396,5 +396,46 @@ public interface SqlStatements {
      */
     public String selectGroupByGroupId();
 
+    /**
+     * As statement used to get the next generated/sequenced globalId.
+     */
+    public String selectNextGlobalId();
+
+    /*
+     * The next few statements support exporting data from the DB.
+     */
+
+    public String exportContent();
+
+    public String exportGlobalRules();
+
+    public String exportGroups();
+
+    public String exportArtifactRules();
+
+    public String exportArtifactVersions();
+
+
+    /*
+     * The next few statements support importing data into the DB.
+     */
+
+    public String importContent();
+
+    public String importGlobalRule();
+
+    public String importGroup();
+
+    public String importArtifactRule();
+
+    public String importArtifactVersion();
+
+    public String selectMaxContentId();
+
+    public String selectMaxGlobalId();
+
+    public String selectContentExists();
+
+    public String selectGlobalIdExists();
 
 }

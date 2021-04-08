@@ -73,7 +73,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        System.out.println("Auth is " + authEnabled);
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
         return this.createClient(auth);
     }

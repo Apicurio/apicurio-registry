@@ -53,6 +53,16 @@ public abstract class AbstractRegistryTestBase {
         }
     }
 
+    /**
+     * Loads a resource as an input stream.
+     * @param resourceName the resource name
+     */
+    protected final InputStream resourceToInputStream(String resourceName) {
+        InputStream stream = getClass().getResourceAsStream(resourceName);
+        Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+        return stream;
+    }
+
     protected final ContentHandle resourceToContentHandle(String resourceName) {
         return ContentHandle.create(resourceToString(resourceName));
     }

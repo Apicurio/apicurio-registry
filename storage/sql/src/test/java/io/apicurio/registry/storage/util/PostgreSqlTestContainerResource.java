@@ -26,7 +26,7 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 /**
  * @author Fabian Martinez
  */
-public class PostgresqlTestcontainerResouce implements QuarkusTestResourceLifecycleManager {
+public class PostgreSqlTestContainerResource implements QuarkusTestResourceLifecycleManager {
 
     @SuppressWarnings("rawtypes")
     private PostgreSQLContainer database;

@@ -4,6 +4,7 @@
 [id="managing-artifacts-using-maven-plugin"]
 = Managing schema and API artifacts using the {registry} Maven plug-in
 
+[role="_abstract"]
 You can use the {registry} Maven plug-in to upload, download, or test schema and API artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
 
 [discrete]
@@ -32,12 +33,12 @@ The most common use case for the Maven plug-in is registering artifacts during a
                 <artifact>
                     <groupId>TestGroup</groupId> <3>
                     <artifactId>FullNameRecord</artifactId>
-                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> <4>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> 
                     <ifExists>FAIL</ifExists>
                 </artifact>
                 <artifact>
                     <groupId>TestGroup</groupId>
-                    <artifactId>ExampleAPI</artifactId>
+                    <artifactId>ExampleAPI</artifactId> <4>
                     <type>GRAPHQL</type>
                     <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
                     <ifExists>RETURN_OR_UPDATE</ifExists>
@@ -52,7 +53,7 @@ The most common use case for the Maven plug-in is registering artifacts during a
 <1> Specify `register` as the execution goal to upload the schema artifact to the registry.
 <2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
 <3> You must specify the {registry} artifact group ID.
-<4> You can upload multiple artifacts using the specified artifact ID and location.
+<4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
 
 [discrete]
@@ -147,5 +148,6 @@ NOTE: Even if the artifact passes the test, no content is added to {registry}.
 <3> You must specify the {registry} artifact group ID.
 <4> You can test multiple artifacts from specified directory using the artifact ID. 
 
+[role="_additional-resources"]
 .Additional resources
  * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]

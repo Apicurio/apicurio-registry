@@ -70,10 +70,6 @@ public class KafkaSqlFactory {
     Integer pollTimeout;
 
     @Inject
-    @ConfigProperty(name = "registry.kafkasql.global-id.base-offset", defaultValue = "1")
-    Integer baseOffset;
-
-    @Inject
     @ConfigProperty(name = "registry.kafkasql.coordinator.response-timeout", defaultValue = "30000")
     Integer responseTimeout;
 
@@ -125,10 +121,6 @@ public class KafkaSqlFactory {
             @Override
             public Integer pollTimeout() {
                 return pollTimeout;
-            }
-            @Override
-            public Integer baseOffset() {
-                return baseOffset;
             }
             @Override
             public Integer responseTimeout() {

@@ -2,44 +2,44 @@
 // assembly-using-kafka-client-serdes
 
 [id='registry-serdes-concepts-strategy-{context}']
-= Strategies to look up a schema
+= Strategies to look up a schema in {registry}
 
-The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and the global ID under which the message schema is registered in {registry}.
+[role="_abstract"]
+The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactResolverStrategy` Java interface to return a reference to an artifact in the registry.
 
-For a given topic and message, you can use implementations of the following Java interfaces:
-
-* `ArtifactIdStrategy` to return an artifact ID
-* `GlobalIdStrategy` to return a global ID
-
-The classes for each strategy are organized in the `io.apicurio.registry.utils.serde.strategy` package. The default strategy is the artifact ID `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
+The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDe are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
 
 .Example
 [source,java,subs="+quotes,attributes"]
 ----
-public String artifactId(String topic, boolean isKey, T schema) {
-    return String.format("%s-%s", topic, isKey ? "key" : "value");
-}
+public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
+        return ArtifactReference.builder()
+                .groupId(null)
+                .artifactId(String.format("%s-%s", topic, isKey ? "key" : "value"))
+                .build();
+
 ----
 
 * The `topic` parameter is the name of the Kafka topic receiving the message.
-* The `isKey` parameter is `true` when the message key is being serialized, and `false` when the message value is being serialized.
-* The `schema` parameter is the schema of the message being serialized or deserialized.
-* The `artifactID` returned is the artifact ID under which the schema is registered in {registry}.
+* The `isKey` parameter is `true` when the message key is serialized, and `false` when the message value is serialized.
+* The `schema` parameter is the schema of the message serialized or deserialized.
+* The `ArtifactReference` returned contains the artifact ID under which the schema is registered.
 
 Which lookup strategy you use depends on how and where you store your schema. For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.
 
+
 [discrete]
-== Artifact ID strategy
+== ArtifaceResolverStrategy interface
 
-The artifact ID strategy provides a way to map the Kafka topic and message information to an artifact ID in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
+The artifact resolver strategy provides a way to map the Kafka topic and message information to an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
 
-However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.utils.serde.strategy.ArtifactIdStrategy`.
+However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.serde.strategy.ArtifactResolverStrategy`.
 
 [discrete]
 [id='service-registry-concepts-artifactid-{context}']
-== Strategies to return an artifact ID
+== Strategies to return an artifact reference
 
-{registry} provides the following strategies to return an artifact ID based on an implementation of `ArtifactIdStrategy`:
+{registry} provides the following strategies to return an artifact reference based on an implementation of `ArtifaceResolverStrategy`:
 
 `RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
 `TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
@@ -48,31 +48,53 @@ However, you can use alternative conventions for the mapping by using a strategy
 
 
 [discrete]
-== Global ID strategy
+== DefaultSchemaResolver interface
 
-The global ID strategy locates and identifies the specific version of the schema registered under the artifact ID provided by the artifact ID strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from {registry}.  
-
-The global ID strategy can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a
-custom Java class that implements `io.apicurio.registry.utils.serde.strategy.GlobalIdStrategy`.
-
-[discrete]
-[id='service-registry-concepts-globalid-{context}']
-== Strategies to return a global ID
-
-{registry} provides the following strategies to return a global ID based on an implementation of `GlobalIdStrategy`:
-
-`FindLatestIdStrategy`:: Strategy that returns the global ID of the latest schema version, based on an artifact ID.
-`FindBySchemaIdStrategy`:: Strategy that matches schema content, based on an artifact ID, to return a global ID.
-`CachedSchemaIdStrategy`:: Strategy that caches the schema, and uses the global ID of the cached schema.
-`GetOrCreateIdStrategy`:: Strategy that tries to get the latest schema, based on an artifact ID, and if it does not exist, creates a new schema.
-`AutoRegisterIdStrategy`:: Strategy that updates the schema, and uses the global ID of the updated schema.
+The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
+ 
+The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.serde.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
 
 [discrete]
 [id='configuring-globalid-strategy-{context}']
-== Global ID strategy configuration
-You can configure the following application property for the global ID strategy:
+== Strategies to return a global ID
 
-* `apicurio.registry.check-period-ms`: Configures the remote schema lookup period in milliseconds
+When using the `DefaultSchemaResolver`, you can configure its behavior using application properties. The following table shows some commonly used examples: 
 
-You can configure application properties as Java system properties or include them in the Quarkus
+.{registry} global ID configuration options
+[%header,cols="5,2,5,2"] 
+
+|===
+|Property
+|Type
+|Description
+|Default
+
+|`apicurio.registry.find-latest`
+|`boolean`
+|Specify whether the serializer tries to find the latest artifact in the registry for the corresponding group ID and artifact ID.
+|`false`
+
+|`apicurio.registry.use-id`
+|`String`
+|Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema.
+|`-`
+
+|`apicurio.registry.auto-register`
+|`boolean`
+|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this.
+|`false`
+
+|`apicurio.registry.check-period-ms` 
+|`String`
+|Specify how long to cache the global ID in milliseconds. If not configured, the global ID is fetched every time.  
+|`-`
+
+|===
+
+TIP: You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
+[role="_additional-resources"]
+.Additional resources 
+
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 

@@ -84,6 +84,24 @@ public class IoUtil {
     }
 
     /**
+     * Get byte array from stream.
+     *
+     * @param stream the stream
+     * @return stream as a byte array
+     */
+    public static byte[] toBytes(InputStream stream, boolean closeStream) {
+        try {
+            return toBaos(stream).toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } finally {
+            if (closeStream) {
+                close(stream);
+            }
+        }
+    }
+
+    /**
      * Get string from stream.
      * Stream is closed at the end.
      *

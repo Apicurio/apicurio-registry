@@ -21,13 +21,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
 
 /**
  * @author Fabian Martinez
@@ -61,7 +60,7 @@ public class AvroGenericRecordSchemaFactory {
 
     public AvroGenericRecordSchemaFactory(List<String> schemaKeys) {
         Objects.requireNonNull(schemaKeys);
-        this.recordName = UUID.randomUUID().toString();
+        this.recordName = TestUtils.generateSubject();
         this.schemaKeys = schemaKeys;
         assertTrue(this.schemaKeys.size() > 0);
         generateSchema();

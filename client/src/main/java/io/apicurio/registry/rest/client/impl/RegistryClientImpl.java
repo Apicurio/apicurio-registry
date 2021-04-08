@@ -314,6 +314,16 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public InputStream exportData() {
+        return requestHandler.sendRequest(AdminRequestsProvider.exportData());
+    }
+
+    @Override
+    public void importData(InputStream data) {
+        requestHandler.sendRequest(AdminRequestsProvider.importData(data));
+    }
+
+    @Override
     public void setNextRequestHeaders(Map<String, String> requestHeaders) {
         requestHandler.setNextRequestHeaders(requestHeaders);
     }

@@ -59,7 +59,7 @@ class AllArtifactTypesIT extends ApicurioV2BaseIT {
         createArtifact(groupId, artifactId, atype, IoUtil.toStream(v1Content));
 
         // Test update (valid content)
-        client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream(v2Content));
+        TestUtils.retry(() -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream(v2Content)));
 
         // Test update (invalid content)
         TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("This is not valid content")), errorCodeExtractor);

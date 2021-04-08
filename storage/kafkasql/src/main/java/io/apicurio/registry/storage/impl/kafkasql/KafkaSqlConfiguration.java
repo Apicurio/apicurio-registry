@@ -29,10 +29,9 @@ public interface KafkaSqlConfiguration {
     public boolean isTopicAutoCreate();
     public Integer startupLag();
     public Integer pollTimeout();
-    public Integer baseOffset();
     public Integer responseTimeout();
     public Properties producerProperties();
     public Properties consumerProperties();
     public Properties adminProperties();
-    
+
 }

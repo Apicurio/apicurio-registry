@@ -60,7 +60,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         hosts.stream()
             .forEach(h -> {
                 RegistryClientHolder c = new RegistryClientHolder();
-                c.client = RegistryClientFactory.create(h + "/apis/registry/v2");
+                c.client = RegistryClientFactory.create(h);
                 c.host = h;
                 targets.add(c);
             });
@@ -631,6 +631,22 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public Map<String, String> getHeaders() {
         return getTarget().getHeaders();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#exportData()
+     */
+    @Override
+    public InputStream exportData() {
+        return getTarget().exportData();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#importData(java.io.InputStream)
+     */
+    @Override
+    public void importData(InputStream data) {
+        getTarget().importData(data);
     }
 
 }

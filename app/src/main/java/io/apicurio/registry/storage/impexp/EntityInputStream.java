@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.storage.impl.sql;
 
-import org.jdbi.v3.core.Handle;
+package io.apicurio.registry.storage.impexp;
+
+import java.io.Closeable;
+import java.io.IOException;
 
 /**
- * @author Fabian Martinez
+ * @author eric.wittmann@gmail.com
  */
-public class SqlGlobalIdGenerator {
-
-    public static GlobalIdGenerator withHandle(Handle handle) {
-        return () -> {
-            return handle.createQuery("SELECT nextval('globalidsequence')")
-                    .mapTo(Long.class)
-                    .one();
-        };
-    }
+public interface EntityInputStream extends Closeable {
+    
+    /**
+     * Get the next import entity from the stream of entities being imported.
+     */
+    public Entity nextEntity() throws IOException;
 
 }

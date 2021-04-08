@@ -34,6 +34,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectNextGlobalId()
+     */
+    @Override
+    public String selectNextGlobalId() {
+        return "SELECT nextval('globalidsequence')";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseInitialization()
      */
     @Override
@@ -608,6 +616,120 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectGroupByGroupId() {
         return "SELECT g.* FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRules()
+     */
+    @Override
+    public String exportArtifactRules() {
+        return "SELECT * FROM rules r WHERE r.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactVersions()
+     */
+    @Override
+    public String exportArtifactVersions() {
+        return "SELECT v.*, a.type, a.latest FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId WHERE v.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContent()
+     */
+    @Override
+    public String exportContent() {
+        return "SELECT * FROM content c";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGlobalRules()
+     */
+    @Override
+    public String exportGlobalRules() {
+        return "SELECT * FROM globalrules r WHERE r.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroups()
+     */
+    @Override
+    public String exportGroups() {
+        return "SELECT * FROM groups g WHERE g.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
+     */
+    @Override
+    public String importArtifactRule() {
+        return "INSERT INTO rules (tenantId, groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactVersion()
+     */
+    @Override
+    public String importArtifactVersion() {
+        return "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importContent()
+     */
+    @Override
+    public String importContent() {
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGlobalRule()
+     */
+    @Override
+    public String importGlobalRule() {
+        return "INSERT INTO globalrules (tenantId, type, configuration) VALUES (?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importGroup()
+     */
+    @Override
+    public String importGroup() {
+        return "INSERT INTO groups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxContentId()
+     */
+    @Override
+    public String selectMaxContentId() {
+        return "SELECT MAX(contentId) FROM content";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectMaxGlobalId()
+     */
+    @Override
+    public String selectMaxGlobalId() {
+        return "SELECT MAX(globalId) FROM versions";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentExists()
+     */
+    @Override
+    public String selectContentExists() {
+        return "SELECT COUNT(contentId) FROM content WHERE contentId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectGlobalIdExists()
+     */
+    @Override
+    public String selectGlobalIdExists() {
+        return "SELECT COUNT(globalId) FROM versions WHERE globalId = ?";
     }
 
 }

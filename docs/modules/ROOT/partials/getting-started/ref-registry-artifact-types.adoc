@@ -25,8 +25,6 @@ You can store and manage the following artifact types in {registry}:
 |OpenAPI specification
 |`PROTOBUF`
 |Google protocol buffers schema
-|`PROTOBUF_FD`
-|Google protocol buffers file descriptor
 |`WSDL`
 |Web Services Definition Language
 |`XSD`

@@ -44,6 +44,9 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
     Integer configStatusResetWindowDurationSec;
 
+    @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.disableLogging", defaultValue = "false")
+    Boolean disableLogging;
+
     @PostConstruct
     void init() {
         init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
@@ -61,15 +64,23 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
 
     @Override
     public void suspect(String reason) {
-        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck: {}", reason);
+        if (disableLogging != Boolean.TRUE) {
+            log.warn("Liveness problem suspected in ResponseErrorLivenessCheck: {}", reason);
+        }
         super.suspectSuper();
-        log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        if (disableLogging != Boolean.TRUE) {
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        }
     }
 
     @Override
     public void suspectWithException(Throwable reason) {
-        log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ", reason);
+        if (disableLogging != Boolean.TRUE) {
+            log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ", reason);
+        }
         super.suspectSuper();
-        log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        if (disableLogging != Boolean.TRUE) {
+            log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
+        }
     }
 }

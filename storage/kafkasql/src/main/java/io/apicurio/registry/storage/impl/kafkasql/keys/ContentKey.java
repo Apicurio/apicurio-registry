@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.keys;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
 /**
@@ -25,24 +23,17 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
  */
 public class ContentKey extends AbstractMessageKey {
 
-    @JsonIgnore
-    private transient String groupId; // We use the groupId for partitioning only.
-    @JsonIgnore
-    private transient String artifactId; // We use the artifactId for partitioning only.
     private String contentHash;
+    private long contentId;
 
     /**
      * Creator method.
-     * @param tenantId
-     * @param groupId
-     * @param artifactId
+     * @param contentId
      * @param contentHash
      */
-    public static final ContentKey create(String tenantId, String groupId, String artifactId, String contentHash) {
+    public static final ContentKey create(long contentId, String contentHash) {
         ContentKey key = new ContentKey();
-        key.setTenantId(tenantId);
-        key.setGroupId(groupId);
-        key.setArtifactId(artifactId);
+        key.setContentId(contentId);
         key.setContentHash(contentHash);
         return key;
     }
@@ -60,35 +51,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + groupId + "/" + artifactId;
-    }
-
-    /**
-     * @return the groupId
-     */
-    public String getGroupId() {
-        return groupId;
-    }
-
-    /**
-     * @param groupId the groupId to set
-     */
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    /**
-     * @return the artifactId
-     */
-    public String getArtifactId() {
-        return artifactId;
-    }
-
-    /**
-     * @param artifactId the artifactId to set
-     */
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
+        return contentHash;
     }
 
     /**
@@ -106,11 +69,25 @@ public class ContentKey extends AbstractMessageKey {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId the contentId to set
+     */
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
+    }
+
+    /**
+     * @see java.lang.Object#toString()
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[contentHash=" + getContentHash() + "]";
+        return "ContentKey [contentHash=" + contentHash + ", contentId=" + contentId + "]";
     }
 
 }

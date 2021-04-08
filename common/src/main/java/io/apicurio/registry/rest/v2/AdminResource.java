@@ -4,6 +4,7 @@ import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
+import java.io.InputStream;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -13,6 +14,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Response;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -140,4 +142,20 @@ public interface AdminResource {
   @DELETE
   @Produces("application/json")
   NamedLogConfiguration removeLogConfiguration(@PathParam("logger") String logger);
+
+  /**
+   * Exports registry data as a ZIP archive.
+   */
+  @Path("/export")
+  @GET
+  @Produces("application/zip")
+  Response exportData();
+
+  /**
+   * Imports registry data that was previously exported using the `/admin/export` operation.
+   */
+  @Path("/import")
+  @POST
+  @Consumes("application/zip")
+  void importData(InputStream data);
 }

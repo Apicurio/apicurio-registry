@@ -25,6 +25,7 @@ import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.logging.Logged;
@@ -88,6 +90,13 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.storage.impexp.ContentEntity;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
+import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
@@ -296,6 +305,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
+     * Generate a new globalId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
+     * guaranteed to generate the same globalId.
+     *
+     * TODO we can improve performance of this by reserving batches of globalIds instead of doing it one at a time.  Not yet done
+     *      due to a desire to avoid premature optimization.
+     */
+    private long nextClusterGlobalId() {
+        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Create));
+        return (long) coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * Generate a new contentId.  This must be done by sending a message to Kafka so that all nodes in the cluster are
+     * guaranteed to generate the same contentId.
+     *
+     * TODO we can improve performance of this by reserving batches of contentIds instead of doing it one at a time.  Not yet done
+     *      due to a desire to avoid premature optimization.
+     */
+    private long nextClusterContentId() {
+        UUID uuid = ConcurrentUtil.get(submitter.submitContentId(ActionType.Create));
+        return (long) coordinator.waitForResponse(uuid);
+    }
+
+    /**
      * Ensures that the given content exists in the database.  If it's already in the DB, then this just
      * returns the content hash.  If the content does not yet exist in the DB, then it is added (by sending
      * the appropriate message to the Kafka topic and awaiting the response).
@@ -310,7 +343,13 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         String contentHash = DigestUtils.sha256Hex(contentBytes);
 
         if (!sqlStore.isContentExists(contentHash)) {
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), groupId, artifactId, contentHash, artifactType, content);
+            long contentId = nextClusterContentId();
+
+            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+            byte[] canonicalContentBytes = canonicalContent.bytes();
+            String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+
+            CompletableFuture<UUID> future = submitter.submitContent(contentId, contentHash, ActionType.Create, canonicalContentHash, content);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -345,8 +384,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        long globalId = nextClusterGlobalId();
+
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 
@@ -438,8 +479,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        long globalId = nextClusterGlobalId();
+
         return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, artifactType, contentHash, createdBy, createdOn, metaData)
+                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
                 .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
     }
 
@@ -894,4 +937,122 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.getArtifactVersionsByContentId(contentId);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
+     */
+    @Override
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
+        sqlStore.exportData(handler);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     */
+    @Override
+    public void importData(EntityInputStream entities) throws RegistryStorageException {
+        try {
+            Entity entity = null;
+            while ( (entity = entities.nextEntity()) != null ) {
+                if (entity != null) {
+                    importEntity(entity);
+                }
+            }
+
+            // Because importing just pushes a bunch of Kafka messages, we may need to
+            // wait for a few seconds before we send the reset messages.  Due to partitioning,
+            // we can't guarantee ordering of these next two messages, and we NEED them to
+            // be consumed after all the import messages.
+            try { Thread.sleep(2000); } catch (Exception e) {}
+
+            // Make sure the contentId sequence is set high enough
+            resetContentId();
+
+            // Make sure the globalId sequence is set high enough
+            resetGlobalId();
+        } catch (IOException e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    protected void importEntity(Entity entity) throws RegistryStorageException {
+        switch (entity.getEntityType()) {
+            case ArtifactRule:
+                importArtifactRule((ArtifactRuleEntity) entity);
+                break;
+            case ArtifactVersion:
+                importArtifactVersion((ArtifactVersionEntity) entity);
+                break;
+            case Content:
+                importContent((ContentEntity) entity);
+                break;
+            case GlobalRule:
+                importGlobalRule((GlobalRuleEntity) entity);
+                break;
+            case Group:
+                importGroup((GroupEntity) entity);
+                break;
+            default:
+                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
+        }
+    }
+    protected void importArtifactRule(ArtifactRuleEntity entity) {
+        RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
+        submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.Import, config);
+    }
+    protected void importArtifactVersion(ArtifactVersionEntity entity) {
+        EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder()
+                .name(entity.name)
+                .description(entity.description)
+                .labels(entity.labels)
+                .properties(entity.properties)
+                .build();
+        submitter.submitArtifact(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.version, ActionType.Import,
+                entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
+                entity.state, entity.contentId, entity.isLatest);
+    }
+    protected void importContent(ContentEntity entity) {
+        submitter.submitContent(entity.contentId, entity.contentHash, ActionType.Import, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
+    }
+    protected void importGlobalRule(GlobalRuleEntity entity) {
+        RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
+        submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.Import, config);
+    }
+    protected void importGroup(GroupEntity entity) {
+        GroupEntity e = entity;
+        GroupMetaDataDto group = new GroupMetaDataDto();
+        group.setArtifactsType(e.artifactsType);
+        group.setCreatedBy(e.createdBy);
+        group.setCreatedOn(e.createdOn);
+        group.setDescription(e.description);
+        group.setGroupId(e.groupId);
+        group.setModifiedBy(e.modifiedBy);
+        group.setModifiedOn(e.modifiedOn);
+        group.setProperties(e.properties);
+        submitter.submitGroup(tenantContext.tenantId(), ActionType.Import, group);
+    }
+    private void resetContentId() {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Reset));
+        coordinator.waitForResponse(reqId);
+    }
+    private void resetGlobalId() {
+        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(ActionType.Reset));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     * @param artifactType
+     * @param content
+     */
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        try {
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            return canonicalContent;
+        } catch (Exception e) {
+            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            return content;
+        }
+    }
 }

@@ -149,6 +149,10 @@ public interface RegistryClient {
 
 	NamedLogConfiguration removeLogConfiguration(String logger);
 
+	InputStream exportData();
+
+	void importData(InputStream data);
+
 	void setNextRequestHeaders(Map<String, String> requestHeaders);
 
 	Map<String, String> getHeaders();

@@ -2,13 +2,14 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="managing-artifacts-using-rest-api"]
-= Managing artifacts using Registry REST API commands
+= Managing schema and API artifacts using Registry REST API commands
 
-Client applications can use Registry REST API commands to manage artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+[role="_abstract"]
+Client applications can use Registry REST API commands to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
-This section shows a simple curl-based example of using the Registry REST API to add and retrieve an Apache Avro schema artifact in the registry. 
+This section shows a simple curl-based example of using the registry v2 core REST API to add and retrieve an Apache Avro schema artifact in the registry. 
 
-NOTE: When adding artifacts in {registry} using the REST API, if you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+IMPORTANT: When adding artifacts using the v2 REST API, if you do not wish to specify a unique group ID, you must specify `../groups/default` in the API path. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
 
 .Prerequisites
 
@@ -45,9 +46,10 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl http://MY-REGISTRY-URL/api/artifacts/share-price
-'{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+$ curl http://MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price
+{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
 ----
 
+[role="_additional-resources"]
 .Additional resources
 * For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].

@@ -2,84 +2,109 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="managing-artifacts-using-maven-plugin"]
-= Managing artifacts using the {registry} Maven plug-in
+= Managing schema and API artifacts using the {registry} Maven plug-in
 
-You can use the {registry} Maven plug-in to upload or download registry artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
+[role="_abstract"]
+You can use the {registry} Maven plug-in to upload, download, or test schema and API artifacts as part of your development build. For example, this plug-in is useful for testing and validating that your schema updates are compatible with client applications.
 
 [discrete]
-== Registering an artifact using the Maven plug-in
+== Registering schema and API artifacts using the Maven plug-in
 
-Probably the most common use case for the Maven plug-in is registering artifacts during a build. You can accomplish this by using the `register` execution goal. 
+The most common use case for the Maven plug-in is registering artifacts during a build. You can accomplish this by using the `register` execution goal. 
 
 .Procedure
-* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register an artifact. The following example shows registering an Apache Avro schema:
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register an artifact. The following example shows registering Apache Avro and GraphQL schemas:
++
+[source,xml]
+----
+<plugin>     
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>register</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <3>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> 
+                    <ifExists>FAIL</ifExists>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId> <4>
+                    <type>GRAPHQL</type>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                    <ifExists>RETURN_OR_UPDATE</ifExists>
+                    <canonicalize>true</canonicalize>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
+<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
+<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> You must specify the {registry} artifact group ID.
+<4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
+
+
+[discrete]
+== Downloading schema and API artifacts using the Maven plug-in
+You can also use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
+
+.Procedure
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading Apache Avro and GraphQL schemas.
 +
 [source,xml]
 ----
 <plugin>
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry-maven-plugin</artifactId>
-  <version>${registry.version}</version>
+  <version>${apicurio.version}</version>
   <executions>
     <execution>
       <phase>generate-sources</phase>
       <goals>
-        <goal>register</goal> <1>
+        <goal>download</goal> <1>
       </goals>
       <configuration>
-        <registryUrl>http://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
-        <artifactType>AVRO</artifactType>
-        <artifacts>
-          <schema1>${project.basedir}/schemas/schema1.avsc</schema1> <3>
-        </artifacts>
+          <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+          <artifacts>
+              <artifact>
+                  <groupId>TestGroup</groupId> <3>
+                  <artifactId>FullNameRecord</artifactId> <4>
+                  <file>${project.build.directory}/classes/record.avsc</file>
+                  <overwrite>true</overwrite>
+              </artifact>
+              <artifact>
+                  <groupId>TestGroup</groupId>
+                  <artifactId>ExampleAPI</artifactId>
+                  <version>1</version>
+                  <file>${project.build.directory}/classes/example.graphql</file>
+                  <overwrite>true</overwrite>
+              </artifact>
+          </artifacts>
       </configuration>
     </execution>
   </executions>
 </plugin>
 ----
-<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
-<2> You must specify the {registry} URL with the `/api` endpoint.
-<3> You can upload multiple artifacts using the artifact ID and location.
-
-[discrete]
-== Downloading an artifact using the Maven plug-in
-You can also use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
-
-.Procedure
-* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading a single schema by its artifact ID.
-+
-[source,xml]
-----
-<plugin>
-<groupId>io.apicurio</groupId>
-<artifactId>apicurio-registry-maven-plugin</artifactId>
-<version>${registry.version}</version>
-<executions>
-  <execution>
-    <phase>generate-sources</phase>
-    <goals>
-      <goal>download</goal> <1>
-    </goals>
-    <configuration>
-      <registryUrl>http://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
-      <ids>
-        <param1>schema1</param1> <3>
-      </ids>
-      <artifactExtension>.avsc</artifactExtension> <4>
-      <outputDirectory>${project.build.directory}</outputDirectory>
-   </configuration>
- </execution>
-</executions>
-</plugin>
-----
 <1> Specify `download` as the execution goal.
-<2> You must specify the {registry} URL with the `/api` endpoint.
-<3> You can download multiple artifacts to a specified directory using the artifact ID.
-<4> The plug-in automatically tries to select an appropriate file extension, but you can override it using `<artifactExtension>`.
+<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> You must specify the {registry} artifact group ID.
+<4> You can download multiple artifacts to a specified directory using the artifact ID. 
 
 [discrete]
-== Testing an artifact using the Maven plug-in
-You might want to verify that an artifact can be registered without actually making any changes. This is most often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
+== Testing schema and API artifacts using the Maven plug-in
+You might want to verify that an artifact can be registered without actually making any changes. This is often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
 
 NOTE: Even if the artifact passes the test, no content is added to {registry}.
 
@@ -88,30 +113,41 @@ NOTE: Even if the artifact passes the test, no content is added to {registry}.
 +
 [source,xml]
 ----
-<plugin>
+<plugin>     
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry-maven-plugin</artifactId>
-  <version>${registry.version}</version>
+  <version>${apicurio.version}</version>
   <executions>
-    <execution>
-      <phase>generate-sources</phase>
-      <goals>
-        <goal>test-update</goal> <1>
-      </goals>
-      <configuration>
-        <registryUrl>http://my-cluster-service-registry-myproject.example.com/api</registryUrl> <2>
-        <artifactType>AVRO</artifactType>
-        <artifacts>
-          <schema1>${project.basedir}/schemas/schema1.avsc</schema1> <3>
-        </artifacts>
-      </configuration>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>test-update</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <3>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> <4>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId>
+                    <type>GRAPHQL</type>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                </artifact>
+            </artifacts>
+        </configuration>
     </execution>
   </executions>
-</plugin>
+ </plugin>
 ----
 <1> Specify `test-update` as the execution goal to test the schema artifact.
-<2> You must specify the {registry} URL with the `/api` endpoint.
-<3> You can test multiple artifacts using the artifact ID and location.
+<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> You must specify the {registry} artifact group ID.
+<4> You can test multiple artifacts from specified directory using the artifact ID. 
 
+[role="_additional-resources"]
 .Additional resources
  * For more details on the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-demo[Registry demonstration example]

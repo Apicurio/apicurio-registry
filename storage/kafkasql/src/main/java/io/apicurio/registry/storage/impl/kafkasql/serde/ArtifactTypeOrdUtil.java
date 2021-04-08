@@ -26,7 +26,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author eric.wittmann@gmail.com
  */
 public class ArtifactTypeOrdUtil {
-    
+
     private static final Map<ArtifactType, Byte> atToOrd = new HashMap<>();
     private static final Map<Byte, ArtifactType> ordToAt = new HashMap<>();
     static {
@@ -56,9 +56,9 @@ public class ArtifactTypeOrdUtil {
                 case PROTOBUF:
                     index(artifactType, 7);
                     break;
-                case PROTOBUF_FD:
-                    index(artifactType, 8);
-                    break;
+//                case PROTOBUF_FD:
+//                    index(artifactType, 8);
+//                    break;
                 case WSDL:
                     index(artifactType, 9);
                     break;
@@ -70,16 +70,22 @@ public class ArtifactTypeOrdUtil {
                     break;
                 default:
                     break;
-                
+
             }
         }
     }
 
     public static byte artifactTypeToOrd(ArtifactType artifactType) {
+        if (artifactType == null) {
+            return 0;
+        }
         return atToOrd.get(artifactType);
     }
-    
+
     public static ArtifactType ordToArtifactType(byte ord) {
+        if (ord == 0) {
+            return null;
+        }
         return ordToAt.get(ord);
     }
 

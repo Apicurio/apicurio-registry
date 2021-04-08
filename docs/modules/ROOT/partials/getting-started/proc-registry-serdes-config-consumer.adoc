@@ -4,6 +4,7 @@
 [id='registry-serdes-config-consumer-{context}']
 = Using a schema from a Kafka consumer client
 
+[role="_abstract"]
 This procedure describes how to configure a Kafka consumer client written in Java to use a schema from {registry}.
 
 .Prerequisites
@@ -17,21 +18,22 @@ This procedure describes how to configure a Kafka consumer client written in Jav
 +
 [source,shell,subs="+quotes,attributes"]
 ----
-String registryUrl = "https://registry.example.com/api";
+String registryUrl = "https://registry.example.com/apis/registry/v2";
 Properties props = new Properties();
-props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, registryUrl); 
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl); 
 ----
 
 . Configure the client with the {registry} deserializer. For example:
 +
 [source,java,subs="+quotes,attributes"]
 ----
-// Configure Kafka
+// Configure Kafka settings
 props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
 props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + TOPIC_NAME);
 props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+// Configure deserializer settings
 props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
     AvroKafkaDeserializer.class.getName()); <1> 
 props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,

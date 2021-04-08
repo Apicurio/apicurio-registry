@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.ParsedSchemaImpl;
 import io.apicurio.registry.serde.SchemaLookupResult;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
@@ -42,7 +43,6 @@ import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Ales Justin
@@ -87,11 +87,11 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     public byte[] fromConnectData(String topic, Headers headers, Schema schema, Object value) {
         JsonNode jsonSchema = jsonConverter.asJsonSchema(schema);
         String schemaString = jsonSchema.toString();
-        ParsedSchema<JsonNode> parsedSchema = new ParsedSchema<JsonNode>()
+        ParsedSchema<JsonNode> parsedSchema = new ParsedSchemaImpl<JsonNode>()
                 .setParsedSchema(jsonSchema)
                 .setRawSchema(IoUtil.toBytes(schemaString));
 
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(topic, headers, value, Optional.of(parsedSchema));
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(topic, headers, value, parsedSchema);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 

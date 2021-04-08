@@ -27,7 +27,10 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.apicurio.registry.rest.client.request.provider.Operation.DELETE;
 import static io.apicurio.registry.rest.client.request.provider.Operation.GET;
@@ -37,6 +40,9 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOG_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULES_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULE_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
+
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -146,6 +152,25 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(RULES_BASE_PATH)
                 .responseType(new TypeReference<List<RuleType>>(){})
+                .build();
+    }
+
+    public static Request<InputStream> exportData() {
+        return new Request.RequestBuilder<InputStream>()
+                .operation(GET)
+                .path(EXPORT_PATH)
+                .responseType(new TypeReference<InputStream>(){})
+                .headers(new HashMap<>(Map.of(Request.ACCEPT, "application/zip")))
+                .build();
+    }
+
+    public static Request<Void> importData(InputStream data) {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(IMPORT_PATH)
+                .responseType(new TypeReference<Void>(){})
+                .data(data)
+                .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip")))
                 .build();
     }
 }

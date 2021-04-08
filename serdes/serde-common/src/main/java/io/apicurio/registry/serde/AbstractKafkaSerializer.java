@@ -63,11 +63,6 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
      * The result of this method is passed to the SchemaResolver, which then can use this schema to resolve the exact
      * artifact version in Apicurio Registry or to create the artifact if configured to do so.
      *
-     * Note there could be situations where the schema inferred from the data may not be exact equal to the original schema used to generate that data, i.e. protobuf messages.
-     * In those situations the best option is to hand the registration of the artifact to the serdes
-     * or to configure the serdes to find the latest artifact version for the corresponding groupId/artifactId.
-     * GroupId and artifactId are configured either via {@link ArtifactResolverStrategy} or via config properties such as {@link SerdeConfig#EXPLICIT_ARTIFACT_ID}.
-     *
      * @param data
      * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
      */
@@ -92,11 +87,11 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         }
         try {
 
-            Optional<ParsedSchema<T>> schemaFromData = Optional.ofNullable(getSchemaFromData(data));
+            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(data)));
 
             SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(topic, headers, data, schemaFromData);
 
-            ParsedSchema<T> parsedSchema = new ParsedSchema<T>()
+            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
                     .setRawSchema(schema.getRawSchema())
                     .setParsedSchema(schema.getSchema());
 

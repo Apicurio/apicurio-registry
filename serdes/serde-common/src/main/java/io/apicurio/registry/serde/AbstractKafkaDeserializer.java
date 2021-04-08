@@ -22,13 +22,20 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.config.BaseKafkaDeserializerConfig;
+import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
+import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * @author Ales Justin
  * @author Fabian Martinez
  */
 public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T, U> implements Deserializer<U> {
+
+    protected FallbackArtifactProvider fallbackArtifactProvider;
 
     public AbstractKafkaDeserializer() {
         super();
@@ -46,6 +53,35 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         super(client, schemaResolver);
     }
 
+    /**
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#configure(io.apicurio.registry.serde.config.BaseKafkaSerDeConfig, boolean)
+     */
+    @Override
+    protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
+        super.configure(config, isKey);
+
+        BaseKafkaDeserializerConfig deserializerConfig = new BaseKafkaDeserializerConfig(config.originals());
+
+        Object fallbackProvider = deserializerConfig.getFallbackArtifactProvider();
+        Utils.instantiate(FallbackArtifactProvider.class, fallbackProvider, this::setFallbackArtifactProvider);
+        fallbackArtifactProvider.configure(config.originals(), isKey);
+
+        if (fallbackArtifactProvider instanceof DefaultFallbackArtifactProvider) {
+            if (!((DefaultFallbackArtifactProvider) fallbackArtifactProvider).isConfigured()) {
+                //it's not configured, just remove it so it's not executed
+                fallbackArtifactProvider = null;
+            }
+        }
+
+    }
+
+    /**
+     * @param fallbackArtifactProvider the fallbackArtifactProvider to set
+     */
+    public void setFallbackArtifactProvider(FallbackArtifactProvider fallbackArtifactProvider) {
+        this.fallbackArtifactProvider = fallbackArtifactProvider;
+    }
+
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
     protected abstract U readData(Headers headers, ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
@@ -59,12 +95,12 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         ByteBuffer buffer = getByteBuffer(data);
         ArtifactReference artifactReference = getIdHandler().readId(buffer);
 
-        SchemaLookupResult<T> schema = getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+        SchemaLookupResult<T> schema = resolve(topic, null, data, artifactReference);
 
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
 
-        ParsedSchema<T> parsedSchema = new ParsedSchema<T>()
+        ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
                 .setRawSchema(schema.getRawSchema())
                 .setParsedSchema(schema.getSchema());
 
@@ -83,17 +119,36 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
             throw new IllegalStateException("Headers cannot be null");
         } else {
             ArtifactReference artifactReference = headersHandler.readHeaders(headers);
-            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+
+            SchemaLookupResult<T> schema = resolve(topic, headers, data, artifactReference);
 
             ByteBuffer buffer = ByteBuffer.wrap(data);
             int length = buffer.limit();
             int start = buffer.position();
 
-            ParsedSchema<T> parsedSchema = new ParsedSchema<T>()
+            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
                     .setRawSchema(schema.getRawSchema())
                     .setParsedSchema(schema.getSchema());
 
             return readData(headers, parsedSchema, buffer, start, length);
+        }
+    }
+
+    private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
+        try {
+            return getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+        } catch (RuntimeException e) {
+            if (fallbackArtifactProvider == null) {
+                throw e;
+            } else {
+                try {
+                    ArtifactReference fallbackReference = fallbackArtifactProvider.get(topic, headers, data);
+                    return getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                } catch (RuntimeException fe) {
+                    fe.addSuppressed(e);
+                    throw fe;
+                }
+            }
         }
     }
 

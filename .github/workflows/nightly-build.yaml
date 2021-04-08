@@ -23,7 +23,7 @@ jobs:
           uses: actions/checkout@v2
             
         - name: Build Registry
-          run: ./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -Dquarkus.version=999-SNAPSHOT
+          run: make SKIP_TESTS=false BUILD_FLAGS='-Dquarkus.version=999-SNAPSHOT' build-all
 
         - name: Set test profile to all
           run: echo "test_profile=all" >> $GITHUB_ENV

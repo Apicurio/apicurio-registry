@@ -6,6 +6,9 @@ CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255))
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
 
+CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
+CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;
+
 CREATE TABLE globalrules (tenantId VARCHAR(128) NOT NULL, type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE globalrules ADD PRIMARY KEY (tenantId, type);
 
@@ -19,13 +22,11 @@ CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NUL
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 
-CREATE TABLE content (contentId BIGSERIAL NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
+CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
 CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
-
-CREATE SEQUENCE globalidsequence;
 
 CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);

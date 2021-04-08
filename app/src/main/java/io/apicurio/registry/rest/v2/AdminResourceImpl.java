@@ -25,17 +25,28 @@ import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
 import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
 import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -46,12 +57,16 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.impexp.EntityReader;
+import io.apicurio.registry.rest.v2.impexp.EntityWriter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 
@@ -205,6 +220,70 @@ public class AdminResourceImpl implements AdminResource {
             throw new MissingRequiredParameterException("logLevel");
         }
         return logConfigService.setLogLevel(logger, data.getLevel());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#importData(java.io.InputStream)
+     */
+    @Override
+    public void importData(InputStream data) {
+        final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
+        final EntityReader reader = new EntityReader(zip);
+        EntityInputStream stream = new EntityInputStream() {
+            @Override
+            public Entity nextEntity() throws IOException {
+                try {
+                    return reader.readEntity();
+                } catch (Exception e) {
+                    LoggerFactory.getLogger(AdminResourceImpl.class).error("Error reading data from import ZIP file.", e);
+                    return null;
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                zip.close();
+            }
+        };
+        this.storage.importData(stream);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#exportData()
+     */
+    @Override
+    public Response exportData() {
+        StreamingOutput stream = new StreamingOutput() {
+            @Override
+            public void write(OutputStream os) throws IOException, WebApplicationException {
+                try {
+                    ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
+                    EntityWriter writer = new EntityWriter(zip);
+                    AtomicInteger errorCounter = new AtomicInteger(0);
+                    storage.exportData(entity -> {
+                        try {
+                            writer.writeEntity(entity);
+                        } catch (Exception e) {
+                            // TODO do something interesting with this
+                            e.printStackTrace();
+                            errorCounter.incrementAndGet();
+                        }
+                        return null;
+                    });
+
+                    // TODO if the errorCounter > 0, then what?
+
+                    zip.flush();
+                    zip.close();
+                } catch (IOException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
+        };
+
+        return Response.ok(stream).type("application/zip").build();
     }
 
 }

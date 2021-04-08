@@ -3,9 +3,9 @@
 [id="registry-web-console"]
 = Manage content using {registry} web console
 
-You can use the {registry} web console to browse and search the artifacts stored in the registry, and to upload new artifacts and artifact versions. You can search for artifacts by label, name, and description. You can also view an artifact’s content, view all of its available versions, or download an artifact file locally.
+You can use the {registry} web console to browse and search the schema and API artifacts and groups stored in the registry, and to upload new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact’s content or its available versions, or download an artifact file locally.
 
-You can also use the {registry} web console to configure optional rules for registry content, both globally and for each artifact. These optional rules for content validation and compatibility are applied when new artifacts or artifact versions are uploaded to the registry. For more details, see {registry-reference}.
+You can also use the web console to configure optional rules for registry content, both globally and for each schema and API artifact. These optional rules for content validation and compatibility are applied when new schema and API artifacts or versions are uploaded to the registry. For more details, see {registry-reference}.
 
 .{registry} web console
 image::images/getting-started/registry-web-console.png[{registry} web console]

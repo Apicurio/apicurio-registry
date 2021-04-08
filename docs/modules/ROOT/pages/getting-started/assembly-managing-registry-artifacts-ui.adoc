@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Managing {registry} content using the web console
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-This chapter explains how to manage artifacts stored in the registry using the {registry} web console. This includes uploading and browsing registry content, and configuring optional rules:
+This chapter explains how to manage schema and API artifacts stored in the registry using the {registry} web console. This includes uploading and browsing registry content, and configuring optional rules:
 
 * xref:configuring-registry-ui[]
 * xref:adding-artifacts-using-console[]

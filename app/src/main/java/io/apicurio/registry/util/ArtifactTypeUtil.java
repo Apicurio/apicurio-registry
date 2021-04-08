@@ -26,9 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.compatibility.ProtobufFile;
+import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -139,12 +138,6 @@ public final class ArtifactTypeUtil {
             return ArtifactType.PROTOBUF;
         } catch (Exception e) {
             // Doesn't seem to be protobuf
-        }
-        try {
-            Serde.Schema.parseFrom(content.bytes());
-            return ArtifactType.PROTOBUF_FD;
-        } catch (Exception e) {
-            // Doesn't seem to be protobuf_fd
         }
         return null;
     }

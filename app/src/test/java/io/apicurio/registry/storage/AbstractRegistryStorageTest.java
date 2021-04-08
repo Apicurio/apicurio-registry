@@ -105,8 +105,11 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @Test
     public void testGetArtifactIds() throws Exception {
+
+        int size = storage().getArtifactIds(null).size();
+
         String artifactIdPrefix = "testGetArtifactIds-";
-        for (int idx = 1; idx < 10; idx++) {
+        for (int idx = 1; idx <= 10; idx++) {
             String artifactId = artifactIdPrefix + idx;
             ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
             ArtifactMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content).toCompletableFuture().get();
@@ -115,9 +118,9 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             Assertions.assertEquals(artifactId, dto.getId());
         }
 
-        Set<String> ids = storage().getArtifactIds(10);
-        Assertions.assertNotNull(ids);
-        Assertions.assertEquals(10, ids.size());
+        int newsize = storage().getArtifactIds(null).size();
+        int newids = newsize - size;
+        Assertions.assertEquals(10, newids);
     }
 
     @Test

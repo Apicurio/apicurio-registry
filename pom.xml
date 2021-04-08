@@ -99,11 +99,13 @@
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>schema-compatibility/json</module>
+        <module>schema-compatibility/protobuf</module>
         <module>utils/tests</module>
         <module>serdes/serde-common</module>
         <module>serdes/avro-serde</module>
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
+        <module>storage</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
@@ -120,7 +122,6 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <docker.tag.name>latest-release</docker.tag.name>
         <tar.long.file.mode>gnu</tar.long.file.mode>
         
         <!-- UI Build Tools -->
@@ -135,9 +136,9 @@
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.50</json-schema-validator.version>
+        <json-schema-validator.version>1.0.51</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.15.6</protobuf.version>
+        <protobuf.version>3.15.7</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
@@ -145,7 +146,7 @@
         <picocli.version>4.6.1</picocli.version>
 
         <!-- gRPC -->
-        <grpc.version>1.36.0</grpc.version>
+        <grpc.version>1.36.1</grpc.version>
 
         <!-- Confluent API / client -->
         <confluent.version>6.0.1</confluent.version>
@@ -154,7 +155,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.9</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.10</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>16.2</graphql.version>
@@ -166,10 +167,10 @@
         <jackson-dataformat-yaml.version>2.12.2</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.18</lombok.version>
+        <lombok.version>1.18.20</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.18.0</jdbi.version>
+        <jdbi.version>3.18.1</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <keycloak.version>11.0.3</keycloak.version>
@@ -204,10 +205,10 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.2</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.11.3</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.41</version.puppycrawl>
+        <version.puppycrawl>8.41.1</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
@@ -249,6 +250,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

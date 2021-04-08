@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.auth;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -30,13 +39,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Fabian Martinez
@@ -58,8 +60,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     String developerClientId = "registry-api-dev";
     String readOnlyClientId = "registry-api-readonly";
 
-    String clientSecret = "test1";
-
     final String groupId = "authTestGroupId";
 
     private RegistryClient createClient(Auth auth) {
@@ -71,7 +71,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        System.out.println("Auth is " + authEnabled);
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
         return this.createClient(auth);
     }

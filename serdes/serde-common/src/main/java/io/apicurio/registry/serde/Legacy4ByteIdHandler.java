@@ -37,7 +37,6 @@ public class Legacy4ByteIdHandler implements IdHandler {
     public void writeId(ArtifactReference reference, OutputStream out) throws IOException {
         long id;
         if (idOption == IdOption.contentId) {
-            //TODO leave this exception or fallback to other options? if the latter it's recommended to remove a similar exception from DefaultSchemaResolver
             if (reference.getContentId() == null) {
                 throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }
@@ -55,7 +54,6 @@ public class Legacy4ByteIdHandler implements IdHandler {
     public void writeId(ArtifactReference reference, ByteBuffer buffer) {
         long id;
         if (idOption == IdOption.contentId) {
-            //TODO leave this exception or fallback to other options? if the latter it's recommended to remove a similar exception from DefaultSchemaResolver
             if (reference.getContentId() == null) {
                 throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }

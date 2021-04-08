@@ -24,7 +24,6 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.BaseIT;
 import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.serdes.proto.MsgTypes;
 import io.apicurio.tests.serdes.KafkaClients;
 import io.apicurio.tests.utils.subUtils.ArtifactUtils;
 import org.apache.avro.Schema;
@@ -200,30 +199,6 @@ public class BasicApicurioSerDesIT extends BaseIT {
             b.addImport(toSchemaProto(d));
         }
         return b.build();
-    }
-
-    @Test
-    void testProtobufSerDes() throws InterruptedException, ExecutionException, TimeoutException {
-        Serde.Schema protobufSchema = toSchemaProto(MsgTypes.Msg.newBuilder().build().getDescriptorForType().getFile());
-        String artifactId = TestUtils.generateArtifactId();
-
-        String subjectName = TestUtils.generateSubject();
-        kafkaCluster.createTopic(artifactId, 1, 1);
-        LOGGER.debug("++++++++++++++++++ Created topic: {}", artifactId);
-
-        ArtifactMetaData artifact = ArtifactUtils.createArtifact(registryClient, ArtifactType.PROTOBUF_FD,
-                                                                 artifactId, IoUtil.toStream(protobufSchema.toByteArray()));
-        LOGGER.debug("++++++++++++++++++ Artifact created: {}", artifact.getGlobalId());
-
-        TestUtils.waitFor(
-            "Artifact not registered",
-            Constants.POLL_INTERVAL,
-            Constants.TIMEOUT_GLOBAL,
-            () -> registryClient.getArtifactMetaDataByGlobalId(artifact.getGlobalId()) != null
-        );
-
-        KafkaClients.produceProtobufMessages(artifactId, subjectName, 100).get(5, TimeUnit.SECONDS);
-        KafkaClients.consumeProtobufMessages(artifactId, 100).get(5, TimeUnit.SECONDS);
     }
 
     @BeforeAll

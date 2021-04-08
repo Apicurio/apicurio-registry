@@ -5,43 +5,51 @@
 
 = Configure Protobuf SerDe with {registry}
 
-{registry} provides Kafka client serializer and deserializer classes for Google Protobuf to make using Protobuf as easy as possible:
+[role="_abstract"]
+{registry} provides the following Kafka client serializer and deserializer classes for Google Protobuf:
 
-* `io.apicurio.registry.utils.serde.ProtobufKafkaSerializer`
-* `io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer`
 
 .Configure the Protobuf serializer
 
-You can configure the Protobuf serializer class in the following ways:
+You can configure the Protobuf serializer class as follows:
 
-* {registry} location as a URL
-* Artifact ID strategy 
-* Global ID strategy 
-* Global ID location
-* Global ID handler
+* {registry} URL
+* Artifact resolver strategy   
+* ID location
+* ID encoding
+* Schema validation
+
+For details on these configuration options, see the following sections: 
+
+* xref:registry-serdes-concepts-constants-registry[]
+* xref:registry-serdes-types-avro-registry[]
 
 .Configure the Protobuf deserializer
 
-You must configure the Protobuf deserializer class to match the configuration settings of the serializer.  As a result, you can configure the Protobuf deserializer class in the following ways:
+You must configure the Protobuf deserializer class to match the following configuration settings in the serializer:
 
-* {registry} location as a URL
-* Global ID handler
+* {registry} URL
+* ID encoding
 
-See the serializer section for these configuration options - the property names and values are the same.
+The configuration property names and values are the same as for the serializer.
 
 [NOTE]
 ====
-The following options are not needed when configuring the deserializer:
+The following options are not required when configuring the deserializer:
 
-* Artifact ID strategy
-* Global ID strategy
-* Global ID location
+* Artifact resolver strategy  
+* ID location
 ====
 
-The reason these options are not necessary is that the deserializer class can figure this information out from
-the message itself. In the case of the two strategies, they are not needed because the serializer is responsible for sending the global ID of the schema as part of the message.  
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message. 
 
-The location of that global ID is determined (by the deserializer) by simply checking for the magic byte at the start of the message payload. If that byte is found, the global ID is read from the message payload (using the configured handler). If the magic byte is not found, the global ID is read from the message headers.
+The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
 
 NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation,
-but rather to a `DynamicMessage` instance (because there is no appropriate API to do otherwise).
+but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
+
+[role="_additional-resources"]
+.Additional resources
+* For example applications, see the link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples] 

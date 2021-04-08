@@ -20,6 +20,7 @@ package io.apicurio.registry.storage;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
@@ -27,14 +28,16 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.impexp.Entity;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -553,4 +556,20 @@ public interface RegistryStorage {
      * @param groupId (optional)
      */
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Called to export all data in the registry.  Caller provides a handle to handle the data/entities.  This
+     * should be used to stream the data from the storage to some output source (e.g. a HTTP response).  It is
+     * important that the full dataset is *not* kept in memory.
+     * @param handler
+     * @throws RegistryStorageException
+     */
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException;
+
+    /**
+     * Called to import previously exported data into the registry.
+     * @param entities
+     * @throws RegistryStorageException
+     */
+    public void importData(EntityInputStream entities) throws RegistryStorageException;
 }

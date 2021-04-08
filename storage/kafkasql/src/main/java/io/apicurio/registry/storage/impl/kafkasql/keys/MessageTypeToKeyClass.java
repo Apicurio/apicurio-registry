@@ -56,6 +56,12 @@ public class MessageTypeToKeyClass {
                 case ArtifactVersion:
                     index.put(type, ArtifactVersionKey.class);
                     break;
+                case GlobalId:
+                    index.put(type, GlobalIdKey.class);
+                    break;
+                case ContentId:
+                    index.put(type, ContentIdKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

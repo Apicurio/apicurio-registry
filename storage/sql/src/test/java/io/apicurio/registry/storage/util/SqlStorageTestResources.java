@@ -21,7 +21,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 /**
  * @author Fabian Martinez
  */
-@QuarkusTestResource(value = PostgresqlTestcontainerResouce.class)
+@QuarkusTestResource(value = PostgreSqlTestContainerResource.class)
 public class SqlStorageTestResources {
 
 }

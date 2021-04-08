@@ -407,7 +407,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
-        registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+        TestUtils.retry(() -> registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
 
         registryClient.listArtifactVersions(groupId, artifactId, 0, 10);
 
@@ -433,7 +433,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
-        registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+        TestUtils.retry(() -> registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
 
         registryClient.listArtifactVersions(groupId, artifactId, 0, 100);
 

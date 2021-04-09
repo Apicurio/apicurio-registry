@@ -2,9 +2,10 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-sql-storage"]
-= Installing {registry} with SQL storage
+= Installing {registry} with SQL database storage
 
-This section explains how to install and run {registry} with Java Persistence API storage from a container image. This storage option is suitable for production environments.
+[role="_abstract"]
+This section explains how to install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
 
 .Prerequisites
 
@@ -50,7 +51,8 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 {"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
 ----
 
+[role="_additional-resources"]
 .Additional resources
 * For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].
 * For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].
-* For a demonstration based on Kafka Streams storage, see link:https://github.com/Apicurio/apicurio-registry-demo[].

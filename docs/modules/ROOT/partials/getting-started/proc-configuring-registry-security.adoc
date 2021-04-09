@@ -67,7 +67,7 @@ This section explains how to configure authentication and authorization for {reg
 
 .Additional resources
 ifdef::apicurio-registry[]
-* For details on how to use {keycloak} for authentication and authorization, see the link:https://www.keycloak.org/getting-started[Keycloak documentation]. 
+* For details on how to use {keycloak} for authentication and authorization, see the link:https://www.keycloak.org/documentation[Keycloak documentation]. 
 endif::[]
 ifdef::rh-service-registry[]
 * For details on how to use {keycloak} for authentication and authorization, see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[Red Hat SSO documentation].

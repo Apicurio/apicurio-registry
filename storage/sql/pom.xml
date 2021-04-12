@@ -55,11 +55,6 @@
             <version>${test-containers.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-admin-client</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     
     <build>

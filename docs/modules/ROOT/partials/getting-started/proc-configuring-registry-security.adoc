@@ -5,7 +5,7 @@
 = Configuring {registry} authentication and authorization
 
 [role="_abstract"]
-This section explains how to configure authentication and authorization options for {registry} using {keycloak} . 
+This section explains how to configure authentication and authorization options for {registry} using {keycloak}. 
 
 You can enable authentication for the {registry} web console and core REST API using {keycloak} based on OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using Open ID Connect so that you only require one set of credentials.
 
@@ -82,7 +82,7 @@ When authentication is enabled, {registry} provides role-based authorization for
 |Access to read and search operations only. This role cannot configure any rules. 
 |===
 
-* Set the following to `true` to enable owner-only authorization of updates to schema and API artifacts in {registry}:
+* Set the following to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
 
 .Configuration for owner-only authorization
 [%header,cols="2,2,1,1"]

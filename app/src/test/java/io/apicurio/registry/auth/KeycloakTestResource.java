@@ -15,9 +15,16 @@
  */
 package io.apicurio.registry.auth;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
@@ -31,6 +38,8 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
     private static final Logger log = LoggerFactory.getLogger(KeycloakTestResource.class);
 
     private KeycloakContainer container;
+    String testUsername = "sr-test-user";
+    String testPassword = "sr-test-password";
 
     @SuppressWarnings("resource")
     @Override
@@ -45,8 +54,55 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         props.put("registry.keycloak.url", container.getAuthServerUrl());
         props.put("registry.keycloak.realm", "registry");
         props.put("registry.auth.enabled", "true");
+        props.put("quarkus.oidc.client-secret", "test1");
         props.put("registry.auth.owner-only-authorization", "true");
+
+        createTestUser();
+
         return props;
+    }
+
+    private void createTestUser() {
+        Keycloak keycloakAdminClient = KeycloakBuilder.builder()
+                .serverUrl(container.getAuthServerUrl())
+                .realm("master")
+                .clientId("admin-cli")
+                .username(container.getAdminUsername())
+                .password(container.getAdminPassword())
+                .build();
+
+        final UserRepresentation userRepresentation = new UserRepresentation();
+        userRepresentation.setUsername(testUsername);
+        userRepresentation.setEnabled(true);
+        userRepresentation.setEmailVerified(true);
+
+        final CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
+        credentialRepresentation.setType(CredentialRepresentation.PASSWORD);
+        credentialRepresentation.setValue(testPassword);
+        credentialRepresentation.setTemporary(false);
+
+        userRepresentation.setCredentials(Collections.singletonList(credentialRepresentation));
+
+        keycloakAdminClient.realm("registry")
+                .users()
+                .create(userRepresentation);
+
+        final RoleRepresentation adminRoleRepresentation = keycloakAdminClient.realm("registry")
+                .roles()
+                .get("sr-admin")
+                .toRepresentation();
+
+        final UserRepresentation user = keycloakAdminClient.realm("registry")
+                .users()
+                .search(testUsername)
+                .get(0);
+
+        keycloakAdminClient.realm("registry")
+                .users()
+                .get(user.getId())
+                .roles()
+                .realmLevel()
+                .add(List.of(adminRoleRepresentation));
     }
 
     @Override

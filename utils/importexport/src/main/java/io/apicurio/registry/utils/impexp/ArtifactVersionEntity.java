@@ -14,25 +14,41 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.export;
+package io.apicurio.registry.utils.impexp;
 
-import io.apicurio.registry.types.RuleType;
+import java.util.List;
+import java.util.Map;
+
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactRuleEntity extends Entity {
+public class ArtifactVersionEntity extends Entity {
 
+    public long globalId;
     public String groupId;
     public String artifactId;
-    public RuleType type;
-    public String configuration;
+    public String version;
+    public int versionId;
+    public ArtifactType artifactType;
+    public ArtifactState state;
+    public String name;
+    public String description;
+    public String createdBy;
+    public long createdOn;
+    public List<String> labels;
+    public Map<String, String> properties;
+    public boolean isLatest;
+    public long contentId;
 
     /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {
-        return EntityType.ArtifactRule;
+        return EntityType.ArtifactVersion;
     }
+
 }

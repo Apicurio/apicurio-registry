@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2.impexp;
+package io.apicurio.registry.utils.impexp;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;
@@ -23,14 +23,6 @@ import java.util.zip.ZipOutputStream;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.storage.impexp.ContentEntity;
-import io.apicurio.registry.storage.impexp.Entity;
-import io.apicurio.registry.storage.impexp.EntityType;
-import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
-import io.apicurio.registry.storage.impexp.GroupEntity;
 
 /**
  * @author eric.wittmann@gmail.com

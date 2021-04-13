@@ -24,11 +24,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.storage.impexp.ContentEntity;
-import io.apicurio.registry.storage.impexp.Entity;
-import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityReader;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 
 /**
  * @author eric.wittmann@gmail.com

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.export;
+package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

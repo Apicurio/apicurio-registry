@@ -14,13 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum EntityType {
+public class ContentEntity extends Entity {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule
+    public long contentId;
+    public String canonicalHash;
+    public String contentHash;
+    @JsonIgnore
+    public byte[] contentBytes;
+
+    /**
+     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.Content;
+    }
 
 }

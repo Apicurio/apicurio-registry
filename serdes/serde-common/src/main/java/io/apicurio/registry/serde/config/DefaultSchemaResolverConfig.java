@@ -36,6 +36,8 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
                 .define(AUTH_REALM, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_CLIENT_ID, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_CLIENT_SECRET, Type.STRING, null, Importance.HIGH, "TODO docs")
+                .define(AUTH_USERNAME, Type.STRING, null, Importance.HIGH, "TODO docs")
+                .define(AUTH_PASSWORD, Type.STRING, null, Importance.HIGH, "TODO docs")
 
                 .define(ARTIFACT_RESOLVER_STRATEGY, Type.CLASS, ARTIFACT_RESOLVER_STRATEGY_DEFAULT, Importance.HIGH, "TODO docs")
 
@@ -74,6 +76,14 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
     public String getAuthClientSecret() {
         return this.getString(AUTH_CLIENT_ID);
+    }
+
+    public String getAuthUsername() {
+        return this.getString(AUTH_USERNAME);
+    }
+
+    public String getAuthPassword() {
+        return this.getString(AUTH_PASSWORD);
     }
 
     public Object getArtifactResolverStrategy() {

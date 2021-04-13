@@ -2,7 +2,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="using-the-registry-client"]
-= Managing {registry} content using the Java client
+= Managing {registry} content using a Java client
 
 This chapter explains how to use the {registry} Java client:
 

@@ -64,7 +64,7 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         }
     }
 
-    protected void testRegister(RegisterRegistryMojo mojo) throws IOException, MojoFailureException, MojoExecutionException {
+    protected void testRegister(RegisterRegistryMojo mojo, String groupId) throws IOException, MojoFailureException, MojoExecutionException {
         String keySubject = "TestSubject-key";
         String valueSubject = "TestSubject-value";
         Schema keySchema = Schema.create(Schema.Type.STRING);
@@ -80,14 +80,14 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         List<RegisterArtifact> artifacts = new ArrayList<>();
 
         RegisterArtifact keySchemaArtifact = new RegisterArtifact();
-        keySchemaArtifact.setGroupId("RegisterRegistryMojoTest");
+        keySchemaArtifact.setGroupId(groupId);
         keySchemaArtifact.setArtifactId(keySubject);
         keySchemaArtifact.setType(ArtifactType.AVRO);
         keySchemaArtifact.setFile(keySchemaFile);
         artifacts.add(keySchemaArtifact);
 
         RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
-        valueSchemaArtifact.setGroupId("RegisterRegistryMojoTest");
+        valueSchemaArtifact.setGroupId(groupId);
         valueSchemaArtifact.setArtifactId(valueSubject);
         valueSchemaArtifact.setType(ArtifactType.AVRO);
         valueSchemaArtifact.setFile(valueSchemaFile);

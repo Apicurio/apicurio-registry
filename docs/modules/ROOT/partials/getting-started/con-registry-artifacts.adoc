@@ -3,6 +3,7 @@
 [id="registry-artifacts"]
 = Schema and API artifacts and groups in {registry} 
 
+[role="_abstract"]
 The items stored in {registry}, such as event schemas and API designs, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
 
 [source,json]
@@ -40,13 +41,18 @@ You can create schema and API artifacts and groups using the {registry} web cons
 
 [source,bash]
 ----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/apis/registry/v2/groups/my-group/artifacts
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \ 
+  -H "X-Registry-ArtifactId: share-price" \ 
+  --data '{"type":"record","name":"price","namespace":"com.example", \ 
+   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \   
+  https://my-cluster-my-registry-my-project.example.com/apis/registry/v2/groups/my-group/artifacts
 ----
 
 This example adds an Avro schema with an artifact ID of `share-price` in an artifact group named `my-group`.
 
-NOTE: Schema and API groups are optional when using the {registry} web console. However, when using the v2 REST API or Maven plug-in, if you do not wish to create a unique group, you must specify the `default` group in the API path.  
+NOTE: Schema and API groups are optional when using the {registry} web console. When using the v2 REST API or Maven plug-in, you must specify the `default` group in the API path if you do not create a unique group.   
 
+[role="_additional-resources"]
 .Additional resources
 
 * For more details on schemas and groups, see the link:https://github.com/cloudevents/spec/blob/master/schemaregistry/schemaregistry.md[Cloud Native Computing Foundation (CNCF) Schema Registry API Version 0.1].

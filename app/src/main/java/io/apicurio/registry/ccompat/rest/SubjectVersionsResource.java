@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
@@ -115,10 +117,11 @@ public interface SubjectVersionsResource {
      *         Error code 50003 – Error while forwarding the request to the primary
      */
     @POST
+    @Authorized(AuthorizedStyle.ArtifactOnly)
     void register(
-            @Suspended AsyncResponse response,
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request) throws Exception;
+            @NotNull SchemaInfo request,
+            @Suspended AsyncResponse response) throws Exception;
 
 
     // ----- Path: /subjects/{subject}/versions/{version} -----
@@ -186,6 +189,7 @@ public interface SubjectVersionsResource {
      */
     @DELETE
     @Path("/{version}")
+    @Authorized(AuthorizedStyle.ArtifactOnly)
     int deleteSchemaVersion(
             @PathParam("subject") String subject,
             @PathParam("version") String version) throws Exception;

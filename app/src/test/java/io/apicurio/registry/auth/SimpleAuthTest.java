@@ -32,7 +32,9 @@ import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -106,7 +108,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-
         Auth auth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
@@ -133,11 +134,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-
         RegistryClient client = createClient(auth);
-
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
@@ -153,5 +151,40 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }
+    }
+
+    @Test
+    public void testOwnerOnlyAuthorization() throws Exception {
+        Auth authDev = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
+        RegistryClient clientDev = createClient(authDev);
+
+        Auth authAdmin = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        RegistryClient clientAdmin = createClient(authAdmin);
+
+        // Admin user will create an artifact
+        String artifactId = TestUtils.generateArtifactId();
+        clientAdmin.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        EditableMetaData updatedMetaData = new EditableMetaData();
+        updatedMetaData.setName("Updated Name");
+        // Dev user cannot edit the same artifact because Dev user is not the owner
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
+        });
+
+        // But the admin user CAN make the change.
+        clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
+
+
+
+        // Now the Dev user will create an artifact
+        String artifactId2 = TestUtils.generateArtifactId();
+        clientDev.createArtifact(groupId, artifactId2, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        // And the Admin user will modify it (allowed because it's the Admin user)
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.createArtifactRule(groupId, artifactId2, rule );
     }
 }

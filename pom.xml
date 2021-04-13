@@ -874,6 +874,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/*SimpleAuthTest.java</exclude>
+                                <exclude>**/*MojoAuthTest.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

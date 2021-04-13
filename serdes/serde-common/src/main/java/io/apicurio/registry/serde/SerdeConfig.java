@@ -118,7 +118,7 @@ public class SerdeConfig {
     /**
      * The Secret of the Auth Service.
      */
-    public static final String AUTH_CLIENT_SECRET = "apicurio.auth.clinet.secret";
+    public static final String AUTH_CLIENT_SECRET = "apicurio.auth.client.secret";
 
     /**
      * Fully qualified Java classname of a class that implements {@link IdHandler} and is responsible

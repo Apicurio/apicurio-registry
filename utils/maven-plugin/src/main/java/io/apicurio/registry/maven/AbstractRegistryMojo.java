@@ -70,10 +70,11 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
             if (authServerUrl != null && realm != null && clientId != null && clientSecret != null) {
                 Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-            }
-            else if (username != null && password != null) {
+            } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+            } else {
+                client = RegistryClientFactory.create(registryUrl);
             }
         }
         return client;

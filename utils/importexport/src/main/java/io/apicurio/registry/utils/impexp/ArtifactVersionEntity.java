@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
 
 import java.util.List;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class ArtifactVersionEntity extends Entity {
     public long contentId;
 
     /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

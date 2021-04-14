@@ -14,13 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
+
+import java.util.Map;
+
+import io.apicurio.registry.types.ArtifactType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum EntityType {
+public class GroupEntity extends Entity {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule
+    public String groupId;
+    public String description;
+    public ArtifactType artifactsType;
+    public String createdBy;
+    public long createdOn;
+    public String modifiedBy;
+    public long modifiedOn;
+    public Map<String, String> properties;
+
+    /**
+     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.Group;
+    }
 
 }

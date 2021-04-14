@@ -14,27 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
 
-import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ManifestEntity extends Entity {
+public abstract class Entity {
+    
+    @JsonIgnore
+    public abstract EntityType getEntityType();
 
-    public String systemVersion;
-    public String systemName;
-    public String systemDescription;
-    public String exportVersion = "1.0";
-    public Date exportedOn = new Date();
-    public String exportedBy;
-
-    /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
-     */
-    @Override
-    public EntityType getEntityType() {
-        return EntityType.Manifest;
-    }
 }

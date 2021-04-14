@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
 
 import io.apicurio.registry.types.RuleType;
 
@@ -29,7 +29,7 @@ public class ArtifactRuleEntity extends Entity {
     public String configuration;
 
     /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

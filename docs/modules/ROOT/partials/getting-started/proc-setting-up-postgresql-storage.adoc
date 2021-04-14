@@ -3,10 +3,10 @@
 
 [id="setting-up-postgresql-storage"]
 
-
 = Configuring {registry} with PostgreSQL database storage on OpenShift
 
-This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
+[role="_abstract"]
+This section explains how to configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
@@ -87,6 +87,7 @@ spec:
 http://example-apicurioregistry.my-project.my-domain-name.com/   
 ----
 
+[role="_additional-resources"]
 .Additional resources
 
  * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]

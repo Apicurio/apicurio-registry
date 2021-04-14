@@ -2,10 +2,12 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="setting-up-kafka-streams-storage"]
+= Configuring {registry} with Kafka storage on OpenShift
 
-= Configuring {registry} with {kafka-streams} storage on OpenShift
+[role="_abstract"]
+This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka storage with in-memory H2 database. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift. 
 
-This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift. You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
+You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
@@ -47,14 +49,6 @@ status:
   ...
 ----
 
-. Create a Kafka topic to store the {registry} artifacts:
-+
-.. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
-.. Change the default topic name from `my-topic` to the required `storage-topic`.
-
-. Create a Kafka topic to store the {registry} global IDs:
-.. Under *Provided APIs* > *Kafka Topic*, click *Create topic*.
-.. Change the default topic name from `my-topic` to the required `global-id-topic`.
 ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
@@ -71,7 +65,7 @@ metadata:
   name: example-apicurioregistry
 spec:
   configuration:
-    persistence: "streams"
+    persistence: "kafkasql"
     streams:
       bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9092"
 ----
@@ -85,6 +79,7 @@ spec:
 http://example-apicurioregistry.my-project.my-domain-name.com/
 ----
 
+[role="_additional-resources"]
 .Additional resources
 
 ifdef::apicurio-registry[]

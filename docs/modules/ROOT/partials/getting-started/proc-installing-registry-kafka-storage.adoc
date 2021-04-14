@@ -10,7 +10,8 @@ ifdef::rh-service-registry[]
 = Installing {registry} with Apache Kafka storage using Docker
 endif::[]
 
-This topic explains how to install and run {registry} with Kafka storage from a container image. This storage option is suitable for production environments. 
+[role="_abstract"]
+This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka storage with in-memory H2 database. This storage option is suitable for production environments. 
 
 .Prerequisites
 
@@ -35,7 +36,7 @@ ifdef::apicurio-registry[]
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-kafka 
+$ docker pull apicurio/apicurio-registry-kafkasql 
 ----
 . Run the container image and specify the following environment variable for your Kafka system: 
 +
@@ -45,7 +46,7 @@ For example:
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafka:latest
+$ docker run -it -p 8080:8080 -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry-kafkasql:latest
 ----
 endif::[]
 
@@ -87,7 +88,8 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 {"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
 ----
 
+[role="_additional-resources"]
 .Additional resources
 * For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-* For a demonstration based on Kafka Streams storage, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].
 * For more details on Apache Kafka, see https://kafka.apache.org/documentation/.

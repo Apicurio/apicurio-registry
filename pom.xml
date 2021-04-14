@@ -163,14 +163,14 @@
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.12.2</jackson-dataformat-yaml.version>
+        <jackson-datatype-json-org.version>2.12.3</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.12.3</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.20</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.18.1</jdbi.version>
+        <jdbi.version>3.19.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <keycloak.version>11.0.3</keycloak.version>
@@ -217,6 +217,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.15.2</test-containers.version>
         <keycloak.testcontainers.version>1.6.0</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
     </properties>
 
     <dependencyManagement>
@@ -586,6 +587,11 @@
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-admin-client</artifactId>
+                <version>${keycloak-admin-client.version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>
@@ -874,6 +880,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/*SimpleAuthTest.java</exclude>
+                                <exclude>**/*MojoAuthTest.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

@@ -2,16 +2,20 @@
 
 [id="registry-demo"]
 = {registry} demonstration examples
-{registry} provides an open source demonstration of Apache Avro serialization/deserialization with storage in Apache Kafka Streams. This example shows how the serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
+
+[role="_abstract"]
+{registry} provides an open source demonstration of Apache Avro serialization/deserialization (SerDe) with storage in Apache Kafka. This example shows how the {registry} serializer/deserializer obtains the Avro schema from the registry at runtime and uses it to serialize and deserialize Kafka messages. For more details, see link:https://github.com/Apicurio/apicurio-registry-demo[].
 
 {registry} also provides the following example applications: 
 
-* Simple Avro example
-* Simple JSON Schema example
-* Confluent Serdes integration
-* Avro bean example
-* Custom ID strategy example
-* Simple Avro Maven example
-* REST client example
+* Simple Avro
+* Simple JSON Schema
+* Confluent SerDes integration
+* Avro bean 
+* Custom ID strategy
+* Simple Avro Maven 
+* REST client 
+* Mix Avro schemas 
+* Cloud Events 
 
 For more details, see link:https://github.com/Apicurio/apicurio-registry-examples[]

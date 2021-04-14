@@ -41,6 +41,6 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
 
     @Test
     public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
-        super.testRegister(mojo);
+        super.testRegister(mojo, "RegisterRegistryMojoTest");
     }
 }

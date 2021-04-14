@@ -2,6 +2,8 @@
 
 [id="registry-storage"]
 = {registry} storage options
+
+[role="_abstract"]
 {registry} provides the following underlying storage implementations for schema and API artifacts: 
 
 ifdef::apicurio-registry[]
@@ -10,7 +12,7 @@ ifdef::apicurio-registry[]
 * PostgreSQL 12 database 
 * Apache Kafka 2.6
 
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka Streams storage option is recommended for production environments.
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka storage option is recommended for production environments.
 
 endif::[]
 
@@ -21,7 +23,7 @@ ifdef::rh-service-registry[]
 
 endif::[]
 
-
+[role="_additional-resources"]
 .Additional resources
 ifdef::apicurio-registry[]
 * {installing-the-registry-docker}

@@ -47,13 +47,13 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
-            <version>1.3.2.Final</version>
+            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
         
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
-            <version>1.3.2.Final</version>
+            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
             <exclusions>
             
                 <exclusion>
@@ -81,7 +81,7 @@
             <plugin>
                 <groupId>org.jboss.jandex</groupId>
                 <artifactId>jandex-maven-plugin</artifactId>
-                <version>1.0.8</version>
+                <version>1.0.8</version><!--$NO-MVN-MAN-VER$-->
                 <executions>
                   <execution>
                     <id>make-index</id>

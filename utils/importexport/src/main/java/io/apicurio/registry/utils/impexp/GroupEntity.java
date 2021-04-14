@@ -35,7 +35,7 @@ public class GroupEntity extends Entity {
     public Map<String, String> properties;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.storage.impexp.Entity#getEntityType()
+     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

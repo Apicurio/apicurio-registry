@@ -62,6 +62,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     String developerClientId = "registry-api-dev";
     String readOnlyClientId = "registry-api-readonly";
 
+    String testUsername = "sr-test-user";
+    String testPassword = "sr-test-password";
+
     final String groupId = "authTestGroupId";
 
     private RegistryClient createClient(Auth auth) {
@@ -136,6 +139,30 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     public void testAdminRole() throws Exception {
         Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
         RegistryClient client = createClient(auth);
+        String artifactId = TestUtils.generateArtifactId();
+        try {
+            client.listArtifactsInGroup(groupId);
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
+            Rule ruleConfig = new Rule();
+            ruleConfig.setType(RuleType.VALIDITY);
+            ruleConfig.setConfig(ValidityLevel.NONE.name());
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
+
+            client.createGlobalRule(ruleConfig);
+        } finally {
+            client.deleteArtifact(groupId, artifactId);
+        }
+    }
+
+    @Test
+    public void testAdminRoleBasicAuth() throws Exception {
+
+        Auth auth = new BasicAuth(testUsername, testPassword);
+
+        RegistryClient client = createClient(auth);
+
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);

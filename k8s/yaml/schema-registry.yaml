@@ -28,6 +28,10 @@ spec:
         - env:
             - name: REGISTRY_DATASOURCE_URL
               value: "jdbc:cloudspanner:/projects/es-s2-eval-d/instances/es-s2-eval-d-spanner/databases/apicurio"
+            - name: REGISTRY_UI_CONFIG_APIURL
+              value: REGISTRY_UI_CONFIG_APIURL
+            - name: REGISTRY_UI_CONFIG_UIURL
+              value: REGISTRY_UI_CONFIG_UIURL
           image: us.gcr.io/es-s2-eval-d/schema-registry:IMAGE_TAG
           imagePullPolicy: IfNotPresent
           name: schema-registry-sha256-1

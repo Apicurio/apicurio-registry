@@ -63,7 +63,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     @Parameter
     String password;
 
-    private RegistryClient client;
+    private static RegistryClient client;
 
     protected RegistryClient getClient() {
         if (client == null) {
@@ -81,7 +81,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected void setClient(RegistryClient client) {
-        this.client = client;
+        AbstractRegistryMojo.client = client;
     }
 
     @Override

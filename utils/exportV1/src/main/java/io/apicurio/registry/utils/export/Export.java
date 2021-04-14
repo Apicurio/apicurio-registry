@@ -19,15 +19,16 @@ package io.apicurio.registry.utils.export;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
@@ -49,9 +50,9 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
@@ -102,19 +103,15 @@ public class Export implements QuarkusApplication {
 
             ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
             EntityWriter writer = new EntityWriter(zip);
-            AtomicInteger errorCounter = new AtomicInteger(0);
 
-            Function<Entity, Void> exporter = entity -> {
-                try {
-                    writer.writeEntity(entity);
-                } catch (Exception e) {
-                    // TODO do something interesting with this
-                    e.printStackTrace();
-                    errorCounter.incrementAndGet();
-                }
-                return null;
-            };
-
+            // Add a basic Manifest to the export
+            ManifestEntity manifest = new ManifestEntity();
+            manifest.exportedBy = "export-utility-v1";
+            manifest.exportedOn = new Date();
+            manifest.systemDescription = "Unknown remote registry (export created using v1 export utility).";
+            manifest.systemName = "Remote Registry";
+            manifest.systemVersion = "n/a";
+            writer.writeEntity(manifest);
 
             AtomicInteger contentIdSeq = new AtomicInteger(1);
             Map<String, Long> contentIndex = new HashMap<>();
@@ -145,7 +142,11 @@ public class Export implements QuarkusApplication {
                         contentEntity.canonicalHash = canonicalContentHash;
                         contentEntity.contentBytes = contentBytes;
 
-                        exporter.apply(contentEntity);
+                        try {
+                            writer.writeEntity(contentEntity);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
 
                         return contentEntity.contentId;
                     });
@@ -167,7 +168,7 @@ public class Export implements QuarkusApplication {
                     versionEntity.version = String.valueOf(meta.getVersion());
                     versionEntity.versionId = meta.getVersion();
 
-                    exporter.apply(versionEntity);
+                    writer.writeEntity(versionEntity);
                 }
 
 
@@ -181,7 +182,7 @@ public class Export implements QuarkusApplication {
                     ruleEntity.groupId = null;
                     ruleEntity.type = ruleType;
 
-                    exporter.apply(ruleEntity);
+                    writer.writeEntity(ruleEntity);
                 }
 
             }
@@ -194,14 +195,11 @@ public class Export implements QuarkusApplication {
                 ruleEntity.configuration = rule.getConfig();
                 ruleEntity.ruleType = ruleType;
 
-                exporter.apply(ruleEntity);
+                writer.writeEntity(ruleEntity);
             }
-
-            // TODO if the errorCounter > 0, then what?
 
             zip.flush();
             zip.close();
-
         }
 
         return 0;

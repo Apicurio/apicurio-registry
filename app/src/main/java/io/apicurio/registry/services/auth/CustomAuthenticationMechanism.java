@@ -36,7 +36,6 @@ import org.keycloak.authorization.client.Configuration;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;

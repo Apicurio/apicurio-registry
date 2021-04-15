@@ -31,7 +31,6 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
@@ -52,11 +51,9 @@ import io.apicurio.registry.storage.RegistryStorage;
 @Logged
 public class InMemoryRegistryStorage extends AbstractSqlRegistryStorage {
 
-    private static final Logger log = LoggerFactory.getLogger(InMemoryRegistryStorage.class);
-
     @PostConstruct
     void onConstruct() {
-        log.info("Using In Memory (H2) SQL storage.");
+        LoggerFactory.getLogger(InMemoryRegistryStorage.class).info("Using In Memory (H2) SQL storage.");
     }
 
     /**

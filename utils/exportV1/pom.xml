@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<project
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>apicurio-registry-utils-exportV1</artifactId>
+    <packaging>jar</packaging>
+    <name>apicurio-registry-utils-exportV1</name>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-import-export</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-rest-client</artifactId>
+            <version>1.3.2.Final</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-common</artifactId>
+            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+        
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-app</artifactId>
+            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
+            <exclusions>
+            
+                <exclusion>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-resteasy-jackson</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-smallrye-openapi</artifactId>
+                </exclusion>
+            
+                <exclusion>
+                    <groupId>io.apicurio</groupId>
+                    <artifactId>apicurio-registry-ui</artifactId>
+                </exclusion>
+            
+            </exclusions>
+        </dependency>
+        
+    </dependencies>
+    
+    <build>
+
+        <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <version>1.0.8</version><!--$NO-MVN-MAN-VER$-->
+                <executions>
+                  <execution>
+                    <id>make-index</id>
+                    <goals>
+                      <goal>jandex</goal>
+                    </goals>
+                  </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+
+    </build>
+</project>

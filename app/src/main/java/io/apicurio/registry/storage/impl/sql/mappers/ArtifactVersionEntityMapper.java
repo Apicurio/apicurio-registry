@@ -22,10 +22,10 @@ import java.sql.SQLException;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 
 /**
  * @author eric.wittmann@gmail.com

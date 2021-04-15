@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.v2.impexp;
+package io.apicurio.registry.utils.impexp;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -23,33 +23,26 @@ import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.storage.impexp.ContentEntity;
-import io.apicurio.registry.storage.impexp.Entity;
-import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
-
 /**
  * @author eric.wittmann@gmail.com
  */
-class EntityReaderTest extends AbstractRegistryTestBase {
+class EntityReaderTest {
 
     /**
      * Test method for {@link io.apicurio.registry.rest.v2.impexp.EntityReader#readEntity()}.
      */
     @Test
     void testReadEntity() throws Exception {
-        try (InputStream data = resourceToInputStream("../export.zip")) {
+        try (InputStream data = resourceToInputStream("export.zip")) {
             ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
             EntityReader reader = new EntityReader(zip);
             Entity entity = null;
-            
+
             int contentCounter = 0;
             int versionCounter = 0;
             int globalRuleCounter = 0;
             int artyRuleCounter = 0;
-            
+
             while ( (entity = reader.readEntity()) != null ) {
                 if (entity instanceof ContentEntity) {
                     contentCounter++;
@@ -64,7 +57,7 @@ class EntityReaderTest extends AbstractRegistryTestBase {
                     globalRuleCounter++;
                 }
             }
-            
+
             Assertions.assertEquals(1003, contentCounter);
             Assertions.assertEquals(5, versionCounter);
             Assertions.assertEquals(1, artyRuleCounter);
@@ -72,4 +65,13 @@ class EntityReaderTest extends AbstractRegistryTestBase {
         }
     }
 
+    /**
+     * Loads a resource as an input stream.
+     * @param resourceName the resource name
+     */
+    protected final InputStream resourceToInputStream(String resourceName) {
+        InputStream stream = getClass().getResourceAsStream(resourceName);
+        Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+        return stream;
+    }
 }

@@ -5,10 +5,16 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
+
 class BasicSimulation extends Simulation {
 
+  val registryUrl = scala.util.Properties.envOrElse("REGISTRY_URL", "http://localhost:8080/apis/registry/v1")
+  val users = scala.util.Properties.envOrElse("TEST_USERS", "10").toInt
+  val ramp = scala.util.Properties.envOrElse("TEST_RAMP_TIME", "30").toInt
+  
+
   val httpProtocol = http
-    .baseUrl("http://localhost:8080/api") // Here is the root for all relative URLs
+    .baseUrl(registryUrl) // Here is the root for all relative URLs
     .acceptHeader("text/html,application/xhtml+xml,application/json,application/xml;q=0.9,*/*;q=0.8") // Here are the common headers
     .acceptEncodingHeader("gzip, deflate")
     .acceptLanguageHeader("en-US,en;q=0.5")
@@ -35,6 +41,6 @@ class BasicSimulation extends Simulation {
     )
 
   setUp(
-      scn.inject(rampUsers(1000) during (30 seconds))
+      scn.inject(rampUsers(users) during (ramp seconds))
   ).protocols(httpProtocol)
 }

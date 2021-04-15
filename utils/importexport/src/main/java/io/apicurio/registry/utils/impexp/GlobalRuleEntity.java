@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
 
-import java.io.Closeable;
-import java.io.IOException;
-
-import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface EntityInputStream extends Closeable {
+public class GlobalRuleEntity extends Entity {
+
+    public RuleType ruleType;
+    public String configuration;
 
     /**
-     * Get the next import entity from the stream of entities being imported.
+     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
      */
-    public Entity nextEntity() throws IOException;
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.GlobalRule;
+    }
 
 }

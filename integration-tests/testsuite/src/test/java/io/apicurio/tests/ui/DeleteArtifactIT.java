@@ -119,6 +119,14 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         assertEquals(2, registryClient.listArtifactsInGroup(null).getCount());
         page.goBackToArtifactsList();
 
+        TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
+            try {
+                return page.getArtifactsList().size() == 2;
+            } catch (Exception e) {
+                logger.error("", e);
+                return false;
+            }
+        });
         List<ArtifactListItem> webArtifacts = page.getArtifactsList();
         assertEquals(2, webArtifacts.size());
 

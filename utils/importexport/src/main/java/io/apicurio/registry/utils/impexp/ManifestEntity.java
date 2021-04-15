@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
 
-import io.apicurio.registry.types.RuleType;
+import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactRuleEntity extends Entity {
+public class ManifestEntity extends Entity {
 
-    public String groupId;
-    public String artifactId;
-    public RuleType type;
-    public String configuration;
+    public String systemVersion;
+    public String systemName;
+    public String systemDescription;
+    public String exportVersion = "1.0";
+    public Date exportedOn = new Date();
+    public String exportedBy;
 
     /**
-     * @see io.apicurio.registry.storage.impexp.Entity#getEntityType()
+     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {
-        return EntityType.ArtifactRule;
+        return EntityType.Manifest;
     }
 }

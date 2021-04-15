@@ -933,6 +933,66 @@
     },
     {
       "enabled": true,
+      "id": "Object: schemaDependencies 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "address": {"type": "string"},
+          "postal_code": {"type":  "number"}
+        },
+        "required": ["name"],
+        "dependencies": {
+          "address": {"properties": {"city": { "type": "string" }}}
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "address": {"type": "string"},
+          "postal_code": {"type":  "number"}
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: schemaDependencies 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "address": {"type": "string"},
+          "postal_code": {"type":  "number"}
+        },
+        "required": ["name"],
+        "dependencies": {
+          "address": {"properties": {"city": { "type": "string"}}},
+          "postal_code": {"required": ["address"]}
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "address": {"type": "string"},
+          "postal_code": {"type":  "number"}
+        },
+        "required": ["name"],
+        "dependencies": {
+          "address": {"properties": {"city": { "type": "string"}}}
+        }
+      }
+    },
+    {
+      "enabled": true,
       "id": "Array: items",
       "compatibility": "backward",
       "original": {

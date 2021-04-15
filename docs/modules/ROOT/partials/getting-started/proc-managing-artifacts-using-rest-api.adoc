@@ -9,7 +9,7 @@ Client applications can use Registry REST API commands to manage schema and API 
 
 This section shows a simple curl-based example of using the registry v2 core REST API to add and retrieve an Apache Avro schema artifact in the registry. 
 
-IMPORTANT: When adding artifacts using the v2 REST API, if you do not wish to specify a unique group ID, you must specify `../groups/default` in the API path. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+IMPORTANT: When adding artifacts using the v2 REST API, if you do not want to specify a unique group ID, specify `../groups/default` in the API path. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
 
 .Prerequisites
 

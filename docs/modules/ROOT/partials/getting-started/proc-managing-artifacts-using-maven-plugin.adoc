@@ -51,8 +51,8 @@ The most common use case for the Maven plug-in is registering artifacts during a
  </plugin>
 ----
 <1> Specify `register` as the execution goal to upload the schema artifact to the registry.
-<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
-<3> You must specify the {registry} artifact group ID.
+<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
 <4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
 
@@ -98,8 +98,8 @@ You can also use the Maven plug-in to download artifacts from {registry}. This i
 </plugin>
 ----
 <1> Specify `download` as the execution goal.
-<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
-<3> You must specify the {registry} artifact group ID.
+<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
 <4> You can download multiple artifacts to a specified directory using the artifact ID. 
 
 [discrete]
@@ -144,8 +144,8 @@ NOTE: Even if the artifact passes the test, no content is added to {registry}.
  </plugin>
 ----
 <1> Specify `test-update` as the execution goal to test the schema artifact.
-<2> You must specify the {registry} URL with the `../apis/registry/v2` endpoint.
-<3> You must specify the {registry} artifact group ID.
+<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<3> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
 <4> You can test multiple artifacts from specified directory using the artifact ID. 
 
 [role="_additional-resources"]

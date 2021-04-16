@@ -4,6 +4,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="configuring-the-registry"]
 = Configuring your {registry} deployment
 
+[role="_abstract"]
 This chapter explains various configuration options for {registry}, such as authentication settings, logging, and health checks on OpenShift.
 
 * xref:registry-security[]

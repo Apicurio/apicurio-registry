@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impexp;
+package io.apicurio.registry.utils.impexp;
+
+import io.apicurio.registry.types.RuleType;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum EntityType {
+public class ArtifactRuleEntity extends Entity {
 
-    Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule
+    public String groupId;
+    public String artifactId;
+    public RuleType type;
+    public String configuration;
 
+    /**
+     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     */
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.ArtifactRule;
+    }
 }

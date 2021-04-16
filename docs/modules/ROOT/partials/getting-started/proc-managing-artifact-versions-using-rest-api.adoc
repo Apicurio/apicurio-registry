@@ -1,0 +1,61 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="managing-artifact-versions-using-rest-api"]
+= Managing schema and API artifact versions using Registry REST API commands
+
+[role="_abstract"]
+If you do not specify an artifact version when adding schema and API artifacts to {registry} using the v2 REST API, {registry} generates one automatically. The default version when adding an artifact is `1`.
+
+However, {registry} also supports custom versioning where you can specify a version using the `X-Registry-Version` HTTP request header as a string. You can then use this version value when executing REST API operations that require the artifact version.  
+
+This section shows a simple curl-based example of using the registry v2 core REST API to add and retrieve a custom Apache Avro schema artifact version in the registry. You can specify custom versions when using the REST API to add or update artifacts or to add artifact versions.
+
+.Prerequisites
+
+* {registry} must be installed and running in your environment. 
+
+.Procedure
+
+. Add an artifact version in the registry using the `/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \ 
+  -H "X-Registry-ArtifactId: my-share-price" -H "X-Registry-Version: 1.1.1" \ <1>
+  --data '{"type":"record","name":" p","namespace":"com.example", \
+   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \ <2>
+   http://MY-REGISTRY-HOST/apis/registry/v2/groups/my-group/artifacts <3>
+----
+<1> This example adds an Avro schema artifact with an artifact ID of `my-share-price` and version of `1.1.1`. If you do not specify version, {registry} automatically generates a default version of `1`. 
+ifdef::apicurio-registry[]
+<2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+endif::[]
+ifdef::rh-service-registry[]
+<2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+endif::[]
+<3> This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+
+. Verify that the response includes the expected JSON body to confirm that the custom artifact version was added. For example:
++
+[source,bash]
+----
+{"createdBy":"","createdOn":"2021-04-16T10:51:43+0000","modifiedBy":"", 
+"modifiedOn":"2021-04-16T10:51:43+0000","id":"my-share-price","version":"1.1.1", <1>
+"type":"AVRO","globalId":3,"state":"ENABLED","groupId":"my-group","contentId":3} <2>
+----
+<1> A custom version was of `1.1.1` was specified when adding the artifact.
+<2> This was the third artifact added to the registry, so the global ID and content ID have a default value of `3`. 
+
+. Retrieve the artifact content from the registry using its artifact ID and version in the API path. In this example, the specified ID is `my-share-price` and the version is `1.1.1`:
++
+[source,bash]
+----
+$ curl http://MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/my-share-price/versions/1.1.1 \ 
+{"type":"record","name":"price","namespace":"com.example", \
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].

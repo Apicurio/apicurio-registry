@@ -624,6 +624,29 @@
     },
     {
       "enabled": true,
+      "id": "Object: additionalProperties 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": {"type": "string"}
+      }
+    },
+    {
+      "enabled": true,
       "id": "Object: Complex additionalProperties",
       "compatibility": "backward",
       "original": {
@@ -989,6 +1012,124 @@
         "dependencies": {
           "address": {"properties": {"city": { "type": "string"}}}
         }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: property added 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"},
+          "country": {"type": "string"}
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: property added 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"},
+          "country": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: property added 3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"},
+          "country": {"type": "string"}
+        },
+        "additionalProperties": {"type": "string"}
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: property removed 1",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"},
+          "country": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Object: property removed 2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"},
+          "country": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "postal_code": {"type": "number"},
+          "street": {"type": "string"}
+        },
+        "additionalProperties": {"type": "string"}
       }
     },
     {

@@ -22,6 +22,7 @@ import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.SchemaWrapper
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.Schema;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +32,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_EXTENDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_NARROWED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_ADDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_UNCHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MAX_PROPERTIES_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_MAX_PROPERTIES_DECREASED;
@@ -58,8 +63,10 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMA_REMOVED;
@@ -76,8 +83,12 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.UNDEFINED_UNUSED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSchemaOrTrue;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSetChanged;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasAdded;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasRemoved;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
+import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -88,6 +99,7 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     private final DiffContext ctx;
     private final ObjectSchema original;
+    private ObjectSchemaWrapper schema;
 
     public ObjectSchemaDiffVisitor(DiffContext ctx, ObjectSchema original) {
         this.ctx = ctx;
@@ -97,6 +109,7 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitObjectSchema(ObjectSchemaWrapper objectSchema) {
         ctx.log("Visiting " + objectSchema + " at " + objectSchema.getWrapped().getLocation());
+        this.schema = objectSchema;
         super.visitObjectSchema(objectSchema);
     }
 
@@ -180,21 +193,26 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitAdditionalProperties(boolean permitsAdditionalProperties) {
-        diffBooleanTransition(ctx.sub("additionalProperties"), original.permitsAdditionalProperties(), permitsAdditionalProperties, true,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED);
+        if (diffBooleanTransition(ctx.sub("additionalProperties"), original.permitsAdditionalProperties(), permitsAdditionalProperties, true,
+                OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE,
+                OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE,
+                OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED)) {
+
+            if (permitsAdditionalProperties) {
+                Schema updatedAdditionalProperties = schema.getSchemaOfAdditionalProperties() == null ? null :
+                        schema.getSchemaOfAdditionalProperties().getWrapped();
+                diffSchemaOrTrue(ctx.sub("schemaOfAdditionalItems"), original.getSchemaOfAdditionalProperties(),
+                        updatedAdditionalProperties, OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_UNCHANGED,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_EXTENDED, OBJECT_TYPE_ADDITIONAL_PROPERTIES_NARROWED,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_CHANGED);
+            }
+        }
         super.visitAdditionalProperties(permitsAdditionalProperties);
     }
 
     @Override
     public void visitSchemaOfAdditionalProperties(SchemaWrapper schemaOfAdditionalProperties) {
-        DiffContext subCtx = ctx.sub("additionalProperties");
-        if (diffSubschemaAddedRemoved(subCtx, original.getSchemaOfAdditionalProperties(), schemaOfAdditionalProperties,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_ADDED,
-            OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_REMOVED)) {
-            schemaOfAdditionalProperties.accept(new SchemaDiffVisitor(subCtx, original.getSchemaOfAdditionalProperties()));
-        }
+        // This is also handled by visitAdditionalProperties
         super.visitSchemaOfAdditionalProperties(schemaOfAdditionalProperties);
     }
 
@@ -249,14 +267,38 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitPropertySchemas(Map<String, SchemaWrapper> propertySchemas) {
-        diffSetChanged(ctx.sub("properties"),
-            new HashSet<>(original.getPropertySchemas().keySet()),
-            new HashSet<>(propertySchemas.keySet()),
-            OBJECT_TYPE_PROPERTY_SCHEMAS_ADDED,
-            OBJECT_TYPE_PROPERTY_SCHEMAS_REMOVED,
-            OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED,
-            OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_ADDED,
-            OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_REMOVED);
+        Set<String> allPropertySchemaNames = new HashSet<String>() {{
+            addAll(original.getPropertySchemas().keySet());
+            addAll(schema.getPropertySchemas().keySet());
+        }};
+
+        List<SchemaWrapper> addedPropertySchemas = new ArrayList<>();
+        List<SchemaWrapper> removedPropertySchemas = new ArrayList<>();
+        for (String propertySchemaName: allPropertySchemaNames) {
+            boolean existInOriginal = original.getPropertySchemas().containsKey(propertySchemaName);
+            boolean existInUpdated = propertySchemas.containsKey(propertySchemaName);
+            if (!existInOriginal && existInUpdated) {
+                // adding properties
+                addedPropertySchemas.add(propertySchemas.get(propertySchemaName));
+            } else if (existInOriginal && !existInUpdated) {
+                // removing properties
+                removedPropertySchemas.add(wrap(original.getPropertySchemas().get(propertySchemaName)));
+            } else if (existInOriginal && existInUpdated) {
+                visitPropertySchema(propertySchemaName, propertySchemas.get(propertySchemaName));
+            }
+        }
+        if (!addedPropertySchemas.isEmpty()) {
+            diffSubSchemasAdded(ctx.sub("propertySchemasAdded"), addedPropertySchemas,
+                    original.permitsAdditionalProperties(), wrap(original.getSchemaOfAdditionalProperties()),
+                    schema.permitsAdditionalProperties(), OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED,
+                    OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED, OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED);
+        }
+        if (!removedPropertySchemas.isEmpty()) {
+            diffSubSchemasRemoved(ctx.sub("propertySchemasRemoved"), removedPropertySchemas,
+                    schema.permitsAdditionalProperties(), schema.getSchemaOfAdditionalProperties(),
+                    original.permitsAdditionalProperties(), OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED,
+                    OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED, OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED);
+        }
         super.visitPropertySchemas(propertySchemas);
     }
 

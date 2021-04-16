@@ -270,12 +270,9 @@ public abstract class JsonSchemaWrapperVisitor {
     }
 
     public void visitPropertySchemas(Map<String, SchemaWrapper> propertySchemas) {
-        for (Entry<String, SchemaWrapper> entry : propertySchemas.entrySet()) {
-            visitPropertySchema(entry.getKey(), entry.getValue());
-        }
     }
 
-    public void visitPropertySchema(String properyName, SchemaWrapper schema) {
+    public void visitPropertySchema(String propertyName, SchemaWrapper schema) {
         visitSchema(schema);
     }
 

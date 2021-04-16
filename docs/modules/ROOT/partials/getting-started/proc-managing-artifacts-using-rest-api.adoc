@@ -5,15 +5,10 @@
 = Managing schema and API artifacts using Registry REST API commands
 
 [role="_abstract"]
-Client applications can use Registry REST API commands to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-
 This section shows a simple curl-based example of using the registry v2 core REST API to add and retrieve an Apache Avro schema artifact in the registry. 
-
-IMPORTANT: When adding artifacts using the v2 REST API, if you do not want to specify a unique group ID, specify `../groups/default` in the API path. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
 
 .Prerequisites
 
-* See {registry-overview}
 * {registry} must be installed and running in your environment. 
 
 .Procedure
@@ -22,32 +17,38 @@ IMPORTANT: When adding artifacts using the v2 REST API, if you do not want to sp
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://MY-REGISTRY-HOST/apis/registry/v2/groups/my-group/artifacts
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \ 
+  -H "X-Registry-ArtifactId: share-price" \ <1>
+  --data '{"type":"record","name":"price","namespace":"com.example", \ 
+   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \ <2>
+  http://MY-REGISTRY-HOST/apis/registry/v2/groups/my-group/artifacts <3>
 ----
 +
-This example shows adding an Avro schema artifact with an artifact ID of `share-price`.
-+
-ifdef::apicurio-registry[]
-`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
-endif::[]
-
+<1> This example adds an Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
+<2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
 ifdef::rh-service-registry[]
-`MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
+<2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
+<3> This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+ifdef::apicurio-registry[]
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
 +
 [source,bash]
 ----
-{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+{"createdBy":"","createdOn":"2021-04-16T09:07:51+0000","modifiedBy":"", 
+"modifiedOn":"2021-04-16T09:07:51+0000","id":"share-price","version":"1", <1>
+"type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2} <2>
 ----
-
-. Retrieve the artifact from the registry using its artifact ID. For example, in this case the specified ID is `share-price`:
+<1> No version was specified when adding the artifact, so the default version `1` is created automatically.
+<2> This was the second artifact added to the registry, so the global ID and content ID have a default value of `2`. 
+. Retrieve the artifact content from the registry using its artifact ID in the API path. In this example, the specified ID is `share-price`:
 +
 [source,bash]
 ----
-$ curl http://MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price
-{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+$ curl http://MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/share-price \ 
+{"type":"record","name":"price","namespace":"com.example", \
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
 ----
 
 [role="_additional-resources"]

@@ -56,13 +56,13 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_REMOVED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMA_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMA_REMOVED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_PROPERTY_SCHEMAS_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_REQUIRED_PROPERTIES_ADDED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_REQUIRED_PROPERTIES_CHANGED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_ADDED;

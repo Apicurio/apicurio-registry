@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.BasicAuth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -73,9 +74,15 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
             try {
                 if (authServerURL != null) {
-                    client = configureClientWithAuthentication(config, baseUrl, authServerURL);
+                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL);
                 } else {
-                    client = RegistryClientFactory.create(baseUrl, config.originals());
+                    String username = config.getAuthUsername();
+
+                    if (username != null) {
+                        client = configureClientWithBasicAuth(config, username, baseUrl);
+                    } else {
+                        client = RegistryClientFactory.create(baseUrl, config.originals());
+                    }
                 }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
@@ -202,7 +209,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.globalIdCacheByArtifactReference.clear();
     }
 
-    private RegistryClient configureClientWithAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl) {
+    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl) {
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
@@ -220,6 +227,19 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
+
+        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+    }
+
+    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
+
+        final String password = config.getAuthPassword();
+
+        if (password == null) {
+            throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
+        }
+
+        Auth auth = new BasicAuth(username, password);
 
         return RegistryClientFactory.create(registryUrl, config.originals(), auth);
     }

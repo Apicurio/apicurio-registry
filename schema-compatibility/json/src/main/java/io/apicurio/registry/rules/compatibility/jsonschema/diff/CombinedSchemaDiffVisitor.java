@@ -36,6 +36,8 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ANY_OF_SIZE_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ANY_OF_SIZE_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_CRITERION_CHANGED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_CRITERION_EXTENDED;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_CRITERION_NARROWED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ONE_OF_SIZE_DECREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_ONE_OF_SIZE_INCREASED;
 import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE;
@@ -62,9 +64,8 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     public void visitCombinedSchema(CombinedSchemaWrapper schema) {
         // Check if the criterion has changed
         if (diffObjectIdentity(ctx.sub("[criterion]"), original.getCriterion(), schema.getCriterion(),
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            COMBINED_TYPE_CRITERION_CHANGED)) {
+                CombinedSchema.ANY_CRITERION, UNDEFINED_UNUSED, UNDEFINED_UNUSED, COMBINED_TYPE_CRITERION_EXTENDED,
+                COMBINED_TYPE_CRITERION_NARROWED, COMBINED_TYPE_CRITERION_CHANGED)) {
             // prevent further analysis if it did
             super.visitCombinedSchema(schema);
         }

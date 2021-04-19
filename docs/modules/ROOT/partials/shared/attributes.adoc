@@ -32,7 +32,7 @@ ifdef::service-registry-downstream[]
 :registry: Service Registry
 :kafka-streams: AMQ Streams
 :registry-version: 2.0
-:keycloak: Red Hat SSO
+:keycloak: Red Hat Single Sign-On
 :keycloak-version: 7.4
 endif::[]
 

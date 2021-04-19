@@ -49,6 +49,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     String clientSecret = "test1";
 
+    String testUsername = "sr-test-user";
+    String testPassword = "sr-test-password";
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
@@ -74,6 +77,20 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         registerRegistryMojo.clientId = adminClientId;
         registerRegistryMojo.clientSecret = clientSecret;
 
-        super.testRegister(registerRegistryMojo);
+        super.testRegister(registerRegistryMojo, "testRegister");
+    }
+
+    @Test
+    public void testBasicAuth() throws IOException, MojoFailureException, MojoExecutionException {
+        System.out.println("Auth is " + authEnabled);
+
+        RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
+        registerRegistryMojo.setClient(null);
+
+        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
+        registerRegistryMojo.username = testUsername;
+        registerRegistryMojo.password = testPassword;
+
+        super.testRegister(registerRegistryMojo, "testBasicAuth");
     }
 }

@@ -4,9 +4,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="installing-registry-storage"]
 = Installing {registry} storage on OpenShift
 
+[role="_abstract"]
 This chapter explains how to install and configure your chosen registry storage option: 
 
-.{kafka-streams} storage
+.Kafka storage
 * xref:installing-kafka-streams-operatorhub[]
 * xref:setting-up-kafka-streams-storage[]
 * xref:registry-kafka-topic-names[]

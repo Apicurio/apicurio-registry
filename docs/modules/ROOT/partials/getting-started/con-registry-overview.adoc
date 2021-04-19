@@ -3,6 +3,7 @@
 [id="registry-overview"]
 = {registry} overview
 
+[role="_abstract"]
 {registry} is a datastore for sharing standard event schemas and API designs across API and event-driven architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
 
 For example, client applications can dynamically push or pull the latest schema updates to or from {registry} at runtime without needing to redeploy. Developer teams can query the registry for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.  
@@ -45,7 +46,7 @@ endif::[]
 
 * Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems 
 
-* Client serializers/deserializers (Serdes) to validate Kafka and other message types at runtime
+* Kafka client serializers/deserializers (Serdes) to validate message types at runtime
 
 * Cloud-native Quarkus Java runtime for low memory footprint and fast deployment times
 

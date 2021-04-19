@@ -332,8 +332,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions/{version}/state")
   @PUT
   @Consumes("application/json")
-  void updateArtifactVersionState(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId, UpdateState data);
+  void updateArtifactVersionState(@PathParam("artifactId") String artifactId, @PathParam("version") Integer version, UpdateState data);
 
   /**
    * Retrieves the metadata for a single version of the artifact.  The version metadata is
@@ -368,8 +367,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions/{version}/meta")
   @PUT
   @Consumes("application/json")
-  void updateArtifactVersionMetaData(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId, EditableMetaData data);
+  void updateArtifactVersionMetaData(@PathParam("artifactId") String artifactId, @PathParam("version") Integer version, EditableMetaData data);
 
   /**
    * Deletes the user-editable metadata properties of the artifact version.  Any properties
@@ -384,8 +382,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/versions/{version}/meta")
   @DELETE
-  void deleteArtifactVersionMetaData(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
+  void deleteArtifactVersionMetaData(@PathParam("artifactId") String artifactId, @PathParam("version") Integer version);
 
   /**
    * Returns a list of all rules configured for the artifact.  The set of rules determines
@@ -465,8 +462,7 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes("application/json")
-  Rule updateArtifactRuleConfig(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId, Rule data);
+  Rule updateArtifactRuleConfig(@PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule, Rule data);
 
   /**
    * Deletes a rule from the artifact.  This results in the rule no longer applying for
@@ -483,8 +479,7 @@ public interface ArtifactsResource {
    */
   @Path("/{artifactId}/rules/{rule}")
   @DELETE
-  void deleteArtifactRule(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId);
+  void deleteArtifactRule(@PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule);
 
   /**
    * Tests whether an update to the artifact's content *would* succeed for the provided content.

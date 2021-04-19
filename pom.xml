@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -98,6 +98,8 @@
         <module>utils/kafka</module>
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
+        <module>utils/importexport</module>
+        <module>utils/exportV1</module>
         <module>schema-compatibility/json</module>
         <module>schema-compatibility/protobuf</module>
         <module>utils/tests</module>
@@ -136,9 +138,9 @@
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.51</json-schema-validator.version>
+        <json-schema-validator.version>1.0.52</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.15.7</protobuf.version>
+        <protobuf.version>3.15.8</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
@@ -163,14 +165,14 @@
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.12.2</jackson-dataformat-yaml.version>
+        <jackson-datatype-json-org.version>2.12.3</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.12.3</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.20</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.18.1</jdbi.version>
+        <jdbi.version>3.19.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <keycloak.version>11.0.3</keycloak.version>
@@ -217,6 +219,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.15.2</test-containers.version>
         <keycloak.testcontainers.version>1.6.0</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
     </properties>
 
     <dependencyManagement>
@@ -330,6 +333,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-import-export</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -585,6 +593,11 @@
                 <groupId>com.github.dasniko</groupId>
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-admin-client</artifactId>
+                <version>${keycloak-admin-client.version}</version>
             </dependency>
 
         </dependencies>
@@ -874,6 +887,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/*SimpleAuthTest.java</exclude>
+                                <exclude>**/*MojoAuthTest.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

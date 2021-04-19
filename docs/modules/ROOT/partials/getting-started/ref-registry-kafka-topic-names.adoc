@@ -3,21 +3,20 @@
 
 [id="registry-kafka-topic-names"]
 
+[role="_abstract"]
 = Kafka topic name configuration
-The default Kafka topic names that {registry} uses to store data in Kafka are `storage-topic` and `global-id-topic`. You might be required to change these topic names if you are sharing your Kafka cluster with other applications that already use topics named `storage-topic` or `global-id-topic`.
-
-You can override the default topic names by setting the appropriate environment variables or Java system properties:
+The default Kafka topic name that {registry} uses to store data is `kafkasql-journal`. This topic is created automatically by {registry}. However, you can override this behavior or the default topic name by setting the appropriate environment variable or Java system property:
 
 .Kafka topic name configuration
-[%header,cols="1,2,2"]
+[%header,cols="3,3,2"]
 |===
-|Default topic name
 |Environment variable
 |Java system property
-|`storage-topic`
-a| `REGISTRY_STREAMS_TOPOLOGY_STORAGE_TOPIC`
-a| `registry.streams.topology.storage.topic`
-|`global-id-topic`
-a| `REGISTRY_STREAMS_TOPOLOGY_GLOBAL_ID_TOPIC`
-a| `registry.streams.topology.global.id.topic`
+|Default value
+| `REGISTRY_KAFKASQL_TOPIC`
+| `registry.kafkasql.topic`
+| `kafkasql-journal`
+| `REGISTRY_KAFKASQL_TOPIC_AUTO_CREATE`
+| `registry.kafkasql.topic.auto-create`
+| `true`
 |===

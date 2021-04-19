@@ -18,6 +18,8 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 
 import java.util.List;
@@ -121,6 +123,7 @@ public interface SubjectsResource {
      */
     @DELETE
     @Path("/{subject}")
+    @Authorized(AuthorizedStyle.ArtifactOnly)
     List<Integer> deleteSubject(
             @PathParam("subject") String subject) throws Exception;
 }

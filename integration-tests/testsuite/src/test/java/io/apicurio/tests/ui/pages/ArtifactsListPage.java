@@ -64,7 +64,6 @@ public class ArtifactsListPage extends BasePage {
         } catch (NoSuchElementException e) {
             selenium.takeScreenShot();
             verifyIsOpen();
-            selenium.getDriver().findElement(byDataTestId("empty-btn-upload"));
             return Collections.emptyList();
         }
     }

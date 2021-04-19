@@ -6,7 +6,7 @@
 = Kafka client applications and {registry}
 
 [role="_abstract"]
-{registry} decouples schema management from client application configuration. You can enable a client application to use a schema from the registry by specifying its URL in your client code.
+{registry} decouples schema management from client application configuration. You can enable a Java client application to use a schema from {registry} by specifying its URL in your client code.
 
 You can store the schemas in the registry to serialize and deserialize messages, which are referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
 

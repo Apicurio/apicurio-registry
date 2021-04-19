@@ -1,13 +1,13 @@
 version: '3.1'
 
+#Use to test docker build/run locally
 services:
   app:
     image: apicurio/apicurio-registry-sql:latest
     ports:
       - 8080:8080
     environment:
-      - REGISTRY_DATASOURCE_URL="jdbc:cloudspanner:/projects/es-s2-core-d/instances/es-s2-core-d-spannertest/databases/apicurio"
-      - GOOGLE_APPLICATION_CREDENTIALS=/config/es-s2-core-d-1e0ceedeb23e.json
+      - REGISTRY_DATASOURCE_URL="jdbc:cloudspanner:/projects/es-s2-eval-d/instances/es-s2-eval-d-spanner/databases/apicurio"
+      - GOOGLE_APPLICATION_CREDENTIALS=/config/es-s2-eval-d-5429b0b50112.json
     volumes:
-    - /Users/ze6295/Downloads/es-s2-core-d-1e0ceedeb23e.json:/config/es-s2-core-d-1e0ceedeb23e.json
-    #TODO: HOW DO WE WANT TO POPULATE WITH CICD AUTOMATION?
+    - /Users/ze6295/Downloads/es-s2-eval-d-5429b0b50112.json:/config/es-s2-eval-d-5429b0b50112.json

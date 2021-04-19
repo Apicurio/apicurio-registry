@@ -1,5 +1,7 @@
 package io.apicurio.registry.cncf.schemaregistry;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import java.io.InputStream;
@@ -42,6 +44,7 @@ public interface SchemagroupsResource {
   @Path("/{group-id}")
   @PUT
   @Consumes("application/json")
+  @Authorized(AuthorizedStyle.GroupOnly)
   void createGroup(@PathParam("group-id") String groupId, SchemaGroup data);
 
   /**
@@ -49,6 +52,7 @@ public interface SchemagroupsResource {
    */
   @Path("/{group-id}")
   @DELETE
+  @Authorized(AuthorizedStyle.GroupOnly)
   void deleteGroup(@PathParam("group-id") String groupId);
 
   /**
@@ -64,6 +68,7 @@ public interface SchemagroupsResource {
    */
   @Path("/{group-id}/schemas")
   @DELETE
+  @Authorized(AuthorizedStyle.GroupOnly)
   void deleteSchemasByGroup(@PathParam("group-id") String groupId);
 
   /**
@@ -83,11 +88,13 @@ public interface SchemagroupsResource {
   @POST
   @Produces({"application/json;format=avro", "application/json;format=protobuf"})
   @Consumes("application/json;format=avro")
+  @Authorized
   CompletionStage<SchemaId> createSchema(@PathParam("group-id") String groupId,
       @PathParam("schema-id") String schemaId, InputStream data);
 
   @Path("/{group-id}/schemas/{schema-id}")
   @DELETE
+  @Authorized
   void deleteSchema(@PathParam("group-id") String groupId, @PathParam("schema-id") String schemaId);
 
   /**
@@ -107,6 +114,7 @@ public interface SchemagroupsResource {
 
   @Path("/{group-id}/schemas/{schema-id}/versions/{version-number}")
   @DELETE
+  @Authorized
   void deleteSchemaVersion(@PathParam("group-id") String groupId,
       @PathParam("schema-id") String schemaId, @PathParam("version-number") Integer versionNumber);
 }

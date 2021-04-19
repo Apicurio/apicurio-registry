@@ -50,11 +50,11 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-import io.apicurio.registry.storage.impexp.Entity;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.Entity;
 
 /**
  * @author Fabian Martinez

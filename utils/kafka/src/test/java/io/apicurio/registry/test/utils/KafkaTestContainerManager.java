@@ -24,7 +24,6 @@ import org.testcontainers.containers.KafkaContainer;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * @author Fabian Martinez Gonzalez
@@ -49,21 +48,12 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
             bootstrapServers = kafka.getBootstrapServers();
 
-            createTopics(bootstrapServers);
         }
+        System.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         return Collections.singletonMap(
                 CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
                 bootstrapServers
         );
-    }
-
-    private void createTopics(String bootstrapServers) {
-        log.info("Creating topics using bootstrap servers: {}", bootstrapServers);
-
-        Properties properties = new Properties();
-        properties.put("bootstrap.servers", bootstrapServers);
-        properties.put("connections.max.idle.ms", 10000);
-        properties.put("request.timeout.ms", 5000);
     }
 
     @Override

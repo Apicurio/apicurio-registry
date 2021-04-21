@@ -61,5 +61,10 @@ public interface Constants {
      */
     String MIGRATION = "migration";
 
+    /**
+     * Tag for auth tests, the suite will deploy apicurio registry with keycloak and verify the api is secured
+     */
+    String AUTH = "auth";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

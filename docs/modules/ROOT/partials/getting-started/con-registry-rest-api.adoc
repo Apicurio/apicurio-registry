@@ -2,6 +2,8 @@
 
 [id="registry-rest-api"]
 = Registry core REST API overview
+
+[role="_abstract"]
 Using the {registry} core REST API, client applications can manage the schema and API artifacts in {registry}. This API provides create, read, update, and delete operations for:
 
 Artifacts::
@@ -33,6 +35,7 @@ ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry with Red Hat Integration Service Registry].
 endif::[]
 
+[role="_additional-resources"]
 .Additional resources
 * For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 * API documentation for the core {registry} REST API and for all compatible APIs is available from the main endpoint of your {registry} deployment, for example, on `\http://MY-REGISTRY-URL/apis`.  

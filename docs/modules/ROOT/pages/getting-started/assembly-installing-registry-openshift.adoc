@@ -8,12 +8,14 @@ include::{mod-loc}shared/all-attributes.adoc[]
 This chapter explains how to install {registry}:
 
 * xref:installing-registry-operatorhub[]
-//* xref:installing-registry-kafka-streams-template-storage[]
 
 .Prerequisites
+ifdef::apicurio-registry[]
 * {registry-overview}
-
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
+endif::[]
+ifdef::rh-service-registry[]
+* Introduction to {registry} chapter in the _{registry} User Guide_
+endif::[]
 
 ifdef::apicurio-registry[]
 [role="_additional-resources"]
@@ -22,5 +24,4 @@ ifdef::apicurio-registry[]
 endif::[]
 
 //INCLUDES
-//include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-installing-registry-operatorhub.adoc[leveloffset=+1]

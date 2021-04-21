@@ -5,7 +5,7 @@
 = Exporting and importing registry content using Registry REST API commands
 
 [role="_abstract"]
-This section shows a simple curl-based example of using the registry v2 core REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating and upgrading from an existing {registry} instance to another. 
+This section shows simple curl-based examples of using the registry v2 core REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating and upgrading from an existing {registry} instance to another. 
 
 .Prerequisites
 

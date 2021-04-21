@@ -7,26 +7,25 @@
 {registry} provides the following underlying storage implementations for schema and API artifacts: 
 
 ifdef::apicurio-registry[]
-
 * In-memory 
 * PostgreSQL 12 database 
 * Apache Kafka 2.6
 
 NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka storage option is recommended for production environments.
-
 endif::[]
 
 ifdef::rh-service-registry[]
-
 * PostgreSQL 12 database 
 * AMQ Streams 1.6  
-
 endif::[]
 
 [role="_additional-resources"]
 .Additional resources
 ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
-endif::[]
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
+endif::[]
+ifdef::rh-service-registry[]
+* See the following guide: _Installing and deploying {registry} on OpenShift_
+endif::[]

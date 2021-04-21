@@ -6,21 +6,22 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-Client applications can use Registry REST API commands to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+Client applications can use Registry REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 This chapter describes the {registry} core REST API and shows how to use it to manage schema and API artifacts stored in the registry:
 
-* xref:registry-rest-api[] 
 * xref:managing-artifacts-using-rest-api[]
 * xref:managing-artifact-versions-using-rest-api[]
 * xref:exporting-importing-using-rest-api[]
+
+.Prerequisites
+* xref:registry-rest-api[] 
 
 [role="_additional-resources"]
 .Additional resources
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
-include::{mod-loc}getting-started/con-registry-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-managing-artifacts-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-managing-artifact-versions-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-exporting-importing-using-rest-api.adoc[leveloffset=+1]

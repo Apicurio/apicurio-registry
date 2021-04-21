@@ -16,22 +16,13 @@ Using {registry} to decouple your data structure from your applications reduces 
 In addition, you can configure optional rules to govern the evolution of your registry content. For example, these include rules to ensure that uploaded content is syntactically and semantically valid, or is backwards and forwards compatible with other versions. Any configured rules must pass before new versions can be uploaded to the registry, which ensures that time is not wasted on invalid or incompatible schemas or API designs.   
 
 ifdef::rh-service-registry[]
-
 {registry} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
-
-[IMPORTANT]
-====
-{registry} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
-
-These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
-====
-
 endif::[]
 
 [discrete]
 == {registry} capabilities
 
-* Support for multiple payload formats for standard event schemas and API specifications 
+* Multiple payload formats for standard event schemas and API specifications 
 
 ifdef::rh-service-registry[]
 * Pluggable registry storage options in AMQ Streams or PostgreSQL database 
@@ -54,4 +45,4 @@ endif::[]
 
 * Operator-based installation of {registry} on OpenShift
 
-* Support for OpenID Connect (OIDC) authentication using {keycloak}
+* OpenID Connect (OIDC) authentication using {keycloak}

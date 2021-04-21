@@ -9,7 +9,7 @@ If you do not specify an artifact version when adding schema and API artifacts t
 
 However, {registry} also supports custom versioning where you can specify a version using the `X-Registry-Version` HTTP request header as a string. You can then use this version value when executing REST API operations that require the artifact version.  
 
-This section shows a simple curl-based example of using the registry v2 core REST API to add and retrieve a custom Apache Avro schema artifact version in the registry. You can specify custom versions when using the REST API to add or update artifacts or to add artifact versions.
+This section shows simple curl-based examples of using the registry v2 core REST API to add and retrieve a custom Apache Avro schema artifact version in the registry. You can specify custom versions when using the REST API to add or update artifacts or to add artifact versions.
 
 .Prerequisites
 

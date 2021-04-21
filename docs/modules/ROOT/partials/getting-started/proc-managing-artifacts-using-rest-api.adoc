@@ -25,7 +25,9 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
 ----
 +
 <1> This example adds an Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
+ifdef::apicurio-registry[]
 <2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+endif::[]
 ifdef::rh-service-registry[]
 <2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]

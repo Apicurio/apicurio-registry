@@ -40,8 +40,8 @@ endif::[]
 :version: 2021.Q2
 :attachmentsdir: files
 :registry-ocp-version: 4.7
+:registry-streams-version: 1.6
 :context: registry
-
 
 //integration products
 :fuse-version: 7.8

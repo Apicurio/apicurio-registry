@@ -36,17 +36,16 @@ ifdef::rh-service-registry[]
 |Release
 |{registry} Operator 
 |OpenShift web console under *Operators* → *OperatorHub*
-|Technical Preview only
+|Technology Preview 
 |Container image for {registry} Operator 
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
-|Technical Preview only
+|Technology Preview 
 |Container image for Kafka storage in AMQ Streams 
-|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
-Technical Preview only
-|Technical Preview only
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog] 
+|Technology Preview 
 |Container image for database storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
-|Technical Preview only
+|Technology Preview 
 |===
 
 
@@ -55,19 +54,19 @@ Technical Preview only
 |===
 |Distribution
 |Location
-|Release
+|Release category
 |Example custom resource definitions for installation
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
-|General Availability and Technical Preview
+|Technology Preview 
 |Kafka Connect converters 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
-|General Availability
+|Technology Preview 
 |Maven repository
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
-|General Availability
+|Technology Preview 
 |Source code 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
-|General Availability
+|Technology Preview 
 |===
 
 

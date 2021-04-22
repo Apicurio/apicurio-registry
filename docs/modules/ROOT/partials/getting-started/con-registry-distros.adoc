@@ -33,7 +33,7 @@ ifdef::rh-service-registry[]
 |===
 |Distribution
 |Location
-|Release
+|Release category
 |{registry} Operator 
 |OpenShift web console under *Operators* → *OperatorHub*
 |Technology Preview 

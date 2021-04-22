@@ -140,10 +140,10 @@
 
 // Camel K titles
 
-:LinkCamelKDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/deploying_camel_k_integrations_on_openshift/index
+:LinkCamelKDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/deploying_camel_k_integrations_on_openshift/index
 :NameCamelKDeploy: Deploying Camel K Integrations on OpenShift
 
-:LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_camel_kafka_connector/index
+:LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_camel_kafka_connector/index
 :NameCamelKafkaConnectorGetStart: Getting Started with Camel Kafka Connector
 
 // AMQ Streams titles
@@ -160,16 +160,16 @@
 
 // Debezium titles
 
-:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_openshift/
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/installing_change_data_capture_on_openshift/
 :NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
 
-:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_rhel/
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/installing_change_data_capture_on_rhel/
 :NameDebeziumInstallRHEL: Installing Debezium on RHEL
 
-:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/getting_started_with_change_data_capture/index
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_change_data_capture/index
 :NameDebeziumGettingStarted: Getting Started with Debezium
 
-:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/debezium_user_guide/index
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/debezium_user_guide/index
 :NameDebeziumUserGuide: Debezium User Guide
 
 // Debezium link attributes that are used upstream.  Add attributes as needed.

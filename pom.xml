@@ -217,6 +217,7 @@
         <test-containers.version>1.15.3</test-containers.version>
         <keycloak.testcontainers.version>1.6.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
+        <strimzi.version>0.22.1</strimzi.version>
     </properties>
 
     <dependencyManagement>
@@ -543,10 +544,16 @@
             </dependency>
 
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>kafka</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>${strimzi.version}</version>
                 <scope>test</scope>
+<!--                 <exclusions> -->
+<!--                     <exclusion> -->
+<!--                         <groupId>org.apache.logging.log4j</groupId> -->
+<!--                         <artifactId>log4j-core</artifactId> -->
+<!--                     </exclusion> -->
+<!--                 </exclusions> -->
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>

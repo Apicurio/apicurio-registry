@@ -40,12 +40,12 @@ endif::[]
 :version: 2021.Q2
 :attachmentsdir: files
 :registry-ocp-version: 4.6
-:registry-streams-version: 1.6
+:registry-streams-version: 1.7
 :context: registry
 
 //integration products
-:fuse-version: 7.8
 :amq-version: 2021.q2
+:fuse-version: 7.8
 :3scale-version: 2.10
 
 // Characters

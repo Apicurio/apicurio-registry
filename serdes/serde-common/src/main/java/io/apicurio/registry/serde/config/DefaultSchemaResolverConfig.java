@@ -75,7 +75,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
     }
 
     public String getAuthClientSecret() {
-        return this.getString(AUTH_CLIENT_ID);
+        return this.getString(AUTH_CLIENT_SECRET);
     }
 
     public String getAuthUsername() {

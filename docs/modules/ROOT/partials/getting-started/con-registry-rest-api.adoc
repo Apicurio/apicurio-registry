@@ -1,9 +1,9 @@
 // Metadata created by nebel
 
 [id="registry-rest-api"]
-= Registry core REST API overview
 
 [role="_abstract"]
+= Registry core REST API overview
 Using the {registry} core REST API, client applications can manage the schema and API artifacts in {registry}. This API provides create, read, update, and delete operations for:
 
 Artifacts::
@@ -23,9 +23,9 @@ Export or import registry content in a `.zip` file, and manage logging levels fo
 
 [discrete]
 == Compatibility with other schema registry REST APIs
-The  {registry} core REST API version {registry-version} is compatible with the following schema registry APIs:
+{registry} version 2 provides API compatibility with the following schema registries by including implementations of their respective REST APIs:
 
-* {registry} core REST API version 1 
+* {registry} version 1 
 * Confluent schema registry version 6
 * IBM schema registry version 1
 * Cloud Native Computing Foundation schema registry version 0

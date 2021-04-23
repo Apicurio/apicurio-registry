@@ -9,17 +9,17 @@
 ifdef::apicurio-registry[]
 
 * In-memory 
-* PostgreSQL 12 database 
+* PostgreSQL {registry-db-version} database 
 * Apache Kafka 2.6
 
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka storage option is recommended for production environments.
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
 
 endif::[]
 
 ifdef::rh-service-registry[]
 
-* PostgreSQL 12 database 
-* AMQ Streams 1.6  
+* PostgreSQL {registry-db-version} database 
+* AMQ Streams {registry-streams-version} 
 
 endif::[]
 

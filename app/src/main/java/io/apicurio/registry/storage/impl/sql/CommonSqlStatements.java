@@ -508,6 +508,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
     }
 
+    @Override
+    public String selectGroupCountById() {
+        return "SELECT COUNT(a.artifactId) FROM artifacts a WHERE a.tenantId = ? AND a.groupId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactRuleCountByType()
      */

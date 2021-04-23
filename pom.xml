@@ -96,6 +96,7 @@
         <module>ui</module>
         <module>utils/converter</module>
         <module>utils/kafka</module>
+        <module>utils/elastic</module>
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>utils/importexport</module>
@@ -108,6 +109,7 @@
         <module>serdes/protobuf-serde</module>
         <module>serdes/jsonschema-serde</module>
         <module>storage</module>
+        <module>storage/elasticsql</module>
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
@@ -193,6 +195,10 @@
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
         <scala.version>2.13.5</scala.version>
 
+        <!-- ElasticSearch -->
+        <elasticsearch.version>1.12.1.Final</elasticsearch.version>
+
+
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
@@ -252,6 +258,11 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-elastic</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -303,6 +314,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-storage-elasticsql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -359,6 +375,13 @@
                 <artifactId>connect-json</artifactId>
                 <version>${connect.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-elasticsearch-rest-high-level-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+
 
             <!-- Third Party Libraries -->
             <dependency>
@@ -847,6 +870,12 @@
             <id>kafkasql</id>
             <modules>
                 <module>storage/kafkasql</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>elasticsql</id>
+            <modules>
+                <module>storage/elasticsql</module>
             </modules>
         </profile>
         <profile>

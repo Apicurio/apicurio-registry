@@ -220,6 +220,9 @@ public class RegistryFacade {
             case kafkasql:
                 setupKafkaStorage(appEnv);
                 break;
+            case nosql:
+                setupNoSQLStorage(appEnv);
+                break;
         }
     }
 
@@ -478,6 +481,47 @@ public class RegistryFacade {
         appEnv.put("KAFKA_BOOTSTRAP_SERVERS", kafkaFacade.bootstrapServers());
         processes.add(kafkaFacade);
     }
+
+// TODO
+//    private void setupNoSQLStorage(Map<String, String> appEnv) throws Exception {
+//        PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
+//        database.start();
+//        TestUtils.waitFor("Database is running",
+//                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, database::isRunning);
+//
+//        String datasourceUrl = "jdbc:postgresql://" + database.getContainerIpAddress() + ":" +
+//                database.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + database.getDatabaseName();
+//        appEnv.put("REGISTRY_ELASTIC_URL", datasourceUrl);
+//        appEnv.put("REGISTRY_ELASTIC_USERNAME", database.getUsername());
+//        appEnv.put("REGISTRY_ELASTIC_PASSWORD", database.getPassword());
+//        processes.add(new RegistryTestProcess() {
+//
+//            @Override
+//            public String getName() {
+//                return "postgresql";
+//            }
+//
+//            @Override
+//            public void close() throws Exception {
+//                database.close();
+//            }
+//
+//            @Override
+//            public String getStdOut() {
+//                return database.getLogs(OutputType.STDOUT);
+//            }
+//
+//            @Override
+//            public String getStdErr() {
+//                return database.getLogs(OutputType.STDERR);
+//            }
+//
+//            @Override
+//            public boolean isContainer() {
+//                return true;
+//            }
+//        });
+//    }
 
     private void runRegistry(String path, Map<String, String> appEnv) {
         Exec executor = new Exec();

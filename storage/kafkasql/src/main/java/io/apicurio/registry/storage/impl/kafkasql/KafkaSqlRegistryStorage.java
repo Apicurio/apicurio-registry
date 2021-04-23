@@ -239,7 +239,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     private void startConsumerThread(final KafkaConsumer<MessageKey, MessageValue> consumer) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
-        log.info("Bootstrap servers: " + configuration.bootstrapServers());
+        log.info("Bootstrap servers: " + contentHash.bootstrapServers());
 
         final String bootstrapId = UUID.randomUUID().toString();
         submitter.submitBootstrap(bootstrapId);

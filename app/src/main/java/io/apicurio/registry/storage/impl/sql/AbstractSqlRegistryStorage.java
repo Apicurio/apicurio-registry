@@ -16,40 +16,6 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jdbi.v3.core.Handle;
-import org.jdbi.v3.core.HandleCallback;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.result.ResultIterable;
-import org.jdbi.v3.core.statement.Query;
-import org.jdbi.v3.core.statement.StatementContext;
-import org.jdbi.v3.core.statement.Update;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
@@ -113,6 +79,38 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jdbi.v3.core.Handle;
+import org.jdbi.v3.core.HandleCallback;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.RowMapper;
+import org.jdbi.v3.core.result.ResultIterable;
+import org.jdbi.v3.core.statement.Query;
+import org.jdbi.v3.core.statement.StatementContext;
+import org.jdbi.v3.core.statement.Update;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 /**
  * A SQL implementation of the {@link io.apicurio.registry.storage.RegistryStorage} interface.  This impl does not
@@ -161,7 +159,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     public AbstractSqlRegistryStorage() {
     }
 
-    protected <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
+    public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) {
         try {
             return this.jdbi.withHandle(callback);
         } catch (RegistryException e) {
@@ -460,7 +458,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * Creates an artifact version by storing information in the versions table.
      */
-    private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
+    public ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
             boolean firstVersion, String groupId, String artifactId, String version, String name, String description, List<String> labels,
             Map<String, String> properties, String createdBy, Date createdOn, Long contentId,
             GlobalIdGenerator globalIdGenerator) {
@@ -580,7 +578,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
-    protected Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content) {
+    public Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
         ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
@@ -648,7 +646,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        String createdBy = securityIdentity.getPrincipal().getName();
+        final String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
@@ -665,7 +663,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
     }
 
-    protected CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
+    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
             GlobalIdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
@@ -2475,6 +2473,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
+    public boolean isArtifactExists(String groupId) throws RegistryStorageException {
+        return withHandle( handle -> {
+            String sql = sqlStatements().selectGroupCountById();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
     public boolean isContentExists(long contentId) throws RegistryStorageException {
         return withHandle( handle -> {
             String sql = sqlStatements().selectContentExists();
@@ -2500,7 +2509,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactId
      * @param vmdd
      */
-    private ArtifactMetaDataDto versionToArtifactDto(String groupId, String artifactId, ArtifactVersionMetaDataDto vmdd) {
+    public ArtifactMetaDataDto versionToArtifactDto(String groupId, String artifactId, ArtifactVersionMetaDataDto vmdd) {
         ArtifactMetaDataDto amdd = new ArtifactMetaDataDto();
         amdd.setGlobalId(vmdd.getGlobalId());
         amdd.setContentId(vmdd.getContentId());

@@ -16,12 +16,14 @@
 
 package io.apicurio.registry.storage.dto;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -36,6 +38,7 @@ public class SearchedArtifactDto {
     private String createdBy;
     private ArtifactType type;
     private List<String> labels = new ArrayList<String>();
+    private Map<String,String> properties = new HashMap<String,String>();
     private ArtifactState state;
     private Date modifiedOn;
     private String modifiedBy;
@@ -159,6 +162,20 @@ public class SearchedArtifactDto {
     }
 
     /**
+     * @return the properties
+     */
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param properties the properties to set
+     */
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
+    }
+
+    /**
      * @return the state
      */
     public ArtifactState getState() {
@@ -200,4 +217,21 @@ public class SearchedArtifactDto {
         this.modifiedBy = modifiedBy;
     }
 
+    @Override
+    public String toString() {
+        return "SearchedArtifactDto{" +
+                "groupId='" + groupId + '\'' +
+                ", id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdOn=" + createdOn +
+                ", createdBy='" + createdBy + '\'' +
+                ", type=" + type +
+                ", labels=" + labels +
+                ", properties=" + properties +
+                ", state=" + state +
+                ", modifiedOn=" + modifiedOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                '}';
+    }
 }

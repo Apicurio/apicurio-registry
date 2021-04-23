@@ -61,4 +61,11 @@ public class ArtifactSearchResultsDto {
         this.count = count;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactSearchResultsDto{" +
+                "artifacts=" + artifacts +
+                ", count=" + count +
+                '}';
+    }
 }

@@ -39,6 +39,8 @@ public class ArtifactMetaDataDto {
     private String groupId;
     private String id;
     private String name;
+    private List<String> labels;
+    private Map<String, String> properties;
     private String description;
     private String createdBy;
     private long createdOn;
@@ -50,8 +52,7 @@ public class ArtifactMetaDataDto {
     private long contentId;
     private ArtifactType type;
     private ArtifactState state;
-    private List<String> labels;
-    private Map<String, String> properties;
+
 
     /**
      * Constructor.

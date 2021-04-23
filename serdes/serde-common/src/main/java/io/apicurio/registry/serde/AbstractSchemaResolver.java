@@ -79,7 +79,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     String username = config.getAuthUsername();
 
                     if (username != null) {
-                        client = configureClientWithBasicAuth(config, username, baseUrl);
+                        client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
                         client = RegistryClientFactory.create(baseUrl, config.originals());
                     }

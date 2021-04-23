@@ -888,6 +888,7 @@
                             <excludes>
                                 <exclude>**/*SimpleAuthTest.java</exclude>
                                 <exclude>**/*MojoAuthTest.java</exclude>
+                                <exclude>**/*SimpleAuthIT.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>

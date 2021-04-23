@@ -55,9 +55,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     @ConfigProperty(name = "registry.keycloak.realm")
     String realm;
 
-    @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
-    Boolean authEnabled;
-
     String adminClientId = "registry-api";
     String developerClientId = "registry-api-dev";
     String readOnlyClientId = "registry-api-readonly";

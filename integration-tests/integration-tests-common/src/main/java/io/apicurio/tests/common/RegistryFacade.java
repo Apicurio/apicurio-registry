@@ -96,6 +96,23 @@ public class RegistryFacade {
                 .build();
     }
 
+    public AuthServerInfo getAuthServerInfo() {
+        AuthServerInfo info = new AuthServerInfo();
+        info.setAuthServerUrl(getMandatoryExternalRegistryEnvVar("AUTH_SERVER_URL", keycloakContainer.getAuthServerUrl()));
+        //info hardcoded in test-realm.json
+        info.setRealm(getMandatoryExternalRegistryEnvVar("AUTH_REALM", "registry"));
+
+        info.setAdminClientId(getMandatoryExternalRegistryEnvVar("AUTH_ADMIN_CLIENT_ID", "registry-api"));
+        info.setAdminClientSecret(getMandatoryExternalRegistryEnvVar("AUTH_ADMIN_CLIENT_SECRET", "test1"));
+
+        info.setDeveloperClientId(getMandatoryExternalRegistryEnvVar("AUTH_DEV_CLIENT_ID", "registry-api-dev"));
+        info.setDeveloperClientSecret(getMandatoryExternalRegistryEnvVar("AUTH_DEV_CLIENT_SECRET", "test1"));
+
+        info.setReadOnlyClientId(getMandatoryExternalRegistryEnvVar("AUTH_READONLY_CLIENT_ID", "registry-api-readonly"));
+        info.setReadOnlyClientSecret(getMandatoryExternalRegistryEnvVar("AUTH_READONLY_CLIENT_SECRET", "test1"));
+        return info;
+    }
+
     public String getSourceRegistryUrl() {
         if (TestUtils.isExternalRegistry()) {
             String host = System.getenv().get("SOURCE_REGISTRY_HOST");
@@ -183,6 +200,8 @@ public class RegistryFacade {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
                     runKeycloak(appEnv);
                     runTenantManager(appEnv);
+                } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
+                    runKeycloak(appEnv);
                 }
 
                 runRegistry(path, appEnv);
@@ -642,6 +661,18 @@ public class RegistryFacade {
             }
         });
         processes.clear();
+    }
+
+    private String getMandatoryExternalRegistryEnvVar(String envVar, String localValue) {
+        if (TestUtils.isExternalRegistry()) {
+            String var = System.getenv().get(envVar);
+            if (var == null) {
+                throw new IllegalStateException("missing " + envVar + " env var");
+            }
+            return var;
+        } else {
+            return localValue;
+        }
     }
 
 }

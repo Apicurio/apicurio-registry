@@ -5,6 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
+[role="_abstract"]
 This chapter introduces {registry} concepts and features and provides details on the supported artifact types that are stored in the registry:
 
 * xref:registry-overview[]

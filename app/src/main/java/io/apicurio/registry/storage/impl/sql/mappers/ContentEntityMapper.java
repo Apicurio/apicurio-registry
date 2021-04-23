@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 
-import io.apicurio.registry.storage.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
 
 /**
  * @author eric.wittmann@gmail.com

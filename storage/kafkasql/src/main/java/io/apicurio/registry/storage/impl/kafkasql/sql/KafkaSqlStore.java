@@ -15,16 +15,16 @@ import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.storage.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.storage.impexp.ContentEntity;
-import io.apicurio.registry.storage.impexp.GlobalRuleEntity;
-import io.apicurio.registry.storage.impexp.GroupEntity;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.GroupEntity;
 
 /**
  * The SQL store used by the KSQL registry artifactStore implementation.  This is ultimately where each

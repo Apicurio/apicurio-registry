@@ -4,6 +4,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="installing-registry-ocp"]
 = Installing {registry} on OpenShift
 
+[role="_abstract"]
 This chapter explains how to install {registry}:
 
 * xref:installing-registry-operatorhub[]
@@ -15,6 +16,7 @@ This chapter explains how to install {registry}:
 NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 
 ifdef::apicurio-registry[]
+[role="_additional-resources"]
 .Additional resources
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 endif::[]

@@ -12,7 +12,7 @@ You can enable authentication for the {registry} web console and core REST API u
 {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization are disabled by default. 
 
 .Prerequisites
-* {keycloak} is installed and running, and configured with a {keycloak} realm and user. For more details, see
+* {keycloak} is installed and running, and configured with a {keycloak} realm and a user. For more details, see
 ifdef::apicurio-registry[]
 link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
 endif::[]
@@ -23,10 +23,9 @@ endif::[]
 
 .Procedure
 
-* Set the following environment variables to configure {registry} authentication using {keycloak}:
-
+. Set the following environment variables to configure {registry} authentication using {keycloak}:
++
 .Configuration for {registry} authentication
-//TO DO: Add Java system properties from application.properties?
 [.table-expandable,width="100%",cols="5,6,2,4",options="header"]
 |===
 |Environment variable
@@ -55,9 +54,9 @@ endif::[]
 |`apicurio-registry`
 |===
 
-When authentication is enabled, {registry} provides role-based authorization for the following default user roles: 
-
-.Default user roles for registry authentication and authorization
+. When {registry} authentication is enabled, you must assign {registry} users to at least one of the following default user roles in {keycloak}: 
++
+.Default user roles for registry authentication and role-based authorization
 [.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
 |===
 |Role
@@ -82,8 +81,8 @@ When authentication is enabled, {registry} provides role-based authorization for
 |Access to read and search operations only. This role cannot configure any rules. 
 |===
 
-* Set the following to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
-
+. You can set the following option to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
++
 .Configuration for owner-only authorization
 [%header,cols="2,2,1,1"]
 |===
@@ -98,7 +97,6 @@ When authentication is enabled, {registry} provides role-based authorization for
 |===
 
 
-
 [role="_additional-resources"]
 .Additional resources
 * For an open source Docker-based example of authentication using {keycloak}, see https://github.com/Apicurio/apicurio-registry/tree/master/distro/docker-compose
@@ -109,4 +107,4 @@ endif::[]
 ifdef::rh-service-registry[]
 see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
 endif::[]
-* For details on custom configuration, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation] 
+* For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation] 

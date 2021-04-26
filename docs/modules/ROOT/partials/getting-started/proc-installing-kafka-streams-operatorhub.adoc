@@ -9,7 +9,6 @@
 
 If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-understanding-operatorhub.html[OpenShift documentation].
 
-
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster 
@@ -37,7 +36,7 @@ ifdef::apicurio-registry[]
 ** *Update Channel* > *stable*
 endif::[]
 ifdef::rh-service-registry[]
-** *Update Channel* > *amq-streams-1.5.x*
+** *Update Channel* > *amq-streams-{registry-streams-version}.x*
 endif::[]
 ** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ** *Approval Strategy* > *Manual*

@@ -30,8 +30,9 @@ endif::[]
 ifdef::service-registry-downstream[]
 :rh-service-registry:
 :registry: Service Registry
-:kafka-streams: AMQ Streams
 :registry-version: 2.0
+:kafka-streams: AMQ Streams
+:registry-streams-version: 1.7
 :keycloak: Red Hat Single Sign-On
 :keycloak-version: 7.4
 endif::[]
@@ -39,14 +40,14 @@ endif::[]
 //common
 :version: 2021.Q2
 :attachmentsdir: files
-:registry-ocp-version: 4.7
+:registry-ocp-version: 4.6
+:registry-db-version: 12
 :context: registry
 
-
 //integration products
+:amq-version: 2021.q2
 :fuse-version: 7.8
-:amq-version: 7.8
-:3scale-version: 2.9
+:3scale-version: 2.10
 
 // Characters
 :copy: ©

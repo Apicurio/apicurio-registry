@@ -29,15 +29,16 @@ When a schema or API design is added as an artifact in the registry, client appl
 
 {registry} supports a wide range of message payload formats for standard event schemas and API specifications. For example, supported formats include Apache Avro, Google Protobuf, GraphQL, AsyncAPI, OpenAPI, and others. For more details, see {registry-reference}. 
 
+[discrete]
 == Schema and API groups
 
 An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization. 
 
-You can create optional artifact groups when adding your schemas and API designs to organize them in {registry}. For example, you could create groups to match your `development` and `production` application environment, or your `sales` and `engineering` organization. 
+You can create optional artifact groups when adding your schemas and API designs to organize them in {registry}. For example, you could create groups to match your `development` and `production` application environments, or your `sales` and `engineering` organizations. 
 
 Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, and AsyncAPI schema and API artifacts all in the same group.    
 
-You can create schema and API artifacts and optional groups using the {registry} web console, core REST API, or Maven plug-in.  The following simple example shows using the REST API: 
+You can create schema and API artifacts and optional groups using the {registry} web console, core REST API, Maven plug-in, or Java client application.  The following simple example shows using the REST API: 
 
 [source,bash]
 ----
@@ -50,7 +51,7 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
 
 This example adds an Avro schema with an artifact ID of `share-price` in an artifact group named `my-group`.
 
-NOTE: Specifying a group is optional when using the {registry} web console, and a `default` group is automatically created. When using the v2 REST API or Maven plug-in, you can specify the `default` group in the API path if you do not want to create a unique group.   
+NOTE: Specifying a group is optional when using the {registry} web console, where a `default` group is automatically created. When using the v2 REST API or Maven plug-in, you can specify the `default` group in the API path if you do not want to create a unique group.   
 
 [role="_additional-resources"]
 .Additional resources

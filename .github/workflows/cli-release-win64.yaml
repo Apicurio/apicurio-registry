@@ -22,11 +22,17 @@ jobs:
       if: github.event.inputs.tag_name != null
       run: echo TAG_NAME=${{ github.event.inputs.tag_name }} >> $GITHUB_ENV
       shell: cmd
+    - name: Check ENV Var file
+      run: echo $GITHUB_ENV
+      shell: cmd
     - name: Get Upload URL
       uses: Amadevus/pwsh-script@v2
       id: get-upload-url-script
       with:
         script: |
+          Get-ChildItem env:
+          echo "TAG_NAME is $env:TAG_NAME"
+          echo "env.TAG_NAME is ${{ env.TAG_NAME }}"
           (Invoke-RestMethod -URI https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }}).upload_url
     - name: Set Upload URL Env Var
       run: |
@@ -36,6 +42,7 @@ jobs:
       run: |
         echo "Tag name:   %TAG_NAME%"
         echo "Upload URL: %UPLOAD_URL%"
+      shell: cmd
     - name: Install graalvm
       uses: DeLaGuardo/setup-graalvm@4.0
       with:

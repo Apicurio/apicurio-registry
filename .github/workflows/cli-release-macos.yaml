@@ -22,7 +22,9 @@ jobs:
       run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
     - name: Get Upload URL
       run: |
-        UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$TAG_NAME | jq -r ".upload_url"`
+        jq --version
+        UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }} | jq -r ".upload_url"`
+        echo "Found Upload URL: $UPLOAD_URL"
         echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
     - name: Log Environment Variables
       run: |

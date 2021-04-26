@@ -176,6 +176,7 @@
                 <configuration>
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <kafka.storage>true</kafka.storage>
                     </systemProperties>
                 </configuration>
             </plugin>

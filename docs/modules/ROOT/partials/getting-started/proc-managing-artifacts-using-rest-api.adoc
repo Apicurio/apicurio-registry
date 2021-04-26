@@ -1,5 +1,5 @@
 // Metadata created by nebel
-// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
 [id="managing-artifacts-using-rest-api"]
 = Managing schema and API artifacts using Registry REST API commands
@@ -13,7 +13,7 @@ This section shows a simple curl-based example of using the registry v2 core RES
 
 .Procedure
 
-. Add an artifact in the registry using the `/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
+. Add an artifact to the registry using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
 +
 [source,bash]
 ----
@@ -25,12 +25,13 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
 ----
 +
 <1> This example adds an Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
+ifdef::apicurio-registry[]
 <2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+endif::[]
 ifdef::rh-service-registry[]
 <2> `MY-REGISTRY-HOST` is the host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
 <3> This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
-ifdef::apicurio-registry[]
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
 +
@@ -41,7 +42,7 @@ ifdef::apicurio-registry[]
 "type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2} <2>
 ----
 <1> No version was specified when adding the artifact, so the default version `1` is created automatically.
-<2> This was the second artifact added to the registry, so the global ID and content ID have a default value of `2`. 
+<2> This was the second artifact added to the registry, so the global ID and content ID have a value of `2`. 
 . Retrieve the artifact content from the registry using its artifact ID in the API path. In this example, the specified ID is `share-price`:
 +
 [source,bash]

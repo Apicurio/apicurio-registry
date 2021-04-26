@@ -34,8 +34,7 @@ endif::[]
 [source,bash]
 ----
 $ curl -X POST "http://MY-REGISTRY-HOST/apis/registry/v2/admin/import" \ 
-  -H "Accept: application/json" -H "Content-Type: application/zip" \ 
-  --data-binary @my-registry-data.zip
+  -H "Content-Type: application/zip" --data-binary @my-registry-data.zip
 ----
 +
 ifdef::apicurio-registry[]

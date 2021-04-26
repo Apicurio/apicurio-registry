@@ -26,7 +26,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 
 import java.util.Collections;
 
@@ -69,12 +69,12 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         if (client == null) {
             if (authServerUrl != null && realm != null && clientId != null && clientSecret != null) {
                 Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
-                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+                client = JdkRegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);
-                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+                client = JdkRegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else {
-                client = RegistryClientFactory.create(registryUrl);
+                client = JdkRegistryClientFactory.create(registryUrl);
             }
         }
         return client;

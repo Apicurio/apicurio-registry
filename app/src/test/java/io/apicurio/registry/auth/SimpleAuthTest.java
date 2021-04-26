@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
@@ -65,7 +65,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     final String groupId = "authTestGroupId";
 
     private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+        return JdkRegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
     /**

@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.request;
+package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.client.request.BodyHandler;
+import io.apicurio.registry.rest.client.request.ErrorHandler;
+import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.utils.BooleanUtil;
 
 import org.apache.http.NameValuePair;
@@ -69,7 +72,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIE
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class RequestHandler {
+public class JdkHttpClient implements io.apicurio.registry.rest.client.HttpClient {
 
     private static final String BASE_PATH = "apis/registry/v2/";
 
@@ -79,7 +82,7 @@ public class RequestHandler {
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
-    public RequestHandler(String endpoint, Map<String, Object> configs, Auth auth) {
+    public JdkHttpClient(String endpoint, Map<String, Object> configs, Auth auth) {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
@@ -219,7 +222,7 @@ public class RequestHandler {
     private static URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
         Object[] encodedPathParams = pathParams
                 .stream()
-                .map(RequestHandler::encodeURIComponent)
+                .map(JdkHttpClient::encodeURIComponent)
                 .toArray();
         final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
         final List<NameValuePair> queryParamsExpanded = new ArrayList<>();

@@ -16,11 +16,12 @@
 
 package io.apicurio.registry.rest.client.impl;
 
-import io.apicurio.registry.auth.Auth;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.client.HttpClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.rest.client.request.RequestHandler;
+import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.provider.AdminRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
@@ -41,6 +42,7 @@ import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,134 +55,126 @@ import java.util.Map;
  */
 public class RegistryClientImpl implements RegistryClient {
 
-    private final RequestHandler requestHandler;
+    private final HttpClient httpClient;
 
-    public RegistryClientImpl(String endpoint) {
-        this(endpoint, Collections.emptyMap(), null);
-    }
-
-    public RegistryClientImpl(String endpoint, Map<String, Object> configs) {
-        this(endpoint, configs, null);
-    }
-
-    public RegistryClientImpl(String endpoint, Map<String, Object> configs, Auth auth) {
-        requestHandler = new RequestHandler(endpoint, configs, auth);
+    public RegistryClientImpl(HttpClient httpClient) {
+        this.httpClient = httpClient;
     }
 
     @Override
     public InputStream getLatestArtifact(String groupId, String artifactId) {
-        return requestHandler.sendRequest(GroupRequestsProvider.getLatestArtifact(normalizeGid(groupId), artifactId));
+        return httpClient.sendRequest(GroupRequestsProvider.getLatestArtifact(normalizeGid(groupId), artifactId));
     }
 
     @Override
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-        return requestHandler.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, data));
+        return httpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, data));
     }
 
     @Override
     public void deleteArtifact(String groupId, String artifactId) {
-        requestHandler.sendRequest(GroupRequestsProvider.deleteArtifact(normalizeGid(groupId), artifactId));
+        httpClient.sendRequest(GroupRequestsProvider.deleteArtifact(normalizeGid(groupId), artifactId));
     }
 
     @Override
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-        return requestHandler.sendRequest(GroupRequestsProvider.getArtifactMetaData(normalizeGid(groupId), artifactId));
+        return httpClient.sendRequest(GroupRequestsProvider.getArtifactMetaData(normalizeGid(groupId), artifactId));
     }
 
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        requestHandler.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
+        httpClient.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
-        return requestHandler.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, queryParams, data));
+        return httpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, queryParams, data));
     }
 
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        return requestHandler.sendRequest(GroupRequestsProvider.listArtifactRules(normalizeGid(groupId), artifactId));
+        return httpClient.sendRequest(GroupRequestsProvider.listArtifactRules(normalizeGid(groupId), artifactId));
     }
 
     @Override
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
-        requestHandler.sendRequest(GroupRequestsProvider.createArtifactRule(normalizeGid(groupId), artifactId, data));
+        httpClient.sendRequest(GroupRequestsProvider.createArtifactRule(normalizeGid(groupId), artifactId, data));
     }
 
     @Override
     public void deleteArtifactRules(String groupId, String artifactId) {
-        requestHandler.sendRequest(GroupRequestsProvider.deleteArtifactRules(normalizeGid(groupId), artifactId));
+        httpClient.sendRequest(GroupRequestsProvider.deleteArtifactRules(normalizeGid(groupId), artifactId));
     }
 
     @Override
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
-        return requestHandler.sendRequest(GroupRequestsProvider.getArtifactRuleConfig(normalizeGid(groupId), artifactId, rule));
+        return httpClient.sendRequest(GroupRequestsProvider.getArtifactRuleConfig(normalizeGid(groupId), artifactId, rule));
     }
 
     @Override
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
-        return requestHandler.sendRequest(GroupRequestsProvider.updateArtifactRuleConfig(normalizeGid(groupId), artifactId, rule, data));
+        return httpClient.sendRequest(GroupRequestsProvider.updateArtifactRuleConfig(normalizeGid(groupId), artifactId, rule, data));
     }
 
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-        requestHandler.sendRequest(GroupRequestsProvider.deleteArtifactRule(normalizeGid(groupId), artifactId, rule));
+        httpClient.sendRequest(GroupRequestsProvider.deleteArtifactRule(normalizeGid(groupId), artifactId, rule));
     }
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
-        requestHandler.sendRequest(GroupRequestsProvider.updateArtifactState(normalizeGid(groupId), artifactId, data));
+        httpClient.sendRequest(GroupRequestsProvider.updateArtifactState(normalizeGid(groupId), artifactId, data));
     }
 
     @Override
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        requestHandler.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, data));
+        httpClient.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, data));
     }
 
     @Override
     public InputStream getArtifactVersion(String groupId, String artifactId, String version) {
-        return requestHandler.sendRequest(GroupRequestsProvider.getArtifactVersion(normalizeGid(groupId), artifactId, version));
+        return httpClient.sendRequest(GroupRequestsProvider.getArtifactVersion(normalizeGid(groupId), artifactId, version));
     }
 
     @Override
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        return requestHandler.sendRequest(GroupRequestsProvider.getArtifactVersionMetaData(normalizeGid(groupId), artifactId, version));
+        return httpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaData(normalizeGid(groupId), artifactId, version));
     }
 
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
-        requestHandler.sendRequest(GroupRequestsProvider.updateArtifactVersionMetaData(normalizeGid(groupId), artifactId, version, data));
+        httpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionMetaData(normalizeGid(groupId), artifactId, version, data));
     }
 
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        requestHandler.sendRequest(GroupRequestsProvider.deleteArtifactVersionMetaData(normalizeGid(groupId), artifactId, version));
+        httpClient.sendRequest(GroupRequestsProvider.deleteArtifactVersionMetaData(normalizeGid(groupId), artifactId, version));
     }
 
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
-        requestHandler.sendRequest(GroupRequestsProvider.updateArtifactVersionState(normalizeGid(groupId), artifactId, version, data));
+        httpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionState(normalizeGid(groupId), artifactId, version, data));
     }
 
     @Override
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset, Integer limit) {
         Map<String, List<String>> queryParams = new HashMap<>();
         checkCommonQueryParams(null, null, limit, offset, queryParams);
-        return requestHandler.sendRequest(GroupRequestsProvider.listArtifactVersions(normalizeGid(groupId), artifactId, queryParams));
+        return httpClient.sendRequest(GroupRequestsProvider.listArtifactVersions(normalizeGid(groupId), artifactId, queryParams));
     }
 
     @Override
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data) {
         final Map<String, String> headers = version != null ? Map.of(Headers.VERSION, version) : Collections.emptyMap();
-        return requestHandler.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
+        return httpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
     }
 
     @Override
     public ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
         final Map<String, List<String>> queryParams = new HashMap<>();
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
-        return requestHandler.sendRequest(GroupRequestsProvider.listArtifactsInGroup(normalizeGid(groupId), queryParams));
+        return httpClient.sendRequest(GroupRequestsProvider.listArtifactsInGroup(normalizeGid(groupId), queryParams));
     }
 
     @Override
@@ -206,28 +200,28 @@ public class RegistryClientImpl implements RegistryClient {
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
-        return requestHandler.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
+        return httpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
     }
 
     @Override
     public void deleteArtifactsInGroup(String groupId) {
-        requestHandler.sendRequest(GroupRequestsProvider.deleteArtifactsInGroup(normalizeGid(groupId)));
+        httpClient.sendRequest(GroupRequestsProvider.deleteArtifactsInGroup(normalizeGid(groupId)));
     }
 
     @Override
     public InputStream getContentById(long contentId) {
-        return requestHandler.sendRequest(IdRequestsProvider.getContentById(contentId));
+        return httpClient.sendRequest(IdRequestsProvider.getContentById(contentId));
     }
 
     @Override
     public InputStream getContentByGlobalId(long globalId) {
-        return requestHandler.sendRequest(IdRequestsProvider.getContentByGlobalId(globalId));
+        return httpClient.sendRequest(IdRequestsProvider.getContentByGlobalId(globalId));
     }
 
     @Override
     public InputStream getContentByHash(String contentHash, Boolean canonical) {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
-        return requestHandler.sendRequest(IdRequestsProvider.getContentByHash(contentHash, canonical, queryParams));
+        return httpClient.sendRequest(IdRequestsProvider.getContentByHash(contentHash, canonical, queryParams));
     }
 
     @Override
@@ -252,7 +246,7 @@ public class RegistryClientImpl implements RegistryClient {
         if (properties != null && !properties.isEmpty()) {
             queryParams.put(Parameters.PROPERTIES, properties);
         }
-        return requestHandler.sendRequest(SearchRequestsProvider.searchArtifacts(queryParams));
+        return httpClient.sendRequest(SearchRequestsProvider.searchArtifacts(queryParams));
     }
 
     @Override
@@ -260,77 +254,89 @@ public class RegistryClientImpl implements RegistryClient {
                                                           Integer offset, Integer limit) {
         final Map<String, List<String>> queryParams = new HashMap<>();
         checkCommonQueryParams(orderBy, order, limit, offset, queryParams);
-        return requestHandler.sendRequest(SearchRequestsProvider.searchArtifactsByContent(data, queryParams));
+        return httpClient.sendRequest(SearchRequestsProvider.searchArtifactsByContent(data, queryParams));
     }
 
     @Override
     public List<RuleType> listGlobalRules() {
-        return requestHandler.sendRequest(AdminRequestsProvider.listGlobalRules());
+        return httpClient.sendRequest(AdminRequestsProvider.listGlobalRules());
     }
 
     @Override
     public void createGlobalRule(Rule data) {
-        requestHandler.sendRequest(AdminRequestsProvider.createGlobalRule(data));
+        try {
+            httpClient.sendRequest(AdminRequestsProvider.createGlobalRule(data));
+        } catch (JsonProcessingException e) {
+            throw ErrorHandler.parseError(e);
+        }
     }
 
     @Override
     public void deleteAllGlobalRules() {
-        requestHandler.sendRequest(AdminRequestsProvider.deleteAllGlobalRules());
+        httpClient.sendRequest(AdminRequestsProvider.deleteAllGlobalRules());
     }
 
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
-        return requestHandler.sendRequest(AdminRequestsProvider.getGlobalRule(rule));
+        return httpClient.sendRequest(AdminRequestsProvider.getGlobalRule(rule));
     }
 
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
-        return requestHandler.sendRequest(AdminRequestsProvider.updateGlobalRuleConfig(rule, data));
+        try {
+            return httpClient.sendRequest(AdminRequestsProvider.updateGlobalRuleConfig(rule, data));
+        } catch (JsonProcessingException e) {
+            throw ErrorHandler.parseError(e);
+        }
     }
 
     @Override
     public void deleteGlobalRule(RuleType rule) {
-        requestHandler.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
+        httpClient.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
     }
 
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
-        return requestHandler.sendRequest(AdminRequestsProvider.listLogConfigurations());
+        return httpClient.sendRequest(AdminRequestsProvider.listLogConfigurations());
     }
 
     @Override
     public NamedLogConfiguration getLogConfiguration(String logger) {
-        return requestHandler.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
+        return httpClient.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
     }
 
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
-        return requestHandler.sendRequest(AdminRequestsProvider.setLogConfiguration(logger, data));
+        try {
+            return httpClient.sendRequest(AdminRequestsProvider.setLogConfiguration(logger, data));
+        } catch (JsonProcessingException e) {
+            throw ErrorHandler.parseError(e);
+        }
     }
 
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return requestHandler.sendRequest(AdminRequestsProvider.removeLogConfiguration(logger));
+        return httpClient.sendRequest(AdminRequestsProvider.removeLogConfiguration(logger));
     }
 
     @Override
     public InputStream exportData() {
-        return requestHandler.sendRequest(AdminRequestsProvider.exportData());
+        return httpClient.sendRequest(AdminRequestsProvider.exportData());
     }
 
     @Override
     public void importData(InputStream data) {
-        requestHandler.sendRequest(AdminRequestsProvider.importData(data));
+        httpClient.sendRequest(AdminRequestsProvider.importData(data));
     }
 
     @Override
     public void setNextRequestHeaders(Map<String, String> requestHeaders) {
-        requestHandler.setNextRequestHeaders(requestHeaders);
+        httpClient.setNextRequestHeaders(requestHeaders);
     }
 
     @Override
     public Map<String, String> getHeaders() {
-        return requestHandler.getHeaders();
+        return httpClient.getHeaders();
     }
 
     private void checkCommonQueryParams(SortBy orderBy, SortOrder order, Integer limit, Integer offset,

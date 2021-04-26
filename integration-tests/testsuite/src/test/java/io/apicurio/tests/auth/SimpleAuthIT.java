@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
@@ -52,7 +52,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     private RegistryFacade facade = RegistryFacade.getInstance();
 
     private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl(), Collections.emptyMap(), auth);
+        return JdkRegistryClientFactory.create(TestUtils.getRegistryBaseUrl(), Collections.emptyMap(), auth);
     }
 
     @Test

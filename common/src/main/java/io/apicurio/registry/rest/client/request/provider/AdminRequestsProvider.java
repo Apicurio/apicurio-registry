@@ -19,7 +19,6 @@ package io.apicurio.registry.rest.client.request.provider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -36,12 +35,12 @@ import static io.apicurio.registry.rest.client.request.provider.Operation.DELETE
 import static io.apicurio.registry.rest.client.request.provider.Operation.GET;
 import static io.apicurio.registry.rest.client.request.provider.Operation.POST;
 import static io.apicurio.registry.rest.client.request.provider.Operation.PUT;
+import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOG_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULES_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULE_PATH;
-import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
-import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
 
 
 /**
@@ -52,28 +51,24 @@ public class AdminRequestsProvider {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static Request<NamedLogConfiguration> removeLogConfiguration(String logger) {
-
         return new Request.RequestBuilder<NamedLogConfiguration>()
                 .operation(Operation.DELETE)
                 .path(Routes.LOG_PATH)
                 .pathParams(List.of(logger))
-                .responseType(new TypeReference<NamedLogConfiguration>(){})
+                .responseType(new TypeReference<NamedLogConfiguration>() {
+                })
                 .build();
     }
 
-    public static Request<NamedLogConfiguration> setLogConfiguration(String logger, LogConfiguration data) {
-
-        try {
-            return new Request.RequestBuilder<NamedLogConfiguration>()
-                    .operation(PUT)
-                    .path(LOG_PATH)
-                    .pathParams(List.of(logger))
-                    .responseType(new TypeReference<NamedLogConfiguration>(){})
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<NamedLogConfiguration> setLogConfiguration(String logger, LogConfiguration data) throws JsonProcessingException {
+        return new Request.RequestBuilder<NamedLogConfiguration>()
+                .operation(PUT)
+                .path(LOG_PATH)
+                .pathParams(List.of(logger))
+                .responseType(new TypeReference<NamedLogConfiguration>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .build();
     }
 
     public static Request<NamedLogConfiguration> getLogConfiguration(String logger) {
@@ -82,7 +77,8 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(LOG_PATH)
                 .pathParams(List.of(logger))
-                .responseType(new TypeReference<NamedLogConfiguration>(){})
+                .responseType(new TypeReference<NamedLogConfiguration>() {
+                })
                 .build();
     }
 
@@ -90,7 +86,8 @@ public class AdminRequestsProvider {
         return new Request.RequestBuilder<List<NamedLogConfiguration>>()
                 .operation(GET)
                 .path(LOGS_BASE_PATH)
-                .responseType(new TypeReference<List<NamedLogConfiguration>>(){})
+                .responseType(new TypeReference<List<NamedLogConfiguration>>() {
+                })
                 .build();
     }
 
@@ -99,22 +96,20 @@ public class AdminRequestsProvider {
                 .operation(DELETE)
                 .path(RULE_PATH)
                 .pathParams(List.of(rule.value()))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Rule> updateGlobalRuleConfig(RuleType rule, Rule data) {
-        try {
-            return new Request.RequestBuilder<Rule>()
-                    .operation(PUT)
-                    .path(RULE_PATH)
-                    .pathParams(List.of(rule.value()))
-                    .responseType(new TypeReference<Rule>(){})
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Rule> updateGlobalRuleConfig(RuleType rule, Rule data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Rule>()
+                .operation(PUT)
+                .path(RULE_PATH)
+                .pathParams(List.of(rule.value()))
+                .responseType(new TypeReference<Rule>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .build();
     }
 
     public static Request<Rule> getGlobalRule(RuleType rule) {
@@ -122,7 +117,8 @@ public class AdminRequestsProvider {
                 .operation(GET)
                 .path(RULE_PATH)
                 .pathParams(List.of(rule.value()))
-                .responseType(new TypeReference<Rule>(){})
+                .responseType(new TypeReference<Rule>() {
+                })
                 .build();
     }
 
@@ -130,28 +126,25 @@ public class AdminRequestsProvider {
         return new Request.RequestBuilder<Void>()
                 .operation(DELETE)
                 .path(RULES_BASE_PATH)
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Void> createGlobalRule(Rule data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(POST)
-                    .path(RULES_BASE_PATH)
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> createGlobalRule(Rule data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(RULES_BASE_PATH)
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {})
+                .build();
     }
 
     public static Request<List<RuleType>> listGlobalRules() {
         return new Request.RequestBuilder<List<RuleType>>()
                 .operation(GET)
                 .path(RULES_BASE_PATH)
-                .responseType(new TypeReference<List<RuleType>>(){})
+                .responseType(new TypeReference<List<RuleType>>() {})
                 .build();
     }
 
@@ -159,7 +152,8 @@ public class AdminRequestsProvider {
         return new Request.RequestBuilder<InputStream>()
                 .operation(GET)
                 .path(EXPORT_PATH)
-                .responseType(new TypeReference<InputStream>(){})
+                .responseType(new TypeReference<InputStream>() {
+                })
                 .headers(new HashMap<>(Map.of(Request.ACCEPT, "application/zip")))
                 .build();
     }
@@ -168,7 +162,7 @@ public class AdminRequestsProvider {
         return new Request.RequestBuilder<Void>()
                 .operation(POST)
                 .path(IMPORT_PATH)
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {})
                 .data(data)
                 .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip")))
                 .build();

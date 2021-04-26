@@ -23,6 +23,24 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.multitenant.client.TenantManagerClientImpl;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.auth.KeycloakAuth;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.ApicurioRegistryBaseIT;
+import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.RegistryFacade;
+
 
 /**
  * @author Fabian Martinez

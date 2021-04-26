@@ -1,4 +1,4 @@
-name: cli-release-build
+name: cli-release-build-native-linux
 
 on:
   release:

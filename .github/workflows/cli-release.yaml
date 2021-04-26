@@ -3,14 +3,31 @@ name: cli-release-build
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Version (e.g. 2.0.0.Final)'
+        required: true
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
+    - name: Configure Environment (release)
+      if: github.event.release.tag_name != null
+      run: echo "TAG_NAME=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+    - name: Configure Environment (dispatch)
+      if: github.event.inputs.tag_name != null
+      run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+    - name: Get Upload URL
+      run: |
+        UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$TAG_NAME | jq -r ".upload_url"`
+        echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
+    - name: Log Environment Variables
+      run: |
+        echo "Tag name:   $TAG_NAME"
+        echo "Upload URL: $UPLOAD_URL"
     - name: Install graalvm
       uses: DeLaGuardo/setup-graalvm@4.0
       with:
@@ -25,7 +42,7 @@ jobs:
     - name: Get maven wrapper
       run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
     - name: Set version
-      run: ./mvnw versions:set -DnewVersion="${{ github.event.release.tag_name }}"
+      run: ./mvnw versions:set -DnewVersion="$TAG_NAME"
     - name: Build jvm jar
       run: ./mvnw -pl cli -am install
     - name: Upload jvm
@@ -34,9 +51,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./cli/target/apicurio-registry-cli-${{ github.event.release.tag_name }}-runner.jar
-        asset_name: apicurio-registry-cli-${{ github.event.release.tag_name }}.jar
+        upload_url: ${{ env.UPLOAD_URL }}
+        asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner.jar
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}.jar
         asset_content_type: application/octet-stream
     - name: Build native executable
       run: ./mvnw -pl cli package -Dnative
@@ -46,7 +63,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./cli/target/apicurio-registry-cli-${{ github.event.release.tag_name }}-runner
-        asset_name: apicurio-registry-cli-${{ github.event.release.tag_name }}-linux
+        upload_url: ${{ env.UPLOAD_URL }}
+        asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-linux
         asset_content_type: application/octet-stream

@@ -18,5 +18,9 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-rest-client-common</artifactId>
+        </dependency>
     </dependencies>
 </project>

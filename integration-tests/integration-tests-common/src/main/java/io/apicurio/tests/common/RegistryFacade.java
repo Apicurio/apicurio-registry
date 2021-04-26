@@ -146,6 +146,12 @@ public class RegistryFacade {
         }
     }
 
+    public List<String> getClusteredRegistryNodes() {
+        int c2port = TestUtils.getRegistryPort() + 1;
+        int c3port = c2port + 1;
+        return Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port, "http://localhost:" + c3port);
+    }
+
     public boolean isRunning() {
         return !processes.isEmpty();
     }
@@ -192,8 +198,15 @@ public class RegistryFacade {
                 Map<String, String> node1Env = new HashMap<>(appEnv);
                 runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
 
+                int c2port = TestUtils.getRegistryPort() + 1;
+
                 Map<String, String> node2Env = new HashMap<>(appEnv);
-                runRegistryNode(path, node2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
+                runRegistryNode(path, node2Env, String.valueOf(c2port));
+
+                int c3port = c2port + 1;
+
+                Map<String, String> node3Env = new HashMap<>(appEnv);
+                runRegistryNode(path, node3Env, String.valueOf(c3port));
 
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
@@ -239,7 +252,10 @@ public class RegistryFacade {
 
             try {
                 nodeIsReady.accept(TestUtils.getRegistryPort());
-                nodeIsReady.accept(TestUtils.getRegistryPort() + 1);
+                int c2port = TestUtils.getRegistryPort() + 1;
+                nodeIsReady.accept(c2port);
+                int c3port = c2port + 1;
+                nodeIsReady.accept(c3port);
             } catch (Throwable e) {
                 throw new Exception(e);
             }

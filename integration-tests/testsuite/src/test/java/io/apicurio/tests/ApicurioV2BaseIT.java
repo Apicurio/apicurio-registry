@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,6 +48,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.common.RegistryFacade;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -66,10 +66,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
 
     protected RegistryClient createRegistryClient() {
         if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
-
-            int c2port = TestUtils.getRegistryPort() + 1;
-
-            return new LoadBalanceRegistryClient(Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port));
+            return new LoadBalanceRegistryClient(RegistryFacade.getInstance().getClusteredRegistryNodes());
         } else {
             return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl());
         }

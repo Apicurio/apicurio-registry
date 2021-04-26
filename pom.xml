@@ -147,9 +147,6 @@
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>
 
-        <!-- gRPC -->
-        <grpc.version>1.37.0</grpc.version>
-
         <!-- Confluent API / client -->
         <confluent.version>6.0.1</confluent.version>
 
@@ -172,7 +169,7 @@
         <lombok.version>1.18.20</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.19.0</jdbi.version>
+        <jdbi.version>3.20.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <keycloak.version>11.0.3</keycloak.version>
@@ -434,38 +431,6 @@
                 <groupId>info.picocli</groupId>
                 <artifactId>picocli-shell-jline2</artifactId>
                 <version>${picocli.version}</version>
-            </dependency>
-
-            <!-- gRPC -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-api</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-context</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${grpc.version}</version>
             </dependency>
 
             <!-- GraphQL -->

@@ -27,7 +27,7 @@ import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.BasicAuth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
@@ -81,7 +81,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        client = RegistryClientFactory.create(baseUrl, config.originals());
+                        client = JdkRegistryClientFactory.create(baseUrl, config.originals());
                     }
                 }
             } catch (Exception e) {
@@ -228,7 +228,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
 
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        return JdkRegistryClientFactory.create(registryUrl, config.originals(), auth);
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
@@ -241,7 +241,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         Auth auth = new BasicAuth(username, password);
 
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        return JdkRegistryClientFactory.create(registryUrl, config.originals(), auth);
     }
 
     protected void loadFromArtifactMetaData(ArtifactMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {

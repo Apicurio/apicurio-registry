@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -71,7 +71,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
 
             return new LoadBalanceRegistryClient(Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port));
         } else {
-            return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl());
+            return JdkRegistryClientFactory.create(TestUtils.getRegistryBaseUrl());
         }
     }
 

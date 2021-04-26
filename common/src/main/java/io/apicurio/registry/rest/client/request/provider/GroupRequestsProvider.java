@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.request.ErrorHandler;
-import io.apicurio.registry.rest.client.request.Request;
+import io.apicurio.registry.rest.client.Request;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;

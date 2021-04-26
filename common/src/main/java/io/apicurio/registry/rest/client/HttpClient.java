@@ -16,25 +16,15 @@
 
 package io.apicurio.registry.rest.client;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
+import io.apicurio.registry.rest.client.request.Request;
 
 import java.util.Map;
 
-/**
- * @author Carles Arnal 'carnalca@redhat.com'
- */
-public class RegistryClientFactory {
+public interface HttpClient {
 
-    public static RegistryClient create(String basePath) {
-        return new RegistryClientImpl(basePath);
-    }
+    <T> T sendRequest(Request<T> request);
 
-    public static RegistryClient create(String baseUrl, Map<String, Object> configs) {
-        return new RegistryClientImpl(baseUrl, configs);
-    }
+    void setNextRequestHeaders(Map<String, String> headers);
 
-    public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        return new RegistryClientImpl(baseUrl, configs, auth);
-    }
+    Map<String, String> getHeaders();
 }

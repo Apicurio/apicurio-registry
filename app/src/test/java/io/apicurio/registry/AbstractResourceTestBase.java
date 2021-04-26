@@ -29,7 +29,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -70,7 +70,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected RegistryClient createRestClientV2() {
-        return RegistryClientFactory.create(registryV2ApiUrl);
+        return JdkRegistryClientFactory.create(registryV2ApiUrl);
     }
 
     @BeforeEach

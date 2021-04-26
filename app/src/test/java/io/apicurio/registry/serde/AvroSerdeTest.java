@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
@@ -69,7 +69,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = JdkRegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Test

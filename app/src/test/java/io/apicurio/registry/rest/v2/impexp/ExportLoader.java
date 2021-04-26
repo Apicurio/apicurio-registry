@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.v2.AdminResourceTest;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
@@ -42,7 +42,7 @@ public class ExportLoader {
             "}";
 
     public static void main(String[] args) throws IOException {
-        RegistryClient client = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
+        RegistryClient client = JdkRegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
 
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);

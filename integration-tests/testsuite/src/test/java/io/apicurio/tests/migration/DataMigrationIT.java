@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
@@ -47,7 +47,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     @Test
     public void migrate() throws Exception {
 
-        RegistryClient source = RegistryClientFactory.create(registryFacade.getSourceRegistryUrl());
+        RegistryClient source = JdkRegistryClientFactory.create(registryFacade.getSourceRegistryUrl());
 
         List<Long> globalIds = new ArrayList<>();
 
@@ -82,7 +82,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         rule.setConfig("BACKWARD");
         source.createGlobalRule(rule);
 
-        RegistryClient dest = RegistryClientFactory.create(registryFacade.getDestRegistryUrl());
+        RegistryClient dest = JdkRegistryClientFactory.create(registryFacade.getDestRegistryUrl());
 
         dest.importData(source.exportData());
 

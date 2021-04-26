@@ -21,7 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -60,7 +60,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         hosts.stream()
             .forEach(h -> {
                 RegistryClientHolder c = new RegistryClientHolder();
-                c.client = RegistryClientFactory.create(h);
+                c.client = JdkRegistryClientFactory.create(h);
                 c.host = h;
                 targets.add(c);
             });

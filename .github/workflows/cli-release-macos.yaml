@@ -59,6 +59,6 @@ jobs:
       with:
         upload_url: ${{ env.UPLOAD_URL }}
         asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner
-        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}--macos
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-macos
         asset_label: macos
         asset_content_type: application/octet-stream

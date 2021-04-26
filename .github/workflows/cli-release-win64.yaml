@@ -3,14 +3,39 @@ name: cli-release-build-native-win64
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Version (e.g. 2.0.0.Final)'
+        required: true
 
 jobs:
   build:
-
     runs-on: windows-2019
-
     steps:
     - uses: actions/checkout@v2
+    - name: Configure Environment (release)
+      if: github.event.release.tag_name != null
+      run: echo TAG_NAME=${{ github.event.release.tag_name }} >> $GITHUB_ENV
+      shell: cmd
+    - name: Configure Environment (dispatch)
+      if: github.event.inputs.tag_name != null
+      run: echo TAG_NAME=${{ github.event.inputs.tag_name }} >> $GITHUB_ENV
+      shell: cmd
+    - name: Get Upload URL
+      uses: Amadevus/pwsh-script@v2
+      id: get-upload-url-script
+      with:
+        script: |
+          (Invoke-RestMethod -URI https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }}).upload_url
+    - name: Set Upload URL Env Var
+      run: |
+        echo UPLOAD_URL=${{ steps.bad-script.outputs.result }} >> $GITHUB_ENV
+      shell: cmd
+    - name: Log Environment Variables
+      run: |
+        echo "Tag name:   %TAG_NAME%"
+        echo "Upload URL: %UPLOAD_URL%"
     - name: Install graalvm
       uses: DeLaGuardo/setup-graalvm@4.0
       with:
@@ -29,7 +54,7 @@ jobs:
       # For details see https://github.com/actions/virtual-environments/issues/785
       uses: al-cheb/configure-pagefile-action@v1.2
     - name: Set version
-      run: mvn versions:set -DnewVersion="${{ github.event.release.tag_name }}"
+      run: mvn versions:set -DnewVersion="%TAG_NAME%"
       shell: cmd
     - name: Build jvm jar
       run: mvn -pl cli -am install
@@ -45,8 +70,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: cli/target/apicurio-registry-cli-${{ github.event.release.tag_name }}-runner.exe
-        asset_name: apicurio-registry-cli-${{ github.event.release.tag_name }}-win64.exe
+        upload_url: ${{ env.UPLOAD_URL }}
+        asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner.exe
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-win64.exe
         asset_label: win64
         asset_content_type: application/octet-stream

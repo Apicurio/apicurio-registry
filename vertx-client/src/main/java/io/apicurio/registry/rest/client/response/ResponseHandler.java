@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client;
+package io.apicurio.registry.rest.client.response;
 
-import io.apicurio.registry.rest.client.request.Request;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpResponse;
 
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-public interface HttpClient {
+public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buffer>>> {
 
-    <T> T sendRequest(Request<T> request);
+    final CompletableFuture<T> resultHolder;
 
-    void setNextRequestHeaders(Map<String, String> headers);
+    public ResponseHandler(CompletableFuture<T> resultHolder) {
+        this.resultHolder = resultHolder;
+    }
 
-    Map<String, String> getHeaders();
+    @Override
+    public void handle(AsyncResult<HttpResponse<Buffer>> event) {
+
+    }
 }

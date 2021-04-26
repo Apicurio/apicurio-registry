@@ -32,8 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -69,8 +68,9 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
             throw new TestAbortedException("Multitenancy not supported - aborting test");
         }
 
-        RegistryClient clientTenant1 = JdkRegistryClientFactory.create("http://localhost:8081/t/" + UUID.randomUUID().toString() + "/apis/registry/v2" );
-        RegistryClient clientTenant2 = JdkRegistryClientFactory.create("http://localhost:8081/t/" + UUID.randomUUID().toString() + "/apis/registry/v2" );
+        RegistryClient clientTenant1 = RegistryClientFactory.create("http://localhost:8081/t/" + UUID.randomUUID().toString() + "/apis/registry/v2");
+        RegistryClient clientTenant2 = RegistryClientFactory.create("http://localhost:8081/t/" + UUID.randomUUID().toString() + "/apis/registry/v2");
+
         String tenantId1 = UUID.randomUUID().toString();
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId(tenantId1);

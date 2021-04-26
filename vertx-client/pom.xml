@@ -25,12 +25,17 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>apicurio-registry-rest-client-common</artifactId>
+    <artifactId>apicurio-registry-vertx-client</artifactId>
+
 
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-common</artifactId>
+            <artifactId>apicurio-registry-rest-client-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
         </dependency>
     </dependencies>
 </project>

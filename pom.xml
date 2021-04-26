@@ -114,6 +114,7 @@
         <module>rest-client-common</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
+        <module>vertx-client</module>
     </modules>
 
     <properties>
@@ -240,6 +241,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-vertx-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

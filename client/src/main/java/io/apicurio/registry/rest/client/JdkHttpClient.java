@@ -72,7 +72,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIE
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class JdkHttpClient implements io.apicurio.registry.rest.client.HttpClient {
+public class JdkHttpClient implements RegistryHttpClient {
 
     private static final String BASE_PATH = "apis/registry/v2/";
 
@@ -174,6 +174,7 @@ public class JdkHttpClient implements io.apicurio.registry.rest.client.HttpClien
         return keyManagers;
     }
 
+    @Override
     public <T> T sendRequest(Request<T> request) {
         try {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -241,10 +242,12 @@ public class JdkHttpClient implements io.apicurio.registry.rest.client.HttpClien
         }
     }
 
+    @Override
     public void setNextRequestHeaders(Map<String, String> headers) {
         requestHeaders.set(headers);
     }
 
+    @Override
     public Map<String, String> getHeaders() {
         return requestHeaders.get();
     }

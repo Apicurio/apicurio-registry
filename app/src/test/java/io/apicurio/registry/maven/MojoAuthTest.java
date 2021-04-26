@@ -20,7 +20,7 @@ import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.AuthTestProfile;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -53,7 +53,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testPassword = "sr-test-password";
 
     private RegistryClient createClient(Auth auth) {
-        return JdkRegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
     /**

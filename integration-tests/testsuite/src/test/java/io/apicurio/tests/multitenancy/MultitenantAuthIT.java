@@ -29,7 +29,7 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;

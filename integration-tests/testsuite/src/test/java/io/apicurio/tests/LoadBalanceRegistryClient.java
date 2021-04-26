@@ -20,6 +20,8 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -68,8 +70,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     private synchronized RegistryClient getTarget() {
-        RegistryClientHolder t = this.targets.poll();
-        this.targets.addLast(t);
+        int randomElementIndex = ThreadLocalRandom.current().nextInt(this.targets.size());
+        RegistryClientHolder t = this.targets.get(randomElementIndex);
         System.out.println("Request to " + t.host);
         return t.client;
     }

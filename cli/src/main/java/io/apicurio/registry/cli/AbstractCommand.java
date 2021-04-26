@@ -17,7 +17,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import picocli.CommandLine;
 
 import java.util.logging.Level;
@@ -62,7 +62,7 @@ public abstract class AbstractCommand implements Runnable {
     protected RegistryClient getClient() {
         if (client == null) {
             log.info("Connecting to registry at " + url + "\n");
-            client = JdkRegistryClientFactory.create(url);
+            client = RegistryClientFactory.create(url);
         }
         return client;
     }

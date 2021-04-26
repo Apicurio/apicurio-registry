@@ -42,7 +42,7 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -125,7 +125,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
     private RegistryClient createAndGetTenantAdminClient() {
         TenantAuthInfo tenantInfo = createTenant();
         Auth auth = new KeycloakAuth(registryFacade.getAuthServerUrl(), tenantInfo.getRealm(), tenantInfo.getClientId(), tenantInfo.getClientSecret());
-        RegistryClient client  = JdkRegistryClientFactory.create(tenantInfo.getTenantAppUrl() + "/apis/registry/v2", Collections.emptyMap(), auth);
+        RegistryClient client  = RegistryClientFactory.create(tenantInfo.getTenantAppUrl() + "/apis/registry/v2", Collections.emptyMap(), auth);
         return client;
     }
 

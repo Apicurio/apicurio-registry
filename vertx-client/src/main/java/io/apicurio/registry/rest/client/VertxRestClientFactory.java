@@ -22,20 +22,17 @@ import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import java.util.Collections;
 import java.util.Map;
 
-/**
- * @author Carles Arnal 'carnalca@redhat.com'
- */
-public class JdkRegistryClientFactory {
+public class VertxRestClientFactory {
 
     public static RegistryClient create(String basePath) {
-        return new RegistryClientImpl(new JdkHttpClient(basePath, Collections.emptyMap(), null));
+        return new RegistryClientImpl(new VertxRestClient(basePath, Collections.emptyMap(), null));
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs) {
-        return new RegistryClientImpl(new JdkHttpClient(baseUrl, configs, null));
+        return new RegistryClientImpl(new VertxRestClient(baseUrl, configs, null));
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        return new RegistryClientImpl(new JdkHttpClient(baseUrl, configs, auth));
+        return new RegistryClientImpl(new VertxRestClient(baseUrl, configs, auth));
     }
 }

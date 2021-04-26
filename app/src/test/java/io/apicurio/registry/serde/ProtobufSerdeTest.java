@@ -32,7 +32,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
@@ -51,7 +51,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        restClient = JdkRegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
     }
 
     //FIXME

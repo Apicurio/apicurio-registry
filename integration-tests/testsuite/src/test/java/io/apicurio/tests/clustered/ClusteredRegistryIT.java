@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.JdkRegistryClientFactory;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -56,9 +56,9 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
     @Test
     public void testSmoke() throws Exception {
 
-        RegistryClient client1 = JdkRegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
         int node2port = TestUtils.getRegistryPort() + 1;
-        RegistryClient client2 = JdkRegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup("testSmoke");
@@ -150,9 +150,9 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
     @Test
     public void testSearch() throws Exception {
 
-        RegistryClient client1 = JdkRegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
         int node2port = TestUtils.getRegistryPort() + 1;
-        RegistryClient client2 = JdkRegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup(groupId);
@@ -197,9 +197,9 @@ public class ClusteredRegistryIT  extends ApicurioV2BaseIT {
     @Test
     public void testGetContentByGlobalId() throws Exception {
 
-        RegistryClient client1 = JdkRegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
+        RegistryClient client1 = RegistryClientFactory.create("http://localhost:" + TestUtils.getRegistryPort() + "/apis/registry/v2");
         int node2port = TestUtils.getRegistryPort() + 1;
-        RegistryClient client2 = JdkRegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
+        RegistryClient client2 = RegistryClientFactory.create("http://localhost:" + node2port + "/apis/registry/v2");
 
         // warm-up both nodes (its storages)
         client1.listArtifactsInGroup(groupId);

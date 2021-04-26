@@ -23,6 +23,8 @@ jobs:
     - name: Get Upload URL
       run: |
         jq --version
+        echo "Downloading from: https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }}"
+        echo "Alternative from: https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$TAG_NAME"
         UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }} | jq -r ".upload_url"`
         echo "Found Upload URL: $UPLOAD_URL"
         echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV

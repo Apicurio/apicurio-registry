@@ -25,23 +25,15 @@ jobs:
     - name: Check ENV Var file
       run: echo %GITHUB_ENV%
       shell: cmd
-    - name: Get All Env
+    - name: Get Upload URL
       run: |
         Get-ChildItem env:
+        echo "TAG_NAME is $env:TAG_NAME"
+        $upload_url = (Invoke-RestMethod -URI https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$env:TAG_NAME).upload_url
+        $env_entry = "UPLOAD_URL=$upload_url"
+        Add-Content $env:GITHUB_ENV $env_entry
+        echo "UPLOAD_URL env var set to $upload_url"
       shell: powershell
-    - name: Get Upload URL
-      uses: Amadevus/pwsh-script@v2
-      id: get-upload-url-script
-      with:
-        script: |
-          Get-ChildItem env:
-          echo "TAG_NAME is $env:TAG_NAME"
-          echo "env.TAG_NAME is ${{ env.TAG_NAME }}"
-          (Invoke-RestMethod -URI https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }}).upload_url
-    - name: Set Upload URL Env Var
-      run: |
-        echo UPLOAD_URL=${{ steps.bad-script.outputs.result }} >> $GITHUB_ENV
-      shell: cmd
     - name: Log Environment Variables
       run: |
         echo "Tag name:   %TAG_NAME%"

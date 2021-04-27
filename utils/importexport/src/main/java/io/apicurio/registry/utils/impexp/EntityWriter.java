@@ -68,6 +68,9 @@ public class EntityWriter {
             case GlobalRule:
                 writeEntity((GlobalRuleEntity) entity);
                 break;
+            case Manifest:
+                writeEntity((ManifestEntity) entity);
+                break;
             default:
                 throw new RuntimeException("Unhandled entity type: " + entity.getEntityType().name());
         }
@@ -84,6 +87,11 @@ public class EntityWriter {
         zip.putNextEntry(dataEntry);
         zip.write(entity.contentBytes);
         zip.closeEntry();
+    }
+
+    private void writeEntity(ManifestEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.Manifest, "manifest-" + entity.exportedOn.toInstant().toString(), "json");
+        write(mdEntry, entity, ManifestEntity.class);
     }
 
     private void writeEntity(GroupEntity entity) throws IOException {
@@ -127,6 +135,9 @@ public class EntityWriter {
                 break;
             case Group:
                 path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case Manifest:
+                path = String.format("%s.%s.%s", fileName, type.name(), fileExt);
                 break;
             default:
                 throw new RuntimeException("Unhandled entity type: " + type.name());

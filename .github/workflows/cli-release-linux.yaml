@@ -1,4 +1,4 @@
-name: cli-release-build-native-macos
+name: cli-release-build-native-linux
 
 on:
   release:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Configure Environment (release)
@@ -22,11 +22,7 @@ jobs:
       run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
     - name: Get Upload URL
       run: |
-        jq --version
-        echo "Downloading from: https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }}"
-        echo "Alternative from: https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$TAG_NAME"
-        UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/${{ env.TAG_NAME }} | jq -r ".upload_url"`
-        echo "Found Upload URL: $UPLOAD_URL"
+        UPLOAD_URL=`curl https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$TAG_NAME | jq -r ".upload_url"`
         echo "UPLOAD_URL=$UPLOAD_URL" >> $GITHUB_ENV
     - name: Log Environment Variables
       run: |
@@ -49,6 +45,16 @@ jobs:
       run: ./mvnw versions:set -DnewVersion="$TAG_NAME"
     - name: Build jvm jar
       run: ./mvnw -pl cli -am install
+    - name: Upload jvm
+      id: upload-jar
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ env.UPLOAD_URL }}
+        asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner.jar
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}.jar
+        asset_content_type: application/octet-stream
     - name: Build native executable
       run: ./mvnw -pl cli package -Dnative
     - name: Upload native executable
@@ -59,6 +65,5 @@ jobs:
       with:
         upload_url: ${{ env.UPLOAD_URL }}
         asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner
-        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-macos
-        asset_label: macos
+        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-linux
         asset_content_type: application/octet-stream

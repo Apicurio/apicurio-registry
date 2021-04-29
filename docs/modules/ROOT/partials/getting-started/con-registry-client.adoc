@@ -3,8 +3,9 @@
 [id="registry-client-intro"]
 = {registry} Java client 
 
-You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes.
+[role="_abstract"]
+You can manage artifacts stored in {registry} using a Java client application. You can create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes. You can also perform admin functions using the client, such as managing global rules or importing and exporting registry data.
 
-You can access the {registry} Java client by adding the correct dependency to your project, see xref:writing-registry-client[].
+You can access the {registry} Java client by adding the correct dependency to your project. For more details, see xref:writing-registry-client[].
 
-The {registry} client is auto-closeable and is implemented using Retrofit and OkHttp as base libraries. This gives you the ability to customize its use, for example, by adding custom headers or enabling Transport Layer Security (TLS) authentication. For more details, see xref:registry-client-config[].
+The {registry} client is implemented using the HTTP client provided by the JDK. This gives you the ability to customize its use, for example, by adding custom headers or enabling options for Transport Layer Security (TLS) authentication. For more details, see xref:registry-client-config[].

@@ -3,6 +3,8 @@
 
 [id="registry-client-config"]
 = {registry} Java client configuration
+
+[role="_abstract"]
 The {registry} Java client includes the following configuration options, based on the client factory:
 
 .{registry} Java client configuration options

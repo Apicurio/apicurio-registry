@@ -110,6 +110,7 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -990,6 +991,16 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 break;
             case Group:
                 importGroup((GroupEntity) entity);
+                break;
+            case Manifest:
+                ManifestEntity manifest = (ManifestEntity) entity;
+                log.info("---------- Import Info ----------");
+                log.info("System Name:    {}", manifest.systemName);
+                log.info("System Desc:    {}", manifest.systemDescription);
+                log.info("System Version: {}", manifest.systemVersion);
+                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
+                log.info("---------- ----------- ----------");
+                // Ignore the manifest for now.
                 break;
             default:
                 throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());

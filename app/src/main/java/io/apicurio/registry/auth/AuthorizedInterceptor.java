@@ -60,9 +60,9 @@ public class AuthorizedInterceptor {
     String adminRole;
 
     @PostConstruct
-    public void onConstruct() {
+    public void onConstruct(InvocationContext context) {
         if (isAuthEnabled()) {
-            log.info("*** Only-only authorization is enabled ***");
+            log.info("*** Owner-only authorization is enabled ***");
         }
     }
 

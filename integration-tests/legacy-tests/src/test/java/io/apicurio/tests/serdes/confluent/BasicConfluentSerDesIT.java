@@ -59,7 +59,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     @Test
     void testAvroConfluentSerDesFail() throws IOException, RestClientException, TimeoutException {
         String topicName = TestUtils.generateTopic();
-        String subjectName = "myrecordconfluent2";
+        String subjectName = "testAvroConfluentSerDesFail";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -74,7 +74,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     @Test
     void testAvroConfluentSerDesWrongStrategyTopic() throws IOException, RestClientException, TimeoutException {
         String topicName = TestUtils.generateTopic();
-        String subjectName = "myrecordconfluent3";
+        String subjectName = "testAvroConfluentSerDesWrongStrategyTopic";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 
@@ -89,7 +89,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     @Test
     void testAvroConfluentSerDesWrongStrategyRecord() throws IOException, RestClientException, TimeoutException {
         String topicName = TestUtils.generateTopic();
-        String subjectName = topicName + "-value";
+        String subjectName = topicName + "-testAvroConfluentSerDesWrongStrategyRecord";
         String schemaKey = "key1";
         kafkaCluster.createTopic(topicName, 1, 1);
 

@@ -35,12 +35,12 @@ import io.apicurio.registry.types.ArtifactType;
 public class SearchedArtifact {
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("The ID of a single Artifact.")
+    @JsonPropertyDescription("The ID of a single artifact.")
     private String id;
     /**
      * 
@@ -113,15 +113,15 @@ public class SearchedArtifact {
     @JsonPropertyDescription("")
     private String modifiedBy;
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
-    @JsonPropertyDescription("An id of a single Artifact Group.")
+    @JsonPropertyDescription("An ID of a single artifact group.")
     private String groupId;
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -131,7 +131,7 @@ public class SearchedArtifact {
     }
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -313,7 +313,7 @@ public class SearchedArtifact {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
@@ -322,7 +322,7 @@ public class SearchedArtifact {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")

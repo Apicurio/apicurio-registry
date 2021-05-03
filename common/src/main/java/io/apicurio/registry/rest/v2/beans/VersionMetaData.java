@@ -95,12 +95,12 @@ public class VersionMetaData {
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
     private ArtifactState state;
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("The ID of a single Artifact.")
+    @JsonPropertyDescription("The ID of a single artifact.")
     private String id;
     /**
      * 
@@ -116,11 +116,11 @@ public class VersionMetaData {
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
     private Map<String, String> properties;
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
-    @JsonPropertyDescription("An id of a single Artifact Group.")
+    @JsonPropertyDescription("An ID of a single artifact group.")
     private String groupId;
     /**
      * 
@@ -282,7 +282,7 @@ public class VersionMetaData {
     }
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -292,7 +292,7 @@ public class VersionMetaData {
     }
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -336,7 +336,7 @@ public class VersionMetaData {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
@@ -345,7 +345,7 @@ public class VersionMetaData {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")

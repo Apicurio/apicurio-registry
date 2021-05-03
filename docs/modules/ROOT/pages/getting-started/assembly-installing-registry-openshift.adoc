@@ -5,15 +5,23 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Installing {registry} on OpenShift
 
 [role="_abstract"]
-This chapter explains how to install {registry}:
+This chapter explains how to install {registry} on OpenShift Container Platform:
 
 * xref:installing-registry-operatorhub[]
-//* xref:installing-registry-kafka-streams-template-storage[]
 
 .Prerequisites
+ifdef::apicurio-registry[]
 * {registry-overview}
+endif::[]
+ifdef::rh-service-registry[]
+* Read the introduction in the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}]
+[IMPORTANT]
+====
+{registry} is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
 
 ifdef::apicurio-registry[]
 [role="_additional-resources"]
@@ -22,5 +30,4 @@ ifdef::apicurio-registry[]
 endif::[]
 
 //INCLUDES
-//include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-installing-registry-operatorhub.adoc[leveloffset=+1]

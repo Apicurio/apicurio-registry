@@ -25,6 +25,11 @@
           <artifactId>apicurio-registry-client</artifactId>
           <version>${version.apicurio}</version>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>client-impl-jdk</artifactId>
+            <version>${version.apicurio}</version>
+        </dependency>
     </dependencies>
 </project>
 

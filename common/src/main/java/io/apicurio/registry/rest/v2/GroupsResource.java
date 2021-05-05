@@ -211,7 +211,7 @@ public interface GroupsResource {
    */
   @Path("/{groupId}/artifacts/{artifactId}/meta")
   @PUT
-  @Consumes("*/*")
+  @Consumes("application/json")
   void updateArtifactMetaData(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, EditableMetaData data);
 
@@ -231,7 +231,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts/{artifactId}/meta")
   @POST
   @Produces("application/json")
-  @Consumes("application/json")
+  @Consumes("*/*")
   VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @QueryParam("canonical") Boolean canonical,
       InputStream data);

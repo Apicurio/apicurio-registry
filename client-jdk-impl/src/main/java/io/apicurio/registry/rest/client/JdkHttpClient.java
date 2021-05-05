@@ -21,9 +21,7 @@ import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.request.BodyHandler;
 import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
-import io.apicurio.registry.rest.client.request.provider.Operation;
 import io.apicurio.registry.utils.BooleanUtil;
-
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
@@ -60,17 +58,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
-import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND;
-import static io.apicurio.registry.rest.client.request.provider.Operation.*;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'

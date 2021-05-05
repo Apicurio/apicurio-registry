@@ -24,7 +24,7 @@ public interface IdsResource {
    */
   @Path("/contentIds/{contentId}/")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Produces("*/*")
   Response getContentById(@PathParam("contentId") int contentId);
 
   /**
@@ -39,7 +39,7 @@ public interface IdsResource {
    */
   @Path("/globalIds/{globalId}")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Produces("*/*")
   Response getContentByGlobalId(@PathParam("globalId") int globalId);
 
   /**
@@ -55,6 +55,6 @@ public interface IdsResource {
    */
   @Path("/contentHashes/{contentHash}/")
   @GET
-  @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer"})
+  @Produces("*/*")
   Response getContentByHash(@PathParam("contentHash") String contentHash);
 }

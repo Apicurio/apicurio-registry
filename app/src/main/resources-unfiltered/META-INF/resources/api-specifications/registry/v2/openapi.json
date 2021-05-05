@@ -1186,7 +1186,7 @@
                 "requestBody": {
                     "description": "Updated artifact metadata.",
                     "content": {
-                        "*/*": {
+                        "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/EditableMetaData"
                             }
@@ -1216,9 +1216,12 @@
                 "requestBody": {
                     "description": "The content of an artifact version.",
                     "content": {
-                        "application/json": {
+                        "*/*": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileContent"
+                            },
                             "examples": {
-                                "OpenAPI Example": {
+                                "OpenAPI": {
                                     "value": {
                                         "openapi": "3.0.2",
                                         "info": {

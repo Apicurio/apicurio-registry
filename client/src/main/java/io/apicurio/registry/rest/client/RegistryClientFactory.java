@@ -18,6 +18,8 @@ package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
+import io.apicurio.registry.rest.client.spi.RestClientProvider;
+import io.apicurio.registry.rest.client.spi.RestClientServiceLoader;
 
 import java.util.Collections;
 import java.util.Map;
@@ -27,15 +29,25 @@ import java.util.Map;
  */
 public class RegistryClientFactory {
 
+    private static final RestClientServiceLoader serviceLoader = new RestClientServiceLoader();
+
     public static RegistryClient create(String basePath) {
-        return new RegistryClientImpl(new JdkHttpClient(basePath, Collections.emptyMap(), null));
+        return create(basePath, Collections.emptyMap(), null);
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs) {
-        return new RegistryClientImpl(new JdkHttpClient(baseUrl, configs, null));
+        return create(baseUrl, configs, null);
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        return new RegistryClientImpl(new JdkHttpClient(baseUrl, configs, auth));
+
+        final RestClientProvider restClientProvider = resolveProviderInstance();
+
+        return new RegistryClientImpl(restClientProvider.create(baseUrl, configs, auth));
+    }
+
+    private static RestClientProvider resolveProviderInstance() {
+        return serviceLoader.providers(true)
+                .next();
     }
 }

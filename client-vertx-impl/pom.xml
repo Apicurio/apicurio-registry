@@ -31,7 +31,7 @@
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-rest-client-common</artifactId>
+            <artifactId>apicurio-registry-client</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>

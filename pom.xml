@@ -111,10 +111,10 @@
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
-        <module>rest-client-common</module>
+        <module>client-vertx-impl</module>
+        <module>client-jdk-impl</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
-        <module>vertx-client</module>
     </modules>
 
     <properties>
@@ -250,7 +250,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-rest-client-common</artifactId>
+                <artifactId>client-impl-jdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

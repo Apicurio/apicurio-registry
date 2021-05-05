@@ -17,9 +17,11 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.request.BodyHandler;
 import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
+import io.apicurio.registry.rest.client.request.provider.Operation;
 import io.apicurio.registry.utils.BooleanUtil;
 
 import org.apache.http.NameValuePair;
@@ -68,6 +70,7 @@ import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQU
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
 import static io.apicurio.registry.rest.client.config.ClientConfig.REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND;
+import static io.apicurio.registry.rest.client.request.provider.Operation.*;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -86,7 +89,7 @@ public class JdkHttpClient implements RegistryHttpClient {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
-        Object disableAutoBasePathAppend = configs.get(REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND);
+        Object disableAutoBasePathAppend = configs.get(ClientConfig.REGISTRY_CLIENT_DISABLE_AUTO_BASE_PATH_APPEND);
         if (!BooleanUtil.toBoolean(disableAutoBasePathAppend)) {
             if (!endpoint.endsWith(BASE_PATH)) {
                 endpoint += BASE_PATH;
@@ -110,9 +113,9 @@ public class JdkHttpClient implements RegistryHttpClient {
     private static void addHeaders(Map<String, Object> configs) {
 
         Map<String, String> requestHeaders = configs.entrySet().stream()
-                .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
+                .filter(map -> map.getKey().startsWith(ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX))
                 .collect(Collectors.toMap(map -> map.getKey()
-                        .replace(REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
+                        .replace(ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
 
         if (!requestHeaders.isEmpty()) {
             requestHeaders.forEach(DEFAULT_HEADERS::put);
@@ -144,11 +147,11 @@ public class JdkHttpClient implements RegistryHttpClient {
     private static TrustManager[] getTrustManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
         TrustManager[] trustManagers = null;
 
-        if (configs.containsKey(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)) {
-            String truststoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_TYPE, "JKS");
+        if (configs.containsKey(ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION)) {
+            String truststoreType = (String) configs.getOrDefault(ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE, "JKS");
             KeyStore truststore = KeyStore.getInstance(truststoreType);
-            String truststorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_TRUSTSTORE_PASSWORD, "");
-            truststore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_TRUSTSTORE_LOCATION)), truststorePwd.toCharArray());
+            String truststorePwd = (String) configs.getOrDefault(ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD, "");
+            truststore.load(new FileInputStream((String) configs.get(ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION)), truststorePwd.toCharArray());
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(truststore);
             trustManagers = trustManagerFactory.getTrustManagers();
@@ -159,15 +162,15 @@ public class JdkHttpClient implements RegistryHttpClient {
     private static KeyManager[] getKeyManagers(Map<String, Object> configs) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
         KeyManager[] keyManagers = null;
 
-        if (configs.containsKey(REGISTRY_REQUEST_KEYSTORE_LOCATION)) {
-            String keystoreType = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_TYPE, "JKS");
+        if (configs.containsKey(ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION)) {
+            String keystoreType = (String) configs.getOrDefault(ClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE, "JKS");
             KeyStore keystore = KeyStore.getInstance(keystoreType);
-            String keyStorePwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEYSTORE_PASSWORD, "");
-            keystore.load(new FileInputStream((String) configs.get(REGISTRY_REQUEST_KEYSTORE_LOCATION)), keyStorePwd.toCharArray());
+            String keyStorePwd = (String) configs.getOrDefault(ClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD, "");
+            keystore.load(new FileInputStream((String) configs.get(ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION)), keyStorePwd.toCharArray());
 
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             // If no key password provided, try using the keystore password
-            String keyPwd = (String) configs.getOrDefault(REGISTRY_REQUEST_KEY_PASSWORD, keyStorePwd);
+            String keyPwd = (String) configs.getOrDefault(ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD, keyStorePwd);
             keyManagerFactory.init(keystore, keyPwd.toCharArray());
             keyManagers = keyManagerFactory.getKeyManagers();
         }

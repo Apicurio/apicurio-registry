@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 
 import javax.annotation.Priority;
+import javax.inject.Inject;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -28,7 +29,6 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.ext.Provider;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Request filter that rewrites requests from the path the API had for the 1.X releases to it's new location under "/apis/registry/v1"
@@ -46,7 +46,8 @@ import org.slf4j.LoggerFactory;
 @Provider
 public class CompatibilityV1ApiRequestFilter implements ContainerRequestFilter {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    @Inject
+    Logger log;
 
     public static final String V1_API_OLD_PATH = "/api/";
 

@@ -32,7 +32,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class provides the logic to configure the authentication layer with the tenant configuration
@@ -46,7 +45,8 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class CustomTenantConfigResolver implements TenantConfigResolver {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     @Inject
     TenantMetadataService tenantMetadataService;

@@ -25,8 +25,6 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.events.EventSourcedRegistryStorage;
 import io.apicurio.registry.events.EventsService;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
@@ -37,7 +35,9 @@ import io.apicurio.registry.types.Current;
  */
 @ApplicationScoped
 public class RegistryStorageProducer {
-    private static Logger log = LoggerFactory.getLogger(RegistryStorageProducer.class);
+
+    @Inject
+    Logger log;
 
     @Inject
     Instance<RegistryStorage> storages;

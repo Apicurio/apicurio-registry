@@ -31,9 +31,6 @@ import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
@@ -52,8 +49,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 @Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
 @Logged
 public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
-
-    private static final Logger log = LoggerFactory.getLogger(SqlRegistryStorage.class);
 
     @PostConstruct
     void onConstruct() {

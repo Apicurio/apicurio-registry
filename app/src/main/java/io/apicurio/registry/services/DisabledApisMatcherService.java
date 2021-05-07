@@ -28,7 +28,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.mt.MultitenancyProperties;
 
@@ -38,7 +37,8 @@ import io.apicurio.registry.mt.MultitenancyProperties;
 @ApplicationScoped
 public class DisabledApisMatcherService {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     private static final String UI_PATTERN = "/ui/.*";
 

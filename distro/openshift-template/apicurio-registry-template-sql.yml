@@ -88,6 +88,8 @@ objects:
             value: ${REGISTRY_DATASOURCE_USERNAME}
           - name: REGISTRY_DATASOURCE_PASSWORD
             value: ${REGISTRY_DATASOURCE_PASSWORD}
+          - name: REGISTRY_ELASTIC_URL
+            value: ${REGISTRY_ELASTIC_URL}
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}
@@ -188,3 +190,7 @@ parameters:
   displayName: Datasource Password
   description: Datasource Password
   required: false
+- name: REGISTRY_ELASTIC_URL
+  displayName: ElasticSearch URL
+  description: ElasticSearch Server URL
+  required: true

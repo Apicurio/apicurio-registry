@@ -327,6 +327,11 @@ public interface SqlStatements {
     public String selectArtifactCountById();
 
     /**
+     * A statement to select the number of artifacts with a given group (should be 0 or 1).
+     */
+    public String selectGroupCountById();
+
+    /**
      * A statement to select the number of content rows for a given content hash.
      */
     public String selectContentCountByHash();

@@ -241,6 +241,7 @@ public final class V2ApiUtil {
             sa.setId(artifact.getId());
             sa.setGroupId(artifact.getGroupId());
             sa.setLabels(artifact.getLabels());
+            sa.setProperties(artifact.getProperties());
             sa.setModifiedBy(artifact.getModifiedBy());
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());

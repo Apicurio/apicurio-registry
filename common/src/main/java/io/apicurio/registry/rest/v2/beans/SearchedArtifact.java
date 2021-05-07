@@ -1,9 +1,6 @@
 
 package io.apicurio.registry.rest.v2.beans;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,6 +8,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -26,6 +29,7 @@ import io.apicurio.registry.types.ArtifactType;
     "createdBy",
     "type",
     "labels",
+    "properties",
     "state",
     "modifiedOn",
     "modifiedBy",
@@ -85,6 +89,12 @@ public class SearchedArtifact {
     @JsonProperty("labels")
     @JsonPropertyDescription("")
     private List<String> labels = new ArrayList<String>();
+    /**
+     *
+     */
+    @JsonProperty("properties")
+    @JsonPropertyDescription("")
+    private Map<String,String> properties = new HashMap<String,String>();
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
@@ -246,6 +256,24 @@ public class SearchedArtifact {
     @JsonProperty("labels")
     public void setLabels(List<String> labels) {
         this.labels = labels;
+    }
+
+    /**
+     *
+     *
+     */
+    @JsonProperty("properties")
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
+    /**
+     *
+     *
+     */
+    @JsonProperty("properties")
+    public void setProperties(Map<String, String> properties) {
+        this.properties = properties;
     }
 
     /**

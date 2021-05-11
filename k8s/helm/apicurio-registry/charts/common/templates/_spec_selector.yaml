@@ -1,0 +1,8 @@
+{{ define "common.selector" -}}
+spec:
+  selector:
+    matchmatchlabels:
+{{ include "common.matchlabels.standard" . | indent 6 -}}
+{{- end -}}
+
+

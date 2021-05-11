@@ -1,0 +1,95 @@
+{{- /*
+common.pod.simple provides a tool for generating trivial pods.
+
+This assumes a pod with one main container.
+
+*/ -}}
+{{- define "common.pod.simple" }}
+apiVersion: v1
+kind: Pod
+{{ template "common.metadata" (dict "top" .top "metadata" .pod) }}
+{{ template "common.podspec.simple" . }}
+{{- end -}}
+
+{{- /*
+common.podspec.simple is a podspec for simple pod configurations.
+
+This is for a podspec with one main container.
+
+This can be used for generating pod templates inside of more complex types,
+like jobs, replicasets, and deployments.
+
+This takes two objects in the context:
+- top: the top context
+- pod: the properties of the pod.
+
+*/ -}}
+{{- define "common.podspec.simple" -}}
+{{- $name := include "common.name" .top }}
+spec:
+  containers:
+    - {{- include "common.container.simple" (dict "top" .top "container" .pod) | indent 6 }}
+  {{- if .pod.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml .pod.imagePullSecrets | indent 4 -}}
+  {{- end }}
+  {{- if .pod.restartPolicy }}
+  restartPolicy: {{.pod.restartPolicy | quote }}{{ end -}}
+  {{- if .pod.persistence }}{{ $pvc := .pod.persistence.enabled }}
+  volumes:{{ range .pod.persistence.mounts }}
+    - name: {{ $name }}{{ default "" .suffix }}
+      {{- if $pvc }}
+      persistentVolumeClaim:
+        claimName: {{ $name }}{{ default "" .suffix }}
+      {{- else -}}
+      emptydir: {}
+      {{- end -}}
+    {{- end -}}
+  {{- end }}
+{{- end -}}
+
+{{- /*
+common.container.simple defines a simple container spec.
+
+It takes to params:
+  - top
+  - container
+
+
+*/ -}}
+{{- define "common.container.simple" -}}
+{{- $name := include "common.name" .top -}}
+{{- $image := default "latest" .container.default | printf "%s:%s" .container.image }}
+image: {{ printf "%s:%s" .container.image (default "latest" .container.tag) | quote }}
+imagePullPolicy: {{ default "" .container.imagePullPolicy | quote }}
+{{- if .container.resources }}
+resources:
+{{ toYaml .container.resources | indent 2 }}{{ end }}
+{{- if .container.command }}
+command: [{{ .container.command | quote  }}]{{ end }}
+{{- if .container.args }}
+args: {{ range .container.args }}
+  - {{ . | quote }}
+{{- end }}
+{{- end -}}
+{{- if .container.env }}
+env:
+{{ toYaml .container.env | indent 2 }}
+{{- end -}}
+{{- if .container.ports}}
+ports:
+{{ toYaml .container.ports | indent 2 }}
+{{- end -}}
+{{- if .container.persistence }}
+volumeMounts:{{ range .container.persistence.mounts }}
+  - name: {{ $name }}{{ default "" .suffix }}
+    path: {{ .path }}
+  {{- end -}}
+{{- end -}}
+{{- if .container.livenessProbe }}
+livenessProbe:
+{{ toYaml .container.livenessProbe | indent 2 }}{{- end -}}
+{{- if .container.readinessProbe }}
+readinessProbe:
+{{ toYaml .container.readinessProbe | indent 2}}{{- end -}}
+{{- end -}}

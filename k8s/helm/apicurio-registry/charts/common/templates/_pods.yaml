@@ -1,0 +1,69 @@
+{{- /*
+common.container.pod defines a simple container spec.
+
+It takes to Vaules:
+pod:
+  image:
+  imageTag:
+  imagePullPolicy:
+  command: []
+  args: []
+
+*/ -}}
+{{- define "common.container.pod.tpl" -}}
+{{- $name := include "common.name" . -}}
+name: {{ $name }}{{ default "" .suffix }}
+image: {{ printf "%s:%s" .Values.pod.image (default "latest" .Values.pod.imageTag) | quote }}
+imagePullPolicy: {{ default "IfNotPresent" .Values.pod.imagePullPolicy | quote }}
+{{- if .Values.pod.command }}
+command:
+{{ toYaml .Values.pod.command | indent 2 }}{{- end }}
+{{- if .Values.pod.args }}
+args: {{ range .Values.pod.args }}
+  - {{ . | quote }}
+{{- end }}
+{{- end -}}
+{{- if .Values.pod.env }}
+env:
+{{- range $key, $value := .Values.pod.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end -}}
+{{- if .Values.pod.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.pod.volumeMounts }}
+- name: {{ $name }}{{ default "-init-scripts" .suffix }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.container.pod" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.pod.tpl") | indent 4 -}}
+{{- end -}}
+
+
+{{- /*
+common.pod defines a simple pod with one pod running on container.
+
+It takes to Vaules:
+pod:
+  backoffLimit:
+
+*/ -}}
+{{- define "common.pod.tpl" -}}
+apiVersion: v1
+kind: Pod
+{{ template "common.pod.metadata" . }}
+spec:
+  containers:
+  -
+{{ include "common.container.pod.tpl" . | indent 4 -}}
+  {{- if .Values.pod.restartPolicy }}
+  restartPolicy: {{ default "Never" .Values.pod.restartPolicy | quote }}{{ end -}}
+{{- end -}}
+{{- define "common.pod" -}}
+{{- template "common.util.merge" (append . "common.pod.tpl") -}}
+{{- end -}}

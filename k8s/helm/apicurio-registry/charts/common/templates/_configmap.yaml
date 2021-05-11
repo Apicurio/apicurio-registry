@@ -1,0 +1,118 @@
+---
+{{- define "common.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.metadata" . }}
+data: {}
+{{- end -}}
+{{- define "common.configmap" -}}
+{{- template "common.util.merge" (append . "common.configmap.tpl") -}}
+{{- end -}}
+
+---
+{{- define "common.data.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.data.metadata" . }}
+data: {}
+{{- end -}}
+{{- define "common.data.configmap" -}}
+{{- template "common.util.merge" (append . "common.data.configmap.tpl") -}}
+{{- end -}}
+
+---
+{{- define "common.bin.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.bin.metadata" . }}
+binaryData: {}
+{{- end -}}
+{{- define "common.bin.configmap" -}}
+{{- template "common.util.merge" (append . "common.bin.configmap.tpl") -}}
+{{- end -}}
+
+---
+{{- /*
+common.init.configmap it loads Files from a directory
+
+It takes one of the following Vaules:
+apptype:
+  db   --> nosql.. filetypes *[sh|js|json]
+  sql   -->  sql.. filetypes *[sh|sql]
+  other -->  sql.. filetypes *[sh|txt]
+
+*/ -}}
+{{- define "common.init.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.init.metadata" . }}
+{{- if or (eq .Values.apptype "db") (eq .Values.apptype "sql") (eq .Values.apptype "xml") (eq .Values.apptype "messaging") }}
+data:
+{{ tpl (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|xml|txt|csv|sql]").AsConfig . | indent 2 }}
+{{- end }}
+{{- end -}}
+{{- define "common.init.configmap" -}}
+{{- template "common.util.merge" (append . "common.init.configmap.tpl") -}}
+{{- end -}}
+
+
+---
+{{- /*
+common.initbin.configmap it loads Files from a directory
+
+It takes one of the following Vaules:
+apptype:
+  binary-->  sql.. filetypes *[sql.gz|jks]
+
+*/ -}}
+{{- define "common.initbin.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.init.metadata" . }}
+{{- $root := . }}
+{{- if eq .Values.apptype "binary" }}
+binaryData:
+{{- range $path, $bytes := .Files.Glob "files/docker-entrypoint-initdb.d/*.sql.gz" }}
+  {{ base $path }}: {{ $root.Files.Get $path | b64enc | quote }}
+{{- end }}
+{{- else if eq .Values.apptypejks "jks" }}
+binaryData:
+{{- range $path, $bytes := .Files.Glob "files/self/*.jks" }}
+  {{ base $path }}: {{ $root.Files.Get $path | b64enc | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- define "common.initbin.configmap" -}}
+{{- template "common.util.merge" (append . "common.initbin.configmap.tpl") -}}
+{{- end -}}
+
+
+---
+{{- /*
+  common.init2.configmap it loads Files from a directory
+*/ -}}
+{{- define "common.init2.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.init.metadata" . }}
+data:
+{{ tpl (.Files.Glob "files/sql/*.{sh,sql}").AsConfig . | indent 2 }}
+{{- end -}}
+{{- define "common.init2.configmap" -}}
+{{- template "common.util.merge" (append . "common.init2.configmap.tpl") -}}
+{{- end -}}
+
+---
+{{- /*
+  common.vhosts.configmap it loads Files from a directory
+*/ -}}
+{{- define "common.vhosts.configmap.tpl" -}}
+apiVersion: v1
+kind: ConfigMap
+{{ template "common.vhosts.metadata" . }}
+data:
+{{ tpl (.Files.Glob "files/vhosts/*.conf").AsConfig . | indent 2 }}
+{{- end -}}
+{{- define "common.vhosts.configmap" -}}
+{{- template "common.util.merge" (append . "common.vhosts.configmap.tpl") -}}
+{{- end -}}

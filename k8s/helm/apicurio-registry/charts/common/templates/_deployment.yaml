@@ -1,0 +1,98 @@
+{{- /*
+  common.deployment
+*/ -}}
+{{- define "common.deployment.tpl" -}}
+apiVersion: apps/v1
+kind: Deployment
+{{ template "common.metadata" . }}
+spec:
+{{ include "common.replicas.tpl" . | indent 2 }}
+  selector:
+    matchLabels:
+{{ include "common.matchlabels.standard" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "common.matchlabels.standard" . | indent 8 }}
+    spec:
+      containers:
+      -
+{{ include "common.container.tpl" . | indent 8 }}
+      initContainers:
+      {{- if .Values.initContainers.init }}
+      -
+{{ include "common.initContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.volume_permissions }}
+      -
+{{ include "common.permsContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.wait4 }}
+      -
+{{ include "common.wait4Container.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.extraInitContainers }}
+{{ tpl (toYaml .Values.extraInitContainers) . | indent 6 }}
+      {{- end }}
+{{- if .Values.restartPolicy }}
+      restartPolicy: {{.Values.restartPolicy | quote }}{{ end -}}
+{{- if .Values.securityContext }}
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}{{- end -}}
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ toYaml .Values.terminationGracePeriodSeconds }}{{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}{{- end -}}
+{{- end -}}
+{{- define "common.deployment" -}}
+{{- template "common.util.merge" (append . "common.deployment.tpl") -}}
+{{- end -}}
+
+
+{{- /*
+  common.initdeployment
+*/ -}}
+{{- define "common.initdeployment.tpl" -}}
+apiVersion: apps/v1
+kind: Deployment
+{{ template "common.metadata" . }}
+spec:
+{{ include "common.replicas.tpl" . | indent 2 }}
+  selector:
+    matchLabels:
+{{ include "common.matchlabels.standard" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "common.matchlabels.standard" . | indent 8 }}
+    spec:
+      containers:
+      -
+{{ include "common.container.tpl" . | indent 8 }}
+      initContainers:
+      -
+      {{- if .Values.initContainers.init }}
+{{ include "common.initContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.volume_permissions }}
+{{ include "common.permsContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if and .Values.initContainers.volume_permissions (.Values.initContainers.init) }}
+{{ include "common.initContainer.tpl" . | indent 8 }}
+{{ include "common.permsContainer.tpl" . | indent 8 }}
+      {{ end -}}
+{{- if .Values.restartPolicy }}
+      restartPolicy: {{.Values.restartPolicy | quote }}{{ end -}}
+{{- if .Values.securityContext }}
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}{{- end -}}
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ toYaml .Values.terminationGracePeriodSeconds }}{{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}{{- end -}}
+{{- end -}}
+{{- define "common.initdeployment" -}}
+{{- template "common.util.merge" (append . "common.initdeployment.tpl") -}}
+{{- end -}}

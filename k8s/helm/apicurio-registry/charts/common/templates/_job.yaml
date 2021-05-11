@@ -1,0 +1,167 @@
+{{- /*
+common.container.job defines a simple container spec.
+
+It takes to Vaules:
+job:
+  image:
+  imageTag:
+  imagePullPolicy:
+  command:
+  volumeMounts:
+    $name:
+      mountPath:
+      mountPropagation:
+      readOnly:
+*/ -}}
+{{- define "common.container.job.tpl" -}}
+{{- $name := include "common.name" . -}}
+name: {{ $name }}{{ default "" .suffix }}
+image: {{ printf "%s:%s" .Values.job.image (default "latest" .Values.job.imageTag) | quote }}
+imagePullPolicy: {{ default "IfNotPresent" .Values.job.imagePullPolicy | quote }}
+{{- if .Values.job.command }}
+command:
+{{ toYaml .Values.job.command | indent 2 }}{{ end }}
+{{- if .Values.job.env }}
+env:
+{{- range $key, $value := .Values.job.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end -}}
+{{- if .Values.job.envFrom }}
+envFrom:
+{{- range $key, $value := .Values.job.envFrom }}
+- {{ $key }}:
+    name: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+{{- if .Values.job.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.job.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.container.job" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.job.tpl") | indent 8 -}}
+{{- end -}}
+
+
+{{- /*
+common.container.test-job defines a simple container spec.
+
+It takes to Vaules:
+job:
+  image:
+  imageTag:
+  imagePullPolicy:
+  command: []
+  args: []
+
+*/ -}}
+{{- define "common.container.test-job.tpl" -}}
+{{- $name := include "common.name" . -}}
+name: {{ $name }}{{ default "-connection-test" .suffix }}
+image: {{ printf "%s:%s" .Values.jobt.image (default "latest" .Values.jobt.imageTag) | quote }}
+imagePullPolicy: {{ default "IfNotPresent" .Values.jobt.imagePullPolicy | quote }}
+{{- if .Values.jobt.command }}
+command:
+{{ toYaml .Values.jobt.command | indent 2 }}{{ end }}
+{{- if .Values.jobt.args }}
+args: {{ range .Values.jobt.args }}
+  - {{ . | quote }}
+{{- end }}
+{{- end -}}
+{{- if .Values.jobt.env }}
+env:
+{{- range $key, $value := .Values.jobt.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end -}}
+{{- if .Values.jobt.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.jobt.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.container.test-job" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.test-job.tpl") | indent 4 -}}
+{{- end -}}
+
+
+{{- /*
+common.job defines a simple job with one pod running on container.
+
+It takes to Vaules:
+job:
+  backoffLimit:
+  ttlSecondsAfterFinished:
+
+*/ -}}
+{{- define "common.job.tpl" -}}
+apiVersion: batch/v1
+kind: Job
+{{ template "common.job.metadata" . }}
+spec:
+  backoffLimit: {{ .Values.jobt.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.jobt.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+{{ include "common.matchlabels.standard" . | indent 8 }}
+    spec:
+      containers:
+      -
+{{ include "common.container.test-job.tpl" . | indent 8 }}
+      {{- if .Values.jobt.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ default "" .Values.jobt.imagePullSecrets | quote }}{{ end -}}
+      {{- if .Values.jobt.restartPolicy }}
+      restartPolicy: {{ default "OnFailure" .Values.jobt.restartPolicy | quote }}{{ end -}}
+{{- end -}}
+{{- define "common.job" -}}
+{{- template "common.util.merge" (append . "common.job.tpl") -}}
+{{- end -}}
+
+
+{{- /*
+common.job2 defines a simple job with one pod running on container.
+
+It takes to Vaules:
+job:
+  backoffLimit:
+  ttlSecondsAfterFinished:
+
+*/ -}}
+{{- define "common.job2.tpl" -}}
+apiVersion: batch/v1
+kind: Job
+{{ template "common.job.metadata" . }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+{{ include "common.matchlabels.standard" . | indent 8 }}
+    spec:
+      containers:
+      -
+{{ include "common.container.job.tpl" . | indent 8 }}
+      {{- if .Values.job.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ default "" .Values.job.imagePullSecrets | quote }}{{ end -}}
+      {{- if .Values.job.restartPolicy }}
+      restartPolicy: {{ default "OnFailure" .Values.job.restartPolicy | quote }}{{ end -}}
+{{- end -}}
+{{- define "common.job2" -}}
+{{- template "common.util.merge" (append . "common.job2.tpl") -}}
+{{- end -}}

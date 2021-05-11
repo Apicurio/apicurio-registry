@@ -1,0 +1,67 @@
+{{- /*
+  common.statefulset
+*/ -}}
+
+{{- define "common.statefulset.tpl" -}}
+apiVersion: apps/v1
+kind: StatefulSet
+{{ template "common.metadata" . }}
+spec:
+  {{- if .Values.replicas }}
+  replicas: {{ .Values.replicas }}{{ end }}
+  selector:
+    matchLabels:
+{{ include "common.matchlabels.shard" . | indent 6 }}
+  serviceName: {{ template "common.name" . }}
+  template:
+    metadata:
+      labels:
+{{ include "common.matchlabels.shard" . | indent 8 }}
+    spec:
+      containers:
+      -
+{{ include "common.container.tpl" . | indent 8 }}
+      initContainers:
+      {{- if .Values.initContainers.disable }}
+      -
+{{ include "common.disableContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.init }}
+      -
+{{ include "common.initContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.volume_permissions }}
+      -
+{{ include "common.permsContainer.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.initContainers.wait4 }}
+      -
+{{ include "common.wait4Container.tpl" . | indent 8 }}
+      {{ end -}}
+      {{- if .Values.extraInitContainers }}
+{{ tpl (toYaml .Values.extraInitContainers) . | indent 6 }}
+      {{- end }}
+{{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}{{- end -}}
+{{- if .Values.restartPolicy }}
+      restartPolicy: {{.Values.restartPolicy | quote }}{{ end -}}
+{{- if .Values.serviceAccount }}
+      serviceAccount: {{ .Values.serviceAccount | quote }}{{ end -}}
+{{- if .Values.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccountName | quote }}{{ end -}}
+{{- if .Values.securityContext }}
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}{{- end -}}
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ toYaml .Values.terminationGracePeriodSeconds }}{{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}{{- end -}}
+  {{- if .Values.persistentvolumeclaimsts.enabled }}
+{{ include "common.persistentvolumeclaimsts.tpl" . | indent 2 }}
+  {{- end }}
+{{- end -}}
+{{- define "common.statefulset" -}}
+{{- template "common.util.merge" (append . "common.statefulset.tpl") -}}
+{{- end -}}

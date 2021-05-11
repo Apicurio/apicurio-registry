@@ -1,0 +1,88 @@
+{{- /*
+common.container.cronjob defines a simple container spec.
+
+It takes to Vaules:
+cronjob:
+  image:
+  imageTag:
+  imagePullPolicy:
+  args: []
+  command:
+  volumeMounts:
+    $name:
+      mountPath:
+      mountPropagation:
+      readOnly:
+*/ -}}
+{{- define "common.container.cronjob.tpl" -}}
+{{- $name := include "common.name" . -}}
+name: {{ $name }}{{ default "-cronjob" .suffix }}
+image: {{ printf "%s:%s" .Values.cronjob.image (default "latest" .Values.cronjob.imageTag) | quote }}
+imagePullPolicy: {{ default "IfNotPresent" .Values.cronjob.imagePullPolicy | quote }}
+{{- if .Values.cronjob.args }}
+args: {{ range .Values.cronjob.args }}
+- {{ . | quote }}
+{{- end }}
+{{- end -}}
+{{- if .Values.cronjob.command }}
+command:
+{{ toYaml .Values.cronjob.command | indent 2 }}{{ end }}
+{{- if .Values.cronjob.env }}
+env:
+{{- range $key, $value := .Values.cronjob.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end -}}
+{{- if .Values.cronjob.workingDir }}
+workingDir: {{ toYaml .Values.cronjob.workingDir }}{{- end }}
+{{- if .Values.cronjob.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.cronjob.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.container.cronjob" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.cronjob.tpl") | indent 12 -}}
+{{- end -}}
+
+
+{{- /*
+common.cronjob defines a simple job with one pod running on container.
+
+It takes to Vaules:
+cronjob:
+  schedule:
+  imagePullSecrets:
+  restartPolicy:
+
+*/ -}}
+{{- define "common.cronjob.tpl" -}}
+apiVersion: batch/v1beta1
+kind: CronJob
+{{ template "common.cronjob.metadata" . }}
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+{{ include "common.matchlabels.cj" . | indent 12 }}
+        spec:
+          containers:
+          -
+{{ include "common.container.cronjob.tpl" . | indent 12 }}
+          {{- if .Values.cronjob.imagePullSecrets }}
+          imagePullSecrets:
+          - name: {{ default "" .Values.cronjob.imagePullSecrets | quote }}{{ end -}}
+          {{- if .Values.cronjob.restartPolicy }}
+          restartPolicy: {{ default "OnFailure" .Values.cronjob.restartPolicy | quote }}{{ end -}}
+{{- end -}}
+{{- define "common.cronjob" -}}
+{{- template "common.util.merge" (append . "common.cronjob.tpl") -}}
+{{- end -}}

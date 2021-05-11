@@ -1,0 +1,17 @@
+{{ define "common.replicas.tpl" -}}
+replicas: {{ .Values.replicas }}
+revisionHistoryLimit: {{ .Values.upgrades.revisionHistory }}
+strategy:
+  type: {{ .Values.upgrades.podReplacementStrategy }}
+  {{ if eq .Values.upgrades.podReplacementStrategy "RollingUpdate" }}
+  rollingUpdate:
+    maxUnavailable: {{ .Values.upgrades.rollingUpdate.maxUnavailable }}
+    maxSurge: {{ .Values.upgrades.rollingUpdate.maxSurge }}
+  {{ end }}
+{{- end -}}
+{{- define "common.replicas" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- template "common.util.merge" (append . "common.replicas.tpl") | indent 8 -}}
+{{- end -}}
+

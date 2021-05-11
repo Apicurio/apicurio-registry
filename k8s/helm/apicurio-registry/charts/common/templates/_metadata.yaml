@@ -1,0 +1,154 @@
+{{- /*
+common.metadata creates a standard metadata header.
+
+This takes two objects:
+  - .: top context
+  - .nameOverride: override the name with this name
+  - .metadata
+    - .labels: key/value list of labels
+    - .annotations: key/value list of annotations
+    - .hook: name(s) of hook(s)
+  - .systemLabels: system-level add-on labels that should not be exposed to user
+    configuration.
+
+It creates a 'metadata:' section with name, labels, and annotations.
+
+*/ -}}
+{{ define "common.metadata" -}}
+metadata:
+  name: {{ if .nameOverride }}{{ .nameOverride }}{{ else }}{{ template "common.name" . }}{{ end }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{ if .systemLabels }}{{ include "common.labelize" .systemLabels | indent 4 }}{{ end }}
+  annotations:
+{{- if .annotations }}{{ include "common.annote" .annotations | indent 4 }}{{- end -}}
+    {{- if .hook }}
+    {{ template "common.hook" .hook }}
+    {{- end }}
+{{- end -}}
+
+{{- /*
+  common.pv.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.pv.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-pv" .suffix }}
+  labels:
+{{ include "common.pvlabels.standard" . | indent 4 -}}
+{{- end -}}
+
+
+{{- /*
+  common.pvc.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.pvc.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-pvc" .suffix }}
+  labels:
+{{ include "common.pvclabels.standard" . | indent 4 -}}
+{{- if not .Values.global.onprem.enabled }}
+  annotations:
+{{ toYaml .Values.storage.annotations | indent 4 }}{{- end }}
+{{- end -}}
+
+{{- /*
+  common.init.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.init.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-init-scripts" .suffix }}
+  labels:
+{{ include "common.matchlabels.standard" . | indent 4 -}}
+{{- end -}}
+
+{{- /*
+  common.data.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.data.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-data" .suffix }}
+  labels:
+{{ include "common.matchlabels.standard" . | indent 4 -}}
+{{- end -}}
+
+{{- /*
+  common.bin.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.bin.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-bin" .suffix }}
+  labels:
+{{ include "common.matchlabels.standard" . | indent 4 -}}
+{{- end -}}
+
+{{- /*
+  common.config.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.config.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-config" .suffix }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{- end -}}
+
+{{- /*
+  common.pod.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.pod.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-connection-test" .suffix }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{- if .Values.pod.annotations.hooks }}
+  annotations:
+{{ toYaml .Values.pod.annotations.hooks | indent 4 }}{{- end }}
+{{- end -}}
+
+{{- /*
+  common.job.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.job.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{- if .Values.job.annotations.hooks }}
+  annotations:
+{{ toYaml .Values.job.annotations.hooks | indent 4 }}{{- end }}
+{{- end -}}
+
+{{- /*
+  common.cronjob.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.cronjob.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-cronjob" .suffix }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{- if .Values.cronjob.annotations.hooks }}
+  annotations:
+{{ toYaml .Values.cronjob.annotations.hooks | indent 4 }}{{- end }}
+{{- end -}}
+
+{{- /*
+  common.ingress.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.ingress.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-ingress" .suffix }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 -}}
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.ingress.annotations | indent 4 }}{{- end }}
+{{- end -}}
+
+{{- /*
+  common.vhosts.metadata creates a standard metadata header.
+*/ -}}
+{{ define "common.vhosts.metadata" -}}
+metadata:
+  name: {{ template "common.name" . }}{{ default "-vhosts" .suffix }}
+  labels:
+{{ include "common.matchlabels.standard" . | indent 4 -}}
+{{- end -}}

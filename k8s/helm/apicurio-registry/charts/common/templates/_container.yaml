@@ -1,0 +1,242 @@
+{{- /*
+  common.container.sidecar
+*/ -}}
+{{- define "common.container.sidecar.tpl" -}}
+name: {{ .Chart.Name }}{{ default "-sidecar" .suffix }}
+image: {{ default "cvallance/mongo-k8s-sidecar" .Values.imagesidecar }}
+env:
+- name: MONGO_SIDECAR_POD_LABELS
+  value: "role=mongo,environment=test"
+{{- end -}}
+{{- define "common.container.sidecar" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.sidecar.tpl") | indent 8 -}}
+{{- end -}}
+
+
+{{- /*
+  common.container
+*/ -}}
+{{- define "common.container.tpl" -}}
+name: {{ .Chart.Name }}
+image: {{ printf "%s:%s" .Values.image (default "latest" .Values.imageTag) | quote }}
+imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+{{- if .Values.env }}
+env:
+{{- range $key, $value := .Values.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- else if .Values.env_lower }}
+env:
+{{- range $key, $value := .Values.env_lower }}
+- name: {{ $key }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{ else }}
+env:
+{{- range $key, $value := .Values.global.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+{{- if .Values.envFrom }}
+envFrom:
+{{- range $key, $value := .Values.envFrom }}
+- {{ $key }}:
+    name: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+command:
+{{- with .Values.command }}
+{{ toYaml . | indent 2 }}{{- end }}
+lifecycle:
+{{- with .Values.lifecycle }}
+{{ toYaml . | indent 2 }}{{- end }}
+livenessProbe:
+{{- with .Values.livenessProbe }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- if .Values.podPorts }}
+ports:
+{{- range $key, $port := .Values.podPorts }}
+- name: {{ $key }}
+{{ toYaml $port | indent 2 }}
+  {{- end }}
+{{- end }}
+readinessProbe:
+{{- with .Values.readinessProbe }}
+{{ toYaml . | indent 2 }}{{- end }}
+resources:
+{{- with .Values.resources }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- if .Values.csecurityContext }}
+securityContext:
+{{ toYaml .Values.csecurityContext | indent 2 }}{{- end }}
+{{- with .Values.workingDir }}
+workingDir: {{ toYaml . }}{{- end }}
+{{- if .Values.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.container" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.container.tpl") | indent 8 -}}
+{{- end -}}
+
+
+{{- /*
+  common.disableContainer
+
+name: disable-thp
+image: busybox
+command: ["sh", "-c", "echo never >/host-sys/kernel/mm/transparent_hugepage/enabled"]
+volumeMounts:
+  - name: host-sys
+    mountPath: /host-sys
+
+*/ -}}
+{{- define "common.disableContainer.tpl" -}}
+name: {{ .Values.initContainers.disable.name }}
+image: {{ printf "%s:%s" .Values.initContainers.disable.image (default "latest" .Values.initContainers.disable.imageTag) | quote }}
+command:
+{{- with .Values.initContainers.disable.command }}
+{{ toYaml . | indent 2 }}{{- end }}
+volumeMounts:
+{{- range $key, $mounts := .Values.initContainers.disable.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- define "common.disableContainer" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.disableContainer.tpl") | indent 8 -}}
+{{- end -}}
+
+{{- /*
+  common.initContainer
+*/ -}}
+{{- define "common.initContainer.tpl" -}}
+name: {{ .Values.initContainers.init.name }}
+image: {{ printf "%s:%s" .Values.initContainers.init.image (default "latest" .Values.initContainers.init.imageTag) | quote }}
+imagePullPolicy: {{ default "" .Values.initContainers.init.imagePullPolicy | quote }}
+{{- if .Values.initContainers.init.env }}
+env:
+{{- range $key, $value := .Values.initContainers.init.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+command:
+{{- with .Values.initContainers.init.command }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- if .Values.initContainers.init.securityContext }}
+securityContext:
+{{ toYaml .Values.initContainers.init.securityContext | indent 2 }}{{- end }}
+{{- if .Values.initContainers.init.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.initContainers.init.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.initContainer" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.initContainer.tpl") | indent 8 -}}
+{{- end -}}
+
+
+{{- /*
+  common.permsContainer
+*/ -}}
+{{- define "common.permsContainer.tpl" -}}
+name: {{ .Values.initContainers.volume_permissions.name }}
+image: {{ printf "%s:%s" .Values.initContainers.volume_permissions.image (default "latest" .Values.initContainers.volume_permissions.imageTag) | quote }}
+imagePullPolicy: {{ default "" .Values.initContainers.volume_permissions.imagePullPolicy | quote }}
+{{- if .Values.initContainers.volume_permissions.env }}
+env:
+{{- range $key, $value := .Values.initContainers.volume_permissions.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+command:
+{{- with .Values.initContainers.volume_permissions.command }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- if .Values.initContainers.volume_permissions.securityContext }}
+securityContext:
+{{ toYaml .Values.initContainers.volume_permissions.securityContext | indent 2 }}{{- end }}
+{{- if .Values.initContainers.volume_permissions.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.initContainers.volume_permissions.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.permsContainer" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.permsContainer.tpl") | indent 8 -}}
+{{- end -}}
+
+{{- /*
+  common.wait4Container
+
+initContainers:
+  wait4:
+    command:
+    - sh
+    - -ec
+    - |-
+      until nslookup kafka; do
+        echo waiting for kafka;
+        sleep 1m;
+      done
+    image: "busybox"
+    imageTag: "1.28"
+    imagePullPolicy: IfNotPresent
+    name: wait4
+    resources: {}
+    securityContext:
+      runAsUser: 0
+
+*/ -}}
+{{- define "common.wait4Container.tpl" -}}
+name: {{ .Values.initContainers.wait4.name }}
+image: {{ printf "%s:%s" .Values.initContainers.wait4.image (default "latest" .Values.initContainers.wait4.imageTag) | quote }}
+imagePullPolicy: {{ default "" .Values.initContainers.wait4.imagePullPolicy | quote }}
+{{- if .Values.initContainers.wait4.env }}
+env:
+{{- range $key, $value := .Values.initContainers.wait4.env }}
+- name: {{ $key | upper | replace "." "_" }}
+  value: {{ default "" $value | quote }}
+  {{- end }}
+{{- end }}
+command:
+{{- with .Values.initContainers.wait4.command }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- if .Values.initContainers.wait4.securityContext }}
+securityContext:
+{{ toYaml .Values.initContainers.wait4.securityContext | indent 2 }}{{- end }}
+{{- if .Values.initContainers.wait4.volumeMounts }}
+volumeMounts:
+{{- range $key, $mounts := .Values.initContainers.wait4.volumeMounts }}
+- name: {{ $key }}
+{{ toYaml $mounts | indent 2 }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "common.wait4Container" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.wait4Container.tpl") | indent 8 -}}
+{{- end -}}

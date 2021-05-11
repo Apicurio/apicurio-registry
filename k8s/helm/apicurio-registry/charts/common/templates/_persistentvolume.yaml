@@ -1,0 +1,22 @@
+{{- define "common.persistentvolume.tpl" -}}
+apiVersion: v1
+kind: PersistentVolume
+{{ template "common.pv.metadata" . }}
+spec:
+  storageClassName: {{ .Values.persistentvolume.storageClassName }}
+  capacity:
+    storage: {{ .Values.persistentvolume.size | quote }}
+  accessModes:
+    - {{ .Values.persistentvolume.accessMode | quote }}
+  hostPath:
+    path: {{ .Values.persistentvolume.path | quote }}
+  volumeMode: Filesystem
+{{- end -}}
+{{- define "common.persistentvolume" -}}
+{{- $top := first . -}}
+{{- if $top.Values.global.onprem.enabled -}}
+{{- if (not $top.Values.persistentvolume.dynamic) }}
+{{- template "common.util.merge" (append . "common.persistentvolume.tpl") -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

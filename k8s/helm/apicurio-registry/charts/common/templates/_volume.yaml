@@ -1,0 +1,74 @@
+{{- /*
+
+spec:
+  template:
+    spec:
+      volumes:
+      - {{ template "common.volume.iconfigMap" (list . "kafka.volume.iconfigMap") }}
+
+volumes:
+  cm:
+    defaultMode: !!int "0666"
+    suffix: self-tls
+    items:
+    - key: cm.data.name
+      mode: !!int "0666"
+      path: mount-as-name
+    - key: cm.data.name
+      mode: !!int "0666"
+      path: mount-as-name
+*/ -}}
+{{- define "common.volume.iconfigMap.tpl" -}}
+name: {{ .Values.volumes.cm.suffix }}
+configMap:
+  defaultMode: {{ .Values.volumes.cm.defaultMode | default 0644 }}
+  name: {{ include "common.name" . }}-{{ .Values.volumes.cm.suffix }}
+items:
+{{- with .Values.volumes.cm.items }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- end -}}
+{{- define "common.volume.iconfigMap" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.volume.iconfigMap.tpl") | indent 8 -}}
+{{- end -}}
+
+
+{{- /*
+
+spec:
+  template:
+    spec:
+      volumes:
+      - {{ template "common.volume.isecret" (list . "kafka.volume.isecret") }}
+
+volumes:
+  secret:
+    defaultMode: !!int "0420"
+    name: tls-zatar
+    suffix: tls
+    items:
+    - key: user
+      mode: !!int "0644"
+      path: db-username
+    - key: password
+      mode: !!int "0644"
+      path: db-password
+    - key: host
+      mode: !!int "0644"
+      path: db-host
+*/ -}}
+{{- define "common.volume.isecret.tpl" -}}
+name: {{ .Values.volumes.secret.suffix }}
+secret:
+  defaultMode: {{ .Values.volumes.secret.defaultMode | default 0420 }}
+  secretName: {{ .Values.volumes.secret.name }}
+items:
+{{- with .Values.volumes.secret.items }}
+{{ toYaml . | indent 2 }}{{- end }}
+{{- end -}}
+{{- define "common.volume.isecret" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- include "common.util.merge" (append . "common.volume.isecret.tpl") | indent 8 -}}
+{{- end -}}

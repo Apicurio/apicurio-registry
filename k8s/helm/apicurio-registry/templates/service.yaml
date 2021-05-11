@@ -1,0 +1,3 @@
+{{- template "common.service" (list . "apicurio-registry.service") -}}
+{{- define "apicurio-registry.service" -}}
+{{- end -}}

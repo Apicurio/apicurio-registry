@@ -1,0 +1,7 @@
+{{- template "common.deployment" (list . "apicurio-registry.deployment") -}}
+{{- define "apicurio-registry.deployment" -}}
+spec:
+  template:
+    spec:
+      serviceAccountName: schema-registry
+{{- end -}}

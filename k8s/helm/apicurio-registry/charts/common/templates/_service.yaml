@@ -1,0 +1,126 @@
+{{- /*
+common.service defines a service spec.
+
+It takes to Vaules:
+svc:
+  clusterIP:
+  type:
+  ports:
+    $name:
+*/ -}}
+{{- define "common.service.tpl" -}}
+apiVersion: v1
+kind: Service
+{{ template "common.metadata" . }}
+metadata:
+  name: {{ template "common.name" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 }}
+  #annotations:
+    #service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+{{- with .Values.svc.clusterIP }}
+  clusterIP: {{ toYaml . }}
+{{- end }}
+{{- with .Values.svc.type }}
+  type: {{ toYaml . }}
+{{- end }}
+{{- if .Values.svc.ports }}
+  ports:
+  {{- range $key, $value := .Values.svc.ports }}
+    - name: {{ $key }}
+{{ toYaml $value | indent 6 }}
+  {{- end }}
+{{- end }}
+  selector:
+{{ include "common.matchlabels.standard" . | indent 4 }}
+{{- end -}}
+{{- define "common.service" -}}
+{{- template "common.util.merge" (append . "common.service.tpl") -}}
+{{- end -}}
+
+
+{{- /*
+common.service defines a service spec.
+
+It takes to Vaules:
+headless:
+  clusterIP:
+  type:
+  ports:
+    $name:
+*/ -}}
+{{- define "common.service-headless.tpl" -}}
+apiVersion: v1
+kind: Service
+{{ template "common.metadata" . }}
+metadata:
+  name: {{ template "common.name" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 }}
+  #annotations:
+    #service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+{{- with .Values.headless.clusterIP }}
+  clusterIP: {{ toYaml . }}
+{{- end }}
+{{- with .Values.headless.type }}
+  type: {{ toYaml . }}
+{{- end }}
+{{- if .Values.headless.ports }}
+  ports:
+  {{- range $key, $value := .Values.headless.ports }}
+    - name: {{ $key }}
+{{ toYaml $value | indent 6 }}
+  {{- end }}
+{{- end }}
+  selector:
+{{ include "common.matchlabels.standard" . | indent 4 }}
+{{- end -}}
+{{- define "common.service-headless" -}}
+{{- template "common.util.merge" (append . "common.service-headless.tpl") -}}
+{{- end -}}
+
+
+
+{{- /*
+common.sts.service defines a service spec.
+
+It takes to Vaules:
+svc:
+  clusterIP:
+  type:
+  ports:
+    $name:
+*/ -}}
+{{- define "common.sts.service.tpl" -}}
+apiVersion: v1
+kind: Service
+{{ template "common.metadata" . }}
+metadata:
+  name: {{ template "common.name" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+{{ include "common.labels.standard" . | indent 4 }}
+spec:
+{{- with .Values.svc.clusterIP }}
+  clusterIP: {{ toYaml . }}
+{{- end }}
+{{- with .Values.svc.type }}
+  type: {{ toYaml . }}
+{{- end }}
+{{- if .Values.svc.ports }}
+  ports:
+  {{- range $key, $value := .Values.svc.ports }}
+    - name: {{ $key }}
+{{ toYaml $value | indent 6 }}
+  {{- end }}
+{{- end }}
+  selector:
+{{ include "common.matchlabels.shard" . | indent 4 }}
+{{- end -}}
+{{- define "common.sts.service" -}}
+{{- template "common.util.merge" (append . "common.sts.service.tpl") -}}
+{{- end -}}

@@ -1,0 +1,237 @@
+---
+
+global:
+  env: []
+
+# ------------------------------------------------------------------------------
+# Command Variables
+# ------------------------------------------------------------------------------
+command: []
+
+# ------------------------------------------------------------------------------
+# Environment Variables
+# ------------------------------------------------------------------------------
+env:
+  REGISTRY_DATASOURCE_URL: "jdbc:cloudspanner:/projects/es-s2-eval-d/instances/es-s2-eval-d-spanner/databases/apicurio"
+  REGISTRY_UI_CONFIG_APIURL: $REGISTRY_UI_CONFIG_APIURL
+  REGISTRY_UI_CONFIG_UIURL: $REGISTRY_UI_CONFIG_UIURL
+
+envFrom: []
+  #configMapRef: ""
+  #secretRef: ""
+# ------------------------------------------------------------------------------
+# Image Settings
+# ------------------------------------------------------------------------------
+image: us.gcr.io/es-s2-eval-d/schema-registry
+imageTag: "4.4.0"
+imagePullPolicy: IfNotPresent
+
+# ------------------------------------------------------------------------------
+# initContainers
+# ------------------------------------------------------------------------------
+initContainers: {}
+
+# ------------------------------------------------------------------------------
+#  lifecycle
+# ------------------------------------------------------------------------------
+#  PostStart is called immediately after a container is created. If the
+#  handler fails, the container is terminated and restarted according to its
+#  restart policy. Other management of the container blocks until the hook
+#  completes.
+#  More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
+lifecycle:
+  preStop:
+    exec:
+      command: ["sh", "-ce", "kill -s TERM 1; while $(kill -0 1 2>/dev/null); do sleep 1; done"]
+#  postStart:
+#    exec:
+#      command:
+#      - sh
+#      - -c
+#      - /app/data/docker-poststart.sh
+
+# ------------------------------------------------------------------------------
+# Liveness Probe
+# ------------------------------------------------------------------------------
+livenessProbe:
+#  tcpSocket:
+#    port: 27017
+#  #exec:
+#    #command:
+#    #- mongo
+#    #- --disableImplicitSessions
+#    #- --tls
+#    #- --tlsCertificateKeyFile=/certs/mongodb.pem
+#    #- --tlsCAFile=/certs/mongodb-ca-cert
+#    #- --eval
+#    #- "db.adminCommand('ping')"
+#  initialDelaySeconds: 30
+#  periodSeconds: 10
+#  timeoutSeconds: 5
+#  failureThreshold: 6
+#  successThreshold: 1
+
+# ------------------------------------------------------------------------------
+# Readiness Probe
+# ------------------------------------------------------------------------------
+readinessProbe:
+#  tcpSocket:
+#    port: 27017
+#  #exec:
+#    #command:
+#    #- bash
+#    #- -ec
+#    #- |
+#      #TLS_OPTIONS='--tls --tlsCertificateKeyFile=/certs/mongodb.pem --tlsCAFile=/certs/mongodb-ca-cert'
+#      #mongo --disableImplicitSessions $TLS_OPTIONS --eval 'db.hello().isWritablePrimary || db.hello().secondary' | grep -q 'true'
+#  initialDelaySeconds: 5
+#  periodSeconds: 10
+#  timeoutSeconds: 5
+#  failureThreshold: 6
+#  successThreshold: 1
+
+# ------------------------------------------------------------------------------
+# Key/value pairs that are attached to running Pod[?].
+# ------------------------------------------------------------------------------
+podPorts:
+#  http:
+#    containerPort: 8080
+#    protocol: TCP
+
+# ------------------------------------------------------------------------------
+# securityContext
+# ------------------------------------------------------------------------------
+securityContext:
+#  fsGroup: 1000
+#  runAsUser: 1000
+#  runAsGroup: 1000
+
+# ------------------------------------------------------------------------------
+# serviceAccount
+# ------------------------------------------------------------------------------
+#serviceAccount: core
+#serviceAccountName: core
+
+# ------------------------------------------------------------------------------
+# Replication
+# ------------------------------------------------------------------------------
+replicas: 3
+replicaCount: 1
+serviceName: null
+upgrades:
+  revisionHistory: 5
+  podReplacementStrategy: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 25% 
+    maxSurge: 25%
+
+restartPolicy: "Always"
+
+# ------------------------------------------------------------------------------
+# updateStrategy
+# ------------------------------------------------------------------------------
+updateStrategy:
+  type: RollingUpdate
+
+# ------------------------------------------------------------------------------
+# Kind: Service
+# ------------------------------------------------------------------------------
+service:
+svc:
+  enabled: true
+  annotations: {}
+    # external-dns.alpha.kubernetes.io/hostname: THIS.cluster.local
+  # clusterIP: None
+  ports:
+    http:
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  type: NodePort
+
+# ------------------------------------------------------------------------------
+# Kind: PersistentVolumeClaim
+# ------------------------------------------------------------------------------
+persistentvolumeclaimsts:
+  enabled: true
+  accessMode: ReadWriteOnce
+  mountPath: /opt/jboss/keycloak/standalone/data
+  readOnly: false
+
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+  ## (gp2 on AWS, standard on GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+  # storageClass: standard
+  # storageClass: xfs-ssd-storage-class
+  # storageClass: xfs-storage-class
+  storageClass: standard
+  size: 10Gi
+
+# ------------------------------------------------------------------------------
+# Storage Provisioner
+# ------------------------------------------------------------------------------
+storage:
+  provisioner: kubernetes.io/gce-pd
+  # provisioner: kubernetes.io/vsphere-volume
+  # provisioner: kubernetes.io/no-provisioner
+  annotations:
+    #pv.kubernetes.io/bind-completed: "yes"
+    pv.kubernetes.io/bound-by-controller: "yes"
+    volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/gce-pd"
+
+# ------------------------------------------------------------------------------
+# Volumes
+# ------------------------------------------------------------------------------
+volumeMounts:
+#  mongo-shard1-persistent-storage-claim:
+#    mountPath: /data/configdb
+
+pvcOverride: mongo-shard1-persistent-storage-claim
+roleOverride: mongodb-shard1
+
+workingDir: ""
+
+# ------------------------------------------------------------------------------
+# Other Settings
+# ------------------------------------------------------------------------------
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+#  limits:
+#  #   cpu: 100m
+#    memory: 4Gi
+#  requests:
+#    cpu: "0.1"
+#    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+# - effect: NoExecute
+#   key: node.kubernetes.io/not-ready
+#   operator: Exists
+#   tolerationSeconds: 15
+# - effect: NoExecute
+#   key: node.kubernetes.io/unreachable
+#   operator: Exists
+#   tolerationSeconds: 15
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: replicaset
+            operator: In
+            values:
+            - shard1RepSet
+        topologyKey: kubernetes.io/hostname
+
+terminationGracePeriodSeconds: 30

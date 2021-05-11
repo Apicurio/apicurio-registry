@@ -1,0 +1,12 @@
+{{ define "common.volumemounts.configMap.tpl" -}}
+volumeMounts:
+- name: {{ include "common.name" . }}-data
+  mountPath: {{ .Values.volumeMounts.mountPath }}
+  mountPropagation: {{ .Values.volumeMounts.mountPropagation | default "HostToContainer" }}
+  readOnly: {{ .Values.volumeMounts.readOnly | default true }}
+{{- end -}}
+{{- define "common.volumemounts.configMap" -}}
+{{- /* clear new line so indentation works correctly */ -}}
+{{- println "" -}}
+{{- template "common.util.merge" (append . "common.volumemounts.configMap.tpl") | indent 10 -}}
+{{- end -}}

@@ -1,0 +1,56 @@
+{{- define "common.persistentvolumeclaim.tpl" -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+{{ template "common.pvc.metadata" . }}
+spec:
+{{- if .Values.global.onprem.enabled }}
+  selector:
+    matchLabels:
+      use: {{ template "common.name" . }}
+{{- end }}
+{{- if .Values.persistentvolumeclaim.storageClass }}
+{{- if (eq "-" .Values.persistentvolumeclaim.storageClass) }}
+  storageClassName: ""
+{{- else }}
+  storageClassName: "{{ .Values.persistentvolumeclaim.storageClass }}"
+{{- end }}
+{{- end }}
+  accessModes:
+  - {{ .Values.persistentvolumeclaim.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentvolumeclaim.size | quote }}
+status: {}
+{{- end -}}
+{{- define "common.persistentvolumeclaim" -}}
+{{- $top := first . -}}
+{{- if and $top.Values.persistentvolumeclaim.enabled (not $top.Values.persistentvolumeclaim.existingClaim) -}}
+{{- template "common.util.merge" (append . "common.persistentvolumeclaim.tpl") -}}
+{{- end -}}
+{{- end -}}
+
+
+{{- define "common.persistentvolumeclaimsts.tpl" -}}
+volumeClaimTemplates:
+- metadata:
+    name: {{ if .Values.pvcOverride }}{{ .Values.pvcOverride }}{{ else }}{{ template "common.name" . }}-pvc{{ end }}
+  spec:
+    accessModes:
+      - {{ .Values.persistentvolumeclaimsts.accessMode | quote }}
+    resources:
+      requests:
+        storage: {{ .Values.persistentvolumeclaimsts.size | quote }}
+{{- if .Values.persistentvolumeclaimsts.storageClass }}
+{{- if (eq "-" .Values.persistentvolumeclaimsts.storageClass) }}
+    storageClassName: ""
+{{- else }}
+    storageClassName: "{{ .Values.persistentvolumeclaimsts.storageClass }}"
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- define "common.persistentvolumeclaimsts" -}}
+{{- $top := first . -}}
+{{- if and $top.Values.persistentvolumeclaimsts.enabled (not $top.Values.persistentvolumeclaimsts.existingClaim) -}}
+{{- template "common.util.merge" (append . "common.persistentvolumeclaimsts.tpl") -}}
+{{- end -}}
+{{- end -}}

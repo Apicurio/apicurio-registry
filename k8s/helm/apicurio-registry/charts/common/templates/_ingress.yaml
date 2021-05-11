@@ -1,0 +1,63 @@
+{{- define "common.ingress.tpl" -}}
+{{- $root := . -}}
+{{- $uri := $root.Values.global.uriendpoint -}}
+{{- $tlssecret := $root.Values.ingress.tls.secretName -}}
+apiVersion: {{ template "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+{{ template "common.ingress.metadata" . }}
+spec:
+  backend:
+    serviceName: {{ .Values.ingress.bepod }}
+    servicePort: {{ .Values.ingress.beport }}
+  rules:
+  - host: {{ $uri }}
+    http:
+      paths:
+      {{- range .Values.ingress.backendPaths }}
+      - backend:
+          serviceName: {{ .serviceName }}
+          servicePort: {{ .servicePort }}
+        path: {{ .path }}
+      {{- end }}
+  tls:
+  - hosts:
+    - {{ $uri }}
+    secretName: {{ $tlssecret }}
+{{- end -}}
+{{- define "common.ingress" -}}
+{{- $top := first . -}}
+{{- if $top.Values.ingress.enabled -}}
+{{- include "common.util.merge" (append . "common.ingress.tpl") -}}
+{{- end -}}
+{{- end -}}
+
+
+{{- define "common.ingress-nginx.tpl" -}}
+{{- $root := . -}}
+{{- $uri := $root.Values.global.uriendpoint -}}
+{{- $tlssecret := $root.Values.ingress.tls.secretName -}}
+apiVersion: {{ template "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+{{ template "common.ingress.metadata" . }}
+spec:
+  rules:
+  - host: {{ $uri }}
+    http:
+      paths:
+      {{- range .Values.ingress.backendPaths }}
+      - backend:
+          serviceName: {{ .serviceName }}
+          servicePort: {{ .servicePort }}
+        path: {{ .path }}
+      {{- end }}
+  tls:
+  - hosts:
+    - {{ $uri }}
+    secretName: {{ $tlssecret }}
+{{- end -}}
+{{- define "common.ingress-nginx" -}}
+{{- $top := first . -}}
+{{- if $top.Values.ingress.enabled -}}
+{{- include "common.util.merge" (append . "common.ingress-nginx.tpl") -}}
+{{- end -}}
+{{- end -}}

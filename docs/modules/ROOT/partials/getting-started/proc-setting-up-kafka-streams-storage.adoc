@@ -66,7 +66,7 @@ metadata:
 spec:
   configuration:
     persistence: "kafkasql"
-    streams:
+    kafkasql:
       bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9092"
 ----
 

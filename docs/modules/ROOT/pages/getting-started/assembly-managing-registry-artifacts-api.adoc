@@ -15,7 +15,7 @@ This chapter describes the {registry} core REST API and shows how to use it to m
 * xref:exporting-importing-using-rest-api[]
 
 .Prerequisites
-* xref:registry-rest-api[] 
+* {registry-overview}
 
 [role="_additional-resources"]
 .Additional resources

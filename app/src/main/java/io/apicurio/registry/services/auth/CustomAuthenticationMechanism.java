@@ -77,6 +77,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         if (authEnabled) {
             //Extracts username, password pair from the header and request a token to keycloak
             String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret).getBearerToken();
+
             if (jwtToken != null) {
                 //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
                 return identityProviderManager

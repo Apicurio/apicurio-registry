@@ -23,16 +23,11 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.slf4j.Logger;
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.RegistryApplicationServletFilter;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.ext.web.RoutingContext;
 
 /**
  * This class centralizes the logic to resolve the tenantId from an http request.
- *
- * In deployments with authentication enabled the {@link io.apicurio.registry.services.tenant.CustomTenantConfigResolver} will
- * get triggered first and it will attempt to resolve the tenantId before {@link RegistryApplicationServletFilter}, but
- * the TenantRequestFilter will attempt to resolve the tenantId anyway.
  *
  * @author Fabian Martinez
  */
@@ -64,6 +59,9 @@ public class TenantIdResolver {
     }
 
     public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
+
+        //TODO Check if the user belongs to the org that's being accessed.
+
         if (mtProperties.isMultitenancyEnabled()) {
             log.debug("Resolving tenantId for request {}", uri);
 

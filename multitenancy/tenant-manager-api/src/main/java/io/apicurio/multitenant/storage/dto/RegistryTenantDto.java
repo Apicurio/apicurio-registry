@@ -41,12 +41,6 @@ public class RegistryTenantDto {
     @Column(name = "organizationId")
     private String organizationId;
 
-    @Column(name = "authServerUrl")
-    private String authServerUrl;
-
-    @Column(name = "authClientId")
-    private String authClientId;
-
 
     public RegistryTenantDto() {
         // empty
@@ -84,30 +78,12 @@ public class RegistryTenantDto {
         this.organizationId = organizationId;
     }
 
-    public String getAuthServerUrl() {
-        return authServerUrl;
-    }
-
-    public void setAuthServerUrl(String authServerUrl) {
-        this.authServerUrl = authServerUrl;
-    }
-
-    public String getAuthClientId() {
-        return authClientId;
-    }
-
-    public void setAuthClientId(String authClientId) {
-        this.authClientId = authClientId;
-    }
-
     public RegistryTenant toDatamodel() {
         final RegistryTenant t = new RegistryTenant();
         t.setTenantId(this.tenantId);
         t.setCreatedOn(this.createdOn);
         t.setCreatedBy(this.createdBy);
         t.setOrganizationId(this.organizationId);
-        t.setAuthClientId(this.authClientId);
-        t.setAuthServerUrl(this.authServerUrl);
         return t;
     }
 

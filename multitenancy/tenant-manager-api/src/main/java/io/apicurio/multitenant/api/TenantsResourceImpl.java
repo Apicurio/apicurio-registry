@@ -54,18 +54,12 @@ public class TenantsResourceImpl implements TenantsResource {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
         required(tenantRequest.getOrganizationId(), "OrganizationId is mandatory");
-        required(tenantRequest.getClientId(), "ClientId is mandatory");
 
         RegistryTenantDto tenant = new RegistryTenantDto();
 
         tenant.setTenantId(tenantRequest.getTenantId());
 
         tenant.setOrganizationId(tenantRequest.getOrganizationId());
-        tenant.setAuthClientId(tenantRequest.getClientId());
-
-        if (tenantRequest.getAuthServerUrl() != null) {
-            tenant.setAuthServerUrl(tenantRequest.getAuthServerUrl());
-        }
 
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(null); //TODO extract user from auth details

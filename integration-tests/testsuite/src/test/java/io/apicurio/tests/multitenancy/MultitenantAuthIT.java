@@ -140,8 +140,6 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         tenantInfo.setTenantAppUrl(tenantAppUrl);
 
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
-        tenantReq.setAuthServerUrl(tenantInfo.getRealmAuthServerUrl());
-        tenantReq.setClientId(tenantInfo.getClientId());
         tenantReq.setOrganizationId("foo");
         tenantReq.setTenantId(tenantId);
 

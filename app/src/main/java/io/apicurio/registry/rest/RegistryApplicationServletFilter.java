@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
@@ -51,6 +52,9 @@ public class RegistryApplicationServletFilter implements Filter {
 
     @Inject
     Logger log;
+
+    @Inject
+    MultitenancyProperties mtProperties;
 
     @Inject
     TenantIdResolver tenantIdResolver;
@@ -91,6 +95,18 @@ public class RegistryApplicationServletFilter implements Filter {
             String evaluatedURI = requestURI;
             if (rewriteRequest) {
                 evaluatedURI = rewriteContext.toString();
+            }
+
+            if (mtProperties.isMultitenancyEnabled()
+                    && !tenantResolved
+                    && disabledApisMatcherService.isApiRequest(evaluatedURI)) {
+                log.warn("Request {} is rejected because no tenant info found, direct access to apis is disabled when multitenancy is enabled", requestURI);
+                HttpServletResponse httpResponse = (HttpServletResponse) response;
+                httpResponse.reset();
+                httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                //important to return, to stop the filters chain
+                tenantContext.clearContext();
+                return;
             }
 
             boolean disabled = disabledApisMatcherService.isDisabled(evaluatedURI);

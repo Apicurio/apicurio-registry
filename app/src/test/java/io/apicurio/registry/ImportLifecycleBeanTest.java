@@ -19,7 +19,7 @@ public class ImportLifecycleBeanTest extends AbstractResourceTestBase {
     @Override
     @BeforeEach
     protected void beforeEach() throws Exception {
-        prepareServiceInitializers();
+        setupRestAssured();
     }
 
     @Test

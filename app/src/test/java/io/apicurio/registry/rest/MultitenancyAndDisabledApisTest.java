@@ -26,7 +26,6 @@ import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.mt.MockTenantMetadataService;
@@ -38,7 +37,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultipleRequestFiltersTestProfile.class)
-public class MultitenancyAndDisabledApisTest extends AbstractResourceTestBase {
+public class MultitenancyAndDisabledApisTest {
 
     @Inject
     MockTenantMetadataService tenantMetadataService;

@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -49,7 +48,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultitenancyLimitsTestProfile.class)
-public class MultitenancyLimitsTest extends AbstractResourceTestBase {
+public class MultitenancyLimitsTest {
 
 //    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyLimitsTest.class);
 

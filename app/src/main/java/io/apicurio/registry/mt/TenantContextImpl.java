@@ -26,6 +26,7 @@ import org.jboss.logging.MDC;
 @ApplicationScoped
 public class TenantContextImpl implements TenantContext {
 
+    private static final String TENANT_ID_KEY = "tenantId";
     private static final String DEFAULT_TENANT_ID = "_";
     private static ThreadLocal<String> tid = ThreadLocal.withInitial(() -> DEFAULT_TENANT_ID);
 
@@ -43,7 +44,7 @@ public class TenantContextImpl implements TenantContext {
     @Override
     public void tenantId(String tenantId) {
         tid.set(tenantId);
-        MDC.put("tenantId", tenantId);
+        MDC.put(TENANT_ID_KEY, tenantId);
     }
 
     /**
@@ -52,7 +53,7 @@ public class TenantContextImpl implements TenantContext {
     @Override
     public void clearTenantId() {
         this.tenantId(DEFAULT_TENANT_ID);
-        MDC.remove("tenantId");
+        MDC.remove(TENANT_ID_KEY);
     }
 
     @Override

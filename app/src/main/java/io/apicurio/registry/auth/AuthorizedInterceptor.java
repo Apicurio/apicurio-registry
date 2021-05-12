@@ -17,6 +17,7 @@
 package io.apicurio.registry.auth;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
@@ -24,8 +25,6 @@ import javax.interceptor.InvocationContext;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -38,10 +37,12 @@ import io.quarkus.security.identity.SecurityIdentity;
  * @author eric.wittmann@gmail.com
  */
 @Interceptor
+@Priority(Interceptor.Priority.APPLICATION)
 @Authorized
 public class AuthorizedInterceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthorizedInterceptor.class);
+    @Inject
+    Logger log;
 
     @Inject
     SecurityIdentity securityIdentity;

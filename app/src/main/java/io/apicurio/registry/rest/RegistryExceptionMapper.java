@@ -42,8 +42,6 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
@@ -81,14 +79,16 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
-
     private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
 
     private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
     @Inject
+    Logger log;
+
+    @Inject
     ResponseErrorLivenessCheck liveness;
+
     @Inject
     LivenessUtil livenessUtil;
 

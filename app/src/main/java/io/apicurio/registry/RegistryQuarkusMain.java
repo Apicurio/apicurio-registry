@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry;
 
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-
-import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
+import io.quarkus.runtime.Quarkus;
+import io.quarkus.runtime.annotations.QuarkusMain;
 
 /**
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author eric.wittmann@gmail.com
  */
-public abstract class AbstractResource {
-
-    @Inject
-    RegistryStorageFacade facade;
-
-    @Inject
-    Logger log;
-
+@QuarkusMain
+public class RegistryQuarkusMain {
+    public static void main(String... args) {
+        Quarkus.run(args);
+    }
 }

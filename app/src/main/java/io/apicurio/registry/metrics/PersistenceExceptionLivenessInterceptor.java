@@ -1,5 +1,6 @@
 package io.apicurio.registry.metrics;
 
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
@@ -11,9 +12,10 @@ import javax.interceptor.InvocationContext;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptor
+@Priority(Interceptor.Priority.APPLICATION)
 @PersistenceExceptionLivenessApply
 public class PersistenceExceptionLivenessInterceptor {
-    
+
     @Inject
     PersistenceExceptionLivenessCheck check;
     @Inject

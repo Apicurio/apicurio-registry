@@ -42,7 +42,8 @@ import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 @ApplicationScoped
 public class LogConfigurationService {
 
-    private static final Logger LOGGER = Logger.getLogger(LogConfigurationService.class.getName());
+    @Inject
+    org.slf4j.Logger LOGGER;
 
     @Inject
     @Current
@@ -56,7 +57,7 @@ public class LogConfigurationService {
         if (!storage.isAlive() || !storage.isReady()) {
             return;
         }
-        LOGGER.finest("Running periodic log configuration process");
+        LOGGER.trace("Running periodic log configuration process");
         for (LogConfigurationDto logConfig : storage.listLogConfigurations()) {
             Logger logger = Logger.getLogger(logConfig.getLogger());
             Level expectedLevel = Level.parse(logConfig.getLogLevel().value());

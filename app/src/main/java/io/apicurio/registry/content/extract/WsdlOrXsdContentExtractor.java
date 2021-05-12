@@ -18,8 +18,10 @@ package io.apicurio.registry.content.extract;
 
 import java.io.InputStream;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -29,20 +31,19 @@ import io.apicurio.registry.util.DocumentBuilderAccessor;
  * Performs meta-data extraction for WSDL or XSD content.
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
 public class WsdlOrXsdContentExtractor implements ContentExtractor {
-    private static final Logger log = LoggerFactory.getLogger(WsdlOrXsdContentExtractor.class);
 
-    public static final ContentExtractor INSTANCE = new WsdlOrXsdContentExtractor();
+    @Inject
+    Logger log;
 
-    private WsdlOrXsdContentExtractor() {
-    }
-
+    @Override
     public ExtractedMetaData extract(ContentHandle content) {
         try (InputStream contentIS = content.stream()) {
             Document document = DocumentBuilderAccessor.getDocumentBuilder().parse(contentIS);
             String name = document.getDocumentElement().getAttribute("name");
             String targetNS = document.getDocumentElement().getAttribute("targetNamespace");
-            
+
             ExtractedMetaData metaData = null;
             if (name != null && !name.equals("")) {
                 metaData = new ExtractedMetaData();

@@ -3,13 +3,13 @@ package io.apicurio.registry.metrics;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
 @Default
 public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck, LivenessCheck {
 
-    private static final Logger log = LoggerFactory.getLogger(ResponseErrorLivenessCheck.class);
+    @Inject
+    Logger log;
 
     /**
      * Maximum number of HTTP 5xx errors returned to the user

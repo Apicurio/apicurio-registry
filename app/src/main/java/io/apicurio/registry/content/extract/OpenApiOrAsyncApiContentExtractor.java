@@ -16,8 +16,10 @@
 
 package io.apicurio.registry.content.extract;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.combined.visitors.CombinedVisitorAdapter;
@@ -30,20 +32,22 @@ import io.apicurio.registry.content.ContentHandle;
  * Performs meta-data extraction for OpenAPI content.
  * @author eric.wittmann@gmail.com
  */
+@ApplicationScoped
 public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
-    private static final Logger log = LoggerFactory.getLogger(OpenApiOrAsyncApiContentExtractor.class);
 
-    public static final ContentExtractor INSTANCE = new OpenApiOrAsyncApiContentExtractor();
+    @Inject
+    Logger log;
 
     private OpenApiOrAsyncApiContentExtractor() {
     }
 
+    @Override
     public ExtractedMetaData extract(ContentHandle content) {
         try {
             Document openApi = Library.readDocumentFromJSONString(content.content());
             MetaDataVisitor viz = new MetaDataVisitor();
             Library.visitTree(openApi, viz, TraverserDirection.down);
-            
+
             ExtractedMetaData metaData = null;
             if (viz.name != null || viz.description != null) {
                 metaData = new ExtractedMetaData();
@@ -60,12 +64,12 @@ public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
             return null;
         }
     }
-    
+
     private static class MetaDataVisitor extends CombinedVisitorAdapter {
-        
+
         String name;
         String description;
-        
+
         /**
          * @see io.apicurio.datamodels.combined.visitors.CombinedVisitorAdapter#visitInfo(io.apicurio.datamodels.core.models.common.Info)
          */
@@ -74,6 +78,6 @@ public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
             name = node.title;
             description = node.description;
         }
-        
+
     }
 }

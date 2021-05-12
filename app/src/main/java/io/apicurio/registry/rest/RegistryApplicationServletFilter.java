@@ -29,9 +29,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 
@@ -50,10 +49,14 @@ import io.apicurio.registry.services.DisabledApisMatcherService;
 @ApplicationScoped
 public class RegistryApplicationServletFilter implements Filter {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     @Inject
     TenantIdResolver tenantIdResolver;
+
+    @Inject
+    TenantContext tenantContext;
 
     @Inject
     DisabledApisMatcherService disabledApisMatcherService;
@@ -72,7 +75,6 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
-
             boolean tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
                     (tenantId) -> {
 
@@ -100,18 +102,19 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
+                tenantContext.clearTenantId();
                 return;
             } else if (rewriteRequest) {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
+                tenantContext.clearTenantId();
                 return;
             }
 
         }
 
         chain.doFilter(request, response);
-
     }
 
 }

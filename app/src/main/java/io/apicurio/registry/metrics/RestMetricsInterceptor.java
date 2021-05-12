@@ -8,6 +8,7 @@ import org.eclipse.microprofile.metrics.Tag;
 import org.eclipse.microprofile.metrics.Timer;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
@@ -24,6 +25,7 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptor
+@Priority(Interceptor.Priority.APPLICATION)
 @RestMetricsApply
 public class RestMetricsInterceptor {
 

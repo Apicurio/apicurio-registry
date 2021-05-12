@@ -46,8 +46,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.slf4j.LoggerFactory;
-
+import org.slf4j.Logger;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -82,6 +81,9 @@ import io.apicurio.registry.utils.impexp.EntityWriter;
 @Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
 public class AdminResourceImpl implements AdminResource {
+
+    @Inject
+    Logger log;
 
     @Inject
     @Current
@@ -235,7 +237,7 @@ public class AdminResourceImpl implements AdminResource {
                 try {
                     return reader.readEntity();
                 } catch (Exception e) {
-                    LoggerFactory.getLogger(AdminResourceImpl.class).error("Error reading data from import ZIP file.", e);
+                    log.error("Error reading data from import ZIP file.", e);
                     return null;
                 }
             }

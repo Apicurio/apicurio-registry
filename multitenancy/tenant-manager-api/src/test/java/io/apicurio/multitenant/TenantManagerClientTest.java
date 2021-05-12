@@ -50,7 +50,6 @@ public class TenantManagerClientTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
-        req.setClientId("aaaaa");
 
         RegistryTenant tenant = client.createTenant(req);
 

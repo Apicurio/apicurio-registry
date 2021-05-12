@@ -491,6 +491,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactCount()
+     */
+    @Override
+    public String selectAllArtifactCount() {
+        return "SELECT COUNT(a.artifactId) FROM artifacts a "
+                + "WHERE a.tenantId = ? ";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersionsCount()
      */
     @Override
@@ -498,6 +507,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT COUNT(v.globalId) FROM versions v "
                 + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ? ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectTotalArtifactVersionsCount()
+     */
+    @Override
+    public String selectTotalArtifactVersionsCount() {
+        return "SELECT COUNT(v.globalId) FROM versions v "
+                + "JOIN artifacts a ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                + "WHERE a.tenantId = ?";
     }
 
     /**

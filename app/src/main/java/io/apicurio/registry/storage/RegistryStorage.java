@@ -572,4 +572,25 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void importData(EntityInputStream entities) throws RegistryStorageException;
+
+    /**
+     * Counts the total number of artifacts
+     * @return artifacts count
+     * @throws RegistryStorageException
+     */
+    public long countArtifacts() throws RegistryStorageException;
+
+    /**
+     * Counts the total number of versions for one artifact
+     * @return
+     * @throws RegistryStorageException
+     */
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Counts the total number of versions for all artifacts
+     * @return
+     * @throws RegistryStorageException
+     */
+    public long countTotalArtifactVersions() throws RegistryStorageException;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.storage;
+
+package io.apicurio.registry.rest.client.exception;
+
+import io.apicurio.registry.rest.v2.beans.Error;
 
 /**
- * Provider interface for non-default storage interfaces.
- *
- * It's mandatory to implement this interface for non-default storage implementations.
- *
  * @author Fabian Martinez
  */
-public interface RegistryStorageProvider {
+public class LimitConflictException extends RestClientException {
 
-    RegistryStorage storage();
+    private static final long serialVersionUID = 1L;
 
+    public LimitConflictException(Error error) {
+        super(error);
+    }
 }

@@ -29,7 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
-import io.apicurio.registry.mt.MultitenancyProperties;
+
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
@@ -60,9 +60,6 @@ public class RegistryApplicationServletFilter implements Filter {
 
     @Inject
     DisabledApisMatcherService disabledApisMatcherService;
-
-    @Inject
-    MultitenancyProperties mtProperties;
 
     /**
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)

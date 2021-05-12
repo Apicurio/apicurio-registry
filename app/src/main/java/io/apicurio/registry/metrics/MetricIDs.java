@@ -7,17 +7,6 @@ package io.apicurio.registry.metrics;
  */
 public interface MetricIDs {
 
-    String REST_GROUP_TAG = "REST";
-
-    String REST_REQUEST_RESPONSE_TIME = "rest_response_time";
-    String REST_REQUEST_RESPONSE_TIME_DESC = "Time of a request-response interval.";
-
-    String REST_REQUEST_COUNT = "rest_request_count";
-    String REST_REQUEST_COUNT_DESC = "Total number of REST requests.";
-
-    String REST_CONCURRENT_REQUEST_COUNT = "concurrent_request_count";
-    String REST_CONCURRENT_REQUEST_COUNT_DESC = "Number of concurrent REST requests.";
-
     String STORAGE_GROUP_TAG = "STORAGE";
 
     String STORAGE_OPERATION_TIME = "storage_operation_time";

@@ -24,22 +24,10 @@ import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.interceptor.Interceptors;
 import javax.ws.rs.BadRequestException;
 import java.util.List;
-
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 
 /**
@@ -47,9 +35,6 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {
 

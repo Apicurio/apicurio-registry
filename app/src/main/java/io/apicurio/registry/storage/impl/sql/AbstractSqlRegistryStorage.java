@@ -16,40 +16,6 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.transaction.Transactional;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jdbi.v3.core.Handle;
-import org.jdbi.v3.core.HandleCallback;
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.result.ResultIterable;
-import org.jdbi.v3.core.statement.Query;
-import org.jdbi.v3.core.statement.StatementContext;
-import org.jdbi.v3.core.statement.Update;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
@@ -99,6 +65,12 @@ import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -106,13 +78,39 @@ import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jdbi.v3.core.Handle;
+import org.jdbi.v3.core.HandleCallback;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.RowMapper;
+import org.jdbi.v3.core.result.ResultIterable;
+import org.jdbi.v3.core.statement.Query;
+import org.jdbi.v3.core.statement.StatementContext;
+import org.jdbi.v3.core.statement.Update;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.denormalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 /**
  * A SQL implementation of the {@link io.apicurio.registry.storage.RegistryStorage} interface.  This impl does not
@@ -123,6 +121,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
+    private static final String DOTS = "...";
     private static final Object dbMutex = new Object();
 
     @Inject
@@ -2542,7 +2541,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ExtractedMetaData emd = extractor.extract(content);
         EditableArtifactMetaDataDto metaData;
         if (emd != null) {
-            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties());
+            // Description character varying(255) in DataBase
+            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription().substring(0,252).concat(DOTS), emd.getLabels(), emd.getProperties());
         } else {
             metaData = new EditableArtifactMetaDataDto();
         }

@@ -80,6 +80,7 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.HandleCallback;
@@ -2542,7 +2543,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         EditableArtifactMetaDataDto metaData;
         if (emd != null) {
             // Description character varying(255) in DataBase
-            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription().substring(0,252).concat(DOTS), emd.getLabels(), emd.getProperties());
+            String description = "";
+            if(StringUtils.isNotBlank(emd.getDescription())){
+                description = emd.getDescription().length() > 255 ? emd.getDescription().substring(0,252).concat(DOTS) : emd.getDescription();
+            }
+
+            metaData = new EditableArtifactMetaDataDto(emd.getName(), description, emd.getLabels(), emd.getProperties());
         } else {
             metaData = new EditableArtifactMetaDataDto();
         }

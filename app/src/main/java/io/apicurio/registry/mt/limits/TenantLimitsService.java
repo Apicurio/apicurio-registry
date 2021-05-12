@@ -22,6 +22,9 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 
@@ -30,6 +33,8 @@ import io.apicurio.registry.storage.metrics.StorageMetricsStore;
  */
 @ApplicationScoped
 public class TenantLimitsService {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     //FIXME improve error messages
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of uploaded schemas exceeded";
@@ -61,6 +66,7 @@ public class TenantLimitsService {
         if (currentTotalSchemas < limitsConfiguration.getConfiguration().getMaxTotalSchemas()) {
             return LimitsCheckResult.ok();
         } else {
+            log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas, limitsConfiguration.getConfiguration().getMaxTotalSchemas());
             return LimitsCheckResult.disallowed(MAX_TOTAL_SCHEMAS_EXCEEDED_MSG);
         }
     }
@@ -87,6 +93,7 @@ public class TenantLimitsService {
         if (currentArtifacts < limitsConfiguration.getConfiguration().getMaxArtifacts()) {
             return LimitsCheckResult.ok();
         } else {
+            log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts, limitsConfiguration.getConfiguration().getMaxArtifacts());
             return LimitsCheckResult.disallowed(MAX_ARTIFACTS_EXCEEDED_MSG);
         }
     }
@@ -113,6 +120,7 @@ public class TenantLimitsService {
         if (currentArtifactVersions < limitsConfiguration.getConfiguration().getMaxVersionsPerArtifact()) {
             return LimitsCheckResult.ok();
         } else {
+            log.debug("Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}", groupId, artifactId, currentArtifactVersions, limitsConfiguration.getConfiguration().getMaxVersionsPerArtifact());
             return LimitsCheckResult.disallowed(MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG);
         }
     }

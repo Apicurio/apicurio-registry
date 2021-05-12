@@ -22,6 +22,8 @@ import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.context.ManagedExecutor;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -37,6 +39,9 @@ import io.apicurio.registry.types.ArtifactType;
  */
 @ApplicationScoped
 public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
+
+    @Inject
+    ManagedExecutor managedExecutor;
 
     @Inject
     TenantLimitsService limitsService;
@@ -71,11 +76,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
         LimitsCheckResult r = limitsService.canCreateArtifact(null);
         if (r.isAllowed()) {
             return super.createArtifact(groupId, artifactId, version, artifactType, content)
-                    .whenComplete((a, ex) -> {
+                    .whenCompleteAsync((a, ex) -> {
                         if (ex == null) {
                             limitsService.artifactCreated();
                         }
-                    });
+                    }, managedExecutor);
         } else {
             throw new LimitConflictException(r.getMessage());
         }
@@ -94,11 +99,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
         LimitsCheckResult r = limitsService.canCreateArtifact(metaData);
         if (r.isAllowed()) {
             return super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData)
-                    .whenComplete((a, ex) -> {
+                    .whenCompleteAsync((a, ex) -> {
                         if (ex == null) {
                             limitsService.artifactCreated();
                         }
-                    });
+                    }, managedExecutor);
         } else {
             throw new LimitConflictException(r.getMessage());
         }
@@ -116,11 +121,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
         LimitsCheckResult r = limitsService.canCreateArtifactVersion(groupId, artifactId, null);
         if (r.isAllowed()) {
             return super.updateArtifact(groupId, artifactId, version, artifactType, content)
-                    .whenComplete((a, ex) -> {
+                    .whenCompleteAsync((a, ex) -> {
                         if (ex == null) {
                             limitsService.artifactVersionCreated(groupId, artifactId);
                         }
-                    });
+                    }, managedExecutor);
         } else {
             throw new LimitConflictException(r.getMessage());
         }
@@ -137,11 +142,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
         LimitsCheckResult r = limitsService.canCreateArtifactVersion(groupId, artifactId, metaData);
         if (r.isAllowed()) {
             return super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData)
-                    .whenComplete((a, ex) -> {
+                    .whenCompleteAsync((a, ex) -> {
                         if (ex == null) {
                             limitsService.artifactVersionCreated(groupId, artifactId);
                         }
-                    });
+                    }, managedExecutor);
         } else {
             throw new LimitConflictException(r.getMessage());
         }

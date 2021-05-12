@@ -17,6 +17,7 @@
 package io.apicurio.registry.types.provider;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
@@ -35,6 +36,10 @@ import io.apicurio.registry.types.ArtifactType;
 @ApplicationScoped
 @Logged
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
+
+    @Inject
+    JsonContentExtractor extractor;
+
     @Override
     public ArtifactType getArtifactType() {
         return ArtifactType.JSON;
@@ -57,6 +62,6 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return JsonContentExtractor.INSTANCE;
+        return extractor;
     }
 }

@@ -10,7 +10,6 @@ import javax.inject.Inject;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.mt.TenantContext;
@@ -58,7 +57,8 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 @Logged
 public class KafkaSqlSink {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass().getName());
+    @Inject
+    Logger log;
 
     @Inject
     KafkaSqlCoordinator coordinator;

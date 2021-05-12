@@ -18,12 +18,15 @@ package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import org.jboss.logging.MDC;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class TenantContextImpl implements TenantContext {
 
+    private static final String TENANT_ID_KEY = "tenantId";
     private static final String DEFAULT_TENANT_ID = "_";
     private static ThreadLocal<String> tid = ThreadLocal.withInitial(() -> DEFAULT_TENANT_ID);
 
@@ -41,14 +44,16 @@ public class TenantContextImpl implements TenantContext {
     @Override
     public void tenantId(String tenantId) {
         tid.set(tenantId);
+        MDC.put(TENANT_ID_KEY, tenantId);
     }
-    
+
     /**
      * @see io.apicurio.registry.mt.TenantContext#clearTenantId()
      */
     @Override
     public void clearTenantId() {
         this.tenantId(DEFAULT_TENANT_ID);
+        MDC.remove(TENANT_ID_KEY);
     }
 
     @Override

@@ -18,27 +18,29 @@ package io.apicurio.registry.storage.impl.sql;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class SqlStatementsProducer {
-    private static Logger logger = LoggerFactory.getLogger(SqlStatementsProducer.class);
+
+    @Inject
+    Logger log;
 
     @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
     String databaseType;
-    
+
     /**
      * Produces an {@link SqlStatements} instance for injection.
      */
     @Produces @ApplicationScoped
     public SqlStatements createSqlStatements() {
-        logger.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
+        log.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();
         }

@@ -5,8 +5,6 @@ import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -14,6 +12,7 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -30,9 +29,10 @@ import javax.ws.rs.ext.Provider;
 public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthCheck
         implements HealthCheck, ContainerRequestFilter, ContainerResponseFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(ResponseTimeoutReadinessCheck.class);
-
     private static final String HEADER_NAME = "X-Apicurio-Registry-ResponseTimeoutReadinessCheck-RequestStart";
+
+    @Inject
+    Logger log;
 
     /**
      * Maximum number of requests taking more than {@link ResponseTimeoutReadinessCheck#configTimeoutSec} seconds,

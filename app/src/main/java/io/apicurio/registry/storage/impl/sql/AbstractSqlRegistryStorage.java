@@ -48,8 +48,6 @@ import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.StatementContext;
 import org.jdbi.v3.core.statement.Update;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
@@ -121,9 +119,11 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
+
+    @Inject
+    Logger log;
 
     @Inject
     TenantContext tenantContext;
@@ -145,6 +145,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    ArtifactStateExt artifactStateEx;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;
@@ -399,7 +402,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             long globalId = dto.getGlobalId();
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
-            ArtifactStateExt.applyState(s -> {
+            artifactStateEx.applyState(s -> {
                 String sql = sqlStatements.updateArtifactVersionState();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, s.name())
@@ -427,7 +430,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
             if (oldState != newState) {
-                ArtifactStateExt.applyState(s -> {
+                artifactStateEx.applyState(s -> {
                     String sql = sqlStatements.updateArtifactVersionState();
                     int rowCount = handle.createUpdate(sql)
                             .bind(0, s.name())

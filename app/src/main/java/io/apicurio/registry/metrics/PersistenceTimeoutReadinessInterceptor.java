@@ -2,10 +2,13 @@ package io.apicurio.registry.metrics;
 
 import java.time.Instant;
 
+import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
+
+import org.slf4j.Logger;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
@@ -13,10 +16,12 @@ import javax.interceptor.InvocationContext;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptor
+@Priority(Interceptor.Priority.APPLICATION)
 @PersistenceTimeoutReadinessApply
 public class PersistenceTimeoutReadinessInterceptor {
 
-//    private static final Logger log = LoggerFactory.getLogger(PersistenceTimeoutReadinessInterceptor.class);
+    @Inject
+    Logger log;
 
     @Inject
     PersistenceTimeoutReadinessCheck check;

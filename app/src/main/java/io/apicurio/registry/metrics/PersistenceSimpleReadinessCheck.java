@@ -1,14 +1,16 @@
 package io.apicurio.registry.metrics;
 
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
-import org.eclipse.microprofile.health.HealthCheck;
-import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Readiness;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
+
+import org.eclipse.microprofile.health.HealthCheck;
+import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Readiness;
+import org.slf4j.Logger;
+
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -18,7 +20,8 @@ import javax.inject.Inject;
 @Default
 public class PersistenceSimpleReadinessCheck implements HealthCheck {
 
-//    private static final Logger log = LoggerFactory.getLogger(PersistenceSimpleReadinessCheck.class);
+    @Inject
+    Logger log;
 
     @Inject
     @Current

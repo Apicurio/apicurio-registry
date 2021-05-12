@@ -5,11 +5,13 @@ import java.time.Duration;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
+import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
+import org.slf4j.Logger;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
@@ -21,7 +23,8 @@ import org.eclipse.microprofile.health.Liveness;
 @Default
 public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck {
 
-//    private static final Logger log = LoggerFactory.getLogger(PersistenceTimeoutReadinessCheck.class);
+    @Inject
+    Logger log;
 
     /**
      * Maximum number of timeouts as captured by this interceptor,

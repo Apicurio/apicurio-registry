@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.liveness;
 
 /**
  * Common interface for a liveness check.

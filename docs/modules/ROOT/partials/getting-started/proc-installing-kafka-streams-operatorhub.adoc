@@ -20,9 +20,9 @@ endif::[]
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
+. Change to the OpenShift project in which you want to install {kafka-streams}. For example, from the *Project* drop-down, select `my-project`. 
 
-. In the left navigation menu, click *Operators* > *OperatorHub*.
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
 ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{kafka-streams}* Operator.
 endif::[]
@@ -33,13 +33,15 @@ endif::[]
 
 . Select your subscription settings, for example:
 ifdef::apicurio-registry[]
-** *Update Channel* > *stable*
+** *Update Channel* and then *stable*
 endif::[]
 ifdef::rh-service-registry[]
-** *Update Channel* > *amq-streams-{registry-streams-version}.x*
+** *Update Channel* and then *amq-streams-{registry-streams-version}.x*
 endif::[]
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
-** *Approval Strategy* > *Manual*
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster* > *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
 
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 

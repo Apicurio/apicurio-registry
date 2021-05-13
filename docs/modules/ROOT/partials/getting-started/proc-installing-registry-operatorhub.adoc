@@ -22,10 +22,10 @@ NOTE: You can install more than one instance of {registry} depending on your env
 
 . Create a new OpenShift project:
 
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. In the left navigation menu, click *Home*, *Project*, and then *Create Project*.
 .. Enter a project name, for example, `my-project`, and click *Create*.
 
-. In the left navigation menu, click *Operators* > *OperatorHub*.
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
 ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
 endif::[]
@@ -35,12 +35,13 @@ endif::[]
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Update Channel* > Select one of the following channels:
+** *Update Channel*: Select one of the following:
 *** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x automatically ignores 2.1.x.
 *** *2.x*: Includes all minor and patch updates, such as 2.1.0 and 2.0.1. For example, an installation on 2.0.x automatically upgrades to 2.1.x. 
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
-** *Approval Strategy* > *Manual*
-
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster*  and then *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 
 [role="_additional-resources"]

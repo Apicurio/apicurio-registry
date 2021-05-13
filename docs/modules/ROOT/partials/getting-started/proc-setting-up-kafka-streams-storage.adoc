@@ -60,7 +60,7 @@ endif::[]
 +
 [source,yaml]
 ----
-apiVersion: registry.apicur.io/v1alpha1
+apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry
 metadata:
   name: example-apicurioregistry-kafkasql
@@ -77,7 +77,7 @@ spec:
 +
 [source]
 ----
-http://example-apicurioregistry.my-project.my-domain-name.com/
+http://example-apicurioregistry-kafkasql.my-project.my-domain-name.com/
 ----
 
 [role="_additional-resources"]

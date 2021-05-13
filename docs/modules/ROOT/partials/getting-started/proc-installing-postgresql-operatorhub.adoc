@@ -25,8 +25,8 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Update Channel* and then *stable*
-** *Installation Mode* and then *A specific namespace on the cluster* > *my-project*
+** *Update Channel*: *stable*
+** *Installation Mode*: *A specific namespace on the cluster* and then *my-project*
 ** *Approval Strategy*: Select *Automatic* or *Manual*
 
 . Click *Install*, and wait a few moments until the Operator is ready for use.

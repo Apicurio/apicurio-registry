@@ -21,12 +21,12 @@ You can install {registry} in an existing Kafka cluster or create a new Kafka cl
 . If you do not already have a Kafka cluster configured, create a new Kafka cluster using {kafka-streams}. For example, in the OpenShift OperatorHub:
 +
 ifdef::apicurio-registry[]
-.. Click *Installed Operators* > *{kafka-streams}*.
+.. Click *Installed Operators* and then *{kafka-streams}*.
 endif::[]
 ifdef::rh-service-registry[]
-.. Click *Installed Operators* > *Red Hat Integration - {kafka-streams}*.
+.. Click *Installed Operators* and then *Red Hat Integration - {kafka-streams}*.
 endif::[]
-.. Under *Provided APIs* > *Kafka*, click *Create Instance* to create a new Kafka cluster.
+.. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
 .. Edit the custom resource definition as appropriate, and click *Create*.
 +
 WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
@@ -38,6 +38,7 @@ WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafk
 [source,yaml]
 ----
 status:
+  ...           
   conditions:
   ...
   listeners:
@@ -59,15 +60,15 @@ endif::[]
 +
 [source,yaml]
 ----
-apiVersion: apicur.io/v1alpha1
+apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry
 metadata:
-  name: example-apicurioregistry
+  name: example-apicurioregistry-kafkasql
 spec:
   configuration:
-    persistence: "kafkasql"
-    streams:
-      bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9092"
+    persistence: 'kafkasql'
+    kafkasql:
+      bootstrapServers: 'my-cluster-kafka-bootstrap.my-project.svc:9092'
 ----
 
 . Click *Create* and wait for the {registry} route to be created on OpenShift.
@@ -76,7 +77,7 @@ spec:
 +
 [source]
 ----
-http://example-apicurioregistry.my-project.my-domain-name.com/
+http://example-apicurioregistry-kafkasql.my-project.my-domain-name.com/
 ----
 
 [role="_additional-resources"]

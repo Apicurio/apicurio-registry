@@ -58,7 +58,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
 
     protected RegistryStorage delegate;
 
-    public abstract boolean isConfigured();
+    public abstract boolean isEnabled();
     public abstract int order();
 
     /**

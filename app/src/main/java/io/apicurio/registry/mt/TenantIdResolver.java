@@ -65,7 +65,7 @@ public class TenantIdResolver {
 
     public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
         if (mtProperties.isMultitenancyEnabled()) {
-            log.debug("Resolving tenantId for request {}", uri);
+            log.trace("Resolving tenantId for request {}", uri);
 
             if (uri.startsWith(multitenancyBasePath)) {
                 String[] tokens = uri.split("/");

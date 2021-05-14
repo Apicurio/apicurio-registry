@@ -25,7 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.exception.LimitConflictException;
+import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
@@ -72,12 +72,12 @@ public class LimitsTest extends AbstractResourceTestBase {
                 StringUtils.repeat('a', 5), fiveBytesText,
                 StringUtils.repeat('b', 5), fiveBytesText));
         invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
-        Assertions.assertThrows(LimitConflictException.class, () -> {
+        Assertions.assertThrows(LimitExceededException.class, () -> {
             clientV2.updateArtifactVersionMetaData(null, artifactId, "1", invalidmeta);
         });
 
         //schema number 3 , exceeds the max number of schemas
-        Assertions.assertThrows(LimitConflictException.class, () -> {
+        Assertions.assertThrows(LimitExceededException.class, () -> {
             clientV2.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
 

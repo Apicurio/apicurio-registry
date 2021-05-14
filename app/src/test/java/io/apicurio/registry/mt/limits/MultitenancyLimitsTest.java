@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.LimitConflictException;
+import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
@@ -103,12 +103,12 @@ public class MultitenancyLimitsTest extends AbstractResourceTestBase {
                 StringUtils.repeat('a', 5), fiveBytesText,
                 StringUtils.repeat('b', 5), fiveBytesText));
         invalidmeta.setLabels(Arrays.asList(fiveBytesText, fiveBytesText));
-        Assertions.assertThrows(LimitConflictException.class, () -> {
+        Assertions.assertThrows(LimitExceededException.class, () -> {
             client.updateArtifactVersionMetaData(null, artifactId, "1", invalidmeta);
         });
 
         //schema number 3 , exceeds the max number of schemas
-        Assertions.assertThrows(LimitConflictException.class, () -> {
+        Assertions.assertThrows(LimitExceededException.class, () -> {
             client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
     }

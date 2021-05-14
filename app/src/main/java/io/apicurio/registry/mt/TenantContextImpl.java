@@ -17,8 +17,7 @@
 package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
-
-import org.jboss.logging.MDC;
+import org.slf4j.MDC;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -28,14 +27,28 @@ public class TenantContextImpl implements TenantContext {
 
     private static final String TENANT_ID_KEY = "tenantId";
     private static final String DEFAULT_TENANT_ID = "_";
-    private static ThreadLocal<String> tid = ThreadLocal.withInitial(() -> DEFAULT_TENANT_ID);
+
+    private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> new RegistryTenantContext(DEFAULT_TENANT_ID));
+
+
+    public static RegistryTenantContext current() {
+        return CURRENT.get();
+    }
+
+    public static void setCurrentContext(RegistryTenantContext context) {
+        CURRENT.set(context);
+    }
+
+    public static void clearCurrentContext() {
+        CURRENT.remove();
+    }
 
     /**
      * @see io.apicurio.registry.mt.TenantContext#tenantId()
      */
     @Override
     public String tenantId() {
-        return tid.get();
+        return CURRENT.get().getTenantId();
     }
 
     /**
@@ -43,7 +56,7 @@ public class TenantContextImpl implements TenantContext {
      */
     @Override
     public void tenantId(String tenantId) {
-        tid.set(tenantId);
+        CURRENT.set(new RegistryTenantContext(tenantId));
         MDC.put(TENANT_ID_KEY, tenantId);
     }
 

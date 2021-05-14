@@ -129,7 +129,9 @@ public class KafkaSqlSink {
         MessageValue value = record.value();
 
         String tenantId = key.getTenantId();
-        tenantContext.tenantId(tenantId);
+        if (tenantId != null) {
+            tenantContext.tenantId(tenantId);
+        }
         try {
             MessageType messageType = key.getType();
             switch (messageType) {
@@ -156,6 +158,7 @@ public class KafkaSqlSink {
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
             }
         } finally {
+            log.debug("Clearing tenant id after message processed");
             tenantContext.clearTenantId();
         }
     }

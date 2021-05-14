@@ -21,15 +21,15 @@ import io.apicurio.registry.types.RegistryException;
 /**
  * @author Fabian Martinez
  */
-public class LimitConflictException extends RegistryException {
+public class LimitExceededException extends RegistryException {
 
     private static final long serialVersionUID = -8689268705454834808L;
 
-    public LimitConflictException(String message) {
+    public LimitExceededException(String message) {
         super(message);
     }
 
-    public LimitConflictException(String message, Throwable cause) {
+    public LimitExceededException(String message, Throwable cause) {
         super(message, cause);
     }
 }

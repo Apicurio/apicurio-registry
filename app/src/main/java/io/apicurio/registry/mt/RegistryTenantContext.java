@@ -14,18 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.exception;
-
-import io.apicurio.registry.rest.v2.beans.Error;
+package io.apicurio.registry.mt;
 
 /**
  * @author Fabian Martinez
  */
-public class LimitConflictException extends RestClientException {
+public class RegistryTenantContext {
 
-    private static final long serialVersionUID = 1L;
+    private final String tenantId;
 
-    public LimitConflictException(Error error) {
-        super(error);
+    public RegistryTenantContext(String tenantId) {
+        this.tenantId = tenantId;
     }
+
+    /**
+     * @return the tenantId
+     */
+    public String getTenantId() {
+        return tenantId;
+    }
+
 }

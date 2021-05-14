@@ -68,8 +68,8 @@ public class RegistryStorageProducer {
             Comparator<RegistryStorageDecorator> decoratorsComparator = Comparator.comparing(RegistryStorageDecorator::order);
 
             List<RegistryStorageDecorator> declist = decorators.stream()
+                    .filter(RegistryStorageDecorator::isEnabled)
                     .sorted(decoratorsComparator)
-                    .filter(RegistryStorageDecorator::isConfigured)
                     .collect(Collectors.toList());
 
             if (!declist.isEmpty()) {

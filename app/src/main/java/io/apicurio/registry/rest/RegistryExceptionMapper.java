@@ -47,7 +47,7 @@ import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.mt.TenantNotFoundException;
-import io.apicurio.registry.mt.limits.LimitConflictException;
+import io.apicurio.registry.mt.limits.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
@@ -119,7 +119,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(LimitConflictException.class, HTTP_CONFLICT);
+        map.put(LimitExceededException.class, HTTP_CONFLICT);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

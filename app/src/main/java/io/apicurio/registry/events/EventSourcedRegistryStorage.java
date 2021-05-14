@@ -60,10 +60,10 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     }
 
     /**
-     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#isConfigured()
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#isEnabled()
      */
     @Override
-    public boolean isConfigured() {
+    public boolean isEnabled() {
         return eventsService.isConfigured();
     }
 

@@ -80,7 +80,7 @@ public class RegistryApplicationServletFilter implements Filter {
                             actualUri = "/";
                         }
 
-                        log.debug("Rewriting request {} to {} , tenantId {}", requestURI, actualUri, tenantId);
+                        log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
 
                         rewriteContext.append(actualUri);
 
@@ -105,6 +105,7 @@ public class RegistryApplicationServletFilter implements Filter {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
+                log.debug("Cleaning tenant context");
                 tenantContext.clearTenantId();
                 return;
             }

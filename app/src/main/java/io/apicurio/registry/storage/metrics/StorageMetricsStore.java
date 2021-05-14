@@ -23,6 +23,9 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -35,6 +38,8 @@ import lombok.EqualsAndHashCode;
  */
 @ApplicationScoped
 public class StorageMetricsStore {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")
@@ -67,6 +72,7 @@ public class StorageMetricsStore {
 
     public long getOrInitializeTotalSchemasCounter() {
         return totalSchemasCounters.compute(tenantContext.tenantId(), k -> {
+            log.info("Initializing total schemas counter, tid {}", tenantContext.tenantId());
             long count = storage.countTotalArtifactVersions();
             return new AtomicLong(count);
         }).get();
@@ -91,6 +97,7 @@ public class StorageMetricsStore {
     }
 
     public void incrementTotalSchemasCounter() {
+        log.info("Incrementing total schemas counter, tid {}", tenantContext.tenantId());
         AtomicLong counter = totalSchemasCounters.get(tenantContext.tenantId());
         if (counter == null) {
             //cached counter expired, do nothing, it will be reloaded from DB on the next read

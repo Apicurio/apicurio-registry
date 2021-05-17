@@ -183,7 +183,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionMetaDataByGlobalId() {
-        return "SELECT v.*, a.type FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId WHERE v.globalId = ?";
+        return "SELECT v.*, a.type "
+                + "FROM versions v "
+                + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -427,7 +430,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactMetaDataByGlobalId() {
         return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM artifacts a "
-                + "JOIN versions v ON a.tenantId = v.tenantId AND a.artifactId = v.artifactId "
+                + "JOIN versions v ON a.tenantId = v.tenantId AND a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE v.tenantId = ? AND v.globalId = ?";
     }
 

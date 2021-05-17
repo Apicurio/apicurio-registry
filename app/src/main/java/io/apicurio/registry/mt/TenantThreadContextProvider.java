@@ -22,6 +22,9 @@ import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
+ * Implementation required for context propagation.
+ * This is responsible for moving our tenant context from one thread to another when context-propagation is being used.
+ *
  * @author Fabian Martinez
  */
 public class TenantThreadContextProvider implements ThreadContextProvider {

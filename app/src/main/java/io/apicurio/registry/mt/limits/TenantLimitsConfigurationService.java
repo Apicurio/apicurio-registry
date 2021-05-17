@@ -22,9 +22,10 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.RegistryTenantLimits;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
 
 /**
@@ -81,8 +82,7 @@ public class TenantLimitsConfigurationService {
     MultitenancyProperties mtProperties;
 
     private boolean isConfigured = true;
-    private TenantLimitsConfigurationImpl defaultLimitsConfiguration;
-    private CheckPeriodCache<String, TenantLimitsConfigurationImpl> limitsConfigurationCache;
+    private TenantLimitsConfiguration defaultLimitsConfiguration;
 
     public void onStart(@Observes StartupEvent ev) {
 
@@ -112,9 +112,7 @@ public class TenantLimitsConfigurationService {
 
         }
 
-        limitsConfigurationCache = new CheckPeriodCache<>(limitsCheckPeriod);
-
-        TenantLimitsConfigurationImpl c = new TenantLimitsConfigurationImpl();
+        TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
         c.setMaxTotalSchemas(defaultMaxTotalSchemas);
         c.setMaxArtifacts(defaultMaxArtifacts);
@@ -137,17 +135,37 @@ public class TenantLimitsConfigurationService {
         return this.isConfigured;
     }
 
+    public TenantLimitsConfiguration defaultConfigurationTenant() {
+        return defaultLimitsConfiguration;
+    }
+
     /**
-     * Returns the configuration for the current tenant
-     * @return
+     * @param tenantMetadata
      */
-    public TenantLimitsConfigurationImpl getConfiguration() {
+    public TenantLimitsConfiguration fromTenantMetadata(RegistryTenant tenantMetadata) {
+        TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
-        return limitsConfigurationCache.compute(tenantContext.tenantId(), k -> {
-            //TODO get the limits configuration from the tenant manager, it should be loaded into the tenant context
-           return defaultLimitsConfiguration;
-        });
+        if (tenantMetadata.getLimits() == null) {
+            return defaultLimitsConfiguration;
+        }
 
+        RegistryTenantLimits limits = tenantMetadata.getLimits();
+
+        c.setMaxTotalSchemas(limits.getMaxTotalSchemas() == null ? defaultMaxTotalSchemas : limits.getMaxTotalSchemas());
+        c.setMaxArtifacts(limits.getMaxArtifacts() == null ? defaultMaxArtifacts : limits.getMaxArtifacts());
+        c.setMaxVersionsPerArtifact(limits.getMaxVersionsPerArtifact() == null ? defaultMaxVersionsPerArtifact : limits.getMaxVersionsPerArtifact());
+
+        c.setMaxArtifactProperties(limits.getMaxArtifactProperties() == null ? defaultMaxArtifactProperties : limits.getMaxArtifactProperties());
+        c.setMaxPropertyKeyBytesSize(limits.getMaxPropertyKeyBytesSize() == null ? defaultMaxPropertyKeyBytesSize : limits.getMaxPropertyKeyBytesSize());
+        c.setMaxPropertyValueBytesSize(limits.getMaxPropertyValueBytesSize() == null ? defaultMaxPropertyValueBytesSize : limits.getMaxPropertyValueBytesSize());
+
+        c.setMaxArtifactLabels(limits.getMaxArtifactLabels() == null ? defaultMaxArtifactLabels : limits.getMaxArtifactLabels());
+        c.setMaxLabelBytesSize(limits.getMaxLabelBytesSize() == null ? defaultMaxLabelBytesSize : limits.getMaxLabelBytesSize());
+
+        c.setMaxNameLength(limits.getMaxNameLength() == null ? defaultMaxNameLength : limits.getMaxNameLength());
+        c.setMaxDescriptionLength(limits.getMaxDescriptionLength() == null ? defaultMaxDescriptionLength : limits.getMaxDescriptionLength());
+
+        return c;
     }
 
 }

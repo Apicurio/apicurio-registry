@@ -16,15 +16,21 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+
 /**
+ * Simple POJO class to hold the tenant specific configuration
+ *
  * @author Fabian Martinez
  */
 public class RegistryTenantContext {
 
     private final String tenantId;
+    private final TenantLimitsConfiguration limitsConfiguration;
 
-    public RegistryTenantContext(String tenantId) {
+    public RegistryTenantContext(String tenantId, TenantLimitsConfiguration limitsConfiguration) {
         this.tenantId = tenantId;
+        this.limitsConfiguration = limitsConfiguration;
     }
 
     /**
@@ -32,6 +38,13 @@ public class RegistryTenantContext {
      */
     public String getTenantId() {
         return tenantId;
+    }
+
+    /**
+     * @return the limitsConfiguration
+     */
+    public TenantLimitsConfiguration getLimitsConfiguration() {
+        return limitsConfiguration;
     }
 
 }

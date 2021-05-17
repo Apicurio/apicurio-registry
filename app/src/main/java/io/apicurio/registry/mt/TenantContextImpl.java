@@ -19,6 +19,8 @@ package io.apicurio.registry.mt;
 import javax.enterprise.context.ApplicationScoped;
 import org.slf4j.MDC;
 
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -26,10 +28,9 @@ import org.slf4j.MDC;
 public class TenantContextImpl implements TenantContext {
 
     private static final String TENANT_ID_KEY = "tenantId";
-    private static final String DEFAULT_TENANT_ID = "_";
+    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null);
 
-    private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> new RegistryTenantContext(DEFAULT_TENANT_ID));
-
+    private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> EMPTY_CONTEXT);
 
     public static RegistryTenantContext current() {
         return CURRENT.get();
@@ -40,7 +41,7 @@ public class TenantContextImpl implements TenantContext {
     }
 
     public static void clearCurrentContext() {
-        CURRENT.remove();
+        setCurrentContext(EMPTY_CONTEXT);
     }
 
     /**
@@ -52,20 +53,28 @@ public class TenantContextImpl implements TenantContext {
     }
 
     /**
-     * @see io.apicurio.registry.mt.TenantContext#tenantId(java.lang.String)
+     * @see io.apicurio.registry.mt.TenantContext#limitsConfig()
      */
     @Override
-    public void tenantId(String tenantId) {
-        CURRENT.set(new RegistryTenantContext(tenantId));
-        MDC.put(TENANT_ID_KEY, tenantId);
+    public TenantLimitsConfiguration limitsConfig() {
+        return CURRENT.get().getLimitsConfiguration();
     }
 
     /**
-     * @see io.apicurio.registry.mt.TenantContext#clearTenantId()
+     * @see io.apicurio.registry.mt.TenantContext#setContext(java.lang.String)
      */
     @Override
-    public void clearTenantId() {
-        this.tenantId(DEFAULT_TENANT_ID);
+    public void setContext(RegistryTenantContext ctx) {
+        setCurrentContext(ctx);
+        MDC.put(TENANT_ID_KEY, ctx.getTenantId());
+    }
+
+    /**
+     * @see io.apicurio.registry.mt.TenantContext#clearContext()
+     */
+    @Override
+    public void clearContext() {
+        setCurrentContext(EMPTY_CONTEXT);
         MDC.remove(TENANT_ID_KEY);
     }
 

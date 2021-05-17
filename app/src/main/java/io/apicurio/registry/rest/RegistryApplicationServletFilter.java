@@ -72,6 +72,7 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
+            //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
                     (tenantId) -> {
 
@@ -99,14 +100,14 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
-                tenantContext.clearTenantId();
+                tenantContext.clearContext();
                 return;
             } else if (rewriteRequest) {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
                 log.debug("Cleaning tenant context");
-                tenantContext.clearTenantId();
+                tenantContext.clearContext();
                 return;
             }
 

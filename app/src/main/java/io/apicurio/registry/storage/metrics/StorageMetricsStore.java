@@ -34,6 +34,15 @@ import io.quarkus.runtime.StartupEvent;
 import lombok.EqualsAndHashCode;
 
 /**
+ * This class provides a set of per-tenant counters. Counters such as "number of artifacts"
+ * This counters have to be "distributed" or at least work in a clustered deployment.
+ * Currently this implementation uses {@link CheckPeriodCache} for storing the counters,
+ * it's "auto-eviction" nature allows to re-initialize the counters with information from the database periodically,
+ * making it "useful" for clustered deployments.
+ *
+ * This implementation is far from perfect, ideally redis or some other externalized cache should be used, but for now
+ * this implementation could work, it's extremely simple and it does not require the deployment of external infrastructure.
+ *
  * @author Fabian Martinez
  */
 @ApplicationScoped

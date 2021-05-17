@@ -18,6 +18,7 @@ package io.apicurio.registry.mt.limits;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -27,14 +28,20 @@ import org.eclipse.microprofile.context.ThreadContext;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RegistryException;
 
 /**
+ * Decorator of {@link RegistryStorage} that applies per-tenant limits enforcement, with this is possible to limit how many artifacts a tenant can create...
+ * This feature can also be applied to non multitenancy scenarios, there is the notion of default tenant that can have limits configuration.
+ * All of that is abstracted with the TenantLimitsService and the TenantLimitsConfigurationService
+ *
  * @author Fabian Martinez
  */
 @ApplicationScoped
@@ -73,17 +80,13 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.canCreateArtifact(null);
-        if (r.isAllowed()) {
-            return threadContext.withContextCapture(super.createArtifact(groupId, artifactId, version, artifactType, content))
-                    .whenComplete((a, ex) -> {
-                        if (ex == null) {
-                            limitsService.artifactCreated();
-                        }
-                    });
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
+        return withLimitsCheck(() -> limitsService.canCreateArtifact(null))
+                .execute(() -> super.createArtifact(groupId, artifactId, version, artifactType, content))
+                .whenComplete((a, ex) -> {
+                    if (ex == null) {
+                        limitsService.artifactCreated();
+                    }
+                });
 
     }
 
@@ -96,17 +99,13 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.canCreateArtifact(metaData);
-        if (r.isAllowed()) {
-            return threadContext.withContextCapture(super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
-                    .whenComplete((a, ex) -> {
-                        if (ex == null) {
-                            limitsService.artifactCreated();
-                        }
-                    });
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
+        return withLimitsCheck(() -> limitsService.canCreateArtifact(metaData))
+                .execute(() -> super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
+                .whenComplete((a, ex) -> {
+                    if (ex == null) {
+                        limitsService.artifactCreated();
+                    }
+                });
 
     }
 
@@ -118,17 +117,14 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.canCreateArtifactVersion(groupId, artifactId, null);
-        if (r.isAllowed()) {
-            return threadContext.withContextCapture(super.updateArtifact(groupId, artifactId, version, artifactType, content))
-                    .whenComplete((a, ex) -> {
-                        if (ex == null) {
-                            limitsService.artifactVersionCreated(groupId, artifactId);
-                        }
-                    });
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
+        return withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null))
+                .execute(() -> super.updateArtifact(groupId, artifactId, version, artifactType, content))
+                .whenComplete((a, ex) -> {
+                    if (ex == null) {
+                        limitsService.artifactVersionCreated(groupId, artifactId);
+                    }
+                });
+
     }
 
     /**
@@ -139,17 +135,14 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             String version, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.canCreateArtifactVersion(groupId, artifactId, metaData);
-        if (r.isAllowed()) {
-            return threadContext.withContextCapture(super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
-                    .whenComplete((a, ex) -> {
-                        if (ex == null) {
-                            limitsService.artifactVersionCreated(groupId, artifactId);
-                        }
-                    });
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
+        return withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData))
+                .execute(() -> super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
+                .whenComplete((a, ex) -> {
+                    if (ex == null) {
+                        limitsService.artifactVersionCreated(groupId, artifactId);
+                    }
+                });
+
     }
 
     /**
@@ -159,12 +152,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
     public void updateArtifactMetaData(String groupId, String artifactId,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.checkMetaData(metaData);
-        if (r.isAllowed()) {
-            super.updateArtifactMetaData(groupId, artifactId, metaData);
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
+        withLimitsCheck(() -> limitsService.checkMetaData(metaData))
+                .execute(() -> {
+                    super.updateArtifactMetaData(groupId, artifactId, metaData);
+                    return null;
+                });
 
     }
 
@@ -176,13 +168,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
-        LimitsCheckResult r = limitsService.checkMetaData(metaData);
-        if (r.isAllowed()) {
-            super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
-        } else {
-            throw new LimitExceededException(r.getMessage());
-        }
-
+        withLimitsCheck(() -> limitsService.checkMetaData(metaData))
+            .execute(() -> {
+                super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+                return null;
+            });
     }
 
     /**
@@ -213,6 +203,46 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         super.deleteArtifactVersion(groupId, artifactId, version);
         limitsService.artifactVersionDeleted(groupId, artifactId);
+    }
+
+    /**
+     * Notice the "threadContext.withContextCapture" because of using CompletionStage it's possible that certain operations may be executed in different threads.
+     * But we have the TenantContext that stores per-tenant configurations in a ThreadLocale variable. We need context propagation to move the ThreadLocale context
+     * from one thread to another, that's why we use withContextCapture
+     * @param checker
+     * @return
+     */
+    public ActionProvider withLimitsCheck(LimitsChecker checker) {
+        return new ActionProvider() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @Override
+            public <T> T execute(LimitedAction<T> action) throws RegistryException {
+                LimitsCheckResult r = checker.get();
+                if (r.isAllowed()) {
+                    T result = action.get();
+                    if (result instanceof CompletionStage) {
+                        result = (T) threadContext.withContextCapture((CompletionStage) result);
+                    }
+                    return result;
+                } else {
+                    throw new LimitExceededException(r.getMessage());
+                }
+            }
+        };
+    }
+
+    @FunctionalInterface
+    private static interface LimitsChecker extends Supplier<LimitsCheckResult> {
+    }
+
+    @FunctionalInterface
+    private static interface LimitedAction<T> {
+        T get() throws RegistryException;
+    }
+
+    @FunctionalInterface
+    private static interface ActionProvider  {
+        public <T> T execute(LimitedAction<T> action) throws RegistryException;
     }
 
 }

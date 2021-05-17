@@ -14,166 +14,147 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt.limits;
+package io.apicurio.multitenant.api.datamodel;
 
 /**
  * @author Fabian Martinez
  */
-public class TenantLimitsConfigurationImpl {
+//TODO properly generate this class
+public class RegistryTenantLimits {
 
-    private long maxTotalSchemas;
-    private long maxArtifacts;
-    private long maxVersionsPerArtifact;
+    private Long maxTotalSchemas;
+    private Long maxArtifacts;
+    private Long maxVersionsPerArtifact;
 
     //TODO content size
 
-    private long maxArtifactProperties;
-    private long maxPropertyKeyBytesSize;
-    private long maxPropertyValueBytesSize;
+    private Long maxArtifactProperties;
+    private Long maxPropertyKeyBytesSize;
+    private Long maxPropertyValueBytesSize;
 
-    private long maxArtifactLabels;
-    private long maxLabelBytesSize;
+    private Long maxArtifactLabels;
+    private Long maxLabelBytesSize;
 
-    private long maxNameLength;
-    private long maxDescriptionLength;
-
+    private Long maxNameLength;
+    private Long maxDescriptionLength;
     /**
      * @return the maxTotalSchemas
      */
-    public long getMaxTotalSchemas() {
+    public Long getMaxTotalSchemas() {
         return maxTotalSchemas;
     }
-
     /**
      * @param maxTotalSchemas the maxTotalSchemas to set
      */
-    public void setMaxTotalSchemas(long maxTotalSchemas) {
+    public void setMaxTotalSchemas(Long maxTotalSchemas) {
         this.maxTotalSchemas = maxTotalSchemas;
     }
-
     /**
      * @return the maxArtifacts
      */
-    public long getMaxArtifacts() {
+    public Long getMaxArtifacts() {
         return maxArtifacts;
     }
-
     /**
      * @param maxArtifacts the maxArtifacts to set
      */
-    public void setMaxArtifacts(long maxArtifacts) {
+    public void setMaxArtifacts(Long maxArtifacts) {
         this.maxArtifacts = maxArtifacts;
     }
-
     /**
      * @return the maxVersionsPerArtifact
      */
-    public long getMaxVersionsPerArtifact() {
+    public Long getMaxVersionsPerArtifact() {
         return maxVersionsPerArtifact;
     }
-
     /**
      * @param maxVersionsPerArtifact the maxVersionsPerArtifact to set
      */
-    public void setMaxVersionsPerArtifact(long maxVersionsPerArtifact) {
+    public void setMaxVersionsPerArtifact(Long maxVersionsPerArtifact) {
         this.maxVersionsPerArtifact = maxVersionsPerArtifact;
     }
-
     /**
      * @return the maxArtifactProperties
      */
-    public long getMaxArtifactProperties() {
+    public Long getMaxArtifactProperties() {
         return maxArtifactProperties;
     }
-
     /**
      * @param maxArtifactProperties the maxArtifactProperties to set
      */
-    public void setMaxArtifactProperties(long maxArtifactProperties) {
+    public void setMaxArtifactProperties(Long maxArtifactProperties) {
         this.maxArtifactProperties = maxArtifactProperties;
     }
-
     /**
      * @return the maxPropertyKeyBytesSize
      */
-    public long getMaxPropertyKeyBytesSize() {
+    public Long getMaxPropertyKeyBytesSize() {
         return maxPropertyKeyBytesSize;
     }
-
     /**
      * @param maxPropertyKeyBytesSize the maxPropertyKeyBytesSize to set
      */
-    public void setMaxPropertyKeyBytesSize(long maxPropertyKeyBytesSize) {
+    public void setMaxPropertyKeyBytesSize(Long maxPropertyKeyBytesSize) {
         this.maxPropertyKeyBytesSize = maxPropertyKeyBytesSize;
     }
-
     /**
      * @return the maxPropertyValueBytesSize
      */
-    public long getMaxPropertyValueBytesSize() {
+    public Long getMaxPropertyValueBytesSize() {
         return maxPropertyValueBytesSize;
     }
-
     /**
      * @param maxPropertyValueBytesSize the maxPropertyValueBytesSize to set
      */
-    public void setMaxPropertyValueBytesSize(long maxPropertyValueBytesSize) {
+    public void setMaxPropertyValueBytesSize(Long maxPropertyValueBytesSize) {
         this.maxPropertyValueBytesSize = maxPropertyValueBytesSize;
     }
-
     /**
      * @return the maxArtifactLabels
      */
-    public long getMaxArtifactLabels() {
+    public Long getMaxArtifactLabels() {
         return maxArtifactLabels;
     }
-
     /**
      * @param maxArtifactLabels the maxArtifactLabels to set
      */
-    public void setMaxArtifactLabels(long maxArtifactLabels) {
+    public void setMaxArtifactLabels(Long maxArtifactLabels) {
         this.maxArtifactLabels = maxArtifactLabels;
     }
-
     /**
      * @return the maxLabelBytesSize
      */
-    public long getMaxLabelBytesSize() {
+    public Long getMaxLabelBytesSize() {
         return maxLabelBytesSize;
     }
-
     /**
      * @param maxLabelBytesSize the maxLabelBytesSize to set
      */
-    public void setMaxLabelBytesSize(long maxLabelBytesSize) {
+    public void setMaxLabelBytesSize(Long maxLabelBytesSize) {
         this.maxLabelBytesSize = maxLabelBytesSize;
     }
-
     /**
      * @return the maxNameLength
      */
-    public long getMaxNameLength() {
+    public Long getMaxNameLength() {
         return maxNameLength;
     }
-
     /**
      * @param maxNameLength the maxNameLength to set
      */
-    public void setMaxNameLength(long maxNameLength) {
+    public void setMaxNameLength(Long maxNameLength) {
         this.maxNameLength = maxNameLength;
     }
-
     /**
      * @return the maxDescriptionLength
      */
-    public long getMaxDescriptionLength() {
+    public Long getMaxDescriptionLength() {
         return maxDescriptionLength;
     }
-
     /**
      * @param maxDescriptionLength the maxDescriptionLength to set
      */
-    public void setMaxDescriptionLength(long maxDescriptionLength) {
+    public void setMaxDescriptionLength(Long maxDescriptionLength) {
         this.maxDescriptionLength = maxDescriptionLength;
     }
 

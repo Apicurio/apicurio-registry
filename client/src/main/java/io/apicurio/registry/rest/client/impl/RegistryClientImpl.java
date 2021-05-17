@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryHttpClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.rest.client.request.ErrorHandler;
+import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.request.provider.AdminRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
@@ -30,6 +30,7 @@ import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -83,7 +84,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
+        try {
+            registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw new RestClientException(new Error());
+        }
     }
 
     @Override
@@ -99,7 +104,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
-        registryHttpClient.sendRequest(GroupRequestsProvider.createArtifactRule(normalizeGid(groupId), artifactId, data));
+        try {
+            registryHttpClient.sendRequest(GroupRequestsProvider.createArtifactRule(normalizeGid(groupId), artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -114,7 +123,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
-        return registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactRuleConfig(normalizeGid(groupId), artifactId, rule, data));
+        try {
+            return registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactRuleConfig(normalizeGid(groupId), artifactId, rule, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -124,7 +137,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
-        registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactState(normalizeGid(groupId), artifactId, data));
+        try {
+            registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactState(normalizeGid(groupId), artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -144,7 +161,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
-        registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionMetaData(normalizeGid(groupId), artifactId, version, data));
+        try {
+            registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionMetaData(normalizeGid(groupId), artifactId, version, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -154,7 +175,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
-        registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionState(normalizeGid(groupId), artifactId, version, data));
+        try {
+            registryHttpClient.sendRequest(GroupRequestsProvider.updateArtifactVersionState(normalizeGid(groupId), artifactId, version, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override
@@ -267,7 +292,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             registryHttpClient.sendRequest(AdminRequestsProvider.createGlobalRule(data));
         } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseError(e);
+            throw parseSerializationError(e);
         }
     }
 
@@ -286,7 +311,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             return registryHttpClient.sendRequest(AdminRequestsProvider.updateGlobalRuleConfig(rule, data));
         } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseError(e);
+            throw parseSerializationError(e);
         }
     }
 
@@ -310,7 +335,7 @@ public class RegistryClientImpl implements RegistryClient {
         try {
             return registryHttpClient.sendRequest(AdminRequestsProvider.setLogConfiguration(logger, data));
         } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseError(e);
+            throw parseSerializationError(e);
         }
     }
 
@@ -357,5 +382,11 @@ public class RegistryClientImpl implements RegistryClient {
 
     private String normalizeGid(String groupId) {
         return groupId == null ? "default" : groupId;
+    }
+
+    private static RestClientException parseSerializationError(JsonProcessingException ex) {
+        final Error error = new Error();
+        error.setName(ex.getClass().getSimpleName());
+        return new RestClientException(error);
     }
 }

@@ -17,9 +17,10 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.request.ErrorHandler;
+import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.response.ResponseHandler;
+import io.apicurio.registry.rest.v2.beans.Error;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -45,7 +46,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class VertxRestClient implements RegistryHttpClient {
+public class VertxHttpClient implements RegistryHttpClient {
 
     private final WebClient webClient;
     private final Map<String, Object> options;
@@ -55,8 +56,8 @@ public class VertxRestClient implements RegistryHttpClient {
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
-    public VertxRestClient(String basePath, Map<String, Object> options, Auth auth) {
-        this.webClient = WebClient.create(Vertx.vertx());
+    public VertxHttpClient(String basePath, Map<String, Object> options, Auth auth) {
+        this.webClient = WebClient.create(Vertx.currentContext().owner());
         this.options = options;
         this.auth = auth;
         this.basePath = basePath;
@@ -111,14 +112,15 @@ public class VertxRestClient implements RegistryHttpClient {
             return resultHolder.get();
 
         } catch (URISyntaxException | InterruptedException | HttpResponseException | ExecutionException e) {
-            throw ErrorHandler.parseError(e);
+            //TODO handle exception
+            throw new RestClientException(new Error());
         }
     }
 
     private static URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
         Object[] encodedPathParams = pathParams
                 .stream()
-                .map(VertxRestClient::encodeURIComponent)
+                .map(VertxHttpClient::encodeURIComponent)
                 .toArray();
         final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
         final List<NameValuePair> queryParamsExpanded = new ArrayList<>();

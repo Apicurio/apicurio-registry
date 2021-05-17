@@ -17,22 +17,14 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
+import io.apicurio.registry.rest.client.spi.RestClientProvider;
 
-import java.util.Collections;
 import java.util.Map;
 
-public class VertxRestClientFactory {
+public class VertxHttpClientProvider implements RestClientProvider {
 
-    public static RegistryClient create(String basePath) {
-        return new RegistryClientImpl(new VertxRestClient(basePath, Collections.emptyMap(), null));
-    }
-
-    public static RegistryClient create(String baseUrl, Map<String, Object> configs) {
-        return new RegistryClientImpl(new VertxRestClient(baseUrl, configs, null));
-    }
-
-    public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        return new RegistryClientImpl(new VertxRestClient(baseUrl, configs, auth));
+    @Override
+    public RegistryHttpClient create(String endpoint, Map<String, Object> configs, Auth auth) {
+        return new VertxHttpClient(endpoint, configs, auth);
     }
 }

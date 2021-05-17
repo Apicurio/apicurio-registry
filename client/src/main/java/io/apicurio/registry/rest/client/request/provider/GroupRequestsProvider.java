@@ -19,7 +19,6 @@ package io.apicurio.registry.rest.client.request.provider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.client.request.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -63,7 +62,8 @@ public class GroupRequestsProvider {
                 .operation(DELETE)
                 .path(GROUP_BASE_PATH)
                 .pathParams(List.of(groupId))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
@@ -74,7 +74,8 @@ public class GroupRequestsProvider {
                 .headers(headers)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)
-                .responseType(new TypeReference<ArtifactMetaData>(){})
+                .responseType(new TypeReference<ArtifactMetaData>() {
+                })
                 .data(data)
                 .build();
     }
@@ -85,7 +86,8 @@ public class GroupRequestsProvider {
                 .path(GROUP_BASE_PATH)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)
-                .responseType(new TypeReference<ArtifactSearchResults>(){})
+                .responseType(new TypeReference<ArtifactSearchResults>() {
+                })
                 .build();
     }
 
@@ -95,7 +97,8 @@ public class GroupRequestsProvider {
                 .path(ARTIFACT_VERSIONS)
                 .headers(headers)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<VersionMetaData>(){})
+                .responseType(new TypeReference<VersionMetaData>() {
+                })
                 .data(data)
                 .build();
     }
@@ -106,22 +109,20 @@ public class GroupRequestsProvider {
                 .path(ARTIFACT_VERSIONS)
                 .pathParams(List.of(groupId, artifactId))
                 .queryParams(queryParams)
-                .responseType(new TypeReference<VersionSearchResults>(){})
+                .responseType(new TypeReference<VersionSearchResults>() {
+                })
                 .build();
     }
 
-    public static Request<Void> updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(VERSION_STATE)
-                    .pathParams(List.of(groupId, artifactId, version))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(VERSION_STATE)
+                .pathParams(List.of(groupId, artifactId, version))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
     }
 
     public static Request<Void> deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
@@ -129,22 +130,20 @@ public class GroupRequestsProvider {
                 .operation(DELETE)
                 .path(VERSION_METADATA)
                 .pathParams(List.of(groupId, artifactId, version))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Void> updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(VERSION_METADATA)
-                    .pathParams(List.of(groupId, artifactId, version))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(VERSION_METADATA)
+                .pathParams(List.of(groupId, artifactId, version))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
     }
 
     public static Request<VersionMetaData> getArtifactVersionMetaData(String groupId, String artifactId, String version) {
@@ -152,7 +151,8 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(VERSION_METADATA)
                 .pathParams(List.of(groupId, artifactId, version))
-                .responseType(new TypeReference<VersionMetaData>(){})
+                .responseType(new TypeReference<VersionMetaData>() {
+                })
                 .build();
     }
 
@@ -161,7 +161,8 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(ARTIFACT_VERSION)
                 .pathParams(List.of(groupId, artifactId, version))
-                .responseType(new TypeReference<InputStream>(){})
+                .responseType(new TypeReference<InputStream>() {
+                })
                 .build();
     }
 
@@ -171,22 +172,20 @@ public class GroupRequestsProvider {
                 .path(ARTIFACT_TEST)
                 .pathParams(List.of(groupId, artifactId))
                 .data(data)
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Void> updateArtifactState(String groupId, String artifactId, UpdateState data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(ARTIFACT_STATE)
-                    .pathParams(List.of(groupId, artifactId))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> updateArtifactState(String groupId, String artifactId, UpdateState data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(ARTIFACT_STATE)
+                .pathParams(List.of(groupId, artifactId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
     }
 
     public static Request<Void> deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
@@ -194,29 +193,28 @@ public class GroupRequestsProvider {
                 .operation(DELETE)
                 .path(ARTIFACT_RULE)
                 .pathParams(List.of(groupId, artifactId, rule.value()))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Rule> updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
-        try {
-            return new Request.RequestBuilder<Rule>()
-                    .operation(PUT)
-                    .responseType(new TypeReference<Rule>(){})
-                    .path(ARTIFACT_RULE)
-                    .pathParams(List.of(groupId, artifactId, rule.value()))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Rule> updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Rule>()
+                .operation(PUT)
+                .responseType(new TypeReference<Rule>() {
+                })
+                .path(ARTIFACT_RULE)
+                .pathParams(List.of(groupId, artifactId, rule.value()))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .build();
     }
 
     public static Request<Rule> getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
         return new Request.RequestBuilder<Rule>()
                 .operation(GET)
                 .path(ARTIFACT_RULE)
-                .responseType(new TypeReference<Rule>(){})
+                .responseType(new TypeReference<Rule>() {
+                })
                 .pathParams(List.of(groupId, artifactId, rule.value()))
                 .build();
     }
@@ -226,22 +224,20 @@ public class GroupRequestsProvider {
                 .operation(DELETE)
                 .path(ARTIFACT_RULES)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
-    public static Request<Void> createArtifactRule(String groupId, String artifactId, Rule data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(POST)
-                    .path(ARTIFACT_RULES)
-                    .pathParams(List.of(groupId, artifactId))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> createArtifactRule(String groupId, String artifactId, Rule data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(ARTIFACT_RULES)
+                .pathParams(List.of(groupId, artifactId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
     }
 
     public static Request<List<RuleType>> listArtifactRules(String groupId, String artifactId) {
@@ -249,7 +245,8 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(ARTIFACT_RULES)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<List<RuleType>>(){})
+                .responseType(new TypeReference<List<RuleType>>() {
+                })
                 .build();
     }
 
@@ -259,23 +256,21 @@ public class GroupRequestsProvider {
                 .path(ARTIFACT_METADATA)
                 .pathParams(List.of(groupId, artifactId))
                 .queryParams(queryParams)
-                .responseType(new TypeReference<VersionMetaData>(){})
+                .responseType(new TypeReference<VersionMetaData>() {
+                })
                 .data(data)
                 .build();
     }
 
-    public static Request<Void> updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
-        try {
-            return new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(ARTIFACT_METADATA)
-                    .pathParams(List.of(groupId, artifactId))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
-                    .responseType(new TypeReference<Void>(){})
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw ErrorHandler.parseInputSerializingError(e);
-        }
+    public static Request<Void> updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(ARTIFACT_METADATA)
+                .pathParams(List.of(groupId, artifactId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
     }
 
     public static Request<ArtifactMetaData> getArtifactMetaData(String groupId, String artifactId) {
@@ -283,7 +278,8 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(ARTIFACT_METADATA)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<ArtifactMetaData>(){})
+                .responseType(new TypeReference<ArtifactMetaData>() {
+                })
                 .build();
     }
 
@@ -292,7 +288,8 @@ public class GroupRequestsProvider {
                 .operation(DELETE)
                 .path(ARTIFACT_BASE_PATH)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<Void>(){})
+                .responseType(new TypeReference<Void>() {
+                })
                 .build();
     }
 
@@ -301,7 +298,8 @@ public class GroupRequestsProvider {
                 .operation(PUT)
                 .path(ARTIFACT_BASE_PATH)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<ArtifactMetaData>(){})
+                .responseType(new TypeReference<ArtifactMetaData>() {
+                })
                 .data(data)
                 .build();
     }
@@ -311,7 +309,8 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(ARTIFACT_BASE_PATH)
                 .pathParams(List.of(groupId, artifactId))
-                .responseType(new TypeReference<InputStream>(){})
+                .responseType(new TypeReference<InputStream>() {
+                })
                 .build();
     }
 }

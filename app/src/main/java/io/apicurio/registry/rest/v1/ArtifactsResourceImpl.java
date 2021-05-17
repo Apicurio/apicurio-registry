@@ -30,9 +30,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -184,7 +181,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return null;
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExists(
+    private ArtifactMetaData handleIfExists(
             ArtifactType artifactType,
             String artifactId,
             IfExistsType ifExists,
@@ -199,7 +196,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             case UPDATE:
                 return updateArtifactInternal(artifactId, artifactType, content, ct);
             case RETURN:
-                return CompletableFuture.completedFuture(artifactMetaData);
+                return artifactMetaData;
             case RETURN_OR_UPDATE:
                 return handleIfExistsReturnOrUpdate(artifactId, artifactType, content, ct, canonical);
             default:
@@ -207,7 +204,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(
+    private ArtifactMetaData handleIfExistsReturnOrUpdate(
             String artifactId,
             ArtifactType artifactType,
             ContentHandle content,
@@ -215,7 +212,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         try {
             ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(null, artifactId, canonical, content);
             ArtifactMetaData md = V1ApiUtil.dtoToMetaData(artifactId, artifactType, mdDto);
-            return CompletableFuture.completedFuture(md);
+            return md;
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
@@ -282,7 +279,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifact(io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    public CompletionStage<ArtifactMetaData> createArtifact(ArtifactType xRegistryArtifactType,
+    public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType,
             String xRegistryArtifactId, IfExistsType ifExists, Boolean canonical, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -291,7 +288,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();
-        final ContentHandle finalContent = content;
         try {
             String artifactId = xRegistryArtifactId;
 
@@ -307,20 +303,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            return storage.createArtifact(null, artifactId, null, artifactType, content)
-                    .exceptionally(t -> {
-                        if (t instanceof CompletionException) {
-                            t = t.getCause();
-                        }
-                        if (t instanceof ArtifactAlreadyExistsException) {
-                            return null;
-                        }
-                        throw new CompletionException(t);
-                    })
-                    .thenCompose(amd -> amd == null ?
-                            handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, finalContent, ct, fcanonical) :
-                            CompletableFuture.completedFuture(V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd))
-                    );
+            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content);
+            return V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical);
         }
@@ -354,7 +338,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return builder.build();
     }
 
-    private CompletionStage<ArtifactMetaData> updateArtifactInternal(String artifactId,
+    private ArtifactMetaData updateArtifactInternal(String artifactId,
             ArtifactType xRegistryArtifactType, ContentHandle content, String ct) {
         Objects.requireNonNull(artifactId);
         if (ContentTypeUtil.isApplicationYaml(ct)) {
@@ -363,8 +347,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(null, artifactId, null, artifactType, content)
-            .thenApply(dto -> V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto));
+        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
     }
 
     /**
@@ -372,7 +356,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     @Authorized(AuthorizedStyle.ArtifactOnly)
-    public CompletionStage<ArtifactMetaData> updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+    public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -403,7 +387,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      */
     @Override
     @Authorized(AuthorizedStyle.ArtifactOnly)
-    public CompletionStage<VersionMetaData> createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
+    public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -416,8 +400,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(null, artifactId, null, artifactType, content)
-                .thenApply(amd -> V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd));
+        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
     }
 
     /**

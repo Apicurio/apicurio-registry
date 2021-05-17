@@ -3,7 +3,6 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.util.Date;
-import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -107,7 +106,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
+    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, String contentHash, String createdBy,
             Date createdOn, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
@@ -122,7 +121,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     @Transactional
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, String version,
+    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
             EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {

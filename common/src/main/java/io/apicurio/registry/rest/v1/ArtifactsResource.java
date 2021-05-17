@@ -2,7 +2,6 @@ package io.apicurio.registry.rest.v1;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -77,7 +76,7 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"*/*"})
-  CompletionStage<ArtifactMetaData> createArtifact(
+  ArtifactMetaData createArtifact(
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
       @DefaultValue("FAIL") @QueryParam("ifExists") IfExistsType ifExists,
@@ -140,7 +139,7 @@ public interface ArtifactsResource {
   @PUT
   @Produces("application/json")
   @Consumes({"*/*"})
-  CompletionStage<ArtifactMetaData> updateArtifact(@PathParam("artifactId") String artifactId,
+  ArtifactMetaData updateArtifact(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**
@@ -285,7 +284,7 @@ public interface ArtifactsResource {
   @POST
   @Produces("application/json")
   @Consumes({"*/*"})
-  CompletionStage<VersionMetaData> createArtifactVersion(@PathParam("artifactId") String artifactId,
+  VersionMetaData createArtifactVersion(@PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType, InputStream data);
 
   /**

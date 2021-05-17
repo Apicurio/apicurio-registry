@@ -29,9 +29,6 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -162,7 +159,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Authorized
-    public CompletionStage<ArtifactMetaData> updateArtifact(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -486,7 +483,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    public CompletionStage<ArtifactMetaData> createArtifact(String groupId,
+    public ArtifactMetaData createArtifact(String groupId,
             ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
             IfExists ifExists, Boolean canonical, InputStream data) {
         requireParameter("groupId", groupId);
@@ -503,7 +500,6 @@ public class GroupsResourceImpl implements GroupsResource {
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();
-        final ContentHandle finalContent = content;
         try {
             String artifactId = xRegistryArtifactId;
 
@@ -519,20 +515,8 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            return storage.createArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content)
-                    .exceptionally(t -> {
-                        if (t instanceof CompletionException) {
-                            t = t.getCause();
-                        }
-                        if (t instanceof ArtifactAlreadyExistsException) {
-                            return null;
-                        }
-                        throw new CompletionException(t);
-                    })
-                    .thenCompose(amd -> amd == null ?
-                            handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, finalContent, ct, fcanonical) :
-                            CompletableFuture.completedFuture(V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd))
-                    );
+            ArtifactMetaDataDto amd = storage.createArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content);
+            return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
         }
@@ -563,7 +547,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Authorized
-    public CompletionStage<VersionMetaData> createArtifactVersion(String groupId, String artifactId,
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId,
             String xRegistryVersion, InputStream data) {
         // TODO do something with the user-provided version info
 
@@ -581,8 +565,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content)
-                .thenApply(amd -> V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd));
+        ArtifactMetaDataDto amd = storage.updateArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content);
+        return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
 
     /**
@@ -672,7 +656,7 @@ public class GroupsResourceImpl implements GroupsResource {
         return null;
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExists(String groupId, String artifactId, String version,
+    private ArtifactMetaData handleIfExists(String groupId, String artifactId, String version,
             IfExists ifExists, ContentHandle content, String contentType, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
         if (ifExists == null) {
@@ -683,7 +667,7 @@ public class GroupsResourceImpl implements GroupsResource {
             case UPDATE:
                 return updateArtifactInternal(groupId, artifactId, version, content, contentType);
             case RETURN:
-                return CompletableFuture.completedFuture(artifactMetaData);
+                return artifactMetaData;
             case RETURN_OR_UPDATE:
                 return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical);
             default:
@@ -691,19 +675,19 @@ public class GroupsResourceImpl implements GroupsResource {
         }
     }
 
-    private CompletionStage<ArtifactMetaData> handleIfExistsReturnOrUpdate(String groupId, String artifactId, String version,
+    private ArtifactMetaData handleIfExistsReturnOrUpdate(String groupId, String artifactId, String version,
             ContentHandle content, String contentType, boolean canonical) {
         try {
             ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, canonical, content);
             ArtifactMetaData md = V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, null, mdDto);
-            return CompletableFuture.completedFuture(md);
+            return md;
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
         return updateArtifactInternal(groupId, artifactId, version, content, contentType);
     }
 
-    private CompletionStage<ArtifactMetaData> updateArtifactInternal(String groupId, String artifactId, String version,
+    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
             ContentHandle content, String contentType) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
@@ -712,8 +696,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        return storage.updateArtifact(gidOrNull(groupId), artifactId, version, artifactType, content)
-            .thenApply(dto -> V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto));
+        ArtifactMetaDataDto dto = storage.updateArtifact(gidOrNull(groupId), artifactId, version, artifactType, content);
+        return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
     }
 
     private String gidOrNull(String groupId) {

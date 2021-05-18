@@ -30,11 +30,12 @@ public class ImportLifecycleBean {
     RegistryStorage storage;
 
     @ConfigProperty(name = "registry.import")
-    Optional<String> registryImportZipPath;
+    Optional<String> registryImport;
 
     void onStart(@Observes StartupEvent ev) {
-        if (registryImportZipPath.isPresent()) {
-            try (final InputStream registryImportZip = new FileInputStream(registryImportZipPath.get())) {
+        if (registryImport.isPresent()) {
+            final String registryImportZipPath = registryImport.get();
+            try (final InputStream registryImportZip = new FileInputStream(registryImportZipPath)) {
                 final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
                 final EntityReader reader = new EntityReader(zip);
                 try (EntityInputStream stream = new EntityInputStream() {

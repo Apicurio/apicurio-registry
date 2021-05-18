@@ -28,7 +28,6 @@ public class ImportLifecycleBeanTest extends AbstractResourceTestBase {
                 .get("/registry/v2/admin/rules")
                 .then()
                 .statusCode(200)
-                .log().all()
                 .body("[0]", equalTo("COMPATIBILITY"))
                 .body("[1]", nullValue());
     }

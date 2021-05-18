@@ -34,6 +34,7 @@ import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.utils.Utils;
+import io.apicurio.registry.utils.CheckPeriodCache;
 import io.apicurio.registry.utils.IoUtil;
 
 /**

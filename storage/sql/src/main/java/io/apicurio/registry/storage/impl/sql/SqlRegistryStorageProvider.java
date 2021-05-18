@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt;
+package io.apicurio.registry.storage.impl.sql;
 
-import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorageProvider;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public interface TenantContext {
+@ApplicationScoped
+public class SqlRegistryStorageProvider implements RegistryStorageProvider {
 
-    public static final String DEFAULT_TENANT_ID = "_";
+    @Inject
+    SqlRegistryStorage storage;
 
-    public String tenantId();
-
-    public TenantLimitsConfiguration limitsConfig();
-
-    public void setContext(RegistryTenantContext ctx);
-
-    public void clearContext();
-
-    public boolean isLoaded();
+    @Override
+    public RegistryStorage storage() {
+        return storage;
+    }
 
 }

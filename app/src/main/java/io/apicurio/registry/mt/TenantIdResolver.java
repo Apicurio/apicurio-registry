@@ -47,6 +47,9 @@ public class TenantIdResolver {
     @Inject
     TenantContext tenantContext;
 
+    @Inject
+    TenantContextLoader contextLoader;
+
     void init(@Observes StartupEvent ev) {
         if (mtProperties.isMultitenancyEnabled()) {
             log.info("Registry running with multitenancy enabled");
@@ -63,7 +66,7 @@ public class TenantIdResolver {
         //TODO Check if the user belongs to the org that's being accessed.
 
         if (mtProperties.isMultitenancyEnabled()) {
-            log.debug("Resolving tenantId for request {}", uri);
+            log.trace("Resolving tenantId for request {}", uri);
 
             if (uri.startsWith(multitenancyBasePath)) {
                 String[] tokens = uri.split("/");
@@ -71,7 +74,8 @@ public class TenantIdResolver {
                 // 1 is t
                 // 2 is the tenantId
                 String tenantId = tokens[TENANT_ID_POSITION];
-                tenantContext.tenantId(tenantId);
+                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                tenantContext.setContext(context);
                 if (afterSuccessfullUrlResolution != null) {
                     afterSuccessfullUrlResolution.accept(tenantId);
                 }
@@ -80,12 +84,14 @@ public class TenantIdResolver {
 
             String tenantId = tenantIdHeaderProvider.get();
             if (tenantId != null) {
-                tenantContext.tenantId(tenantId);
+                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                tenantContext.setContext(context);
                 return true;
             }
 
         }
-        tenantContext.clearTenantId();
+        //apply default tenant context
+        tenantContext.setContext(contextLoader.defaultTenantContext());
         return false;
     }
 

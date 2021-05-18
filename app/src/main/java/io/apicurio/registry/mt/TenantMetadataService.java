@@ -61,6 +61,9 @@ public class TenantMetadataService {
         }
     }
 
+    //TODO create a TenantConfiguration object and only allow the access to it via the tenant context
+    //TODO load the TenantConfiguration into the tenant context in the TenantIdResolver(maybe rename that class)
+    //TODO cache the TenantConfiguration in TenantIdResolver
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
         if (!mtProperties.isMultitenancyEnabled()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");

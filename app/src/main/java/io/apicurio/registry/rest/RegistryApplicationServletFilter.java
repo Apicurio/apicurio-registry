@@ -29,7 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
-import io.apicurio.registry.mt.MultitenancyProperties;
+
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
@@ -61,9 +61,6 @@ public class RegistryApplicationServletFilter implements Filter {
     @Inject
     DisabledApisMatcherService disabledApisMatcherService;
 
-    @Inject
-    MultitenancyProperties mtProperties;
-
     /**
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
@@ -75,6 +72,7 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
+            //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
                     (tenantId) -> {
 
@@ -83,7 +81,7 @@ public class RegistryApplicationServletFilter implements Filter {
                             actualUri = "/";
                         }
 
-                        log.debug("Rewriting request {} to {} , tenantId {}", requestURI, actualUri, tenantId);
+                        log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
 
                         rewriteContext.append(actualUri);
 
@@ -102,13 +100,14 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
-                tenantContext.clearTenantId();
+                tenantContext.clearContext();
                 return;
             } else if (rewriteRequest) {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
-                tenantContext.clearTenantId();
+                log.debug("Cleaning tenant context");
+                tenantContext.clearContext();
                 return;
             }
 

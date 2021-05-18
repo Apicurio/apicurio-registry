@@ -53,10 +53,14 @@ public class RegistryTenant {
     @JsonProperty("organizationId")
     @JsonPropertyDescription("")
     private Object organizationId;
+
+    //TODO properly generate this class
+    private RegistryTenantLimits limits;
+
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public String getTenantId() {
@@ -127,6 +131,20 @@ public class RegistryTenant {
     @JsonProperty("organizationId")
     public void setOrganizationId(Object organizationId) {
         this.organizationId = organizationId;
+    }
+
+    /**
+     * @return the limits
+     */
+    public RegistryTenantLimits getLimits() {
+        return limits;
+    }
+
+    /**
+     * @param limits the limits to set
+     */
+    public void setLimits(RegistryTenantLimits limits) {
+        this.limits = limits;
     }
 
 }

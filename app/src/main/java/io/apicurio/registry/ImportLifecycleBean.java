@@ -12,9 +12,10 @@ import org.slf4j.Logger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import java.io.FileInputStream;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.zip.ZipInputStream;
@@ -29,13 +30,13 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
-    @ConfigProperty(name = "registry.import")
-    Optional<String> registryImport;
+    @ConfigProperty(name = "registry.import.url")
+    Optional<URL> registryImportUrlProp;
 
     void onStart(@Observes StartupEvent ev) {
-        if (registryImport.isPresent()) {
-            final String registryImportZipPath = registryImport.get();
-            try (final InputStream registryImportZip = new FileInputStream(registryImportZipPath)) {
+        if (registryImportUrlProp.isPresent()) {
+            final URL registryImportUrl = registryImportUrlProp.get();
+            try (final InputStream registryImportZip = new BufferedInputStream(registryImportUrl.openStream())) {
                 final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
                 final EntityReader reader = new EntityReader(zip);
                 try (EntityInputStream stream = new EntityInputStream() {
@@ -44,7 +45,7 @@ public class ImportLifecycleBean {
                         try {
                             return reader.readEntity();
                         } catch (Exception e) {
-                            log.error("Error reading data from import ZIP file {}.", registryImportZipPath, e);
+                            log.error("Error reading data from import ZIP file {}.", registryImportUrl, e);
                             return null;
                         }
                     }
@@ -55,10 +56,10 @@ public class ImportLifecycleBean {
                     }
                 }) {
                     storage.importData(stream);
-                    log.info("Registry successfully imported from {}", registryImportZipPath);
+                    log.info("Registry successfully imported from {}", registryImportUrl);
                 }
             } catch (IOException ioe) {
-                log.warn("Registry import from {} failed", registryImportZipPath, ioe);
+                log.warn("Registry import from {} failed", registryImportUrl, ioe);
             }
         }
     }

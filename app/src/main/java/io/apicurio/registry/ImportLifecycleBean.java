@@ -6,6 +6,7 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -15,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
 @ApplicationScoped
@@ -27,10 +29,12 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
+    @ConfigProperty(name = "registry.import")
+    Optional<String> registryImportZipPath;
+
     void onStart(@Observes StartupEvent ev) {
-        final String registryImportZipPath = java.lang.System.getenv("REGISTRY_IMPORT");
-        if (registryImportZipPath != null && !registryImportZipPath.isEmpty()) {
-            try (final InputStream registryImportZip = new FileInputStream(registryImportZipPath)) {
+        if (registryImportZipPath.isPresent()) {
+            try (final InputStream registryImportZip = new FileInputStream(registryImportZipPath.get())) {
                 final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
                 final EntityReader reader = new EntityReader(zip);
                 try (EntityInputStream stream = new EntityInputStream() {

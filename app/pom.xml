@@ -96,17 +96,11 @@
             <artifactId>quarkus-agroal</artifactId>
         </dependency>
 
-        <!-- JDBI -->
-        <dependency>
-            <groupId>org.jdbi</groupId>
-            <artifactId>jdbi3-core</artifactId>
-        </dependency>
+        <!-- Third Party Libraries -->
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
-
-        <!-- Third Party Libraries -->
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-data-models</artifactId>

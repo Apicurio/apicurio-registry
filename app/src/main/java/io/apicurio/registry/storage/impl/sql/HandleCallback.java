@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,16 @@ package io.apicurio.registry.storage.impl.sql;
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface IDbUpgrader {
+@FunctionalInterface
+public interface HandleCallback<T, X extends Exception> {
 
     /**
-     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
-     * @param dbHandle
+     * Will be invoked with an open Handle. The handle may be closed when this callback returns.
+     *
+     * @param handle Handle to be used only within scope of this callback
+     * @return The return value of the callback
+     * @throws X optional exception thrown by the callback
      */
-    public void upgrade(Handle dbHandle) throws Exception;
+    T withHandle(Handle handle) throws X;
 
 }

@@ -40,7 +40,7 @@ public class AvroContentExtractor implements ContentExtractor {
 
     private ObjectMapper mapper = new ObjectMapper();
 
-    private AvroContentExtractor() {
+    AvroContentExtractor() {
     }
 
     @Override

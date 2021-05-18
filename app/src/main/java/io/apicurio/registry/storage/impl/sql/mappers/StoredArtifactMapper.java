@@ -19,11 +19,9 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
+import io.apicurio.registry.storage.impl.sql.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -42,7 +40,7 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactDto> {
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public StoredArtifactDto map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public StoredArtifactDto map(ResultSet rs) throws SQLException {
         long globalId = rs.getLong("globalId");
         String version = rs.getString("version");
         int versionId = rs.getInt("versionId");

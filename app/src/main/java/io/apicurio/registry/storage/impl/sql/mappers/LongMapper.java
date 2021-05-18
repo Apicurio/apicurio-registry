@@ -20,31 +20,26 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import io.apicurio.registry.storage.impl.sql.RowMapper;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
+public class LongMapper implements RowMapper<Long> {
 
-    public static final GlobalRuleEntityMapper instance = new GlobalRuleEntityMapper();
+    public static final LongMapper instance = new LongMapper();
 
     /**
      * Constructor.
      */
-    private GlobalRuleEntityMapper() {
+    private LongMapper() {
     }
 
     /**
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public GlobalRuleEntity map(ResultSet rs) throws SQLException {
-        GlobalRuleEntity entity = new GlobalRuleEntity();
-        entity.ruleType = RuleType.fromValue(rs.getString("type"));
-        entity.configuration = rs.getString("configuration");
-        return entity;
+    public Long map(ResultSet rs) throws SQLException {
+        return rs.getLong(1);
     }
 
 }

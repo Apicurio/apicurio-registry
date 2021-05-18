@@ -42,7 +42,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseInitialization()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#databaseInitialization()
      */
     @Override
     public List<String> databaseInitialization() {
@@ -58,7 +58,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#databaseUpgrade(int, int)
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#databaseUpgrade(int, int)
      */
     @Override
     public List<String> databaseUpgrade(int fromVersion, int toVersion) {

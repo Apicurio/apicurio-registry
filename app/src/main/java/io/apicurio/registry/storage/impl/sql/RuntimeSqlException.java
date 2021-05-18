@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,29 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import java.sql.SQLException;
+
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface IDbUpgrader {
+public class RuntimeSqlException extends RuntimeException {
 
-    /**
-     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
-     * @param dbHandle
-     */
-    public void upgrade(Handle dbHandle) throws Exception;
+    private static final long serialVersionUID = 2262442842283175353L;
+
+    public RuntimeSqlException() {
+        super();
+    }
+
+    public RuntimeSqlException(String message) {
+        super(message);
+    }
+
+    public RuntimeSqlException(String message, SQLException cause) {
+        super(message, cause);
+    }
+
+    public RuntimeSqlException(SQLException cause) {
+        super(cause);
+    }
 
 }

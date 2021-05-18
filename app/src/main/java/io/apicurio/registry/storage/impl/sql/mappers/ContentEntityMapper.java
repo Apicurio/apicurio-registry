@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
+import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 
 /**
@@ -41,7 +39,7 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public ContentEntity map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public ContentEntity map(ResultSet rs) throws SQLException {
         ContentEntity entity = new ContentEntity();
         entity.contentId = rs.getLong("contentId");
         entity.canonicalHash = rs.getString("canonicalHash");

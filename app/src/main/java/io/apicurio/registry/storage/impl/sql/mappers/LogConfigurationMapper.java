@@ -19,10 +19,8 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
+import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.types.LogLevel;
 
 /**
@@ -39,7 +37,7 @@ public class LogConfigurationMapper implements RowMapper<LogConfigurationDto> {
     }
 
     @Override
-    public LogConfigurationDto map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public LogConfigurationDto map(ResultSet rs) throws SQLException {
         LogConfigurationDto dto = new LogConfigurationDto();
         dto.setLogger(rs.getString("logger"));
         dto.setLogLevel(LogLevel.fromValue(rs.getString("loglevel")));

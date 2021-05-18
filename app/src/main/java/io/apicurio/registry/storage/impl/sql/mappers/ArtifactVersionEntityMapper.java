@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
+import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -44,7 +42,7 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public ArtifactVersionEntity map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public ArtifactVersionEntity map(ResultSet rs) throws SQLException {
         ArtifactVersionEntity entity = new ArtifactVersionEntity();
         entity.globalId = rs.getLong("globalId");
         entity.groupId = SqlUtil.denormalizeGroupId(rs.getString("groupId"));

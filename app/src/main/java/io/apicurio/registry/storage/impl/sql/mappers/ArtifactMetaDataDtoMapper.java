@@ -19,10 +19,8 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -44,7 +42,7 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
      * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
      */
     @Override
-    public ArtifactMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public ArtifactMetaDataDto map(ResultSet rs) throws SQLException {
         ArtifactMetaDataDto dto = new ArtifactMetaDataDto();
         dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setId(rs.getString("artifactId"));

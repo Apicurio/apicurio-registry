@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import org.jdbi.v3.core.statement.Query;
-
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -25,5 +23,5 @@ import org.jdbi.v3.core.statement.Query;
 public interface SqlStatementVariableBinder {
 
     void bind(Query query, int idx);
-    
+
 }

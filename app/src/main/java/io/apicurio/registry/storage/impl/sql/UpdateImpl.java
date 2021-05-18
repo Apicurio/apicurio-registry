@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,35 +14,37 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql.mappers;
+package io.apicurio.registry.storage.impl.sql;
 
-import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.sql.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ContentMapper implements RowMapper<ContentHandle> {
-
-    public static final ContentMapper instance = new ContentMapper();
+public class UpdateImpl extends SqlImpl<Update> implements Update {
 
     /**
      * Constructor.
+     * @param connection
+     * @param sql
      */
-    private ContentMapper() {
+    public UpdateImpl(Connection connection, String sql) {
+        super(connection, sql);
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.Update#execute()
      */
     @Override
-    public ContentHandle map(ResultSet rs) throws SQLException {
-        byte[] contentBytes = rs.getBytes("content");
-        ContentHandle content = ContentHandle.create(contentBytes);
-        return content;
+    public int execute() {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            bindParametersTo(statement);
+            return statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeSqlException(e);
+        }
     }
 
 }

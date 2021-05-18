@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,24 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import java.util.Date;
+
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface IDbUpgrader {
+public interface Sql<Q> {
 
-    /**
-     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
-     * @param dbHandle
-     */
-    public void upgrade(Handle dbHandle) throws Exception;
+    public Q bind(int position, String value);
+
+    public Q bind(int position, Long value);
+
+    public Q bind(int position, Integer value);
+
+    public Q bind(int position, Enum<?> value);
+
+    public Q bind(int position, Date value);
+
+    public Q bind(int position, byte[] value);
+
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt;
+package io.apicurio.registry.rest.client.exception;
 
-import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+import io.apicurio.registry.rest.v2.beans.Error;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public interface TenantContext {
+public class LimitExceededException extends RestClientException {
 
-    public static final String DEFAULT_TENANT_ID = "_";
+    private static final long serialVersionUID = 1L;
 
-    public String tenantId();
-
-    public TenantLimitsConfiguration limitsConfig();
-
-    public void setContext(RegistryTenantContext ctx);
-
-    public void clearContext();
-
-    public boolean isLoaded();
-
+    public LimitExceededException(Error error) {
+        super(error);
+    }
 }

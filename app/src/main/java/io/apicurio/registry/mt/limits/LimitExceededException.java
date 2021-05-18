@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt;
+package io.apicurio.registry.mt.limits;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@ApplicationScoped
-public class TenantContextProvider {
-    
-    @Inject
-    TenantContextImpl impl;
+public class LimitExceededException extends RegistryException {
 
-    @Produces
-    @ApplicationScoped
-    @Current
-    public TenantContext tenant() {
-        return impl;
+    private static final long serialVersionUID = -8689268705454834808L;
+
+    public LimitExceededException(String message) {
+        super(message);
     }
 
+    public LimitExceededException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

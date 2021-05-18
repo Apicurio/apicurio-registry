@@ -1,18 +1,25 @@
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
   entry: {
     app: './src/index.tsx'
   },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './src/index.html'
-    })
-  ],
+  plugins: [],
   module: {
     rules: [
+      // fixes issue with babel dependencies not declaring the package correctly for webpack 5
+      {
+        test: /\.m?js/,
+        resolve: {
+          fullySpecified: false
+        }
+      },
+      // fixes issue with yaml dependency not declaring the package correctly for webpack 5
+      {
+        test: /node_modules\/yaml\/browser\/dist\/.*/,
+        type: 'javascript/auto'
+      },
       {
         test: /\.(tsx|ts)?$/,
         include: path.resolve(__dirname, 'src'),

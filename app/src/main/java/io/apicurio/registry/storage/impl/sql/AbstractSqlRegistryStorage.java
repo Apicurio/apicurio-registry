@@ -2324,8 +2324,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (maxGlobalId.isPresent()) {
             log.info("Resetting globalId sequence");
             long id = maxGlobalId.get() + 1;
-            //from alter sequence docs: the specified value will be returned by the next call of nextval
-            handle.createUpdate("ALTER SEQUENCE globalidsequence RESTART WITH ?")
+
+            sql = sqlStatements.resetSequence("globalidsequence");
+
+            handle.createUpdate(sql)
                 .bind(0, id)
                 .execute();
             log.info("Successfully reset globalId to {}", id);
@@ -2341,8 +2343,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if (maxContentId.isPresent()) {
             log.info("Resetting contentId sequence");
             long id = maxContentId.get() + 1;
-            //from alter sequence docs: the specified value will be returned by the next call of nextval
-            handle.createUpdate("ALTER SEQUENCE contentidsequence RESTART WITH ?")
+
+            sql = sqlStatements.resetSequence("contentidsequence");
+
+            handle.createUpdate(sql)
                 .bind(0, id)
                 .execute();
             log.info("Successfully reset contentId to {}", id);

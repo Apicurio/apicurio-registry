@@ -40,7 +40,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public ArtifactVersionMetaDataDto map(ResultSet rs) throws SQLException {

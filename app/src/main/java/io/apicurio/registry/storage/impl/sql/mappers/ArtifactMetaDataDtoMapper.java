@@ -39,7 +39,7 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public ArtifactMetaDataDto map(ResultSet rs) throws SQLException {

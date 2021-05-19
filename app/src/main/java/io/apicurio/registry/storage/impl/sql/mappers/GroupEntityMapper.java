@@ -38,7 +38,7 @@ public class GroupEntityMapper implements RowMapper<GroupEntity> {
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public GroupEntity map(ResultSet rs) throws SQLException {

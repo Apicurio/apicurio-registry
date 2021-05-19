@@ -10,6 +10,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Response;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -29,7 +30,7 @@ public interface TenantsResource {
   @POST
   @Produces("application/json")
   @Consumes("application/json")
-  RegistryTenant createTenant(NewRegistryTenantRequest data);
+  Response createTenant(NewRegistryTenantRequest data);
 
   /**
    * Gets the details of a single instance of a `Tenant`.
@@ -44,5 +45,5 @@ public interface TenantsResource {
    */
   @Path("/{tenantId}")
   @DELETE
-  void deleteTenant(@PathParam("tenantId") String tenantId);
+  Response deleteTenant(@PathParam("tenantId") String tenantId);
 }

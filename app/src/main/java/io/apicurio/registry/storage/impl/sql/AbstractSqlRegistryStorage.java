@@ -567,9 +567,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
-            .bind(0, globalId)
-            .map(ArtifactVersionMetaDataDtoMapper.instance)
-            .one();
+                .bind(0, tenantContext.tenantId())
+                .bind(1, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance)
+                .one();
     }
 
     /**
@@ -1149,6 +1150,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1185,6 +1187,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1208,6 +1211,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1501,6 +1505,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, "gid-" + globalId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1526,6 +1531,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1652,6 +1658,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new VersionNotFoundException(groupId, artifactId, version);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1946,6 +1953,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new LogConfigurationNotFoundException(logger);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -2112,6 +2120,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new GroupNotFoundException(groupId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);

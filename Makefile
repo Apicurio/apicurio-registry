@@ -32,7 +32,9 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	cat ./app/src/main/java/io/apicurio/registry/storage/impl/sql/AbstractSqlRegistryStorage.java
+	@echo "----------------------------------------------------------------------"
+	./mvnw -X clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 

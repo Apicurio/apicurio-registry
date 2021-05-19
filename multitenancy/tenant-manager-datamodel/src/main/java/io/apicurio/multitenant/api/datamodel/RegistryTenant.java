@@ -66,16 +66,19 @@ public class RegistryTenant {
     /**
      * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
      * (Required)
-     * 
+     *
      */
     @JsonProperty("authClientId")
     @JsonPropertyDescription("ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant")
     private String authClientId;
 
+    //TODO properly generate this class
+    private RegistryTenantLimits limits;
+
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public String getTenantId() {
@@ -181,11 +184,25 @@ public class RegistryTenant {
     /**
      * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
      * (Required)
-     * 
+     *
      */
     @JsonProperty("authClientId")
     public void setAuthClientId(String authClientId) {
         this.authClientId = authClientId;
+    }
+
+    /**
+     * @return the limits
+     */
+    public RegistryTenantLimits getLimits() {
+        return limits;
+    }
+
+    /**
+     * @param limits the limits to set
+     */
+    public void setLimits(RegistryTenantLimits limits) {
+        this.limits = limits;
     }
 
 }

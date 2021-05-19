@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.utils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,10 +26,10 @@ import java.util.function.Function;
 public class CheckPeriodCache<K, V> {
 
     private Map<K, CheckValue<V>> cache = new ConcurrentHashMap<>();
-    private long checkPeriod = 0;
+    private long checkPeriodMillis = 0;
 
-    public CheckPeriodCache(long checkPeriod) {
-        this.checkPeriod = checkPeriod;
+    public CheckPeriodCache(long checkPeriodMillis) {
+        this.checkPeriodMillis = checkPeriodMillis;
     }
 
     public V compute(K k, Function<K, V> remappingFunction) {
@@ -39,7 +39,7 @@ public class CheckPeriodCache<K, V> {
                 V value = remappingFunction.apply(key);
                 return new CheckValue<>(now, value);
             } else {
-                if (checkedValue.lastUpdate + checkPeriod < now) {
+                if (checkedValue.lastUpdate + checkPeriodMillis < now) {
                     V value = remappingFunction.apply(key);
                     checkedValue.lastUpdate = now;
                     checkedValue.value = value;
@@ -60,7 +60,7 @@ public class CheckPeriodCache<K, V> {
                 return null;
             } else {
                 long now = System.currentTimeMillis();
-                if (checkedValue.lastUpdate + checkPeriod < now) {
+                if (checkedValue.lastUpdate + checkPeriodMillis < now) {
                     //value expired
                     return null;
                 } else {
@@ -69,6 +69,10 @@ public class CheckPeriodCache<K, V> {
             }
         });
         return value == null ? null : value.value;
+    }
+
+    public void remove(K k) {
+        cache.remove(k);
     }
 
     public void clear() {

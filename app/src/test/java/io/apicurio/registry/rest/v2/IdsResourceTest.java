@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -181,6 +182,30 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo(title));
 
     }
+
+    @Test
+    public void testGetByGlobalIdIssue1501() throws Exception {
+        String title = "Test By Global ID API";
+        String artifactContent = resourceToString("openapi-empty.json").replaceAll("Empty API", title);
+
+        String group1 = TestUtils.generateGroupId();
+        String group2 = TestUtils.generateGroupId();
+        String artifactId = "testIssue1501";
+
+        // Create two artifacts with same artifactId but with different groupId
+
+        long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent);
+        this.waitForGlobalId(globalId1);
+
+        long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent);
+        this.waitForGlobalId(globalId2);
+
+        // Get by globalId should not fail
+        clientV2.getContentByGlobalId(globalId1);
+        clientV2.getContentByGlobalId(globalId2);
+
+    }
+
 
     @Test
     public void testGetByContentId() throws Exception {

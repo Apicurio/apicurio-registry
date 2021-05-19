@@ -432,6 +432,8 @@ public interface SqlStatements {
 
     public String selectMaxContentId();
 
+    public String resetSequence(String sequence);
+
     public String selectMaxGlobalId();
 
     public String selectContentExists();

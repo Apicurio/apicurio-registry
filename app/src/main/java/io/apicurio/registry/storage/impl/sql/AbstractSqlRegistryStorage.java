@@ -2264,7 +2264,63 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     */
+    @Override
+    public long countArtifacts() throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            String sql = sqlStatements.selectAllArtifactCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            if (!isArtifactExists(groupId, artifactId)) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+
+            String sql = sqlStatements.selectAllArtifactVersionsCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     */
+    @Override
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            String sql = sqlStatements.selectTotalArtifactVersionsCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
     protected void resetGlobalId(Handle handle) {
         String sql = sqlStatements.selectMaxGlobalId();
         Optional<Long> maxGlobalId = handle.createQuery(sql)
@@ -2272,15 +2328,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxGlobalId.isPresent()) {
-            long id = maxGlobalId.get();
+            log.info("Resetting globalId sequence");
+            long id = maxGlobalId.get() + 1;
 
-            log.info("Resetting globalId sequence to {}", id);
-            while (nextGlobalId(handle) < id) {}
-            log.info("Successfully reset globalId to {}", nextGlobalId(handle));
+            sql = sqlStatements.resetSequence("globalidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset globalId to {}", id);
         }
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetContentId(Handle handle) {
         String sql = sqlStatements.selectMaxContentId();
         Optional<Long> maxContentId = handle.createQuery(sql)
@@ -2288,11 +2347,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxContentId.isPresent()) {
+            log.info("Resetting contentId sequence");
             long id = maxContentId.get() + 1;
 
-            log.info("Resetting contentId sequence to {}", id);
-            while (nextContentId(handle) < id) {}
-            log.info("Successfully reset contentId to {}", nextContentId(handle));
+            sql = sqlStatements.resetSequence("contentidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset contentId to {}", id);
         }
     }
 

@@ -17,7 +17,6 @@
 package io.apicurio.registry.rest.v1;
 
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v1.beans.ArtifactSearchResults;
@@ -45,7 +44,6 @@ import java.util.Set;
  * @author Carles Arnal
  */
 @ApplicationScoped
-@RestMetricsResponseFilteredNameBinding
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 @Deprecated

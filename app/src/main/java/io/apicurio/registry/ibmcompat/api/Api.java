@@ -23,7 +23,6 @@ import io.apicurio.registry.ibmcompat.model.Schema;
 import io.apicurio.registry.ibmcompat.model.SchemaInfo;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 
@@ -49,7 +48,6 @@ import javax.ws.rs.core.SecurityContext;
 import java.util.List;
 
 @Path("/apis/ibmcompat/v1")
-@RestMetricsResponseFilteredNameBinding
 public class Api {
 
     @Inject

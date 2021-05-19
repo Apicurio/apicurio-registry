@@ -19,7 +19,6 @@ package io.apicurio.registry.rest.v2;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -55,7 +54,6 @@ import java.util.Set;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-@RestMetricsResponseFilteredNameBinding
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SearchResourceImpl implements SearchResource {

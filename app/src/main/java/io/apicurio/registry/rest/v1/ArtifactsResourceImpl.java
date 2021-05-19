@@ -21,7 +21,6 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.Headers;
@@ -80,7 +79,6 @@ import java.util.stream.Collectors;
  * @author Ales Justin
  */
 @ApplicationScoped
-@RestMetricsResponseFilteredNameBinding
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 @Deprecated

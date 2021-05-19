@@ -17,7 +17,7 @@ module.exports = {
       },
       // fixes issue with yaml dependency not declaring the package correctly for webpack 5
       {
-        test: new RegExp(path.join('node_modules','yaml','browser','dist','.*')),
+        test: /node_modules[\\\/]yaml[\\\/]browser[\\\/]dist[\\\/].*/,
         type: 'javascript/auto'
       },
       {

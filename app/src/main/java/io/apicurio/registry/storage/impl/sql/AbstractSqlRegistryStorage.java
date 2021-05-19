@@ -319,11 +319,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(1, contentId)
                     .map(ContentMapper.instance)
                     .findFirst();
-            if (res.isEmpty()) {
-                throw new ContentNotFoundException("contentId-" + contentId);
-            } else {
-                return res.get();
-            }
+            return res.orElseThrow(() -> new ContentNotFoundException("contentId-" + contentId));
         });
     }
 
@@ -339,11 +335,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(1, contentHash)
                     .map(ContentMapper.instance)
                     .findFirst();
-            if (res.isEmpty()) {
-                throw new ContentNotFoundException("contentHash-" + contentHash);
-            } else {
-                return res.get();
-            }
+            return res.orElseThrow(() -> new ContentNotFoundException("contentHash-" + contentHash));
         });
     }
 
@@ -361,9 +353,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .list();
             if (dtos.isEmpty()) {
                 throw new ContentNotFoundException("contentId-" + contentId);
-            } else {
-                return dtos;
             }
+            return dtos;
         });
     }
 
@@ -831,11 +822,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(2, artifactId)
                         .map(StoredArtifactMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1132,11 +1119,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(2, artifactId)
                         .map(ArtifactMetaDataDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1173,11 +1156,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(3, hash)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1201,11 +1180,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(1, globalId)
                         .map(ArtifactMetaDataDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(null, String.valueOf(globalId));
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(null, String.valueOf(globalId)));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1340,14 +1315,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(3, rule.name())
                         .map(RuleConfigurationDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
+                return res.orElseThrow(() -> {
                     if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
+                        return new ArtifactNotFoundException(groupId, artifactId);
                     }
-                    throw new RuleNotFoundException(rule);
-                } else {
-                    return res.get();
-                }
+                    return new RuleNotFoundException(rule);
+                });
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1501,11 +1474,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(1, globalId)
                         .map(StoredArtifactMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(null, "gid-" + globalId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(null, "gid-" + globalId));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1531,11 +1500,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(3, version)
                         .map(StoredArtifactMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {
             throw e;
@@ -1662,11 +1627,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(3, version)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new VersionNotFoundException(groupId, artifactId, version);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
             });
         } catch (VersionNotFoundException e) {
             throw e;
@@ -1888,11 +1849,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(1, rule.name())
                         .map(RuleConfigurationDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new RuleNotFoundException(rule);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new RuleNotFoundException(rule));
             });
         } catch (RuleNotFoundException e) {
             throw e;
@@ -1966,11 +1923,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(0, logger)
                         .map(LogConfigurationMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new LogConfigurationNotFoundException(logger);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new LogConfigurationNotFoundException(logger));
             });
         } catch (LogConfigurationNotFoundException e) {
             throw e;
@@ -2137,11 +2090,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(0, groupId)
                         .map(GroupMetaDataDtoMapper.instance)
                         .findOne();
-                if (res.isEmpty()) {
-                    throw new GroupNotFoundException(groupId);
-                } else {
-                    return res.get();
-                }
+                return res.orElseThrow(() -> new GroupNotFoundException(groupId));
             });
         } catch (GroupNotFoundException e) {
             throw e;

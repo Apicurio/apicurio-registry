@@ -1,11 +1,15 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.multitenant.api.beans.TenantResource;
 
 
 /**
@@ -20,8 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "createdOn",
     "createdBy",
     "organizationId",
-    "authServerUrl",
-    "authClientId"
+    "resources"
 })
 public class RegistryTenant {
 
@@ -34,12 +37,13 @@ public class RegistryTenant {
     @JsonPropertyDescription("Unique identifier of a tenant within a registry deployment")
     private String tenantId;
     /**
-     * Date when the tenant was created
+     * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
      * 
      */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("createdOn")
-    @JsonPropertyDescription("Date when the tenant was created")
+    @JsonPropertyDescription("Date when the tenant was created. ISO 8601 UTC timestamp.")
     private Date createdOn;
     /**
      * User that created the tenant
@@ -51,34 +55,24 @@ public class RegistryTenant {
     private String createdBy;
     /**
      * 
+     * (Required)
+     * 
      */
     @JsonProperty("organizationId")
     @JsonPropertyDescription("")
     private Object organizationId;
     /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
+     * The list of resources that this tenant has available
      * 
      */
-    @JsonProperty("authServerUrl")
-    @JsonPropertyDescription("Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry")
-    private String authServerUrl;
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     *
-     */
-    @JsonProperty("authClientId")
-    @JsonPropertyDescription("ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant")
-    private String authClientId;
-
-    //TODO properly generate this class
-    private RegistryTenantLimits limits;
+    @JsonProperty("resources")
+    @JsonPropertyDescription("The list of resources that this tenant has available")
+    private List<TenantResource> resources = new ArrayList<TenantResource>();
 
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     *
+     * 
      */
     @JsonProperty("tenantId")
     public String getTenantId() {
@@ -96,7 +90,7 @@ public class RegistryTenant {
     }
 
     /**
-     * Date when the tenant was created
+     * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
      * 
      */
@@ -106,7 +100,7 @@ public class RegistryTenant {
     }
 
     /**
-     * Date when the tenant was created
+     * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
      * 
      */
@@ -137,6 +131,8 @@ public class RegistryTenant {
 
     /**
      * 
+     * (Required)
+     * 
      */
     @JsonProperty("organizationId")
     public Object getOrganizationId() {
@@ -145,6 +141,8 @@ public class RegistryTenant {
 
     /**
      * 
+     * (Required)
+     * 
      */
     @JsonProperty("organizationId")
     public void setOrganizationId(Object organizationId) {
@@ -152,57 +150,21 @@ public class RegistryTenant {
     }
 
     /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
+     * The list of resources that this tenant has available
      * 
      */
-    @JsonProperty("authServerUrl")
-    public String getAuthServerUrl() {
-        return authServerUrl;
+    @JsonProperty("resources")
+    public List<TenantResource> getResources() {
+        return resources;
     }
 
     /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
+     * The list of resources that this tenant has available
      * 
      */
-    @JsonProperty("authServerUrl")
-    public void setAuthServerUrl(String authServerUrl) {
-        this.authServerUrl = authServerUrl;
-    }
-
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     * 
-     */
-    @JsonProperty("authClientId")
-    public String getAuthClientId() {
-        return authClientId;
-    }
-
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     *
-     */
-    @JsonProperty("authClientId")
-    public void setAuthClientId(String authClientId) {
-        this.authClientId = authClientId;
-    }
-
-    /**
-     * @return the limits
-     */
-    public RegistryTenantLimits getLimits() {
-        return limits;
-    }
-
-    /**
-     * @param limits the limits to set
-     */
-    public void setLimits(RegistryTenantLimits limits) {
-        this.limits = limits;
+    @JsonProperty("resources")
+    public void setResources(List<TenantResource> resources) {
+        this.resources = resources;
     }
 
 }

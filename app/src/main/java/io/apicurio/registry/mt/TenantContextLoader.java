@@ -22,6 +22,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
@@ -55,21 +57,15 @@ public class TenantContextLoader {
     }
 
     public RegistryTenantContext loadContext(String tenantId) {
+        if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
+            return defaultTenantContext();
+        }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
-            return new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
+//            return new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
           //TODO uncomment when tenant-manager is updated
-//            RegistryTenantContext ctx;
-//            if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
-//                if (defaultTenantContext == null) {
-//                    defaultTenantContext = new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
-//                }
-//                ctx = defaultTenantContext;
-//            } else {
-//                RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
-//                TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-//                ctx = new RegistryTenantContext(tenantId, limitsConfiguration);
-//            }
-//            return ctx;
+            RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
+            TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
+            return new RegistryTenantContext(tenantId, limitsConfiguration);
         });
         return context;
     }

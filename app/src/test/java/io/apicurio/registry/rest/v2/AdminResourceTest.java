@@ -22,10 +22,12 @@ import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -547,6 +550,9 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     void testImport() throws Exception {
+        var result = clientV2.searchArtifacts(null, null, null, null, null, null, null, 0, 5);
+        int artifactsBefore = result.getCount();
+
         try (InputStream data = resourceToInputStream("export.zip")) {
             given()
                 .when()
@@ -571,11 +577,29 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         });
 
         // Verify artifacts were imported
+        // Verify all artifact versions were imported
+        //total num of artifacts 3
+        result = clientV2.searchArtifacts(null, null, null, null, null, null, null, 0, 5);
+        int newArtifacts = result.getCount().intValue() - artifactsBefore;
+        assertEquals(3, newArtifacts);
 
         // Verify artifact rules were imported
+        var rule = clientV2.getArtifactRuleConfig("ImportTest", "Artifact-1", RuleType.VALIDITY);
+        assertNotNull(rule);
+        assertEquals("SYNTAX_ONLY", rule.getConfig());
 
-        // Verify all artifact versions were imported
+        //the biggest globalId in the export file is 1005
+        assertNotNull(clientV2.getContentByGlobalId(1005));
 
+        //this is the artifactId for the artifact with globalId 1005
+        var lastArtifactMeta = clientV2.getArtifactMetaData("ImportTest", "Artifact-3");
+        assertEquals("1.0.2", lastArtifactMeta.getVersion());
+        assertEquals(1005, lastArtifactMeta.getGlobalId());
+
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> clientV2.getContentByGlobalId(1006));
+
+        var meta = clientV2.createArtifact(null, "newartifact", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        assertEquals(1006, meta.getGlobalId().intValue());
     }
 
 }

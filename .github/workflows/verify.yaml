@@ -32,13 +32,13 @@ jobs:
           version: '11'
           architecture: x64
 
-#      - name: Cache Dependencies
-#        uses: actions/cache@v2
-#        with:
-#          path: ~/.m2/repository
-#          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
-#          restore-keys: |
-#            ${{ runner.os }}-verify-
+      - name: Cache Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3

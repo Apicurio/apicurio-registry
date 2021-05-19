@@ -29,9 +29,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -51,7 +48,7 @@ import io.quarkus.test.junit.TestProfile;
 @TestProfile(MultitenancyLimitsTestProfile.class)
 public class MultitenancyLimitsTest extends AbstractResourceTestBase {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyLimitsTest.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyLimitsTest.class);
 
     @Inject
     @Current

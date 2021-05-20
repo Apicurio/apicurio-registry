@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client.handler;
+package io.apicurio.registry.rest.client.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -28,7 +28,6 @@ import org.apache.http.HttpStatus;
 import org.keycloak.authorization.client.util.HttpResponseException;
 
 import java.io.InputStream;
-import java.net.http.HttpResponse;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,18 +41,18 @@ public class ErrorHandler {
 
     private static final Logger logger = Logger.getLogger(ErrorHandler.class.getName());
 
-    public static RestClientException handleErrorResponse(InputStream body, HttpResponse.ResponseInfo responseInfo) {
+    public static RestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
-            if (responseInfo.statusCode() == HttpStatus.SC_UNAUTHORIZED) {
+            if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
                 //authorization error
                 Error error = new Error();
-                error.setErrorCode(responseInfo.statusCode());
+                error.setErrorCode(statusCode);
                 throw new NotAuthorizedException(error);
             } else {
-                if (responseInfo.statusCode() == HttpStatus.SC_FORBIDDEN) {
+                if (statusCode == HttpStatus.SC_FORBIDDEN) {
                     //forbidden error
                     Error error = new Error();
-                    error.setErrorCode(responseInfo.statusCode());
+                    error.setErrorCode(statusCode);
                     throw new ForbiddenException(error);
                 }
             }

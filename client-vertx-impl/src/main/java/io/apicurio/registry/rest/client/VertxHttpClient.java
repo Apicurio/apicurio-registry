@@ -18,9 +18,10 @@ package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.exception.RestClientException;
+import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.response.ResponseHandler;
-import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.utils.IoUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -29,7 +30,6 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.message.BasicNameValuePair;
 import org.keycloak.authorization.client.util.HttpResponseException;
 
 import java.io.UncheckedIOException;
@@ -52,12 +52,17 @@ public class VertxHttpClient implements RegistryHttpClient {
     private final Map<String, Object> options;
     private final Auth auth;
     private final String basePath;
+    private final Vertx vertx;
 
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
     public VertxHttpClient(String basePath, Map<String, Object> options, Auth auth) {
-        this.webClient = WebClient.create(Vertx.currentContext().owner());
+        if (!basePath.endsWith("/")) {
+            basePath += "/";
+        }
+        this.vertx = Vertx.currentContext() != null ? Vertx.currentContext().owner() : Vertx.vertx();
+        this.webClient = WebClient.create(vertx);
         this.options = options;
         this.auth = auth;
         this.basePath = basePath;
@@ -66,10 +71,12 @@ public class VertxHttpClient implements RegistryHttpClient {
     @Override
     public <T> T sendRequest(Request<T> request) {
         try {
-            final URI uri = buildURI(basePath + request.getRequestPath(), request.getQueryParams(), request.getPathParams());
+            final URI uri = buildURI(basePath + request.getRequestPath(), request.getPathParams());
             final RequestOptions requestOptions = new RequestOptions();
 
-            requestOptions.setURI(uri.toString());
+            requestOptions.setHost(uri.getHost());
+            requestOptions.setURI(uri.getPath());
+            requestOptions.setPort(uri.getPort());
 
             DEFAULT_HEADERS.forEach(requestOptions::addHeader);
 
@@ -85,48 +92,88 @@ public class VertxHttpClient implements RegistryHttpClient {
             }
             headers.forEach(requestOptions::addHeader);
 
-            final CompletableFuture<T> resultHolder = new CompletableFuture<T>();
-            final ResponseHandler<T> responseHandler = new ResponseHandler<>(resultHolder);
-
-            HttpRequest<Buffer> httpClientRequest;
+            CompletableFuture<T> resultHolder;
 
             switch (request.getOperation()) {
                 case GET:
-                    httpClientRequest = webClient.request(HttpMethod.GET, requestOptions);
+                    resultHolder = executeGet(request, requestOptions);
                     break;
                 case PUT:
-                    httpClientRequest = webClient.request(HttpMethod.PUT, requestOptions.getURI());
+                    resultHolder = executePut(request, requestOptions);
                     break;
                 case POST:
-                    httpClientRequest = webClient.request(HttpMethod.POST, requestOptions.getURI());
+                    resultHolder = executePost(request, requestOptions);
                     break;
                 case DELETE:
-                    httpClientRequest = webClient.request(HttpMethod.DELETE, requestOptions.getURI());
+                    resultHolder = executeDelete(request, requestOptions);
                     break;
                 default:
                     throw new IllegalStateException("Operation not allowed");
             }
 
-            httpClientRequest.send(responseHandler);
-
             return resultHolder.get();
 
-        } catch (URISyntaxException | InterruptedException | HttpResponseException | ExecutionException e) {
-            //TODO handle exception
-            throw new RestClientException(new Error());
+        } catch (URISyntaxException | HttpResponseException | InterruptedException | ExecutionException e) {
+            if (e.getCause() != null && e.getCause() instanceof RestClientException) {
+                throw (RestClientException) e.getCause();
+            } else {
+                throw ErrorHandler.parseError(e);
+            }
         }
     }
 
-    private static URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
+    private <T> CompletableFuture<T> executeGet(Request<T> request, RequestOptions requestOptions) {
+        return sendRequestWithoutPayload(HttpMethod.GET, request, requestOptions);
+    }
+
+    private <T> CompletableFuture<T> executeDelete(Request<T> request, RequestOptions requestOptions) {
+        return sendRequestWithoutPayload(HttpMethod.DELETE, request, requestOptions);
+    }
+
+    private <T> CompletableFuture<T> executePost(Request<T> request, RequestOptions requestOptions) {
+        return sendRequestWithPayload(HttpMethod.POST, request, requestOptions);
+    }
+
+    private <T> CompletableFuture<T> executePut(Request<T> request, RequestOptions requestOptions) {
+        return sendRequestWithPayload(HttpMethod.PUT, request, requestOptions);
+    }
+
+    private <T> CompletableFuture<T> sendRequestWithoutPayload(HttpMethod httpMethod, Request<T> request, RequestOptions requestOptions) {
+        final HttpRequest<Buffer> httpClientRequest = webClient.request(httpMethod, requestOptions);
+
+        //Iterate over query params list so we can add multiple query params with the same key
+        request.getQueryParams().forEach((key, paramList) -> paramList
+                .forEach(value -> httpClientRequest.setQueryParam(key, value)));
+
+        final CompletableFuture<T> resultHolder = new CompletableFuture<T>();
+        final ResponseHandler<T> responseHandler = new ResponseHandler<>(resultHolder, request.getResponseType());
+        httpClientRequest.send(responseHandler);
+        return resultHolder;
+    }
+
+    private <T> CompletableFuture<T> sendRequestWithPayload(HttpMethod httpMethod, Request<T> request, RequestOptions requestOptions) {
+        final HttpRequest<Buffer> httpClientRequest = webClient.request(httpMethod, requestOptions);
+        final CompletableFuture<T> resultHolder = new CompletableFuture<T>();
+
+        //Iterate over query params list so we can add multiple query params with the same key
+        request.getQueryParams().forEach((key, paramList) -> paramList
+                .forEach(value -> httpClientRequest.setQueryParam(key, value)));
+
+        final ResponseHandler<T> responseHandler = new ResponseHandler<>(resultHolder, request.getResponseType());
+
+        Buffer buffer = Buffer.buffer(IoUtil.toBytes(request.getData()));
+        httpClientRequest.sendBuffer(buffer, responseHandler);
+
+        return resultHolder;
+    }
+
+    private static URI buildURI(String basePath, List<String> pathParams) throws URISyntaxException {
         Object[] encodedPathParams = pathParams
                 .stream()
                 .map(VertxHttpClient::encodeURIComponent)
                 .toArray();
         final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
         final List<NameValuePair> queryParamsExpanded = new ArrayList<>();
-        //Iterate over query params list so we can add multiple query params with the same key
-        queryParams.forEach((key, paramList) -> paramList
-                .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
         uriBuilder.setParameters(queryParamsExpanded);
         return uriBuilder.build();
     }

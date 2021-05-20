@@ -19,6 +19,7 @@ package io.apicurio.registry.rest.client.handler;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.client.impl.ErrorHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +57,7 @@ public class BodyHandler<W> implements HttpResponse.BodyHandler<Supplier<W>> {
         return () -> {
             try {
                 if (isFailure(responseInfo)) {
-                    throw ErrorHandler.handleErrorResponse(body, responseInfo);
+                    throw ErrorHandler.handleErrorResponse(body, responseInfo.statusCode());
                 } else {
                     //TODO think of a better solution to this
                     final String typeName = targetType.getType().getTypeName();

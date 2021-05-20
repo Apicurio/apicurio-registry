@@ -19,7 +19,7 @@ package io.apicurio.registry.rest.client;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.handler.BodyHandler;
-import io.apicurio.registry.rest.client.handler.ErrorHandler;
+import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.utils.BooleanUtil;
 import org.apache.http.NameValuePair;

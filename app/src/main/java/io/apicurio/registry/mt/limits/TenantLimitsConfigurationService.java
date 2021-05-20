@@ -16,6 +16,10 @@
 
 package io.apicurio.registry.mt.limits;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -150,13 +154,21 @@ public class TenantLimitsConfigurationService {
     public TenantLimitsConfiguration fromTenantMetadata(RegistryTenant tenantMetadata) {
         TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
-        if (tenantMetadata.getResources() == null) {
+        if (tenantMetadata.getResources() == null || tenantMetadata.getResources().isEmpty()) {
+            logger.debug("Tenant has no resources config, using default tenant limits config");
             return defaultLimitsConfiguration;
         }
 
-        for (TenantResource tr : tenantMetadata.getResources()) {
-            ResourceType type = tr.getType();
-            Long limit = tr.getLimit();
+        Map<ResourceType, TenantResource> config = tenantMetadata.getResources()
+            .stream()
+            .collect(Collectors.toMap(tr -> tr.getType(), tr -> tr));
+
+        for (ResourceType type : ResourceType.values()) {
+
+            Long limit = Optional.ofNullable(config.get(type))
+                    .map(TenantResource::getLimit)
+                    .orElse(null);
+
             switch (type) {
                 case MAX_TOTAL_SCHEMAS_COUNT:
                     c.setMaxTotalSchemas(limit == null ? defaultMaxTotalSchemas : limit);

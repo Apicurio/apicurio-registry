@@ -21,6 +21,7 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
@@ -43,6 +44,9 @@ public class TenantContextLoader {
     private RegistryTenantContext defaultTenantContext;
 
     @Inject
+    Logger logger;
+
+    @Inject
     @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
     Long cacheCheckPeriod;
 
@@ -61,6 +65,7 @@ public class TenantContextLoader {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
+            logger.debug("Loading context for tenant {}", tenantId);
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
             return new RegistryTenantContext(tenantId, limitsConfiguration);

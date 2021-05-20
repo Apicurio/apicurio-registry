@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
+import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
@@ -45,11 +46,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class VertxHttpClient implements RegistryHttpClient {
 
     private final WebClient webClient;
-    private final Map<String, Object> options;
     private final Auth auth;
     private final String basePath;
     private final Vertx vertx;
@@ -63,9 +64,21 @@ public class VertxHttpClient implements RegistryHttpClient {
         }
         this.vertx = Vertx.currentContext() != null ? Vertx.currentContext().owner() : Vertx.vertx();
         this.webClient = WebClient.create(vertx);
-        this.options = options;
         this.auth = auth;
         this.basePath = basePath;
+        addHeaders(options);
+    }
+
+    private static void addHeaders(Map<String, Object> configs) {
+
+        Map<String, String> requestHeaders = configs.entrySet().stream()
+                .filter(map -> map.getKey().startsWith(ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX))
+                .collect(Collectors.toMap(map -> map.getKey()
+                        .replace(ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
+
+        if (!requestHeaders.isEmpty()) {
+            requestHeaders.forEach(DEFAULT_HEADERS::put);
+        }
     }
 
     @Override

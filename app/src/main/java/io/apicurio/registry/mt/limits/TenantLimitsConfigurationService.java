@@ -21,9 +21,11 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.RegistryTenantLimits;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
@@ -33,6 +35,9 @@ import io.quarkus.runtime.StartupEvent;
  */
 @ApplicationScoped
 public class TenantLimitsConfigurationService {
+
+    @Inject
+    Logger logger;
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "registry.limits.config.cache.check-period")
@@ -145,25 +150,53 @@ public class TenantLimitsConfigurationService {
     public TenantLimitsConfiguration fromTenantMetadata(RegistryTenant tenantMetadata) {
         TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
-        if (tenantMetadata.getLimits() == null) {
+        if (tenantMetadata.getResources() == null) {
             return defaultLimitsConfiguration;
         }
 
-        RegistryTenantLimits limits = tenantMetadata.getLimits();
+        for (TenantResource tr : tenantMetadata.getResources()) {
+            ResourceType type = tr.getType();
+            Long limit = tr.getLimit();
+            switch (type) {
+                case MAX_TOTAL_SCHEMAS_COUNT:
+                    c.setMaxTotalSchemas(limit == null ? defaultMaxTotalSchemas : limit);
+                    break;
+                case MAX_ARTIFACTS_COUNT:
+                    c.setMaxArtifacts(limit == null ? defaultMaxArtifacts : limit);
+                    break;
+                case MAX_VERSIONS_PER_ARTIFACT_COUNT:
+                    c.setMaxVersionsPerArtifact(limit == null ? defaultMaxVersionsPerArtifact : limit);
+                    break;
 
-        c.setMaxTotalSchemas(limits.getMaxTotalSchemas() == null ? defaultMaxTotalSchemas : limits.getMaxTotalSchemas());
-        c.setMaxArtifacts(limits.getMaxArtifacts() == null ? defaultMaxArtifacts : limits.getMaxArtifacts());
-        c.setMaxVersionsPerArtifact(limits.getMaxVersionsPerArtifact() == null ? defaultMaxVersionsPerArtifact : limits.getMaxVersionsPerArtifact());
+                case MAX_ARTIFACT_PROPERTIES_COUNT:
+                    c.setMaxArtifactProperties(limit == null ? defaultMaxArtifactProperties : limit);
+                    break;
+                case MAX_PROPERTY_KEY_SIZE_BYTES:
+                    c.setMaxPropertyKeyBytesSize(limit == null ? defaultMaxPropertyKeyBytesSize : limit);
+                    break;
+                case MAX_PROPERTY_VALUE_SIZE_BYTES:
+                    c.setMaxPropertyValueBytesSize(limit == null ? defaultMaxPropertyValueBytesSize : limit);
+                    break;
 
-        c.setMaxArtifactProperties(limits.getMaxArtifactProperties() == null ? defaultMaxArtifactProperties : limits.getMaxArtifactProperties());
-        c.setMaxPropertyKeyBytesSize(limits.getMaxPropertyKeyBytesSize() == null ? defaultMaxPropertyKeyBytesSize : limits.getMaxPropertyKeyBytesSize());
-        c.setMaxPropertyValueBytesSize(limits.getMaxPropertyValueBytesSize() == null ? defaultMaxPropertyValueBytesSize : limits.getMaxPropertyValueBytesSize());
+                case MAX_ARTIFACT_LABELS_COUNT:
+                    c.setMaxArtifactLabels(limit == null ? defaultMaxArtifactLabels : limit);
+                    break;
+                case MAX_LABEL_SIZE_BYTES:
+                    c.setMaxLabelBytesSize(limit == null ? defaultMaxLabelBytesSize : limit);
+                    break;
 
-        c.setMaxArtifactLabels(limits.getMaxArtifactLabels() == null ? defaultMaxArtifactLabels : limits.getMaxArtifactLabels());
-        c.setMaxLabelBytesSize(limits.getMaxLabelBytesSize() == null ? defaultMaxLabelBytesSize : limits.getMaxLabelBytesSize());
+                case MAX_ARTIFACT_NAME_LENGTH_CHARS:
+                    c.setMaxNameLength(limit == null ? defaultMaxNameLength : limit);
+                    break;
+                case MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS:
+                    c.setMaxDescriptionLength(limit == null ? defaultMaxDescriptionLength : limit);
+                    break;
 
-        c.setMaxNameLength(limits.getMaxNameLength() == null ? defaultMaxNameLength : limits.getMaxNameLength());
-        c.setMaxDescriptionLength(limits.getMaxDescriptionLength() == null ? defaultMaxDescriptionLength : limits.getMaxDescriptionLength());
+                default:
+                    logger.error("Resource Type unhandled " + type.name());
+                    break;
+            }
+        }
 
         return c;
     }

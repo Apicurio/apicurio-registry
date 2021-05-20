@@ -61,8 +61,6 @@ public class TenantContextLoader {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
-//            return new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
-          //TODO uncomment when tenant-manager is updated
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
             return new RegistryTenantContext(tenantId, limitsConfiguration);

@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.keycloak.admin.client.Keycloak;
@@ -69,6 +70,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
     private RegistryFacade registryFacade = RegistryFacade.getInstance();
 
     @Test
+    @Disabled
     public void testSecuredMultitenantRegistry() throws Exception {
 
         RegistryClient clientTenant1 = createAndGetTenantAdminClient();
@@ -140,8 +142,6 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         tenantInfo.setTenantAppUrl(tenantAppUrl);
 
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
-        tenantReq.setAuthServerUrl(tenantInfo.getRealmAuthServerUrl());
-        tenantReq.setClientId(tenantInfo.getClientId());
         tenantReq.setOrganizationId("foo");
         tenantReq.setTenantId(tenantId);
 

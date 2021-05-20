@@ -16,7 +16,10 @@
 package io.apicurio.multitenant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +32,8 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -50,13 +55,18 @@ public class TenantManagerClientTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
-        req.setClientId("aaaaa");
+        TenantResource tr = new TenantResource();
+        tr.setLimit(5L);
+        tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
+        req.setResources(List.of(tr));
 
         RegistryTenant tenant = client.createTenant(req);
 
         assertNotNull(tenant);
         assertNotNull(tenant.getTenantId());
         assertNotNull(tenant.getCreatedOn());
+        assertNotNull(tenant.getResources());
+        assertFalse(tenant.getResources().isEmpty());
 
         testGetTenant(tenant.getTenantId(), req);
 
@@ -72,6 +82,7 @@ public class TenantManagerClientTest {
         RegistryTenant tenant = client.getTenant(tenantId);
         assertEquals(tenantId, tenant.getTenantId());
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
+        assertThat(req.getResources(), containsInAnyOrder(tenant.getResources()));
     }
 
     public void testDelete(String tenantId) {

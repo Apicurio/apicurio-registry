@@ -86,8 +86,6 @@ public class CustomTenantConfigResolver implements TenantConfigResolver {
         final OidcTenantConfig config = new OidcTenantConfig();
 
         config.setTenantId(registryTenant.getTenantId());
-        config.setAuthServerUrl(registryTenant.getAuthServerUrl());
-        config.setClientId(registryTenant.getAuthClientId());
 
         if (tlsVerification.isPresent() && tlsVerification.get().equalsIgnoreCase("none")) {
             config.tls.verification = Optional.of(Verification.NONE);

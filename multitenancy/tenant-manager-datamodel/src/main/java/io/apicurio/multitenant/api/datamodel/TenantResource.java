@@ -1,5 +1,5 @@
 
-package io.apicurio.multitenant.api.beans;
+package io.apicurio.multitenant.api.datamodel;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -70,11 +70,45 @@ public class TenantResource {
     /**
      * The quantity to limit this resource
      * (Required)
-     * 
+     *
      */
     @JsonProperty("limit")
     public void setLimit(Long limit) {
         this.limit = limit;
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((limit == null) ? 0 : limit.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
+        return result;
+    }
+
+    /**
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TenantResource other = (TenantResource) obj;
+        if (limit == null) {
+            if (other.limit != null)
+                return false;
+        } else if (!limit.equals(other.limit))
+            return false;
+        if (type != other.type)
+            return false;
+        return true;
     }
 
 }

@@ -1,5 +1,5 @@
 
-package io.apicurio.multitenant.api.beans;
+package io.apicurio.multitenant.api.datamodel;
 
 import java.util.HashMap;
 import java.util.Map;

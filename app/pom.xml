@@ -254,6 +254,10 @@
             <artifactId>keycloak-admin-client</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-converter</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

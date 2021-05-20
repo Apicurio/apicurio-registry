@@ -47,4 +47,17 @@ public class UpdateImpl extends SqlImpl<Update> implements Update {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.Update#executeNoUpdate()
+     */
+    @Override
+    public void executeNoUpdate() {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            bindParametersTo(statement);
+            statement.execute();
+        } catch (SQLException e) {
+            throw new RuntimeSqlException(e);
+        }
+    }
+
 }

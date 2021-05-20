@@ -2302,7 +2302,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
             handle.createUpdate(sql)
                 .bind(0, id)
-                .execute();
+                .executeNoUpdate();
             log.info("Successfully reset globalId to {}", id);
         }
     }
@@ -2321,7 +2321,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
             handle.createUpdate(sql)
                 .bind(0, id)
-                .execute();
+                .executeNoUpdate();
             log.info("Successfully reset contentId to {}", id);
         }
     }

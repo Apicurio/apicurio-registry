@@ -570,9 +570,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
-            .bind(0, globalId)
-            .map(ArtifactVersionMetaDataDtoMapper.instance)
-            .one();
+                .bind(0, tenantContext.tenantId())
+                .bind(1, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance)
+                .one();
     }
 
     /**
@@ -1152,6 +1153,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1188,6 +1190,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1211,6 +1214,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1504,6 +1508,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, "gid-" + globalId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1529,6 +1534,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1655,6 +1661,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new VersionNotFoundException(groupId, artifactId, version);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1949,6 +1956,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new LogConfigurationNotFoundException(logger);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -2115,6 +2123,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new GroupNotFoundException(groupId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -2315,7 +2324,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetGlobalId(Handle handle) {
         String sql = sqlStatements.selectMaxGlobalId();
         Optional<Long> maxGlobalId = handle.createQuery(sql)
@@ -2323,15 +2331,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxGlobalId.isPresent()) {
-            long id = maxGlobalId.get();
+            log.info("Resetting globalId sequence");
+            long id = maxGlobalId.get() + 1;
 
-            log.info("Resetting globalId sequence to {}", id);
-            while (nextGlobalId(handle) < id) {}
-            log.info("Successfully reset globalId to {}", nextGlobalId(handle));
+            sql = sqlStatements.resetSequence("globalidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset globalId to {}", id);
         }
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetContentId(Handle handle) {
         String sql = sqlStatements.selectMaxContentId();
         Optional<Long> maxContentId = handle.createQuery(sql)
@@ -2339,11 +2350,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxContentId.isPresent()) {
+            log.info("Resetting contentId sequence");
             long id = maxContentId.get() + 1;
 
-            log.info("Resetting contentId sequence to {}", id);
-            while (nextContentId(handle) < id) {}
-            log.info("Successfully reset contentId to {}", nextContentId(handle));
+            sql = sqlStatements.resetSequence("contentidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset contentId to {}", id);
         }
     }
 

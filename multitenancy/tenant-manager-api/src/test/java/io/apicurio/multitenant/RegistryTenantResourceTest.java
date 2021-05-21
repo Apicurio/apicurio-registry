@@ -19,6 +19,7 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -30,12 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 
 /**
  * @author Fabian Martinez
@@ -45,8 +45,12 @@ public class RegistryTenantResourceTest {
 
     private static final String TENANTS_PATH = "/api/v1/tenants";
 
-    @Test
-    public void testListTenants() {
+    @BeforeEach
+    public void cleanup() {
+        var client = new TenantManagerClientImpl("http://localhost:8081/");
+        List<RegistryTenant> list = client.listTenants();
+        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+
         given()
           .when().get(TENANTS_PATH)
           .then()
@@ -102,7 +106,10 @@ public class RegistryTenantResourceTest {
 
         assertEquals(tenantId, tenant.getTenantId());
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
-        assertThat(req.getResources(), containsInAnyOrder(tenant.getResources()));
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getResources().size(), tenant.getResources().size());
+        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
 
     }
 

@@ -18,13 +18,11 @@ package io.apicurio.multitenant;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.client.TenantManagerClient;
@@ -44,9 +42,11 @@ public class TenantManagerClientTest {
 
     private TenantManagerClient client = new TenantManagerClientImpl("http://localhost:8081/");
 
-    @Test
-    public void testListTenants() {
+    @BeforeEach
+    public void cleanup() {
         List<RegistryTenant> list = client.listTenants();
+        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+        list = client.listTenants();
         assertEquals(0, list.size());
     }
 
@@ -80,9 +80,13 @@ public class TenantManagerClientTest {
 
     private void testGetTenant(String tenantId, NewRegistryTenantRequest req) {
         RegistryTenant tenant = client.getTenant(tenantId);
+
         assertEquals(tenantId, tenant.getTenantId());
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
-        assertThat(req.getResources(), containsInAnyOrder(tenant.getResources()));
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getResources().size(), tenant.getResources().size());
+        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
     }
 
     public void testDelete(String tenantId) {

@@ -661,7 +661,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportContent() {
-        return "SELECT * FROM content c";
+        return "SELECT * FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "WHERE v.tenantId = ?";
     }
 
     /**

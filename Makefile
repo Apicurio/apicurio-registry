@@ -32,7 +32,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw -X clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 

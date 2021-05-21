@@ -2153,6 +2153,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle(handle -> {
                 String sql = sqlStatements.exportContent();
                 Stream<ContentEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
                         .setFetchSize(50)
                         .map(ContentEntityMapper.instance)
                         .stream();

@@ -498,7 +498,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(4, version)
                 .bind(5, state)
                 .bind(6, limitStr(name, 512))
-                .bind(7, limitStr(description, 1024))
+                .bind(7, limitStr(description, 1024, true))
                 .bind(8, createdBy)
                 .bind(9, createdOn)
                 .bind(10, labelsStr)
@@ -517,7 +517,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(7, artifactId)
                 .bind(8, state)
                 .bind(9, limitStr(name, 512))
-                .bind(10, limitStr(description, 1024))
+                .bind(10, limitStr(description, 1024, true))
                 .bind(11, createdBy)
                 .bind(12, createdOn)
                 .bind(13, labelsStr)
@@ -1696,7 +1696,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.updateArtifactVersionMetaData();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, limitStr(metaData.getName(), 512))
-                        .bind(1, limitStr(metaData.getDescription(), 1024))
+                        .bind(1, limitStr(metaData.getDescription(), 1024, true))
                         .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
                         .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
                         .bind(4, tenantContext.tenantId())
@@ -2648,11 +2648,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private static String limitStr(String value, int limit) {
+        return limitStr(value, limit, false);
+    }
+
+    private static String limitStr(String value, int limit, boolean withEllipsis) {
         if (StringUtil.isEmpty(value)) {
             return value;
         }
 
-        return value.length() > limit ? value.substring(0, limit) : value;
+        if (value.length() > limit) {
+            if (withEllipsis) {
+                return value.substring(0, limit - 3).concat("...");
+            } else {
+                return value.substring(0, limit);
+            }
+        } else {
+            return value;
+        }
     }
-
 }

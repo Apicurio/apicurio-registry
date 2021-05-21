@@ -227,6 +227,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         metaData.setProperties(new HashMap<>());
         metaData.getProperties().put("key-" + generateString(300), "value-" + generateString(2000));
         dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+
+        dto = storage().getArtifactMetaData(dto.getGlobalId());
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getId());
@@ -237,9 +239,6 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNotNull(dto.getProperties());
         Assertions.assertEquals(1, dto.getLabels().size());
         Assertions.assertEquals(1, dto.getProperties().size());
-        Assertions.assertEquals(256, dto.getLabels().get(0).length());
-        Assertions.assertEquals(256, dto.getProperties().entrySet().iterator().next().getKey());
-        Assertions.assertEquals(1024, dto.getProperties().entrySet().iterator().next().getValue());
     }
 
     @Test

@@ -18,13 +18,18 @@ package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
+import java.util.Optional;
 
 /**
  * Component responsible for creating instances of {@link RegistryTenantContext} so they can be set with {@link TenantContext}
@@ -50,11 +55,20 @@ public class TenantContextLoader {
     @Inject
     TenantLimitsConfigurationService limitsConfigurationService;
 
+    @Inject
+    Instance<JsonWebToken> jsonWebToken;
+
+    @ConfigProperty(name = "registry.organization-id.claim-name")
+    String organizationIdClaimName;
+
     public void onStart(@Observes StartupEvent ev) {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
     public RegistryTenantContext loadContext(String tenantId) {
+
+        checkTenantAuthorization(tenantId);
+
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
             return new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
           //TODO uncomment when tenant-manager is updated
@@ -81,4 +95,22 @@ public class TenantContextLoader {
         return defaultTenantContext;
     }
 
+    private void checkTenantAuthorization(String tenantId) {
+        if (isTokenResolvable()) {
+            final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
+            final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
+
+            if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+                throw new TenantNotAuthorizedException("Tenant not authorized");
+            }
+        }
+    }
+
+    private boolean isTokenResolvable() {
+        return jsonWebToken.isResolvable() && jsonWebToken.get().getRawToken() != null;
+    }
+
+    private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
+        return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
 }

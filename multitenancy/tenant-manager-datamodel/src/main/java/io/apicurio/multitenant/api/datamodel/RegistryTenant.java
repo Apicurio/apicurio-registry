@@ -19,9 +19,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "tenantId",
     "createdOn",
     "createdBy",
-    "organizationId",
-    "authServerUrl",
-    "authClientId"
+    "organizationId"
 })
 public class RegistryTenant {
 
@@ -55,22 +53,6 @@ public class RegistryTenant {
     @JsonProperty("organizationId")
     @JsonPropertyDescription("")
     private Object organizationId;
-    /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
-     * 
-     */
-    @JsonProperty("authServerUrl")
-    @JsonPropertyDescription("Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry")
-    private String authServerUrl;
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     *
-     */
-    @JsonProperty("authClientId")
-    @JsonPropertyDescription("ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant")
-    private String authClientId;
 
     //TODO properly generate this class
     private RegistryTenantLimits limits;
@@ -149,46 +131,6 @@ public class RegistryTenant {
     @JsonProperty("organizationId")
     public void setOrganizationId(Object organizationId) {
         this.organizationId = organizationId;
-    }
-
-    /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
-     * 
-     */
-    @JsonProperty("authServerUrl")
-    public String getAuthServerUrl() {
-        return authServerUrl;
-    }
-
-    /**
-     * Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry
-     * (Required)
-     * 
-     */
-    @JsonProperty("authServerUrl")
-    public void setAuthServerUrl(String authServerUrl) {
-        this.authServerUrl = authServerUrl;
-    }
-
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     * 
-     */
-    @JsonProperty("authClientId")
-    public String getAuthClientId() {
-        return authClientId;
-    }
-
-    /**
-     * ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant
-     * (Required)
-     *
-     */
-    @JsonProperty("authClientId")
-    public void setAuthClientId(String authClientId) {
-        this.authClientId = authClientId;
     }
 
     /**

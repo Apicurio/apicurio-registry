@@ -54,7 +54,6 @@ public class RegistryTenantResourceTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
-        req.setClientId("aaaaa");
 
         Response res = given()
             .when()

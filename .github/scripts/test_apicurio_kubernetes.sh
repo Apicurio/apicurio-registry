@@ -9,6 +9,8 @@ pushd apicurio-registry-k8s-tests-e2e
 
 ./scripts/setup-deps.sh
 
+make pull-operator-repo
+
 if [ "$E2E_APICURIO_TESTS_PROFILE" == "clustered" ]
 then
     E2E_APICURIO_TESTS_PROFILE=smoke

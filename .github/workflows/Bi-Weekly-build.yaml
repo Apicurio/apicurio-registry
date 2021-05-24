@@ -17,7 +17,7 @@ jobs:
             architecture: x64
 
         - name: Fetch Quarkus Latest Release version
-          run: echo "QUARKUS_LATEST_RELEASE=$(curl https://api.github.com/repos/quarkusio/quarkus/releases/latest | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+          run: echo "QUARKUS_LATEST_RELEASE=$(curl https://api.github.com/repos/quarkusio/quarkus/releases | jq '.[0].name' | sed 's/"//g')" >> $GITHUB_ENV
         
         - name: Checkout Code
           uses: actions/checkout@v2

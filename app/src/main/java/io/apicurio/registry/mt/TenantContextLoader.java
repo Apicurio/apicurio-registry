@@ -20,11 +20,15 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
+import java.util.Optional;
 
 /**
  * Component responsible for creating instances of {@link RegistryTenantContext} so they can be set with {@link TenantContext}
@@ -50,11 +54,20 @@ public class TenantContextLoader {
     @Inject
     TenantLimitsConfigurationService limitsConfigurationService;
 
+    @Inject
+    JsonWebToken jsonWebToken;
+
+    @ConfigProperty(name = "registry.organization-id.claim-name")
+    String organizationIdClaimName;
+
     public void onStart(@Observes StartupEvent ev) {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
     public RegistryTenantContext loadContext(String tenantId) {
+
+        checkTenantAuthorization(tenantId);
+
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
             return new RegistryTenantContext(tenantId, limitsConfigurationService.defaultConfigurationTenant());
           //TODO uncomment when tenant-manager is updated
@@ -81,4 +94,16 @@ public class TenantContextLoader {
         return defaultTenantContext;
     }
 
+    private void checkTenantAuthorization(String tenantId) {
+        final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
+        final Optional<Object> accessedOrganizationId = jsonWebToken.claim(organizationIdClaimName);
+
+        if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+            throw new TenantNotAuthorizedException(String.format("Tenant %s not authorized to access organization %s", tenantId, accessedOrganizationId));
+        }
+    }
+
+    private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
+        return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
 }

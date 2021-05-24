@@ -116,11 +116,6 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client-jdk</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
         </dependency>
         <dependency>

@@ -96,7 +96,7 @@ public class TenantContextLoader {
     }
 
     private void checkTenantAuthorization(String tenantId) {
-        if (jsonWebToken.isResolvable()) {
+        if (isTokenResolvable()) {
             final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
@@ -104,6 +104,10 @@ public class TenantContextLoader {
                 throw new TenantNotAuthorizedException(String.format("Tenant %s not authorized to access organization %s", tenantId, accessedOrganizationId));
             }
         }
+    }
+
+    private boolean isTokenResolvable() {
+        return jsonWebToken.isResolvable() && jsonWebToken.get().getRawToken() != null;
     }
 
     private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {

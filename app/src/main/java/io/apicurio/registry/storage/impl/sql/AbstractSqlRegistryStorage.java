@@ -99,6 +99,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -493,8 +494,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(3, artifactId)
                 .bind(4, version)
                 .bind(5, state)
-                .bind(6, name)
-                .bind(7, description)
+                .bind(6, limitStr(name, 512))
+                .bind(7, limitStr(description, 1024, true))
                 .bind(8, createdBy)
                 .bind(9, createdOn)
                 .bind(10, labelsStr)
@@ -512,8 +513,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(6, normalizeGroupId(groupId))
                 .bind(7, artifactId)
                 .bind(8, state)
-                .bind(9, name)
-                .bind(10, description)
+                .bind(9, limitStr(name, 512))
+                .bind(10, limitStr(description, 1024, true))
                 .bind(11, createdBy)
                 .bind(12, createdOn)
                 .bind(13, labelsStr)
@@ -539,7 +540,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertLabel();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, label.toLowerCase())
+                      .bind(1, limitStr(label.toLowerCase(), 256))
                       .execute();
             });
         }
@@ -550,8 +551,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertProperty();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, k.toLowerCase())
-                      .bind(2, v.toLowerCase())
+                      .bind(1, limitStr(k.toLowerCase(), 256))
+                      .bind(2, limitStr(v.toLowerCase(), 1024))
                       .execute();
             });
         }
@@ -1700,8 +1701,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactVersionMetaData();
                 int rowCount = handle.createUpdate(sql)
-                        .bind(0, metaData.getName())
-                        .bind(1, metaData.getDescription())
+                        .bind(0, limitStr(metaData.getName(), 512))
+                        .bind(1, limitStr(metaData.getDescription(), 1024, true))
                         .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
                         .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
                         .bind(4, tenantContext.tenantId())
@@ -1733,7 +1734,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, label.toLowerCase())
+                              .bind(1, limitStr(label.toLowerCase(), 256))
                               .execute();
                     });
                 }
@@ -1745,8 +1746,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, k.toLowerCase())
-                              .bind(2, v.toLowerCase())
+                              .bind(1, limitStr(k.toLowerCase(), 256))
+                              .bind(2, limitStr(v.toLowerCase(), 1024))
                               .execute();
                     });
                 }
@@ -2651,4 +2652,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .one();
     }
 
+    private static String limitStr(String value, int limit) {
+        return limitStr(value, limit, false);
+    }
+
+    private static String limitStr(String value, int limit, boolean withEllipsis) {
+        if (StringUtil.isEmpty(value)) {
+            return value;
+        }
+
+        if (value.length() > limit) {
+            if (withEllipsis) {
+                return value.substring(0, limit - 3).concat("...");
+            } else {
+                return value.substring(0, limit);
+            }
+        } else {
+            return value;
+        }
+    }
 }

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -214,6 +215,29 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("1", amdDto.getVersion());
         Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
         Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
+
+        // Test creating an artifact with meta-data that is too large for the DB
+        artifactId = "testCreateArtifactWithMetaData-2";
+        metaData = new EditableArtifactMetaDataDto();
+        metaData.setName(generateString(600));
+        metaData.setDescription(generateString(2000));
+        metaData.setLabels(new ArrayList<>());
+        metaData.getLabels().add("label-" + generateString(300));
+        metaData.setProperties(new HashMap<>());
+        metaData.getProperties().put("key-" + generateString(300), "value-" + generateString(2000));
+        dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+
+        dto = storage().getArtifactMetaData(dto.getGlobalId());
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(GROUP_ID, dto.getGroupId());
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals(512, dto.getName().length());
+        Assertions.assertEquals(1024, dto.getDescription().length());
+        Assertions.assertTrue(dto.getDescription().endsWith("..."));
+        Assertions.assertNotNull(dto.getLabels());
+        Assertions.assertNotNull(dto.getProperties());
+        Assertions.assertEquals(1, dto.getLabels().size());
+        Assertions.assertEquals(1, dto.getProperties().size());
     }
 
     @Test
@@ -1174,6 +1198,15 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactVersionState();
         tenantCtx.tenantId(tenantId2);
         this.testUpdateArtifactVersionState();
+    }
+
+    private static String generateString(int size) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            builder.append("a");
+        }
+        Assertions.assertEquals(size, builder.toString().length());
+        return builder.toString();
     }
 
 }

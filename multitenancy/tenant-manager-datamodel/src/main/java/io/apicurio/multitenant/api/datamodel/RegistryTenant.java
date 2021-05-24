@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Root Type for Tenant
  * <p>
  * Models a single tenant.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -30,7 +30,7 @@ public class RegistryTenant {
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     * 
+     *
      */
     @JsonProperty("tenantId")
     @JsonPropertyDescription("Unique identifier of a tenant within a registry deployment")
@@ -38,7 +38,7 @@ public class RegistryTenant {
     /**
      * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
-     * 
+     *
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("createdOn")
@@ -47,22 +47,22 @@ public class RegistryTenant {
     /**
      * User that created the tenant
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     @JsonPropertyDescription("User that created the tenant")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     @JsonPropertyDescription("")
     private Object organizationId;
     /**
      * The list of resources that this tenant has available
-     * 
+     *
      */
     @JsonProperty("resources")
     @JsonPropertyDescription("The list of resources that this tenant has available")
@@ -71,7 +71,7 @@ public class RegistryTenant {
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public String getTenantId() {
@@ -81,7 +81,7 @@ public class RegistryTenant {
     /**
      * Unique identifier of a tenant within a registry deployment
      * (Required)
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public void setTenantId(String tenantId) {
@@ -91,7 +91,7 @@ public class RegistryTenant {
     /**
      * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public Date getCreatedOn() {
@@ -101,7 +101,7 @@ public class RegistryTenant {
     /**
      * Date when the tenant was created. ISO 8601 UTC timestamp.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(Date createdOn) {
@@ -111,7 +111,7 @@ public class RegistryTenant {
     /**
      * User that created the tenant
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -121,7 +121,7 @@ public class RegistryTenant {
     /**
      * User that created the tenant
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public void setCreatedBy(String createdBy) {
@@ -129,9 +129,9 @@ public class RegistryTenant {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     public Object getOrganizationId() {
@@ -139,9 +139,9 @@ public class RegistryTenant {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     public void setOrganizationId(Object organizationId) {
@@ -150,7 +150,7 @@ public class RegistryTenant {
 
     /**
      * The list of resources that this tenant has available
-     * 
+     *
      */
     @JsonProperty("resources")
     public List<TenantResource> getResources() {
@@ -159,7 +159,7 @@ public class RegistryTenant {
 
     /**
      * The list of resources that this tenant has available
-     * 
+     *
      */
     @JsonProperty("resources")
     public void setResources(List<TenantResource> resources) {

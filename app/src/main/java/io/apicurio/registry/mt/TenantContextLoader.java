@@ -18,16 +18,20 @@ package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
+import java.util.Optional;
 
 /**
  * Component responsible for creating instances of {@link RegistryTenantContext} so they can be set with {@link TenantContext}
@@ -56,6 +60,15 @@ public class TenantContextLoader {
     @Inject
     TenantLimitsConfigurationService limitsConfigurationService;
 
+    @Inject
+    Instance<JsonWebToken> jsonWebToken;
+
+    @ConfigProperty(name = "registry.organization-id.claim-name")
+    String organizationIdClaimName;
+
+    @ConfigProperty(name = "registry.auth.enabled")
+    boolean authEnabled;
+
     public void onStart(@Observes StartupEvent ev) {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
@@ -65,8 +78,8 @@ public class TenantContextLoader {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
-            logger.debug("Loading context for tenant {}", tenantId);
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
+            checkTenantAuthorization(tenantMetadata);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
             return new RegistryTenantContext(tenantId, limitsConfiguration);
         });
@@ -80,4 +93,24 @@ public class TenantContextLoader {
         return defaultTenantContext;
     }
 
+    private void checkTenantAuthorization(final RegistryTenant tenant) {
+        if (authEnabled) {
+            if (!isTokenResolvable()) {
+                throw new TenantNotAuthorizedException("JWT not found");
+            }
+            final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
+
+            if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+                throw new TenantNotAuthorizedException("Tenant not authorized");
+            }
+        }
+    }
+
+    private boolean isTokenResolvable() {
+        return jsonWebToken.isResolvable() && jsonWebToken.get().getRawToken() != null;
+    }
+
+    private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
+        return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
 }

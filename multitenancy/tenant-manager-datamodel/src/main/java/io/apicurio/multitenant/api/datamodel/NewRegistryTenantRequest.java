@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Root Type for NewTenant
  * <p>
  * The information required when creating a new tenant.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -25,7 +25,7 @@ public class NewRegistryTenantRequest {
 
     /**
      * Unique identifier of a tenant within a registry deployment
-     * 
+     *
      */
     @JsonProperty("tenantId")
     @JsonPropertyDescription("Unique identifier of a tenant within a registry deployment")
@@ -33,14 +33,14 @@ public class NewRegistryTenantRequest {
     /**
      * ID of the organization the tenant belongs to
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     @JsonPropertyDescription("ID of the organization the tenant belongs to")
     private String organizationId;
     /**
      * The list of resources that this tenant will have at max. available
-     * 
+     *
      */
     @JsonProperty("resources")
     @JsonPropertyDescription("The list of resources that this tenant will have at max. available")
@@ -48,7 +48,7 @@ public class NewRegistryTenantRequest {
 
     /**
      * Unique identifier of a tenant within a registry deployment
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public String getTenantId() {
@@ -57,7 +57,7 @@ public class NewRegistryTenantRequest {
 
     /**
      * Unique identifier of a tenant within a registry deployment
-     * 
+     *
      */
     @JsonProperty("tenantId")
     public void setTenantId(String tenantId) {
@@ -67,7 +67,7 @@ public class NewRegistryTenantRequest {
     /**
      * ID of the organization the tenant belongs to
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     public String getOrganizationId() {
@@ -77,7 +77,7 @@ public class NewRegistryTenantRequest {
     /**
      * ID of the organization the tenant belongs to
      * (Required)
-     * 
+     *
      */
     @JsonProperty("organizationId")
     public void setOrganizationId(String organizationId) {
@@ -86,7 +86,7 @@ public class NewRegistryTenantRequest {
 
     /**
      * The list of resources that this tenant will have at max. available
-     * 
+     *
      */
     @JsonProperty("resources")
     public List<TenantResource> getResources() {
@@ -95,7 +95,7 @@ public class NewRegistryTenantRequest {
 
     /**
      * The list of resources that this tenant will have at max. available
-     * 
+     *
      */
     @JsonProperty("resources")
     public void setResources(List<TenantResource> resources) {

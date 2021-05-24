@@ -21,7 +21,7 @@ import io.apicurio.registry.types.RegistryException;
 /**
  * @author Carles Arnal
  */
-class TenantNotAuthorizedException extends RegistryException {
+public class TenantNotAuthorizedException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 

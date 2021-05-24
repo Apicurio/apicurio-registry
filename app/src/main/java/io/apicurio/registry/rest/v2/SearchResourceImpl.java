@@ -126,12 +126,10 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> {
-                filters.add(new SearchFilter(SearchFilterType.labels, label));
-            });
+            labels.forEach(label -> filters.add(new SearchFilter(SearchFilterType.labels, label)));
         }
         if (properties != null && !properties.isEmpty()) {
-            // TODO implement filtering by properties!
+            properties.forEach(label -> filters.add(new SearchFilter(SearchFilterType.properties, label)));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);

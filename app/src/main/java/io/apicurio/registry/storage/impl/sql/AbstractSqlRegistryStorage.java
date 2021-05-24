@@ -1016,7 +1016,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                                 + "v.groupId LIKE ? OR "
                                 + "a.artifactId LIKE ? OR "
                                 + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)"
+                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId) OR "
+                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)"
                                 + ")");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getValue() + "%");
@@ -1032,6 +1033,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         binders.add((query, idx) -> {
                           //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                            query.bind(idx, filter.getValue().toLowerCase());
+                        });
+                        binders.add((query, idx) -> {
+                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                             query.bind(idx, filter.getValue().toLowerCase());
                         });
                         break;
@@ -1070,8 +1075,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case properties:
-                        // TODO implement filtering by properties!
-                        throw new RuntimeException("Searching over properties is not yet implemented.");
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)");
+                        binders.add((query, idx) -> {
+                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
+                            query.bind(idx, filter.getValue().toLowerCase());
+                        });
+                        break;
                     default :
                         break;
                 }
@@ -2153,6 +2162,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle(handle -> {
                 String sql = sqlStatements.exportContent();
                 Stream<ContentEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
                         .setFetchSize(50)
                         .map(ContentEntityMapper.instance)
                         .stream();

@@ -1,11 +1,11 @@
-name: Nightly Builds # nightly job to run against Quarkus master so the issues are detected early.
+name: Bi-Weekly Quarkus Build # Bi-weekly job to run against Quarkus latest release so the issues are detected early.
 on: 
   schedule:
-    - cron: '0 0 * * *'  # every day at midnight
+    - cron: '0 0 * * MON,THU'  # At 00:00 on Monday and Thursday
 
 jobs:
-  nightly-builds:
-    name: Nightly Builds
+  build:
+    name: Build Project
     runs-on: ubuntu-18.04    
     if: github.repository_owner == 'Apicurio' && github.ref == 'refs/heads/master' 
     steps:
@@ -15,33 +15,33 @@ jobs:
           with:
             version: '11'
             architecture: x64
-        
-        - name: Build Quarkus
-          run: git clone https://github.com/quarkusio/quarkus.git && cd quarkus && mvn -B clean install -DskipTests -DskipITs            
+
+        - name: Fetch Quarkus Latest Release version
+          run: echo "QUARKUS_LATEST_RELEASE=$(curl https://api.github.com/repos/quarkusio/quarkus/releases/latest | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
         
         - name: Checkout Code
           uses: actions/checkout@v2
             
         - name: Build Registry
-          run: make SKIP_TESTS=false BUILD_FLAGS='-Dquarkus.version=999-SNAPSHOT' build-all
+          run: make SKIP_TESTS=false BUILD_FLAGS='-Dquarkus.version=${QUARKUS_LATEST_RELEASE}' build-all
 
         - name: Set test profile to all
           run: echo "test_profile=all" >> $GITHUB_ENV
 
         - name: Build integration-tests-common
-          run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common -Dquarkus.version=999-SNAPSHOT
+          run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common -Dquarkus.version=${QUARKUS_LATEST_RELEASE}
 
         - name: Run Integration Tests - sql
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
+          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=${QUARKUS_LATEST_RELEASE}
 
         - name: Run Integration Tests - kafkasql
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
+          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=${QUARKUS_LATEST_RELEASE}
 
         - name: Run Integration Tests - multitenancy
-          run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -Dquarkus.version=999-SNAPSHOT 
+          run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -Dquarkus.version=${QUARKUS_LATEST_RELEASE} 
 
         - name: Run Legacy Tests - sql
-          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=999-SNAPSHOT
+          run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -Dquarkus.version=${QUARKUS_LATEST_RELEASE}
 
         - name: Collect logs
           if: failure()

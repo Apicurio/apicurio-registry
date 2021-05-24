@@ -21,6 +21,10 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.quarkus.security.identity.SecurityIdentity;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import io.apicurio.registry.rest.Headers;
 import io.quarkus.runtime.StartupEvent;
@@ -50,6 +54,15 @@ public class TenantIdResolver {
     @Inject
     TenantContextLoader contextLoader;
 
+    @Inject
+    TenantMetadataService tenantMetadataService;
+
+    @Inject
+    SecurityIdentity securityIdentity;
+
+    @ConfigProperty(name = "registry.organization-id.claim-name")
+    String organizationIdClaimName;
+
     void init(@Observes StartupEvent ev) {
         if (mtProperties.isMultitenancyEnabled()) {
             log.info("Registry running with multitenancy enabled");
@@ -63,8 +76,6 @@ public class TenantIdResolver {
 
     public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
 
-        //TODO Check if the user belongs to the org that's being accessed.
-
         if (mtProperties.isMultitenancyEnabled()) {
             log.trace("Resolving tenantId for request {}", uri);
 
@@ -74,6 +85,7 @@ public class TenantIdResolver {
                 // 1 is t
                 // 2 is the tenantId
                 String tenantId = tokens[TENANT_ID_POSITION];
+                checkTenantAuthorization(tenantId);
                 RegistryTenantContext context = contextLoader.loadContext(tenantId);
                 tenantContext.setContext(context);
                 if (afterSuccessfullUrlResolution != null) {
@@ -99,4 +111,16 @@ public class TenantIdResolver {
         return (multitenancyBasePath + tenantId).length();
     }
 
+    private void checkTenantAuthorization(String tenantId) {
+        final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
+        final String accessedOrganizationId = securityIdentity.getAttribute(organizationIdClaimName);
+
+        if (!tenantCanAccessOrganization(tenant, accessedOrganizationId)) {
+            throw new TenantNotAuthorizedException(String.format("Tenant %s not authorized to access organization %s", tenantId, accessedOrganizationId));
+        }
+    }
+
+    private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
+        return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
 }

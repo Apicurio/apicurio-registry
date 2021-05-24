@@ -24,7 +24,6 @@ import io.apicurio.registry.rest.client.exception.ExceptionMapper;
 import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.Error;
-import org.apache.http.HttpStatus;
 import org.keycloak.authorization.client.util.HttpResponseException;
 
 import java.io.InputStream;
@@ -40,16 +39,18 @@ public class ErrorHandler {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static final Logger logger = Logger.getLogger(ErrorHandler.class.getName());
+    public static final int UNAUTHORIZED_CODE = 401;
+    public static final int FORBIDDEN_CODE = 403;
 
     public static RestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
-            if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+            if (statusCode == UNAUTHORIZED_CODE) {
                 //authorization error
                 Error error = new Error();
                 error.setErrorCode(statusCode);
                 throw new NotAuthorizedException(error);
             } else {
-                if (statusCode == HttpStatus.SC_FORBIDDEN) {
+                if (statusCode == FORBIDDEN_CODE) {
                     //forbidden error
                     Error error = new Error();
                     error.setErrorCode(statusCode);
@@ -89,7 +90,7 @@ public class ErrorHandler {
             error.setErrorCode(hre.getStatusCode());
             error.setMessage(hre.getMessage());
             error.setDetail(hre.getReasonPhrase());
-            if (hre.getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
+            if (hre.getStatusCode() == UNAUTHORIZED_CODE) {
                 return new NotAuthorizedException(error);
             } else {
                 return new RestClientException(error);

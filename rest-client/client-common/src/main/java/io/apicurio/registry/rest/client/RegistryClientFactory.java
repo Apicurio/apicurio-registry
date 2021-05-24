@@ -31,6 +31,10 @@ public class RegistryClientFactory {
 
     private static final RestClientServiceLoader serviceLoader = new RestClientServiceLoader();
 
+    public static RegistryClient create(RegistryHttpClient registryHttpClient) {
+        return new RegistryClientImpl(registryHttpClient);
+    }
+
     public static RegistryClient create(String basePath) {
         return create(basePath, Collections.emptyMap(), null);
     }

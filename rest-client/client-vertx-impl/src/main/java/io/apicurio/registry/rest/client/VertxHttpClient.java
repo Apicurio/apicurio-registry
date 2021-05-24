@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.response.ResponseHandler;
+import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -45,7 +46,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class VertxHttpClient implements RegistryHttpClient {
@@ -53,16 +53,18 @@ public class VertxHttpClient implements RegistryHttpClient {
     private final WebClient webClient;
     private final Auth auth;
     private final String basePath;
-    private final Vertx vertx;
 
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
 
     public VertxHttpClient(String basePath, Map<String, Object> options, Auth auth) {
+        this(Vertx.currentContext() != null ? Vertx.currentContext().owner() : Vertx.vertx(), basePath, options, auth);
+    }
+
+    public VertxHttpClient(Vertx vertx, String basePath, Map<String, Object> options, Auth auth) {
         if (!basePath.endsWith("/")) {
             basePath += "/";
         }
-        this.vertx = Vertx.currentContext() != null ? Vertx.currentContext().owner() : Vertx.vertx();
         this.webClient = WebClient.create(vertx);
         this.auth = auth;
         this.basePath = basePath;
@@ -124,9 +126,9 @@ public class VertxHttpClient implements RegistryHttpClient {
                     throw new IllegalStateException("Operation not allowed");
             }
 
-            return resultHolder.get();
+            return ConcurrentUtil.result(resultHolder);
 
-        } catch (URISyntaxException | HttpResponseException | InterruptedException | ExecutionException e) {
+        } catch (URISyntaxException | HttpResponseException e) {
             if (e.getCause() != null && e.getCause() instanceof RestClientException) {
                 throw (RestClientException) e.getCause();
             } else {

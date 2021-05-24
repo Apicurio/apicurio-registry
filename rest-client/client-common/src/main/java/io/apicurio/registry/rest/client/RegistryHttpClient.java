@@ -20,11 +20,25 @@ import io.apicurio.registry.rest.client.request.Request;
 
 import java.util.Map;
 
+/**
+ * Common interface for registry http client implementations
+ */
 public interface RegistryHttpClient {
 
+    /**
+     * @param request The request to be executed
+     * @param <T> The type of the param to be returned
+     * @return The response from the client
+     */
     <T> T sendRequest(Request<T> request);
 
+    /**
+     * @param headers the request headers to be used in the next request
+     */
     void setNextRequestHeaders(Map<String, String> headers);
 
+    /**
+     * @return The current map with the request headers
+     */
     Map<String, String> getHeaders();
 }

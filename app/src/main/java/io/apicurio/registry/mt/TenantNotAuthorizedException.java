@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.tests.multitenancy;
 
-import io.apicurio.tests.common.ApicurioRegistryBaseIT;
-import io.apicurio.tests.common.Constants;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package io.apicurio.registry.mt;
 
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
-@Tag(Constants.MULTITENANCY)
-public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
+public class TenantNotAuthorizedException extends RegistryException {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenantAuthIT.class);
+    private static final long serialVersionUID = 1L;
 
-    @Test
-    @Disabled
-    public void testSecuredMultitenantRegistry() throws Exception {
-
+    public TenantNotAuthorizedException(String message) {
+        super(message);
     }
 }

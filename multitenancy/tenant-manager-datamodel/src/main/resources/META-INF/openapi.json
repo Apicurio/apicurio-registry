@@ -237,9 +237,7 @@
                 "required": [
                     "tenantId",
                     "createdOn",
-                    "createdBy",
-                    "authServerUrl",
-                    "authClientId"
+                    "createdBy"
                 ],
                 "type": "object",
                 "properties": {
@@ -258,14 +256,6 @@
                     },
                     "organizationId": {
                         "description": ""
-                    },
-                    "authServerUrl": {
-                        "description": "Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry",
-                        "type": "string"
-                    },
-                    "authClientId": {
-                        "description": "ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant",
-                        "type": "string"
                     }
                 },
                 "example": {

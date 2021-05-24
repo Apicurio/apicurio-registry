@@ -18,6 +18,7 @@ package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
@@ -55,7 +56,7 @@ public class TenantContextLoader {
     TenantLimitsConfigurationService limitsConfigurationService;
 
     @Inject
-    JsonWebToken jsonWebToken;
+    Instance<JsonWebToken> jsonWebToken;
 
     @ConfigProperty(name = "registry.organization-id.claim-name")
     String organizationIdClaimName;
@@ -95,11 +96,13 @@ public class TenantContextLoader {
     }
 
     private void checkTenantAuthorization(String tenantId) {
-        final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
-        final Optional<Object> accessedOrganizationId = jsonWebToken.claim(organizationIdClaimName);
+        if (jsonWebToken.isResolvable()) {
+            final RegistryTenant tenant = tenantMetadataService.getTenant(tenantId);
+            final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
-        if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
-            throw new TenantNotAuthorizedException(String.format("Tenant %s not authorized to access organization %s", tenantId, accessedOrganizationId));
+            if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+                throw new TenantNotAuthorizedException(String.format("Tenant %s not authorized to access organization %s", tenantId, accessedOrganizationId));
+            }
         }
     }
 

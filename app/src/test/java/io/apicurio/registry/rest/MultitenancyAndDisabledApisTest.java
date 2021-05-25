@@ -21,11 +21,15 @@ import static org.hamcrest.CoreMatchers.anything;
 
 import java.util.UUID;
 
+import javax.inject.Inject;
+
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
@@ -36,9 +40,17 @@ import io.quarkus.test.junit.TestProfile;
 @TestProfile(MultipleRequestFiltersTestProfile.class)
 public class MultitenancyAndDisabledApisTest extends AbstractResourceTestBase {
 
+    @Inject
+    MockTenantMetadataService tenantMetadataService;
+
     @Test
     public void testRestApi() throws Exception {
         DisableApisFlagsTest.doTestDisabledApis();
+
+        var tenant1 = new RegistryTenant();
+        tenant1.setTenantId("abc");
+        tenant1.setOrganizationId("aaa");
+        tenantMetadataService.createTenant(tenant1);
 
         //this should return http 404, it's disabled
         given()

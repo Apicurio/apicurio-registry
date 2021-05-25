@@ -20,8 +20,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
-import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -39,7 +39,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public SearchedArtifactDto map(ResultSet rs) throws SQLException {

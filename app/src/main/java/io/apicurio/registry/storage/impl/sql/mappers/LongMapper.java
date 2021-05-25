@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import io.apicurio.registry.storage.impl.sql.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -35,7 +35,7 @@ public class LongMapper implements RowMapper<Long> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public Long map(ResultSet rs) throws SQLException {

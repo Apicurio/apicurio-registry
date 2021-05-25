@@ -14,13 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum SqlParamType {
+public interface MappedQuery<R> {
 
-    STRING, INTEGER, LONG, DATE, BYTES, ENUM
+    public R one();
+
+    public R first();
+
+    public Optional<R> findOne();
+
+    public Optional<R> findFirst();
+
+    public List<R> list();
+
+    public Stream<R> stream();
 
 }

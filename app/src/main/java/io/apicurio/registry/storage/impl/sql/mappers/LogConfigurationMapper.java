@@ -20,7 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
-import io.apicurio.registry.storage.impl.sql.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.LogLevel;
 
 /**

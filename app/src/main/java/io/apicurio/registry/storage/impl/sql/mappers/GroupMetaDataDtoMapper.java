@@ -20,8 +20,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.sql.RowMapper;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -38,7 +38,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public GroupMetaDataDto map(ResultSet rs) throws SQLException {

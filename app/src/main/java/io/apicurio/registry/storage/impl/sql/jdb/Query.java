@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface ResultIterable<T> {
+public interface Query extends Sql<Query> {
+
+    public Query setFetchSize(int size);
+
+    public <T> MappedQuery<T> map(RowMapper<T> mapper);
+
+    public <T> MappedQuery<T> mapTo(Class<T> someClass);
 
 }

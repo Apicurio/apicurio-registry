@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import io.apicurio.registry.storage.impl.sql.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 
 /**
@@ -36,7 +36,7 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public ContentEntity map(ResultSet rs) throws SQLException {

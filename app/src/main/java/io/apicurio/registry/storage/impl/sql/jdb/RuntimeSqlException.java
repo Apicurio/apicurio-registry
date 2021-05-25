@@ -14,26 +14,31 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
-import java.util.Date;
+import java.sql.SQLException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface Sql<Q> {
+public class RuntimeSqlException extends RuntimeException {
 
-    public Q bind(int position, String value);
+    private static final long serialVersionUID = 2262442842283175353L;
 
-    public Q bind(int position, Long value);
+    public RuntimeSqlException() {
+        super();
+    }
 
-    public Q bind(int position, Integer value);
+    public RuntimeSqlException(String message) {
+        super(message);
+    }
 
-    public Q bind(int position, Enum<?> value);
+    public RuntimeSqlException(String message, SQLException cause) {
+        super(message, cause);
+    }
 
-    public Q bind(int position, Date value);
-
-    public Q bind(int position, byte[] value);
-
+    public RuntimeSqlException(SQLException cause) {
+        super(cause);
+    }
 
 }

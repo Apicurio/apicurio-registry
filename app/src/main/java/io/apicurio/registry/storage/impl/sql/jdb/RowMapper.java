@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface Update extends Sql<Update> {
+public interface RowMapper<T> {
 
-    public int execute();
-
-    public void executeNoUpdate();
+    public T map(ResultSet rs) throws SQLException;
 
 }

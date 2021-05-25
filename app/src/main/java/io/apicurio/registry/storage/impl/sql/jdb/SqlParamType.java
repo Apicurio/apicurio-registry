@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface RowMapper<T> {
+public enum SqlParamType {
 
-    public T map(ResultSet rs) throws SQLException;
+    STRING, INTEGER, LONG, DATE, BYTES, ENUM
 
 }

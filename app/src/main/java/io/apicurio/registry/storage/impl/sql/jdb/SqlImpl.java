@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -43,7 +43,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, java.lang.String)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, java.lang.String)
      */
     @Override
     public Q bind(int position, String value) {
@@ -52,7 +52,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, java.lang.Long)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, java.lang.Long)
      */
     @Override
     public Q bind(int position, Long value) {
@@ -61,7 +61,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, java.lang.Integer)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, java.lang.Integer)
      */
     @Override
     public Q bind(int position, Integer value) {
@@ -70,7 +70,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, java.lang.Enum)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, java.lang.Enum)
      */
     @Override
     public Q bind(int position, Enum<?> value) {
@@ -79,7 +79,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, java.util.Date)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, java.util.Date)
      */
     @Override
     public Q bind(int position, Date value) {
@@ -88,7 +88,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Sql#bind(int, byte[])
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, byte[])
      */
     @Override
     public Q bind(int position, byte[] value) {

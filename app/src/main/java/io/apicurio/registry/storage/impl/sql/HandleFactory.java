@@ -24,6 +24,9 @@ import javax.inject.Inject;
 
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.jdb.HandleCallback;
+import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
 import io.apicurio.registry.types.RegistryException;
 
 /**

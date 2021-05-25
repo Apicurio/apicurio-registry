@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,7 +35,7 @@ public class UpdateImpl extends SqlImpl<Update> implements Update {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Update#execute()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Update#execute()
      */
     @Override
     public int execute() {
@@ -48,7 +48,7 @@ public class UpdateImpl extends SqlImpl<Update> implements Update {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Update#executeNoUpdate()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Update#executeNoUpdate()
      */
     @Override
     public void executeNoUpdate() {

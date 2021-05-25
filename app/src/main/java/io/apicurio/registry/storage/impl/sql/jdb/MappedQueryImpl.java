@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.io.Closeable;
 import java.sql.PreparedStatement;
@@ -51,7 +51,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#one()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#one()
      */
     @Override
     public T one() {
@@ -74,7 +74,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#first()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#first()
      */
     @Override
     public T first() {
@@ -94,7 +94,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#findOne()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#findOne()
      */
     @Override
     public Optional<T> findOne() {
@@ -117,7 +117,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#findFirst()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#findFirst()
      */
     @Override
     public Optional<T> findFirst() {
@@ -137,7 +137,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#list()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#list()
      */
     @Override
     public List<T> list() {
@@ -156,7 +156,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.MappedQuery#stream()
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#stream()
      */
     @Override
     public Stream<T> stream() {

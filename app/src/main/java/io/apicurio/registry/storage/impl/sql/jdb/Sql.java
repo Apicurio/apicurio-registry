@@ -14,17 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
+
+import java.util.Date;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface Query extends Sql<Query> {
+public interface Sql<Q> {
 
-    public Query setFetchSize(int size);
+    public Q bind(int position, String value);
 
-    public <T> MappedQuery<T> map(RowMapper<T> mapper);
+    public Q bind(int position, Long value);
 
-    public <T> MappedQuery<T> mapTo(Class<T> someClass);
+    public Q bind(int position, Integer value);
+
+    public Q bind(int position, Enum<?> value);
+
+    public Q bind(int position, Date value);
+
+    public Q bind(int position, byte[] value);
+
 
 }

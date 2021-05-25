@@ -14,31 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
-
-import java.sql.SQLException;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RuntimeSqlException extends RuntimeException {
+@FunctionalInterface
+public interface HandleCallback<T, X extends Exception> {
 
-    private static final long serialVersionUID = 2262442842283175353L;
-
-    public RuntimeSqlException() {
-        super();
-    }
-
-    public RuntimeSqlException(String message) {
-        super(message);
-    }
-
-    public RuntimeSqlException(String message, SQLException cause) {
-        super(message, cause);
-    }
-
-    public RuntimeSqlException(SQLException cause) {
-        super(cause);
-    }
+    /**
+     * Will be invoked with an open Handle. The handle may be closed when this callback returns.
+     *
+     * @param handle Handle to be used only within scope of this callback
+     * @return The return value of the callback
+     * @throws X optional exception thrown by the callback
+     */
+    T withHandle(Handle handle) throws X;
 
 }

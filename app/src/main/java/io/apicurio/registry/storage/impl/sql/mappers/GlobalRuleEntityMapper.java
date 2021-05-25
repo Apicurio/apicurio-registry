@@ -19,7 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import io.apicurio.registry.storage.impl.sql.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 
@@ -37,7 +37,7 @@ public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.RowMapper#map(java.sql.ResultSet)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
     public GlobalRuleEntity map(ResultSet rs) throws SQLException {

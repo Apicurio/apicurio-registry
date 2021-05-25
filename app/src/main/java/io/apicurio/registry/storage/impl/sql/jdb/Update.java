@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@FunctionalInterface
-public interface HandleCallback<T, X extends Exception> {
+public interface Update extends Sql<Update> {
 
-    /**
-     * Will be invoked with an open Handle. The handle may be closed when this callback returns.
-     *
-     * @param handle Handle to be used only within scope of this callback
-     * @return The return value of the callback
-     * @throws X optional exception thrown by the callback
-     */
-    T withHandle(Handle handle) throws X;
+    public int execute();
+
+    public void executeNoUpdate();
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,7 +41,7 @@ public class QueryImpl extends SqlImpl<Query> implements Query {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Query#setFetchSize(int)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Query#setFetchSize(int)
      */
     @Override
     public Query setFetchSize(int size) {
@@ -50,7 +50,7 @@ public class QueryImpl extends SqlImpl<Query> implements Query {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Query#map(io.apicurio.registry.storage.impl.sql.RowMapper)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Query#map(io.apicurio.registry.storage.impl.sql.jdb.RowMapper)
      */
     @Override
     public <T> MappedQuery<T> map(RowMapper<T> mapper) {
@@ -67,7 +67,7 @@ public class QueryImpl extends SqlImpl<Query> implements Query {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Query#mapTo(java.lang.Class)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Query#mapTo(java.lang.Class)
      */
     @Override
     public <T> MappedQuery<T> mapTo(Class<T> someClass) {

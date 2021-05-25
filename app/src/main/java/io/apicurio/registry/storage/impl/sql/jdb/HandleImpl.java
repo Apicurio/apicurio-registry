@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -48,7 +48,7 @@ public class HandleImpl implements Handle {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Handle#createQuery(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Handle#createQuery(java.lang.String)
      */
     @Override
     public Query createQuery(String sql) {
@@ -57,7 +57,7 @@ public class HandleImpl implements Handle {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.Handle#createUpdate(java.lang.String)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.Handle#createUpdate(java.lang.String)
      */
     @Override
     public Update createUpdate(String sql) {

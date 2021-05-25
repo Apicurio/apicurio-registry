@@ -35,8 +35,10 @@ public class ImportLifecycleBean {
 
     void onStart(@Observes StartupEvent ev) {
         if (registryImportUrlProp.isPresent()) {
+            log.info("Import URL exists.");
             final URL registryImportUrl = registryImportUrlProp.get();
             try (final InputStream registryImportZip = new BufferedInputStream(registryImportUrl.openStream())) {
+                log.info("Importing {} on startup.", registryImportUrl);
                 final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
                 final EntityReader reader = new EntityReader(zip);
                 try (EntityInputStream stream = new EntityInputStream() {

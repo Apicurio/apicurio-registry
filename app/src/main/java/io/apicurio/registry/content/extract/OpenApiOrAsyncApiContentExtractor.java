@@ -38,7 +38,7 @@ public class OpenApiOrAsyncApiContentExtractor implements ContentExtractor {
     @Inject
     Logger log;
 
-    private OpenApiOrAsyncApiContentExtractor() {
+    OpenApiOrAsyncApiContentExtractor() {
     }
 
     @Override

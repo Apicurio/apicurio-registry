@@ -39,7 +39,7 @@ public class JsonContentExtractor implements ContentExtractor {
 
     private ObjectMapper mapper = new ObjectMapper();
 
-    private JsonContentExtractor() {
+    JsonContentExtractor() {
     }
 
     @Override

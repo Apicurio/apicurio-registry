@@ -19,18 +19,16 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class ContentMapper implements RowMapper<ContentHandle> {
-    
+
     public static final ContentMapper instance = new ContentMapper();
-    
+
     /**
      * Constructor.
      */
@@ -38,10 +36,10 @@ public class ContentMapper implements RowMapper<ContentHandle> {
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
-    public ContentHandle map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public ContentHandle map(ResultSet rs) throws SQLException {
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
         return content;

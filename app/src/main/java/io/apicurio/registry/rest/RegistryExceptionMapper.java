@@ -18,6 +18,7 @@ package io.apicurio.registry.rest;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
@@ -41,14 +42,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.LivenessUtil;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.mt.TenantNotFoundException;
+import io.apicurio.registry.mt.limits.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
@@ -81,14 +82,16 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
-
     private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
 
     private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
     @Inject
+    Logger log;
+
+    @Inject
     ResponseErrorLivenessCheck liveness;
+
     @Inject
     LivenessUtil livenessUtil;
 
@@ -118,6 +121,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(LimitExceededException.class, HTTP_CONFLICT);
+        map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

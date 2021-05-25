@@ -157,9 +157,19 @@ public interface SqlStatements {
     public String selectAllArtifactVersions();
 
     /**
+     * A statement used to count the total # of artifacts.
+     */
+    public String selectAllArtifactCount();
+
+    /**
      * A statement used to count the total # of versions for an artifact.
      */
     public String selectAllArtifactVersionsCount();
+
+    /**
+     * A statement used to count the total # of versions for all artifact.
+     */
+    public String selectTotalArtifactVersionsCount();
 
     /**
      * A statement used to select artifact version metadata by artifactId and version.
@@ -431,6 +441,8 @@ public interface SqlStatements {
     public String importArtifactVersion();
 
     public String selectMaxContentId();
+
+    public String resetSequence(String sequence);
 
     public String selectMaxGlobalId();
 

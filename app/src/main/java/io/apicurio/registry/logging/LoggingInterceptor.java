@@ -16,15 +16,13 @@
 
 package io.apicurio.registry.logging;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import javax.annotation.Priority;
+import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.RegistryApplication;
 
@@ -32,10 +30,12 @@ import io.apicurio.registry.rest.RegistryApplication;
  * @author eric.wittmann@gmail.com
  */
 @Interceptor
+@Priority(Interceptor.Priority.APPLICATION)
 @Logged
 public class LoggingInterceptor {
 
-    private static final Map<Class<?>, Logger> loggers = new HashMap<>();
+    @Inject
+    LoggerProducer loggerProducer;
 
     @AroundInvoke
     public Object logMethodEntry(InvocationContext context) throws Exception {
@@ -47,7 +47,7 @@ public class LoggingInterceptor {
                 targetClass = target.getClass();
             }
 
-            logger = getLogger(targetClass);
+            logger = loggerProducer.getLogger(targetClass);
         } catch (Throwable t) {
         }
 
@@ -67,16 +67,6 @@ public class LoggingInterceptor {
         if (context != null && context.getMethod() != null && context.getMethod().getName() != null && context.getParameters() != null && logger != null) {
             logger.trace("LEAVING method [{}]", context.getMethod().getName());
         }
-    }
-
-    /**
-     * Gets a logger for the given target class.
-     * @param targetClass
-     */
-    private Logger getLogger(Class<?> targetClass) {
-        return loggers.computeIfAbsent(targetClass, k -> {
-            return LoggerFactory.getLogger(targetClass);
-        });
     }
 
 }

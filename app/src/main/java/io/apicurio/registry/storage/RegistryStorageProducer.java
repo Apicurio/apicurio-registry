@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,10 +26,8 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.events.EventSourcedRegistryStorage;
-import io.apicurio.registry.events.EventsService;
+import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
 
@@ -37,16 +36,18 @@ import io.apicurio.registry.types.Current;
  */
 @ApplicationScoped
 public class RegistryStorageProducer {
-    private static Logger log = LoggerFactory.getLogger(RegistryStorageProducer.class);
 
     @Inject
-    Instance<RegistryStorage> storages;
+    Logger log;
+
+    @Inject
+    Instance<InMemoryRegistryStorage> defaultStorage;
 
     @Inject
     Instance<RegistryStorageProvider> provider;
 
     @Inject
-    EventsService eventsService;
+    Instance<RegistryStorageDecorator> decorators;
 
     @Produces
     @ApplicationScoped
@@ -56,28 +57,33 @@ public class RegistryStorageProducer {
         RegistryStorage impl = null;
 
         if (provider.isResolvable()) {
-            impl= provider.get().storage();
+            impl = provider.get().storage();
         } else {
-            List<RegistryStorage> list = storages.stream().collect(Collectors.toList());
-            if (list.size() == 1) {
-                impl = list.get(0);
-            } else {
-                for (RegistryStorage rs : list) {
-                    if (rs instanceof InMemoryRegistryStorage == false) {
-                        impl = rs;
-                        break;
-                    }
-                }
-            }
+            impl = defaultStorage.get();
         }
 
         if (impl != null) {
             log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
-            if (eventsService.isConfigured()) {
-                return new EventSourcedRegistryStorage(impl, eventsService);
-            } else {
-                return impl;
+
+            Comparator<RegistryStorageDecorator> decoratorsComparator = Comparator.comparing(RegistryStorageDecorator::order);
+
+            List<RegistryStorageDecorator> declist = decorators.stream()
+                    .filter(RegistryStorageDecorator::isEnabled)
+                    .sorted(decoratorsComparator)
+                    .collect(Collectors.toList());
+
+            if (!declist.isEmpty()) {
+                log.debug("RegistryStorage decorators");
+                declist.forEach(d -> log.debug(d.getClass().getName()));
             }
+
+            for (int i = declist.size() - 1 ; i >= 0; i--) {
+                RegistryStorageDecorator decorator = declist.get(i);
+                decorator.setDelegate(impl);
+                impl = decorator;
+            }
+
+            return impl;
         }
 
         throw new IllegalStateException("No RegistryStorage available on the classpath!");

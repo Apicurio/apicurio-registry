@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,16 @@
 
 package io.apicurio.registry.mt;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Carles Arnal
  */
-@ApplicationScoped
-public class TenantContextProvider {
-    
-    @Inject
-    TenantContextImpl impl;
+public class TenantNotAuthorizedException extends RegistryException {
 
-    @Produces
-    @ApplicationScoped
-    @Current
-    public TenantContext tenant() {
-        return impl;
+    private static final long serialVersionUID = 1L;
+
+    public TenantNotAuthorizedException(String message) {
+        super(message);
     }
-
 }

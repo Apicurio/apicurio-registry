@@ -25,7 +25,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.RegistryExceptionMapper;
 
@@ -35,7 +34,8 @@ import io.apicurio.registry.rest.RegistryExceptionMapper;
 @ApplicationScoped
 public class LivenessUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(PersistenceExceptionLivenessInterceptor.class);
+    @Inject
+    Logger log;
 
     @Inject
     @ConfigProperty(name = "registry.liveness.errors.ignored")

@@ -48,8 +48,6 @@ import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.StatementContext;
 import org.jdbi.v3.core.statement.Update;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
@@ -99,6 +97,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -121,9 +120,11 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractSqlRegistryStorage.class);
     private static int DB_VERSION = 1;
     private static final Object dbMutex = new Object();
+
+    @Inject
+    Logger log;
 
     @Inject
     TenantContext tenantContext;
@@ -145,6 +146,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    ArtifactStateExt artifactStateEx;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;
@@ -399,7 +403,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             long globalId = dto.getGlobalId();
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
-            ArtifactStateExt.applyState(s -> {
+            artifactStateEx.applyState(s -> {
                 String sql = sqlStatements.updateArtifactVersionState();
                 int rowCount = handle.createUpdate(sql)
                         .bind(0, s.name())
@@ -427,7 +431,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             ArtifactState oldState = dto.getState();
             ArtifactState newState = state;
             if (oldState != newState) {
-                ArtifactStateExt.applyState(s -> {
+                artifactStateEx.applyState(s -> {
                     String sql = sqlStatements.updateArtifactVersionState();
                     int rowCount = handle.createUpdate(sql)
                             .bind(0, s.name())
@@ -493,8 +497,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(3, artifactId)
                 .bind(4, version)
                 .bind(5, state)
-                .bind(6, name)
-                .bind(7, description)
+                .bind(6, limitStr(name, 512))
+                .bind(7, limitStr(description, 1024, true))
                 .bind(8, createdBy)
                 .bind(9, createdOn)
                 .bind(10, labelsStr)
@@ -512,8 +516,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(6, normalizeGroupId(groupId))
                 .bind(7, artifactId)
                 .bind(8, state)
-                .bind(9, name)
-                .bind(10, description)
+                .bind(9, limitStr(name, 512))
+                .bind(10, limitStr(description, 1024, true))
                 .bind(11, createdBy)
                 .bind(12, createdOn)
                 .bind(13, labelsStr)
@@ -539,7 +543,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertLabel();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, label.toLowerCase())
+                      .bind(1, limitStr(label.toLowerCase(), 256))
                       .execute();
             });
         }
@@ -550,8 +554,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sqli = sqlStatements.insertProperty();
                 handle.createUpdate(sqli)
                       .bind(0, globalId)
-                      .bind(1, k.toLowerCase())
-                      .bind(2, v.toLowerCase())
+                      .bind(1, limitStr(k.toLowerCase(), 256))
+                      .bind(2, limitStr(v.toLowerCase(), 1024))
                       .execute();
             });
         }
@@ -567,9 +571,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         sql = sqlStatements.selectArtifactVersionMetaDataByGlobalId();
         return handle.createQuery(sql)
-            .bind(0, globalId)
-            .map(ArtifactVersionMetaDataDtoMapper.instance)
-            .one();
+                .bind(0, tenantContext.tenantId())
+                .bind(1, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance)
+                .one();
     }
 
     /**
@@ -1012,7 +1017,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                                 + "v.groupId LIKE ? OR "
                                 + "a.artifactId LIKE ? OR "
                                 + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)"
+                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId) OR "
+                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)"
                                 + ")");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getValue() + "%");
@@ -1028,6 +1034,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         binders.add((query, idx) -> {
                           //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
+                            query.bind(idx, filter.getValue().toLowerCase());
+                        });
+                        binders.add((query, idx) -> {
+                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                             query.bind(idx, filter.getValue().toLowerCase());
                         });
                         break;
@@ -1066,8 +1076,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case properties:
-                        // TODO implement filtering by properties!
-                        throw new RuntimeException("Searching over properties is not yet implemented.");
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)");
+                        binders.add((query, idx) -> {
+                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
+                            query.bind(idx, filter.getValue().toLowerCase());
+                        });
+                        break;
                     default :
                         break;
                 }
@@ -1149,6 +1163,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1185,6 +1200,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1208,6 +1224,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1501,6 +1518,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(null, "gid-" + globalId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1526,6 +1544,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new ArtifactNotFoundException(groupId, artifactId, e);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1652,6 +1671,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new VersionNotFoundException(groupId, artifactId, version);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -1684,8 +1704,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle( handle -> {
                 String sql = sqlStatements.updateArtifactVersionMetaData();
                 int rowCount = handle.createUpdate(sql)
-                        .bind(0, metaData.getName())
-                        .bind(1, metaData.getDescription())
+                        .bind(0, limitStr(metaData.getName(), 512))
+                        .bind(1, limitStr(metaData.getDescription(), 1024, true))
                         .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
                         .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
                         .bind(4, tenantContext.tenantId())
@@ -1717,7 +1737,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, label.toLowerCase())
+                              .bind(1, limitStr(label.toLowerCase(), 256))
                               .execute();
                     });
                 }
@@ -1729,8 +1749,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
                               .bind(0, globalId)
-                              .bind(1, k.toLowerCase())
-                              .bind(2, v.toLowerCase())
+                              .bind(1, limitStr(k.toLowerCase(), 256))
+                              .bind(2, limitStr(v.toLowerCase(), 1024))
                               .execute();
                     });
                 }
@@ -1946,6 +1966,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new LogConfigurationNotFoundException(logger);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -2112,6 +2133,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .one();
             });
         } catch (IllegalStateException e) {
+            log.error("Unexpected exception", e);
             throw new GroupNotFoundException(groupId);
         } catch (Exception e) {
             throw new RegistryStorageException(e);
@@ -2141,6 +2163,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             this.jdbi.withHandle(handle -> {
                 String sql = sqlStatements.exportContent();
                 Stream<ContentEntity> stream = handle.createQuery(sql)
+                        .bind(0, tenantContext().tenantId())
                         .setFetchSize(50)
                         .map(ContentEntityMapper.instance)
                         .stream();
@@ -2255,7 +2278,63 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     */
+    @Override
+    public long countArtifacts() throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            String sql = sqlStatements.selectAllArtifactCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            if (!isArtifactExists(groupId, artifactId)) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+
+            String sql = sqlStatements.selectAllArtifactVersionsCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     */
+    @Override
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return withHandle(handle -> {
+
+            String sql = sqlStatements.selectTotalArtifactVersionsCount();
+            Long count = handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+
+            return count;
+        });
+    }
+
     protected void resetGlobalId(Handle handle) {
         String sql = sqlStatements.selectMaxGlobalId();
         Optional<Long> maxGlobalId = handle.createQuery(sql)
@@ -2263,15 +2342,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxGlobalId.isPresent()) {
-            long id = maxGlobalId.get();
+            log.info("Resetting globalId sequence");
+            long id = maxGlobalId.get() + 1;
 
-            log.info("Resetting globalId sequence to {}", id);
-            while (nextGlobalId(handle) < id) {}
-            log.info("Successfully reset globalId to {}", nextGlobalId(handle));
+            sql = sqlStatements.resetSequence("globalidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset globalId to {}", id);
         }
     }
 
-    // TODO this can be improved using use ALTER SEQUENCE serial RESTART WITH 105;
     protected void resetContentId(Handle handle) {
         String sql = sqlStatements.selectMaxContentId();
         Optional<Long> maxContentId = handle.createQuery(sql)
@@ -2279,11 +2361,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .findOne();
 
         if (maxContentId.isPresent()) {
+            log.info("Resetting contentId sequence");
             long id = maxContentId.get() + 1;
 
-            log.info("Resetting contentId sequence to {}", id);
-            while (nextContentId(handle) < id) {}
-            log.info("Successfully reset contentId to {}", nextContentId(handle));
+            sql = sqlStatements.resetSequence("contentidsequence");
+
+            handle.createUpdate(sql)
+                .bind(0, id)
+                .execute();
+            log.info("Successfully reset contentId to {}", id);
         }
     }
 
@@ -2570,4 +2656,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .one();
     }
 
+    private static String limitStr(String value, int limit) {
+        return limitStr(value, limit, false);
+    }
+
+    private static String limitStr(String value, int limit, boolean withEllipsis) {
+        if (StringUtil.isEmpty(value)) {
+            return value;
+        }
+
+        if (value.length() > limit) {
+            if (withEllipsis) {
+                return value.substring(0, limit - 3).concat("...");
+            } else {
+                return value.substring(0, limit);
+            }
+        } else {
+            return value;
+        }
+    }
 }

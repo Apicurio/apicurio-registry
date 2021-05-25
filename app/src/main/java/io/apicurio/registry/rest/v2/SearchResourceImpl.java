@@ -42,8 +42,6 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
@@ -82,7 +80,9 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
-    private static final Logger log = LoggerFactory.getLogger(SearchResourceImpl.class);
+
+    @Inject
+    Logger log;
 
     @Inject
     @Current
@@ -126,12 +126,10 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> {
-                filters.add(new SearchFilter(SearchFilterType.labels, label));
-            });
+            labels.forEach(label -> filters.add(new SearchFilter(SearchFilterType.labels, label)));
         }
         if (properties != null && !properties.isEmpty()) {
-            // TODO implement filtering by properties!
+            properties.forEach(label -> filters.add(new SearchFilter(SearchFilterType.properties, label)));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);

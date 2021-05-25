@@ -7,7 +7,9 @@ git clone https://github.com/Apicurio/apicurio-registry-k8s-tests-e2e.git
 
 pushd apicurio-registry-k8s-tests-e2e
 
-./scripts/install_kind.sh
+./scripts/setup-deps.sh
+
+make pull-operator-repo
 
 if [ "$E2E_APICURIO_TESTS_PROFILE" == "clustered" ]
 then

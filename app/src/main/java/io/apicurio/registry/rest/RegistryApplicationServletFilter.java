@@ -29,9 +29,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 
@@ -50,16 +49,17 @@ import io.apicurio.registry.services.DisabledApisMatcherService;
 @ApplicationScoped
 public class RegistryApplicationServletFilter implements Filter {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     @Inject
     TenantIdResolver tenantIdResolver;
 
     @Inject
-    DisabledApisMatcherService disabledApisMatcherService;
+    TenantContext tenantContext;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    DisabledApisMatcherService disabledApisMatcherService;
 
     /**
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
@@ -72,7 +72,7 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
-
+            //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
                     (tenantId) -> {
 
@@ -81,7 +81,7 @@ public class RegistryApplicationServletFilter implements Filter {
                             actualUri = "/";
                         }
 
-                        log.debug("Rewriting request {} to {} , tenantId {}", requestURI, actualUri, tenantId);
+                        log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
 
                         rewriteContext.append(actualUri);
 
@@ -100,18 +100,20 @@ public class RegistryApplicationServletFilter implements Filter {
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 //important to return, to stop the filters chain
+                tenantContext.clearContext();
                 return;
             } else if (rewriteRequest) {
                 RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
                 dispatcher.forward(req, response);
                 //important to return, to stop the filters chain
+                log.debug("Cleaning tenant context");
+                tenantContext.clearContext();
                 return;
             }
 
         }
 
         chain.doFilter(request, response);
-
     }
 
 }

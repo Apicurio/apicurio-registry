@@ -22,15 +22,15 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.mt.MultitenancyProperties;
+import io.quarkus.runtime.StartupEvent;
 
 /**
  * @author Fabian Martinez
@@ -38,7 +38,8 @@ import io.apicurio.registry.mt.MultitenancyProperties;
 @ApplicationScoped
 public class DisabledApisMatcherService {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     private static final String UI_PATTERN = "/ui/.*";
 
@@ -51,8 +52,7 @@ public class DisabledApisMatcherService {
     @ConfigProperty(name = "registry.disable.apis")
     Optional<List<String>> disableRegexps;
 
-    @PostConstruct
-    public void init() {
+    public void init(@Observes StartupEvent ev) {
         disabledPatternsList = new ArrayList<>();
         List<String> regexps = new ArrayList<>();
         if (mtProperties.isMultitenancyEnabled()) {

@@ -17,6 +17,7 @@
 package io.apicurio.registry.types.provider;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -35,6 +36,10 @@ import io.apicurio.registry.types.ArtifactType;
 @ApplicationScoped
 @Logged
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
+
+    @Inject
+    AvroContentExtractor extractor;
+
     @Override
     public ArtifactType getArtifactType() {
         return ArtifactType.AVRO;
@@ -57,7 +62,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return AvroContentExtractor.INSTANCE;
+        return extractor;
     }
 
 }

@@ -50,9 +50,6 @@ CREATE TABLE labels (globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
 ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
 CREATE INDEX IDX_labels_1 ON labels(label);
 
-CREATE TABLE tenants (tenantId VARCHAR(128) NOT NULL, authClientId VARCHAR(255) NOT NULL, authServerUrl VARCHAR(255), createdBy VARCHAR(255), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, deploymentFlavor VARCHAR(255), organizationId VARCHAR(255) NOT NULL, status VARCHAR(255) );
-ALTER TABLE tenants ADD PRIMARY KEY (tenantId);
-
 CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);
 ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);
 

@@ -76,12 +76,12 @@ public class ArtifactMetaData {
     @JsonProperty("modifiedOn")
     private Date modifiedOn;
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
     @JsonProperty("id")
-    @JsonPropertyDescription("The ID of a single Artifact.")
+    @JsonPropertyDescription("The ID of a single artifact.")
     private String id;
     /**
      * 
@@ -135,11 +135,11 @@ public class ArtifactMetaData {
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
     private Map<String, String> properties;
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
-    @JsonPropertyDescription("An id of a single Artifact Group.")
+    @JsonPropertyDescription("An ID of a single artifact group.")
     private String groupId;
     /**
      * 
@@ -251,7 +251,7 @@ public class ArtifactMetaData {
     }
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -261,7 +261,7 @@ public class ArtifactMetaData {
     }
 
     /**
-     * The ID of a single Artifact.
+     * The ID of a single artifact.
      * (Required)
      * 
      */
@@ -397,7 +397,7 @@ public class ArtifactMetaData {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")
@@ -406,7 +406,7 @@ public class ArtifactMetaData {
     }
 
     /**
-     * An id of a single Artifact Group.
+     * An ID of a single artifact group.
      * 
      */
     @JsonProperty("groupId")

@@ -17,6 +17,7 @@
 package io.apicurio.registry.types.provider;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
@@ -35,6 +36,9 @@ import io.apicurio.registry.types.ArtifactType;
 @ApplicationScoped
 @Logged
 public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
+
+    @Inject
+    WsdlOrXsdContentExtractor extractor;
 
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getArtifactType()
@@ -73,7 +77,7 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
      */
     @Override
     protected ContentExtractor createContentExtractor() {
-        return WsdlOrXsdContentExtractor.INSTANCE;
+        return extractor;
     }
 
 }

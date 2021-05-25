@@ -18,9 +18,10 @@ package io.apicurio.registry.content.extract;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
+import org.slf4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,22 +31,24 @@ import io.apicurio.registry.content.ContentHandle;
  * Performs meta-data extraction for JSON Schema content.
  * @author Ales Justin
  */
+@ApplicationScoped
 public class JsonContentExtractor implements ContentExtractor {
-    private static final Logger log = LoggerFactory.getLogger(JsonContentExtractor.class);
 
-    public static final ContentExtractor INSTANCE = new JsonContentExtractor();
+    @Inject
+    Logger log;
 
     private ObjectMapper mapper = new ObjectMapper();
 
     private JsonContentExtractor() {
     }
 
+    @Override
     public ExtractedMetaData extract(ContentHandle content) {
         try {
             JsonNode jsonSchema = mapper.readTree(content.bytes());
             JsonNode title = jsonSchema.get("title");
             JsonNode desc = jsonSchema.get("description");
-            
+
             ExtractedMetaData metaData = null;
             if (title != null && !title.isNull()) {
                 metaData = new ExtractedMetaData();

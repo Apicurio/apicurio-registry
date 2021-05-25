@@ -57,7 +57,6 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -132,7 +131,8 @@ import io.quarkus.security.identity.SecurityIdentity;
 @SuppressWarnings("unchecked")
 public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaSqlRegistryStorage.class);
+    @Inject
+    Logger log;
 
     @Inject
     KafkaSqlConfiguration configuration;
@@ -160,6 +160,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    ArtifactStateExt artifactStateEx;
 
     private boolean bootstrapped = false;
     private boolean stopped = true;
@@ -727,7 +730,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         ArtifactVersionMetaDataDto metadata = sqlStore.getArtifactVersionMetaData(groupId, artifactId, version);
 
         ArtifactState state = metadata.getState();
-        ArtifactStateExt.validateState(states, state, groupId, artifactId, version);
+        artifactStateEx.validateState(states, state, groupId, artifactId, version);
         return handler.apply(metadata);
     }
 
@@ -798,7 +801,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     private void updateArtifactState(ArtifactState currentState, String groupId, String artifactId, String version, ArtifactState newState, EditableArtifactMetaDataDto metaData) {
-        ArtifactStateExt.applyState(
+        artifactStateEx.applyState(
             s ->  {
                 UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
                         version, ActionType.Update, newState, metaData));
@@ -973,6 +976,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         } catch (IOException e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     */
+    @Override
+    public long countArtifacts() throws RegistryStorageException {
+        return sqlStore.countArtifacts();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return sqlStore.countArtifactVersions(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     */
+    @Override
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return sqlStore.countTotalArtifactVersions();
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

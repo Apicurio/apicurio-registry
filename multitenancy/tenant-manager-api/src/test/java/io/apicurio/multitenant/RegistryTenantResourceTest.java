@@ -17,20 +17,25 @@ package io.apicurio.multitenant;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.equalTo;
 
 /**
  * @author Fabian Martinez
@@ -40,8 +45,12 @@ public class RegistryTenantResourceTest {
 
     private static final String TENANTS_PATH = "/api/v1/tenants";
 
-    @Test
-    public void testListTenants() {
+    @BeforeEach
+    public void cleanup() {
+        var client = new TenantManagerClientImpl("http://localhost:8081/");
+        List<RegistryTenant> list = client.listTenants();
+        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+
         given()
           .when().get(TENANTS_PATH)
           .then()
@@ -54,6 +63,10 @@ public class RegistryTenantResourceTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
+        TenantResource tr = new TenantResource();
+        tr.setLimit(5L);
+        tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
+        req.setResources(List.of(tr));
 
         Response res = given()
             .when()
@@ -69,6 +82,8 @@ public class RegistryTenantResourceTest {
         assertNotNull(tenant);
         assertNotNull(tenant.getTenantId());
         assertNotNull(tenant.getCreatedOn());
+        assertNotNull(tenant.getResources());
+        assertFalse(tenant.getResources().isEmpty());
 
         testGetTenant(tenant.getTenantId(), req);
 
@@ -81,12 +96,21 @@ public class RegistryTenantResourceTest {
     }
 
     private void testGetTenant(String tenantId, NewRegistryTenantRequest req) {
-        given()
+        Response res = given()
             .when().get(TENANTS_PATH + "/" + tenantId)
-            .then()
-               .statusCode(200)
-               .body("tenantId", equalTo(tenantId))
-               .body("organizationId", equalTo(req.getOrganizationId()));
+            .thenReturn();
+
+        assertEquals(200, res.statusCode());
+
+        RegistryTenant tenant = res.as(RegistryTenant.class);
+
+        assertEquals(tenantId, tenant.getTenantId());
+        assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getResources().size(), tenant.getResources().size());
+        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
+
     }
 
     public void testDelete(String tenantId) {

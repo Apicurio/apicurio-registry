@@ -16,12 +16,13 @@
 package io.apicurio.multitenant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.client.TenantManagerClient;
@@ -29,6 +30,8 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -39,9 +42,11 @@ public class TenantManagerClientTest {
 
     private TenantManagerClient client = new TenantManagerClientImpl("http://localhost:8081/");
 
-    @Test
-    public void testListTenants() {
+    @BeforeEach
+    public void cleanup() {
         List<RegistryTenant> list = client.listTenants();
+        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+        list = client.listTenants();
         assertEquals(0, list.size());
     }
 
@@ -50,12 +55,18 @@ public class TenantManagerClientTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
+        TenantResource tr = new TenantResource();
+        tr.setLimit(5L);
+        tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
+        req.setResources(List.of(tr));
 
         RegistryTenant tenant = client.createTenant(req);
 
         assertNotNull(tenant);
         assertNotNull(tenant.getTenantId());
         assertNotNull(tenant.getCreatedOn());
+        assertNotNull(tenant.getResources());
+        assertFalse(tenant.getResources().isEmpty());
 
         testGetTenant(tenant.getTenantId(), req);
 
@@ -69,8 +80,13 @@ public class TenantManagerClientTest {
 
     private void testGetTenant(String tenantId, NewRegistryTenantRequest req) {
         RegistryTenant tenant = client.getTenant(tenantId);
+
         assertEquals(tenantId, tenant.getTenantId());
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getResources().size(), tenant.getResources().size());
+        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
     }
 
     public void testDelete(String tenantId) {

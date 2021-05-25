@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.jdb;
 
-import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface IDbUpgrader {
+public interface RowMapper<T> {
 
-    /**
-     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
-     * @param dbHandle
-     */
-    public void upgrade(Handle dbHandle) throws Exception;
+    public T map(ResultSet rs) throws SQLException;
 
 }

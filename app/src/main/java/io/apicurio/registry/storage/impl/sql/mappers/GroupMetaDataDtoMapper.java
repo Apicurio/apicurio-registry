@@ -19,11 +19,9 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactType;
 
 /**
@@ -40,10 +38,10 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
-    public GroupMetaDataDto map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public GroupMetaDataDto map(ResultSet rs) throws SQLException {
         GroupMetaDataDto dto = new GroupMetaDataDto();
         dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
         dto.setDescription(rs.getString("description"));

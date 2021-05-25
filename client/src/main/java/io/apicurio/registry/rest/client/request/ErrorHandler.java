@@ -98,6 +98,7 @@ public class ErrorHandler {
         }
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
+        error.setMessage(ex.getMessage());
         return new RestClientException(error);
     }
 

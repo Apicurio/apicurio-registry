@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface IDbUpgrader {
+public class StringMapper implements RowMapper<String> {
+
+    public static final StringMapper instance = new StringMapper();
 
     /**
-     * Called by the {@link AbstractSqlRegistryStorage} class when upgrading the database.
-     * @param dbHandle
+     * Constructor.
      */
-    public void upgrade(Handle dbHandle) throws Exception;
+    private StringMapper() {
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
+     */
+    @Override
+    public String map(ResultSet rs) throws SQLException {
+        return rs.getString(1);
+    }
 
 }

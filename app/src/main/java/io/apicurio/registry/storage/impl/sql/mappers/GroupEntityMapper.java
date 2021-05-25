@@ -19,10 +19,8 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 
@@ -40,10 +38,10 @@ public class GroupEntityMapper implements RowMapper<GroupEntity> {
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
-    public GroupEntity map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public GroupEntity map(ResultSet rs) throws SQLException {
         GroupEntity entity = new GroupEntity();
         entity.groupId = SqlUtil.denormalizeGroupId(rs.getString("groupId"));
         entity.description = rs.getString("description");

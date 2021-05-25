@@ -40,29 +40,20 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
-.PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [BUILD_FLAGS]
+.PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests $(BUILD_FLAGS)
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
-.PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [BUILD_FLAGS]
+.PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql-native:
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests $(BUILD_FLAGS)
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
-.PHONY: build-tenant-manager ## Builds tenant-manager-api. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
+.PHONY: build-tenant-manager ## Builds tenant manager natively [SKIP_TESTS, BUILD_FLAGS]
 build-tenant-manager:
 	@echo "----------------------------------------------------------------------"
-	@echo "                     Building Tenant Manager                          "
+	@echo "                 Building Tenant Manager                              "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -am -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
-
-
-
-.PHONY: build-tenant-manager-native ## Builds tenant manager natively
-build-tenant-manager-native:
-	@echo "----------------------------------------------------------------------"
-	@echo "                 Building Tenant Manager Natively                     "
-	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -am -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -Pnative -Dquarkus.native.container-build=true
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 
@@ -105,7 +96,23 @@ push-sql-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG)
 
+.PHONY: build-sql-native-image ## Builds docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-sql-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Image For SQL Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker build -f $(DISTRO_DOCKER_WORKSPACE)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
 
+.PHONY: push-sql-native-image ## Pushes docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-sql-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For SQL Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG)
 
 .PHONY: build-kafkasql-image ## Builds docker image for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-kafkasql-image:
@@ -126,16 +133,33 @@ push-kafkasql-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG)
 
-
-
-.PHONY: build-tenant-manager-image ## Builds docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-tenant-manager-image:
+.PHONY: build-kafkasql-native-image ## Builds docker image for kafkasql storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-kafkasql-native-image:
 	@echo "------------------------------------------------------------------------"
-	@echo " Building Image For Tenant Manager API"
+	@echo " Building Image For Kafkasql Storage Variant (using Native Executable)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) ./multitenancy/tenant-manager-api/
+	docker build -f $(DISTRO_DOCKER_WORKSPACE)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
+
+
+.PHONY: push-kafkasql-native-image ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+push-kafkasql-native-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Pushing Image For Kafkasql Storage Variant (using Native Executable)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
+
+.PHONY: build-tenant-manager-image ## Builds native docker image for tenant manager. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+build-tenant-manager-image:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Native Image For Tenant Manager"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)-native"
+	@echo "------------------------------------------------------------------------"
+	docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) ./multitenancy/tenant-manager-api/
 
 
 .PHONY: push-tenant-manager-image ## Pushes docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -147,25 +171,11 @@ push-tenant-manager-image:
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG)
 
-
-
-.PHONY: build-tenant-manager-image-native ## Builds native docker image for tenant manager. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-tenant-manager-image-native:
-	@echo "------------------------------------------------------------------------"
-	@echo " Building Native Image For Tenant Manager"
-	@echo " Repository: $(IMAGE_REPO)"
-	@echo " Tag: $(IMAGE_TAG)-native"
-	@echo "------------------------------------------------------------------------"
-	docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG)-native ./multitenancy/tenant-manager-api/
-
-
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-image build-sql-image build-kafkasql-image build-tenant-manager-image
-
-
+build-all-images: build-mem-image build-sql-image build-kafkasql-image
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-manager-image
+push-all-images: push-mem-image push-sql-image push-kafkasql-image
 
 
 

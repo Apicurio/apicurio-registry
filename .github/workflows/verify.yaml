@@ -105,40 +105,26 @@ jobs:
 
       - name: Build Native executables
         run: |
-          make build-sql-native build-kafkasql-native build-tenant-manager-native
+          make build-sql-native build-kafkasql-native build-tenant-manager
 
       - name: Build Native Images
+        env:
+          IMAGE_REPO: quay.io
+          IMAGE_TAG: latest-snapshot
         run: |
-          make SQL_DOCKERFILE=Dockerfile.native IMAGE_TAG=latest-native DOCKER_BUILD_WORKSPACE=storage/sql build-sql-image
-          make KAFKASQL_DOCKERFILE=Dockerfile.native IMAGE_TAG=latest-native DOCKER_BUILD_WORKSPACE=storage/kafkasql build-kafkasql-image
-          make build-tenant-manager-image-native
-
-      - name: Login to DockerHub Registry
-        if: github.event_name == 'push'
-        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
-      - name: Build The Images for Docker.io
-        if: github.event_name == 'push'
-        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
-
-      - name: List All The Images
-        run: docker images
-
-      - name: Push The Images To Docker.io
-        if: github.event_name == 'push'
-        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
+          make build-sql-native-image build-kafkasql-native-image build-tenant-manager-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Build The Images for Quay.io
+      - name: Push Native Images
+        env:
+          IMAGE_REPO: quay.io
+          IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
-        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
+        run: |
+          make push-sql-native-image push-kafkasql-native-image push-tenant-manager-image
 
       - name: List All The Images
         run: docker images
-
-      - name: Push The Images To Quay.io
-        if: github.event_name == 'push'
-        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot

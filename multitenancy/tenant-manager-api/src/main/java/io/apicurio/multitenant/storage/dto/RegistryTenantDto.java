@@ -15,11 +15,19 @@
  */
 package io.apicurio.multitenant.storage.dto;
 
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
@@ -35,18 +43,17 @@ public class RegistryTenantDto {
     @Column(name = "tenantId")
     private String tenantId;
 
+    @Column(name = "createdOn")
     private Date createdOn;
+
+    @Column(name = "createdBy")
     private String createdBy;
 
     @Column(name = "organizationId")
     private String organizationId;
 
-    @Column(name = "authServerUrl")
-    private String authServerUrl;
-
-    @Column(name = "authClientId")
-    private String authClientId;
-
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<RegistryTenantResourceLimitDto> resources;
 
     public RegistryTenantDto() {
         // empty
@@ -84,20 +91,12 @@ public class RegistryTenantDto {
         this.organizationId = organizationId;
     }
 
-    public String getAuthServerUrl() {
-        return authServerUrl;
+    public List<RegistryTenantResourceLimitDto> getResources() {
+        return resources;
     }
 
-    public void setAuthServerUrl(String authServerUrl) {
-        this.authServerUrl = authServerUrl;
-    }
-
-    public String getAuthClientId() {
-        return authClientId;
-    }
-
-    public void setAuthClientId(String authClientId) {
-        this.authClientId = authClientId;
+    public void setResources(List<RegistryTenantResourceLimitDto> resources) {
+        this.resources = resources;
     }
 
     public RegistryTenant toDatamodel() {
@@ -106,8 +105,12 @@ public class RegistryTenantDto {
         t.setCreatedOn(this.createdOn);
         t.setCreatedBy(this.createdBy);
         t.setOrganizationId(this.organizationId);
-        t.setAuthClientId(this.authClientId);
-        t.setAuthServerUrl(this.authServerUrl);
+        t.setResources(
+                Optional.ofNullable(this.resources)
+                    .map(Collection::stream)
+                    .orElseGet(Stream::empty)
+                    .map(RegistryTenantResourceLimitDto::toDatamodel)
+                    .collect(Collectors.toList()));
         return t;
     }
 

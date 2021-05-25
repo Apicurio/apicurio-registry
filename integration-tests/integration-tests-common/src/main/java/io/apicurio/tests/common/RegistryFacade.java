@@ -211,7 +211,8 @@ public class RegistryFacade {
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-                    runKeycloak(appEnv);
+                    //TODO decide what to do with this and MultitenantAuthIT
+//                    runKeycloak(appEnv);
                     runTenantManager(appEnv);
                 } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
                     runKeycloak(appEnv);

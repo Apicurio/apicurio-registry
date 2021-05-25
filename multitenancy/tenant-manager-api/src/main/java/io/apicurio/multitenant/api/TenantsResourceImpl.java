@@ -16,7 +16,9 @@
 package io.apicurio.multitenant.api;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -28,6 +30,8 @@ import javax.ws.rs.core.Response.Status;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.dto.DtoMappers;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
@@ -54,21 +58,31 @@ public class TenantsResourceImpl implements TenantsResource {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
         required(tenantRequest.getOrganizationId(), "OrganizationId is mandatory");
-        required(tenantRequest.getClientId(), "ClientId is mandatory");
 
         RegistryTenantDto tenant = new RegistryTenantDto();
 
         tenant.setTenantId(tenantRequest.getTenantId());
 
         tenant.setOrganizationId(tenantRequest.getOrganizationId());
-        tenant.setAuthClientId(tenantRequest.getClientId());
-
-        if (tenantRequest.getAuthServerUrl() != null) {
-            tenant.setAuthServerUrl(tenantRequest.getAuthServerUrl());
-        }
 
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(null); //TODO extract user from auth details
+
+        if (tenantRequest.getResources() != null) {
+            //find duplicates, invalid config
+            Set<ResourceType> items = new HashSet<>();
+            for (var resource : tenantRequest.getResources()) {
+                if (!items.add(resource.getType())) {
+                    throw new BadRequestException(
+                            String.format("Invalid configuration, resource type %s is duplicated", resource.getType().name()));
+                }
+            }
+
+            tenant.setResources(tenantRequest.getResources()
+                    .stream()
+                    .map(DtoMappers::toStorageDto)
+                    .collect(Collectors.toList()));
+        }
 
         tenantsRepository.save(tenant);
 

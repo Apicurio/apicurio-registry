@@ -142,7 +142,7 @@ jobs:
       - name: Create GitHub Release
         run: |
           cd registry
-          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.GITHUB_TOKEN }}
+          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.ACCESS_TOKEN }}
 
       - name: Generate Release Notes
         run: |

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ui.beans;
+package io.apicurio.registry;
+
+import java.net.URL;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@RegisterForReflection
-public class ConfigJsArtifacts {
-
-    public String type = "rest";
-    public String url;
+@RegisterForReflection(targets = URL.class)
+public class URLRegisterForReflection {
 
 }

@@ -59,7 +59,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String isDatabaseInitialized() {
-        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts' LIMIT 1";
+        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts'";
     }
 
     /**
@@ -76,6 +76,14 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     @Override
     public String upsertLogConfiguration() {
         return "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence()
+     */
+    @Override
+    public String resetSequence(String sequence) {
+        return "SELECT setval('" + sequence + "', ?, FALSE)";
     }
 
 }

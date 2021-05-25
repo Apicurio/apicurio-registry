@@ -5,6 +5,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import java.util.Date;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
 
@@ -16,6 +17,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
+import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -40,22 +42,25 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 @Logged
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
+    @Inject
+    HandleFactory handles;
+
     @Transactional
     public long nextGlobalId() {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             return nextGlobalId(handle);
         });
     }
 
     @Transactional
     public long nextContentId() {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             return nextContentId(handle);
         });
     }
 
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentCountByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
@@ -65,7 +70,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectArtifactRuleCountByType();
             return handle.createQuery(sql)
                     .bind(0, tenantContext().tenantId())
@@ -78,7 +83,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     public boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectGlobalRuleCountByType();
             return handle.createQuery(sql)
                     .bind(0, tenantContext().tenantId())
@@ -90,7 +95,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content) throws RegistryStorageException {
-        withHandle( handle -> {
+        handles.withHandleNoException( handle -> {
             if (!isContentExists(contentId)) {
                 byte [] contentBytes = content.bytes();
                 String sql = sqlStatements().importContent();
@@ -143,7 +148,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
     }
 
     private long contentIdFromHash(String contentHash) {
-        return withHandle( handle -> {
+        return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
@@ -154,7 +159,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void importArtifactRule(ArtifactRuleEntity entity) {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.importArtifactRule(handle, entity);
             return null;
         });
@@ -162,7 +167,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void importArtifactVersion(ArtifactVersionEntity entity) {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.importArtifactVersion(handle, entity);
             return null;
         });
@@ -170,7 +175,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void importContent(ContentEntity entity) {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.importContent(handle, entity);
             return null;
         });
@@ -178,7 +183,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void importGlobalRule(GlobalRuleEntity entity) {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.importGlobalRule(handle, entity);
             return null;
         });
@@ -186,7 +191,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void importGroup(GroupEntity entity) {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.importGroup(handle, entity);
             return null;
         });
@@ -194,7 +199,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void resetContentId() {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.resetContentId(handle);
             return null;
         });
@@ -202,7 +207,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public void resetGlobalId() {
-        withHandle(handle -> {
+        handles.withHandleNoException(handle -> {
             super.resetGlobalId(handle);
             return null;
         });

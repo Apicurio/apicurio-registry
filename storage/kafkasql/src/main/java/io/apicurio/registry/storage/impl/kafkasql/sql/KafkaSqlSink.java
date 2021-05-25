@@ -12,6 +12,7 @@ import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -129,7 +130,9 @@ public class KafkaSqlSink {
         MessageValue value = record.value();
 
         String tenantId = key.getTenantId();
-        tenantContext.tenantId(tenantId);
+        if (tenantId != null) {
+            tenantContext.setContext(new RegistryTenantContext(tenantId, null));
+        }
         try {
             MessageType messageType = key.getType();
             switch (messageType) {
@@ -156,7 +159,8 @@ public class KafkaSqlSink {
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
             }
         } finally {
-            tenantContext.clearTenantId();
+            log.debug("Clearing tenant id after message processed");
+            tenantContext.clearContext();
         }
     }
 

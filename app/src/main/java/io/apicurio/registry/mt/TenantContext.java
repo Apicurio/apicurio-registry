@@ -16,16 +16,22 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 public interface TenantContext {
 
+    public static final String DEFAULT_TENANT_ID = "_";
+
     public String tenantId();
 
-    public void tenantId(String tenantId);
+    public TenantLimitsConfiguration limitsConfig();
 
-    public void clearTenantId();
+    public void setContext(RegistryTenantContext ctx);
+
+    public void clearContext();
 
     public boolean isLoaded();
 

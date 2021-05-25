@@ -94,6 +94,20 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             ires = clientV2.searchArtifacts(groupId, null, null, List.of("TESTCaseInsensitiveSEARCHLabel"), null, SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
+
+
+            ArtifactSearchResults propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey"), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey"), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
         });
     }
 

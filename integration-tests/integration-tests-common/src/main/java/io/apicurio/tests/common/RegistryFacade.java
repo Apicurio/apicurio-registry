@@ -211,7 +211,8 @@ public class RegistryFacade {
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-                    runKeycloak(appEnv);
+                    //TODO decide what to do with this and MultitenantAuthIT
+//                    runKeycloak(appEnv);
                     runTenantManager(appEnv);
                 } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
                     runKeycloak(appEnv);
@@ -474,6 +475,42 @@ public class RegistryFacade {
     }
 
     private void setupKafkaStorage(Map<String, String> appEnv) throws TimeoutException, InterruptedException, ExecutionException {
+
+        if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
+            KafkaFacade kafkaFacade = KafkaFacade.getInstance();
+            var c = kafkaFacade.startNewKafka();
+
+            appEnv.put("KAFKA_BOOTSTRAP_SERVERS", c.getBootstrapServers());
+            processes.add(new RegistryTestProcess() {
+
+                @Override
+                public String getName() {
+                    return "kafka-" + c.getContainerId();
+                }
+
+                @Override
+                public void close() throws Exception {
+                    c.close();
+                }
+
+                @Override
+                public String getStdOut() {
+                    return c.getLogs(OutputType.STDOUT);
+                }
+
+                @Override
+                public String getStdErr() {
+                    return c.getLogs(OutputType.STDERR);
+                }
+
+                @Override
+                public boolean isContainer() {
+                    return true;
+                }
+            });
+
+            return;
+        }
 
         KafkaFacade kafkaFacade = KafkaFacade.getInstance();
         kafkaFacade.start();

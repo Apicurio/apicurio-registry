@@ -15,24 +15,19 @@
  */
 package io.apicurio.registry.mt;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import io.apicurio.registry.rest.Headers;
+import io.quarkus.runtime.StartupEvent;
+import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import org.slf4j.Logger;
-import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.RegistryApplicationServletFilter;
-import io.quarkus.runtime.StartupEvent;
-import io.vertx.ext.web.RoutingContext;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * This class centralizes the logic to resolve the tenantId from an http request.
- *
- * In deployments with authentication enabled the {@link io.apicurio.registry.services.tenant.CustomTenantConfigResolver} will
- * get triggered first and it will attempt to resolve the tenantId before {@link RegistryApplicationServletFilter}, but
- * the TenantRequestFilter will attempt to resolve the tenantId anyway.
  *
  * @author Fabian Martinez
  */
@@ -52,6 +47,9 @@ public class TenantIdResolver {
     @Inject
     TenantContext tenantContext;
 
+    @Inject
+    TenantContextLoader contextLoader;
+
     void init(@Observes StartupEvent ev) {
         if (mtProperties.isMultitenancyEnabled()) {
             log.info("Registry running with multitenancy enabled");
@@ -64,8 +62,9 @@ public class TenantIdResolver {
     }
 
     public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
+
         if (mtProperties.isMultitenancyEnabled()) {
-            log.debug("Resolving tenantId for request {}", uri);
+            log.trace("Resolving tenantId for request {}", uri);
 
             if (uri.startsWith(multitenancyBasePath)) {
                 String[] tokens = uri.split("/");
@@ -73,7 +72,8 @@ public class TenantIdResolver {
                 // 1 is t
                 // 2 is the tenantId
                 String tenantId = tokens[TENANT_ID_POSITION];
-                tenantContext.tenantId(tenantId);
+                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                tenantContext.setContext(context);
                 if (afterSuccessfullUrlResolution != null) {
                     afterSuccessfullUrlResolution.accept(tenantId);
                 }
@@ -82,17 +82,18 @@ public class TenantIdResolver {
 
             String tenantId = tenantIdHeaderProvider.get();
             if (tenantId != null) {
-                tenantContext.tenantId(tenantId);
+                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                tenantContext.setContext(context);
                 return true;
             }
 
         }
-        tenantContext.clearTenantId();
+        //apply default tenant context
+        tenantContext.setContext(contextLoader.defaultTenantContext());
         return false;
     }
 
     public int tenantPrefixLength(String tenantId) {
         return (multitenancyBasePath + tenantId).length();
     }
-
 }

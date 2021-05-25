@@ -185,8 +185,7 @@
                 "title": "Root Type for NewTenant",
                 "description": "The information required when creating a new tenant.",
                 "required": [
-                    "organizationId",
-                    "clientId"
+                    "organizationId"
                 ],
                 "type": "object",
                 "properties": {
@@ -198,18 +197,23 @@
                         "description": "ID of the organization the tenant belongs to",
                         "type": "string"
                     },
-                    "authServerUrl": {
-                        "description": "Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry",
-                        "type": "string"
-                    },
-                    "clientId": {
-                        "description": "ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant",
-                        "type": "string"
+                    "resources": {
+                        "description": "The list of resources that this tenant will have at max. available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
                     }
                 },
                 "example": {
                     "organizationId": "bank-of-foo",
-                    "deploymentFlavor": "SMALL"
+                    "tenantId": "tenant1",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ]
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
@@ -238,8 +242,7 @@
                     "tenantId",
                     "createdOn",
                     "createdBy",
-                    "authServerUrl",
-                    "authClientId"
+                    "organizationId"
                 ],
                 "type": "object",
                 "properties": {
@@ -249,7 +252,7 @@
                     },
                     "createdOn": {
                         "format": "date-time",
-                        "description": "Date when the tenant was created",
+                        "description": "Date when the tenant was created. ISO 8601 UTC timestamp.",
                         "type": "string"
                     },
                     "createdBy": {
@@ -259,22 +262,67 @@
                     "organizationId": {
                         "description": ""
                     },
-                    "authServerUrl": {
-                        "description": "Http endpoint for the auth server (including realm) to be used for this tenant to authenticate against the registry",
-                        "type": "string"
-                    },
-                    "authClientId": {
-                        "description": "ClientId in the authentication server to be used by the registry to authenticate incoming requests made by the tenant",
-                        "type": "string"
+                    "resources": {
+                        "description": "The list of resources that this tenant has available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
                     }
                 },
                 "example": {
                     "tenantId": "12345",
                     "createdOn": "2021-03-17T21:35:00Z",
                     "createdBy": "usernamefoo",
-                    "organizationId": "bank-of-foo"
+                    "organizationId": "bank-of-foo",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ]
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "TenantResource": {
+                "title": "Root Type for TenantResource",
+                "description": "Configuration of the limits for a specific resource type",
+                "required": [
+                    "limit",
+                    "type"
+                ],
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/ResourceType",
+                        "description": "The type of the resource to limit"
+                    },
+                    "limit": {
+                        "format": "int64",
+                        "description": "The quantity to limit this resource",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "type": "MAX_TOTAL_SCHEMAS",
+                    "limit": 1000
+                }
+            },
+            "ResourceType": {
+                "description": "The list of possible types of a resource that can be limited",
+                "enum": [
+                    "MAX_TOTAL_SCHEMAS_COUNT",
+                    "MAX_ARTIFACTS_COUNT",
+                    "MAX_VERSIONS_PER_ARTIFACT_COUNT",
+                    "MAX_ARTIFACT_PROPERTIES_COUNT",
+                    "MAX_PROPERTY_KEY_SIZE_BYTES",
+                    "MAX_PROPERTY_VALUE_SIZE_BYTES",
+                    "MAX_ARTIFACT_LABELS_COUNT",
+                    "MAX_LABEL_SIZE_BYTES",
+                    "MAX_ARTIFACT_NAME_LENGTH_CHARS",
+                    "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS"
+                ],
+                "type": "string"
             }
         },
         "responses": {

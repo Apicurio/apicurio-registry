@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -84,18 +86,18 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Inject
     TenantContext tenantCtx;
 
-    String tenantId1;
-    String tenantId2;
+    RegistryTenantContext tenantId1;
+    RegistryTenantContext tenantId2;
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = UUID.randomUUID().toString();
-        tenantId2 = UUID.randomUUID().toString();
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
     }
 
     @AfterEach
     protected void resetTenant() throws Exception {
-        tenantCtx.clearTenantId();
+        tenantCtx.clearContext();
     }
 
     /**
@@ -214,6 +216,29 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("1", amdDto.getVersion());
         Assertions.assertEquals(metaData.getLabels(), amdDto.getLabels());
         Assertions.assertEquals(metaData.getProperties(), amdDto.getProperties());
+
+        // Test creating an artifact with meta-data that is too large for the DB
+        artifactId = "testCreateArtifactWithMetaData-2";
+        metaData = new EditableArtifactMetaDataDto();
+        metaData.setName(generateString(600));
+        metaData.setDescription(generateString(2000));
+        metaData.setLabels(new ArrayList<>());
+        metaData.getLabels().add("label-" + generateString(300));
+        metaData.setProperties(new HashMap<>());
+        metaData.getProperties().put("key-" + generateString(300), "value-" + generateString(2000));
+        dto = storage().createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData);
+
+        dto = storage().getArtifactMetaData(dto.getGlobalId());
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(GROUP_ID, dto.getGroupId());
+        Assertions.assertEquals(artifactId, dto.getId());
+        Assertions.assertEquals(512, dto.getName().length());
+        Assertions.assertEquals(1024, dto.getDescription().length());
+        Assertions.assertTrue(dto.getDescription().endsWith("..."));
+        Assertions.assertNotNull(dto.getLabels());
+        Assertions.assertNotNull(dto.getProperties());
+        Assertions.assertEquals(1, dto.getLabels().size());
+        Assertions.assertEquals(1, dto.getProperties().size());
     }
 
     @Test
@@ -942,7 +967,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testMultiTenant_CreateArtifact() throws Exception {
         // Add an artifact for tenantId 1
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         String artifactId = "testMultiTenant_CreateArtifact";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         ArtifactMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content);
@@ -973,7 +998,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNull(amdDto.getProperties());
 
         // Switch to tenantId 2 and make sure the GET operations no longer work
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         try {
             storage().getArtifact(GROUP_ID, artifactId);
             Assertions.fail("Expected 404 not found for TENANT-2");
@@ -985,7 +1010,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testMultiTenant_CreateSameArtifact() throws Exception {
         // Add an artifact for tenantId 1
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         String artifactId = "testMultiTenant_CreateSameArtifact";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         ArtifactMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content);
@@ -1000,7 +1025,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("1", dto.getVersion());
 
         // Switch to tenantId 2 and create the same artifact
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         content = ContentHandle.create(OPENAPI_CONTENT);
         dto = storage().createArtifact(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content);
         Assertions.assertNotNull(dto);
@@ -1017,7 +1042,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testMultiTenant_Search() throws Exception {
         // Add 10 artifacts for tenantId 1
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         String artifactIdPrefix = "testMultiTenant_Search-";
         for (int idx = 1; idx <= 10; idx++) {
             String artifactId = artifactIdPrefix + idx;
@@ -1033,7 +1058,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
 
         // Search for the artifacts using Tenant 2 (0 results expected)
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         Set<SearchFilter> filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "testMultiTenant_Search"));
         ArtifactSearchResultsDto searchResults = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 100);
         Assertions.assertNotNull(searchResults);
@@ -1041,7 +1066,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertTrue(searchResults.getArtifacts().isEmpty());
 
         // Search for the artifacts using Tenant 1 (10 results expected)
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         searchResults = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 100);
         Assertions.assertNotNull(searchResults);
         Assertions.assertEquals(10, searchResults.getCount());
@@ -1050,7 +1075,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @Test
     public void testMultiTenant_GlobalRules() {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
 
         List<RuleType> globalRules = storage().getGlobalRules();
         Assertions.assertNotNull(globalRules);
@@ -1079,7 +1104,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Now switch to tenant #2 and do the same stuff
         ///////////////////////////////////////////////////
 
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         globalRules = storage().getGlobalRules();
         Assertions.assertNotNull(globalRules);
         Assertions.assertTrue(globalRules.isEmpty());
@@ -1106,74 +1131,83 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @Test
     public void testMultiTenant_ArtifactNotFound() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testArtifactNotFound();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testArtifactNotFound();
     }
 
     @Test
     public void testMultiTenant_CreateArtifactRule() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testCreateArtifactRule();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testCreateArtifactRule();
     }
 
     @Test
     public void testMultiTenant_CreateArtifactVersionWithMetaData() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testCreateArtifactVersionWithMetaData();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testCreateArtifactVersionWithMetaData();
     }
 
     @Test
     public void testMultiTenant_CreateDuplicateArtifact() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testCreateDuplicateArtifact();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testCreateDuplicateArtifact();
     }
 
     @Test
     public void testMultiTenant_UpdateArtifactMetaData() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testUpdateArtifactMetaData();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactMetaData();
     }
 
     @Test
     public void testMultiTenant_UpdateArtifactRule() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testUpdateArtifactRule();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactRule();
     }
 
     @Test
     public void testMultiTenant_UpdateArtifactState() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testUpdateArtifactState();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactState();
     }
 
     @Test
     public void testMultiTenant_UpdateArtifactVersionMetaData() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testUpdateArtifactVersionMetaData();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactVersionMetaData();
     }
 
     @Test
     public void testMultiTenant_UpdateArtifactVersionState() throws Exception {
-        tenantCtx.tenantId(tenantId1);
+        tenantCtx.setContext(tenantId1);
         this.testUpdateArtifactVersionState();
-        tenantCtx.tenantId(tenantId2);
+        tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactVersionState();
+    }
+
+    private static String generateString(int size) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            builder.append("a");
+        }
+        Assertions.assertEquals(size, builder.toString().length());
+        return builder.toString();
     }
 
 }

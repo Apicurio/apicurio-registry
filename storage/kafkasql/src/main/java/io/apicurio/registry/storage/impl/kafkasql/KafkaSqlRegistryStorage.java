@@ -975,6 +975,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     */
+    @Override
+    public long countArtifacts() throws RegistryStorageException {
+        return sqlStore.countArtifacts();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     */
+    @Override
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return sqlStore.countArtifactVersions(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     */
+    @Override
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return sqlStore.countTotalArtifactVersions();
+    }
+
     protected void importEntity(Entity entity) throws RegistryStorageException {
         switch (entity.getEntityType()) {
             case ArtifactRule:

@@ -617,14 +617,12 @@ public class RegistryFacade {
         if (targetDir.isDirectory()) {
             File[] files = targetDir.listFiles();
             for (File file : files) {
-                if (file.getName().contains("-runner")) {
-                    if (extension != null) {
-                        if (file.getName().endsWith("." + extension)) {
-                            return file.getAbsolutePath();
-                        }
-                    } else {
+                if (extension != null) {
+                    if (file.getName().contains("-runner") && file.getName().endsWith("." + extension)) {
                         return file.getAbsolutePath();
                     }
+                } else if (file.getName().endsWith("-runner")) {
+                    return file.getAbsolutePath();
                 }
             }
         }

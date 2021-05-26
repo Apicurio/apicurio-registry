@@ -109,6 +109,8 @@ jobs:
         run: |
           make build-sql-native build-kafkasql-native build-tenant-manager
 
+      - name: Build integration-tests-common
+        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
       - name: Run Integration Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - kafkasql

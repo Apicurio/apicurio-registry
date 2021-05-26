@@ -56,6 +56,8 @@ public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buff
                 } else {
                     resultHolder.complete(mapper.readValue(result.body().getBytes(), targetType));
                 }
+            } else {
+                resultHolder.completeExceptionally(event.cause());
             }
         } catch (IOException e) {
             resultHolder.completeExceptionally(e);

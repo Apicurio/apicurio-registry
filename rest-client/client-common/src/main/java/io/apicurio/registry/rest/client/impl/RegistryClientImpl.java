@@ -387,6 +387,7 @@ public class RegistryClientImpl implements RegistryClient {
     private static RestClientException parseSerializationError(JsonProcessingException ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
+        error.setMessage(ex.getMessage());
         return new RestClientException(error);
     }
 }

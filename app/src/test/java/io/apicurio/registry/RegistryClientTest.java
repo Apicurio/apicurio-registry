@@ -76,7 +76,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
 
-
     @Test
     public void testAsyncCRUD() throws Exception {
         //Preparation

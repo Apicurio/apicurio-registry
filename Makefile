@@ -42,18 +42,18 @@ build-all:
 
 .PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Psql -pl storage/sql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-kafkasql-native ## Builds kafkasql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-kafkasql-native:
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-tenant-manager ## Builds tenant manager natively [SKIP_TESTS, BUILD_FLAGS]
 build-tenant-manager:
 	@echo "----------------------------------------------------------------------"
 	@echo "                 Building Tenant Manager                              "
 	@echo "----------------------------------------------------------------------"
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -Dskiptests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 

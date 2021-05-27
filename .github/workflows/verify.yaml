@@ -107,31 +107,29 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-kafkasql-native build-tenant-manager
+          make build-sql-native build-tenant-manager
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
       - name: Run Integration Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - kafkasql
-        run: ./mvnw verify -Pintegration-tests -Pacceptance -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - multitenancy
         run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
       - name: Run Integration Tests - sql migration
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - kafkasql migration
-        run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run Integration Tests - kafkasql auth
-        run: ./mvnw verify -Pintegration-tests -Pauth -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+      - name: Run UI tests - only PRs
+        run: ./mvnw verify -Pintegration-tests -Pui -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
+      - name: Run Legacy Tests - sql
+        run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
       - name: Build Native Images
         env:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-kafkasql-native-image build-tenant-manager-image
+          make build-sql-native-image build-tenant-manager-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
@@ -143,7 +141,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-kafkasql-native-image push-tenant-manager-image
+          make push-sql-native-image push-tenant-manager-image
 
       - name: List All The Images
         run: docker images

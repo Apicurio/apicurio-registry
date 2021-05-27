@@ -22,11 +22,11 @@
 			<artifactId>apicurio-registry-common</artifactId>
 		</dependency>
 
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
+		<dependency>
+			<groupId>io.quarkus</groupId>
+			<artifactId>quarkus-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- Test Dependencies -->
 		<dependency>

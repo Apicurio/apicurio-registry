@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat.store;
 
+import java.util.List;
+import java.util.function.Function;
+
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -26,10 +29,6 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
-
-import java.util.List;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 /**
  *
@@ -54,7 +53,7 @@ public interface RegistryStorageFacade {
      *
      * @return globalId as a future
      */
-    CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    Long createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
     SchemaContent getSchemaContent(int globalId) throws RegistryStorageException;

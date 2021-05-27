@@ -16,13 +16,7 @@
 
 package io.apicurio.registry.storage.impl;
 
-import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 
 /**
  * @author Ales Justin
@@ -41,9 +35,4 @@ public abstract class AbstractRegistryStorage implements RegistryStorage {
         return true;
     }
 
-    @Override
-    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        ConcurrentUtil.result(createArtifactRuleAsync(groupId, artifactId, rule, config));
-    }
 }

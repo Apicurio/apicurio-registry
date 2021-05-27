@@ -16,26 +16,33 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
+import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
+import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+
+import java.util.List;
+
+import javax.interceptor.Interceptors;
+import javax.ws.rs.BadRequestException;
+
+import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SchemaId;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-
-import java.util.List;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.container.AsyncResponse;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 
 /**
  * @author Ales Justin
@@ -56,16 +63,10 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
-    public void register(String subject, SchemaInfo request, AsyncResponse response) throws Exception {
-        facade.createSchema(subject, request.getSchema(), request.getSchemaType())
-                .thenApply(FacadeConverter::convertUnsigned)
-                .whenComplete((id, t) -> {
-                    if (t != null) {
-                        response.resume(t);
-                    } else {
-                        response.resume(new SchemaId(id));
-                    }
-                });
+    public SchemaId register(String subject, SchemaInfo request) throws Exception {
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
+        int sid = FacadeConverter.convertUnsigned(id);
+        return new SchemaId(sid);
     }
 
     @Override

@@ -103,7 +103,7 @@ public class RegistryStoragePerformanceTest {
                         .replaceAll("VERSION", String.valueOf(idx)));
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, labels,
                     properties);
-            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData).toCompletableFuture().get();
+            storage.createArtifactWithMetadata(GROUP_ID, artifactId, null, ArtifactType.OPENAPI, content, metaData);
 
             System.out.print(".");
             if (idx % 100 == 0) {

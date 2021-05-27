@@ -32,8 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -187,7 +185,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     //TODO spec says: If schema with identical content already exists, existing schema's ID is returned. Our storage API does not allow to know if some content belongs to any other artifactId
     @Override
-    public CompletionStage<SchemaId> createSchema(String groupId, String schemaId, InputStream data) {
+    public SchemaId createSchema(String groupId, String schemaId, InputStream data) {
 
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -212,7 +210,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             storage.getArtifactVersionMetaData(groupId, schemaId, false, content);
             SchemaId id = new SchemaId();
             id.setId(schemaId);
-            return CompletableFuture.completedFuture(id);
+            return id;
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
@@ -223,7 +221,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         EditableArtifactMetaDataDto metadata = new EditableArtifactMetaDataDto();
         metadata.setProperties(Map.of(PROP_CONTENT_TYPE, request.getContentType()));
 
-        CompletionStage<ArtifactMetaDataDto> res;
+        ArtifactMetaDataDto res;
         try {
             if (!artifactExists(groupId, schemaId)) {
                 rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE);
@@ -240,12 +238,10 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             }
         }
 
-        return res.thenApply(ArtifactMetaDataDto::getId).thenApply(artifactId -> {
-                //just returning the schemaId does not look very helpful, but the spec says so ...
-                SchemaId id = new SchemaId();
-                id.setId(artifactId);
-                return id;
-            });
+        String artifactId = res.getId();
+        SchemaId id = new SchemaId();
+        id.setId(artifactId);
+        return id;
     }
 
     @Override

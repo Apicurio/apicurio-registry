@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.auth.Authorized;
-import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 
 import java.util.List;
+
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -31,10 +31,13 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaId;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 /**
  * Note:
@@ -118,10 +121,9 @@ public interface SubjectVersionsResource {
      */
     @POST
     @Authorized(AuthorizedStyle.ArtifactOnly)
-    void register(
+    SchemaId register(
             @PathParam("subject") String subject,
-            @NotNull SchemaInfo request,
-            @Suspended AsyncResponse response) throws Exception;
+            @NotNull SchemaInfo request) throws Exception;
 
 
     // ----- Path: /subjects/{subject}/versions/{version} -----

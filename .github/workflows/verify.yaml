@@ -124,6 +124,16 @@ jobs:
       - name: Run Legacy Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
       - name: Build Native Images
         env:
           IMAGE_REPO: quay.io

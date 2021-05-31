@@ -15,10 +15,8 @@
  */
 package io.apicurio.registry.events.http;
 
-import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import io.apicurio.registry.events.EventSink;
@@ -71,7 +69,8 @@ public class HttpEventSink implements EventSink {
     @SuppressWarnings({ "deprecation" })
     private void sendEventHttp(String type, HttpSinkConfiguration httpSink, Buffer data) {
         try {
-            log.debug("Sending event to sink "+httpSink.getName());
+            //TODO fix event sending
+           /* log.debug("Sending event to sink "+httpSink.getName());
             getHttpClient()
                 .postAbs(httpSink.getEndpoint())
                 .putHeader("ce-id", UUID.randomUUID().toString())
@@ -86,6 +85,7 @@ public class HttpEventSink implements EventSink {
                     //do nothing
                 })
                 .end(data);
+               */
         } catch (Exception e) {
             log.error("Error sending http event", e);
         }

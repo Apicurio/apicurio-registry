@@ -41,8 +41,8 @@ public class StorageLivenessCheck implements HealthCheck {
     @Override
     public synchronized HealthCheckResponse call() {
         return HealthCheckResponse.builder()
-                                  .name("StorageLivenessCheck")
-                                  .state(storage.isAlive())
-                                  .build();
+                .name("StorageLivenessCheck")
+                .status(storage.isAlive())
+                .build();
     }
 }

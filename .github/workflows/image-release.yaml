@@ -1,12 +1,19 @@
 name: Release Images
 on:
+  workflow_dispatch: {}
   release:
     types: [released]
 
-env:
-  RELEASE_VERSION: ${{ github.event.release.name }}
-  SOURCE_CODE_URL: ${{ github.event.release.zipball_url }}
-  BRANCH: ${{ github.event.release.target_commitish }}
+
+# github.event context is only available when the workflow gets triggered by a release event. Therefore, commenting the below
+# section and add an additional step of fething the required details explicitly to make the workflow work with manual triggers
+
+#env:
+#  # Setting up workflow level environment varibles to make them available in both jobs
+#  # The values are extracted from the github.event context, which is automatically availble when a release a created.
+#  RELEASE_VERSION: ${{ github.event.release.name }}
+#  SOURCE_CODE_URL: ${{ github.event.release.zipball_url }}
+#  BRANCH: ${{ github.event.release.target_commitish }}
 
 
 jobs:
@@ -14,6 +21,13 @@ jobs:
     if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-18.04 
     steps:
+
+      - name: Fetch required Details
+        run: |
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
 
       - name: Download Source Code
         run: wget -c $SOURCE_CODE_URL && unzip $RELEASE_VERSION && ls -lrt && mv ${{github.repository_owner}}* registry
@@ -79,6 +93,13 @@ jobs:
     needs: ["release-images"]   # The Job gets triggered only after the "release-images" job has successfully completed. The job doesn't run in case the "release-images" job fails
     if: github.repository_owner == 'Apicurio'
     steps:
+
+      - name: Fetch required Details
+        run: |
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
 
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2      

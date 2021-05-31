@@ -1,5 +1,6 @@
 name: Update Website
 on:
+  workflow_dispatch: {}
   release:
     types: [released]
 
@@ -44,23 +45,25 @@ jobs:
           rm -rf ../website/registry/docs/*
           cp -rf target/dist/* ../website/registry/docs/.
 
-      - name: Updating Project Website for Release ${{ github.event.release.name }}
+      - name: Fetch required Details
+        run: echo "RELEASE_VERSION=$(curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+
+      - name: Updating Project Website for Release ${{ env.RELEASE_VERSION }}
         run: |
           cd website
-          echo "********** Downloading Latest Release JSON File **********"
+          echo "********** Replacing Existing Latest Release JSON File **********"
           cd _data/registry
           rm latestRelease.json
           touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
           
-          echo "********** Copying Latest Release JSON File **********"
-          PUBLISHED_AT=$(cat latestRelease.json | jq '.tag_name' | sed 's/"//g')
-          cp latestRelease.json releases/$PUBLISHED_AT.json
+          echo "********** Saving a copy in the archieve **********"
+          cp latestRelease.json releases/${RELEASE_VERSION}.json
 
       - name: Commit Project Website Changes
         run: |
           cd website
           git add .
-          git commit -m "Automated Update For Apicurio Registry Release Version: ${{ github.event.release.name }}"
+          git commit -m "Automated Update For Apicurio Registry Release Version: ${{ env.RELEASE_VERSION }}"
           git push
 
       - name: Google Chat Notification

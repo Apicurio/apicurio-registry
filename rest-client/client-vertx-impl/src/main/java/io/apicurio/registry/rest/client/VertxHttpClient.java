@@ -24,6 +24,7 @@ import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.response.ResponseHandler;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.IoUtil;
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -85,6 +86,10 @@ public class VertxHttpClient implements RegistryHttpClient {
 
     @Override
     public <T> T sendRequest(Request<T> request) {
+        if (Context.isOnEventLoopThread()) {
+            throw new UnsupportedOperationException("Must not be called on event loop");
+        }
+
         try {
             final URI uri = buildURI(basePath + request.getRequestPath(), request.getPathParams());
             final RequestOptions requestOptions = new RequestOptions();

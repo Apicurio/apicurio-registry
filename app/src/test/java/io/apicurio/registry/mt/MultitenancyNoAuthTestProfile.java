@@ -30,6 +30,7 @@ public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         Map<String, String> props = new HashMap<>();
         props.put("registry.enable.multitenancy", "true");
+        props.put("registry.disable.apis", "");
         return props;
     }
 

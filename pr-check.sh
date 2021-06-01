@@ -10,19 +10,21 @@ MVN_BUILD_COMMAND="mvn clean install -Pprod -Psql -Pmultitenancy"
 display_usage() {
     cat <<EOT
 
-#
-# This script gets triggered by the automated CI/CD jobs of AppSRE. It builds and tests 
-# '${PROJECT_NAME}' whenever a pull request is raised.
-#
+###########################################################################################
 
-Usage: pr-check.sh [options]
-
-with options:
-
--h, --help        This help message
+ This script gets triggered by the automated CI/CD jobs of AppSRE. It builds and tests 
+ '${PROJECT_NAME}' whenever a pull request is raised.
 
 
-# Example: sh pr-check.sh
+ Usage: $0 [options]
+ Example: $0
+
+ options include:
+
+ -h, --help        This help message
+
+#############################################################################################
+
 
 EOT
 }

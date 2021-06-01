@@ -6,7 +6,7 @@ set -eo pipefail
 PROJECT_NAME="srs-service-registry"
 IMAGE_REGISTRY="quay.io"
 IMAGE_ORG="rhoas"
-IMAGE_NAME="srs-service-registry"
+IMAGE_NAME="${PROJECT_NAME}"
 IMAGE_TAG="latest"
 
 
@@ -17,31 +17,35 @@ DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.s
 display_usage() {
     cat <<EOT
 
-# This script gets triggered by the automated CI/CD jobs of AppSRE. It builds and pushes '${PROJECT_NAME}' image to the
-# 'rhoas' organization in 'quay.io' registry(defaults). Quay-organization, Image name and tags are configurable.
-#
-# In order to work, it needs the following variables defined in the CI/CD configuration of the project:
-#
-# RHOAS_QUAY_USER - The name of the robot account
-#                   used to push images to 'quay.io'
-#
-# RHOAS_QUAY_TOKEN - The token of the robot account
-#                    used to push images to 'quay.io'
-#
-# The machines that run this script need to have access to internet, so that the built images can be pushed.
+##########################################################################################################################
+
+ This script gets triggered by the automated CI/CD jobs of AppSRE. It builds and pushes '${PROJECT_NAME}' image to the
+ 'rhoas' organization in 'quay.io' registry(defaults). Quay-organization, Image name and tags are configurable.
+
+ In order to work, it needs the following variables defined in the CI/CD configuration of the project:
+
+ RHOAS_QUAY_USER - The name of the robot account
+                   used to push images to 'quay.io'
+
+ RHOAS_QUAY_TOKEN - The token of the robot account
+                    used to push images to 'quay.io'
+
+ The machines that run this script need to have access to internet, so that the built images can be pushed.
 
 
-Usage: build-deploy.sh [options]
+Usage: $0 [options]
+Example: $0 --org rhoas --name srs-service-registry --tag 2.0.0.Final
 
-with options:
+options include:
 
 -o, --org         The organization the container image will be part of. If not set defaults to 'rhoas'
 -n, --name        The name of the container image. If not set defaults to 'srs-fleet-manager'
 -t, --tag         The tag of the container image. If not set defaults to 'latest'
 -h, --help        This help message
 
+##########################################################################################################################
 
-# Example: sh build-deploy.sh --org rhoas --name srs-service-registry --tag 2.0.0.Final
+
 
 EOT
 }

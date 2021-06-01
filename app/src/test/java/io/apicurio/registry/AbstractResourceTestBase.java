@@ -43,7 +43,7 @@ import io.restassured.response.ValidatableResponse;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
 
-    protected static final String CT_JSON = "application/json";
+    public static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";

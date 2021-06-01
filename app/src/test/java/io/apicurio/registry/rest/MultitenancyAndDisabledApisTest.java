@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.mt.MockTenantMetadataService;
@@ -64,7 +65,7 @@ public class MultitenancyAndDisabledApisTest {
         //this should return http 200, it's not disabled
         given()
             .baseUri("http://localhost:8081")
-            .when().contentType(CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
+            .when().contentType(AbstractResourceTestBase.CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
             .then()
             .statusCode(200)
             .body(anything());

@@ -69,16 +69,16 @@
             <version>4.1.54.Final</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.61.Final</version><!--$NO-MVN-MAN-VER$-->
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+            <version>4.1.61.Final</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <!-- H2 Override -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.198</version><!--$NO-MVN-MAN-VER$-->
+            <version>1.4.98</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <!-- Quarkus Dependencies -->

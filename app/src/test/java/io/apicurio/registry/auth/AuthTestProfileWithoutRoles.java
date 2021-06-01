@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.mt;
+package io.apicurio.registry.auth;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
-import io.quarkus.test.junit.QuarkusTestProfile;
-
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
-public class MultitenancyNoAuthTestProfile implements QuarkusTestProfile {
+public class AuthTestProfileWithoutRoles extends AuthTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        Map<String, String> props = new HashMap<>();
-        props.put("registry.enable.multitenancy", "true");
-        props.put("registry.disable.apis", "");
-        return props;
+        return Collections.emptyMap();
     }
 
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return Collections.singletonList(
+                new TestResourceEntry(KeycloakTestResourceWithoutRoles.class));
+    }
 }

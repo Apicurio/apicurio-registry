@@ -34,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.registry.AbstractRegistryTestBase;
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -62,7 +64,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultitenancyNoAuthTestProfile.class)
-public class MultitenancyNoAuthTest {
+public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenancyNoAuthTest.class);
 
@@ -134,7 +136,7 @@ public class MultitenancyNoAuthTest {
         client.createGlobalRule(ruleConfig);
 
         //test confluent api
-        String subject = generateArtifactId();
+        String subject = TestUtils.generateArtifactId();
         ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
         int id1 = cclient.register(subject, schema1);
         // Reset the client cache so that the next line actually does what we want.
@@ -155,7 +157,7 @@ public class MultitenancyNoAuthTest {
             .baseUri(baseUrl)
             .when()
                 .queryParam("verify", "true")
-                .contentType(CT_JSON)
+                .contentType(AbstractResourceTestBase.CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
                 .post("/apis/ibmcompat/v1/schemas")
             .then()

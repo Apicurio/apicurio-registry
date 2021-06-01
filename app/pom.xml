@@ -78,7 +78,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.98</version><!--$NO-MVN-MAN-VER$-->
+            <version>1.4.198</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <!-- Quarkus Dependencies -->

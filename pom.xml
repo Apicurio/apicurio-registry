@@ -171,7 +171,8 @@
         <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <keycloak.version>11.0.3</keycloak.version>
+        <keycloak.version>13.0.0</keycloak.version>
+        <keycloak-authz-client.version>${keycloak.version}</keycloak-authz-client.version>
         <httpclient.version>4.5.13</httpclient.version>
 
         <!-- Search -->
@@ -555,6 +556,11 @@
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-admin-client</artifactId>
                 <version>${keycloak-admin-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-authz-client</artifactId>
+                <version>${keycloak-authz-client.version}</version>
             </dependency>
 
         </dependencies>

@@ -29,7 +29,7 @@
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
 
-         <dependency>
+        <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
         </dependency>
@@ -46,6 +46,39 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-import-export</artifactId>
+        </dependency>
+
+        <!-- Keycloak Override -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+            <version>${keycloak.version}</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- RESTEasy Override -->
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-core</artifactId>
+            <version>4.5.10.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- Netty Override -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>4.1.54.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+            <version>4.1.61.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- H2 Override -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.198</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <!-- Quarkus Dependencies -->

@@ -45,7 +45,7 @@ public class MultitenancyAndDisabledApisTest {
 
     @Test
     public void testRestApi() throws Exception {
-        DisableApisFlagsTest.doTestDisabledApis();
+        DisableApisFlagsTest.doTestDisabledApis(true);
 
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId("abc");

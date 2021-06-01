@@ -402,6 +402,8 @@ public class RegistryFacade {
         appEnv.put("KEYCLOAK_REALM", "registry");
         appEnv.put("KEYCLOAK_API_CLIENT_ID", "registry-api");
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
+        appEnv.put("ROLES_ENABLED", "true");
+
 
         processes.add(new RegistryTestProcess() {
 

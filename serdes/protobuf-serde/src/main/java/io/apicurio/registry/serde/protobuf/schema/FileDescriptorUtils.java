@@ -43,9 +43,9 @@ import com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.Field;
 import com.squareup.wire.schema.Location;
-import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.ProtoType;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
@@ -94,7 +94,7 @@ public class FileDescriptorUtils {
         FileDescriptorProto.Builder schema = FileDescriptorProto.newBuilder();
         schema.setName("default");
 
-        ProtoFile.Syntax syntax = element.getSyntax();
+        Syntax syntax = element.getSyntax();
         if (syntax != null) {
             schema.setSyntax(syntax.toString());
         }
@@ -302,13 +302,13 @@ public class FileDescriptorUtils {
             packageName = null;
         }
 
-        ProtoFile.Syntax syntax = null;
+        Syntax syntax = null;
         switch (file.getSyntax()) {
             case PROTO2:
-                syntax = ProtoFile.Syntax.PROTO_2;
+                syntax = Syntax.PROTO_2;
                 break;
             case PROTO3:
-                syntax = ProtoFile.Syntax.PROTO_3;
+                syntax = Syntax.PROTO_3;
                 break;
             default:
                 break;
@@ -402,7 +402,7 @@ public class FileDescriptorUtils {
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {
-        return new OneOfElement(name, "", fields.build(), Collections.emptyList());
+        return new OneOfElement(name, "", fields.build(), Collections.emptyList(), Collections.emptyList());
     }
 
     private static EnumElement toEnum(EnumDescriptorProto ed) {
@@ -439,7 +439,7 @@ public class FileDescriptorUtils {
         String defaultValue = fd.hasDefaultValue() && fd.getDefaultValue() != null ? fd.getDefaultValue()
                 : null;
         return new FieldElement(DEFAULT_LOCATION, inOneof ? null : label(file, fd), dataType(fd), name,
-                defaultValue, fd.getNumber(), "", options.build());
+                defaultValue, fd.getJsonName(), fd.getNumber(), "", options.build());
     }
 
     private static Field.Label label(FileDescriptorProto file, FieldDescriptorProto fd) {

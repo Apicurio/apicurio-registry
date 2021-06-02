@@ -1,12 +1,7 @@
 package io.apicurio.registry.cncf.schemaregistry;
 
-import io.apicurio.registry.auth.Authorized;
-import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
-import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -17,6 +12,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
+import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
@@ -89,7 +89,7 @@ public interface SchemagroupsResource {
   @Produces({"application/json;format=avro", "application/json;format=protobuf"})
   @Consumes("application/json;format=avro")
   @Authorized
-  CompletionStage<SchemaId> createSchema(@PathParam("group-id") String groupId,
+  SchemaId createSchema(@PathParam("group-id") String groupId,
       @PathParam("schema-id") String schemaId, InputStream data);
 
   @Path("/{group-id}/schemas/{schema-id}")

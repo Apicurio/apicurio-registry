@@ -279,7 +279,8 @@ public class KafkaSqlSink {
             case Create:
                 // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
-                return sqlStore.createArtifactRuleAsync(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
+                sqlStore.createArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
+                return null;
             case Update:
                 sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;

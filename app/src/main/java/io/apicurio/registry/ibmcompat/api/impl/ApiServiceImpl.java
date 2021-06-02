@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -182,15 +181,7 @@ public class ApiServiceImpl implements ApiService {
         return schemaInfo;
     }
 
-    private void handleArtifactCreation(AsyncResponse response, String artifactId, ArtifactMetaDataDto amdd, Throwable t) {
-        if (t != null) {
-            if(t instanceof CompletionException) {
-                t = ((CompletionException) t).getCause();
-            }
-            response.resume(t);
-            return;
-        }
-
+    private void handleArtifactCreation(AsyncResponse response, String artifactId, ArtifactMetaDataDto amdd) {
         // Prepare the response
         SchemaInfo info = getSchemaInfo(amdd);
         List<SchemaVersion> schemaVersions = new ArrayList<>();
@@ -212,7 +203,7 @@ public class ApiServiceImpl implements ApiService {
             // artifactStore.getArtifactVersions(), so add the new version to the response
             schemaVersions.add(getSchemaVersion(amdd.getVersionId(), amdd.getVersion(), amdd.getName(), amdd.getCreatedOn(), amdd.getState(), null));
         } catch (Throwable throwable) {
-            response.resume(t);
+            response.resume(throwable);
             return;
         }
         response.resume(Response.status(Response.Status.CREATED).entity(info).build());
@@ -335,8 +326,12 @@ public class ApiServiceImpl implements ApiService {
             Map<String, String> properties = new HashMap<>();
             properties.put(SCHEMA_NAME_ADDITIONAL_PROPERTY, schemaName);
             dto.setProperties(properties);
-            storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto)
-                .whenComplete((amdd, t) -> handleArtifactCreation(response, artifactId, amdd, t));
+            try {
+                ArtifactMetaDataDto amdd = storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto);
+                handleArtifactCreation(response, artifactId, amdd);
+            } catch (Exception e) {
+                response.resume(e);
+            }
         }
     }
 
@@ -429,8 +424,12 @@ public class ApiServiceImpl implements ApiService {
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(newSchemaVersion.getVersion());
-            storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto)
-                .whenComplete((amdd, t) -> handleArtifactCreation(response, schemaid, amdd, t));
+            try {
+                ArtifactMetaDataDto amdd = storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto);
+                handleArtifactCreation(response, schemaid, amdd);
+            } catch (Exception e) {
+                response.resume(e);
+            }
         }
     }
 

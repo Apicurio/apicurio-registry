@@ -16,10 +16,13 @@
 
 package io.apicurio.registry.mt;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +46,15 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
@@ -81,13 +93,19 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
         tenant2.setOrganizationId("bbb");
         tenantMetadataService.createTenant(tenant2);
 
-        RegistryClient clientTenant1 = RegistryClientFactory.create("http://localhost:8081/t/" + tenantId1 + "/apis/registry/v2" );
-        RegistryClient clientTenant2 = RegistryClientFactory.create("http://localhost:8081/t/" + tenantId2 + "/apis/registry/v2" );
+        String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
+        String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
+
+        RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
+        RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
+
+        SchemaRegistryClient cclientTenant1 = createConfluentClient(tenant1BaseUrl);
+        SchemaRegistryClient cclientTenant2 = createConfluentClient(tenant2BaseUrl);
 
         try {
-            tenantOperations(clientTenant1);
+            tenantOperations(clientTenant1, cclientTenant1, tenant1BaseUrl);
             try {
-                tenantOperations(clientTenant2);
+                tenantOperations(clientTenant2, cclientTenant2, tenant1BaseUrl);
             } finally {
                 cleanTenantArtifacts(clientTenant2);
             }
@@ -97,7 +115,8 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
 
     }
 
-    private void tenantOperations(RegistryClient client) throws Exception {
+    private void tenantOperations(RegistryClient client, SchemaRegistryClient cclient, String baseUrl) throws Exception {
+        //test apicurio api
         assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 
         String artifactId = TestUtils.generateArtifactId();
@@ -114,6 +133,35 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
         client.createArtifactRule(meta.getGroupId(), meta.getId(), ruleConfig);
 
         client.createGlobalRule(ruleConfig);
+
+        //test confluent api
+        String subject = generateArtifactId();
+        ParsedSchema schema1 = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
+        int id1 = cclient.register(subject, schema1);
+        // Reset the client cache so that the next line actually does what we want.
+        cclient.reset();
+        TestUtils.retry(() -> cclient.getSchemaById(id1));
+
+        //test ibm api
+
+        String schemaDefinition = resourceToString("avro.json")
+            .replaceAll("\"", "\\\\\"")
+            .replaceAll("\n", "\\\\n");
+
+        String schemaName = "testVerifySchema_userInfo";
+        String versionName = "testversion_1.0.0";
+
+        // Verify Avro artifact via ibmcompat API
+        given()
+            .baseUri(baseUrl)
+            .when()
+                .queryParam("verify", "true")
+                .contentType(CT_JSON)
+                .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
+                .post("/apis/ibmcompat/v1/schemas")
+            .then()
+                .statusCode(200)
+                .body(equalTo("\"" + schemaDefinition + "\""));
     }
 
     private void cleanTenantArtifacts(RegistryClient client) throws Exception {
@@ -131,5 +179,12 @@ public class MultitenancyNoAuthTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0));
     }
 
+    private SchemaRegistryClient createConfluentClient(String baseUrl) {
+
+        final List<SchemaProvider> schemaProviders = Arrays
+                .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
+
+        return new CachedSchemaRegistryClient(new RestService(baseUrl + "/apis/ccompat/v6"), 3, schemaProviders, null, null);
+    }
 
 }

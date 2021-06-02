@@ -76,73 +76,57 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId,
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
             String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        return withLimitsCheck(() -> limitsService.canCreateArtifact(null))
-                .execute(() -> super.createArtifact(groupId, artifactId, version, artifactType, content))
-                .whenComplete((a, ex) -> {
-                    if (ex == null) {
-                        limitsService.artifactCreated();
-                    }
-                });
-
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(null))
+                .execute(() -> super.createArtifact(groupId, artifactId, version, artifactType, content));
+        limitsService.artifactCreated();
+        return dto;
     }
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId,
+    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
             String version, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        return withLimitsCheck(() -> limitsService.canCreateArtifact(metaData))
-                .execute(() -> super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
-                .whenComplete((a, ex) -> {
-                    if (ex == null) {
-                        limitsService.artifactCreated();
-                    }
-                });
-
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(metaData))
+                .execute(() -> super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData));
+        limitsService.artifactCreated();
+        return dto;
     }
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId,
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId,
             String version, ArtifactType artifactType, ContentHandle content)
             throws ArtifactNotFoundException, RegistryStorageException {
 
-        return withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null))
-                .execute(() -> super.updateArtifact(groupId, artifactId, version, artifactType, content))
-                .whenComplete((a, ex) -> {
-                    if (ex == null) {
-                        limitsService.artifactVersionCreated(groupId, artifactId);
-                    }
-                });
-
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null))
+                .execute(() -> super.updateArtifact(groupId, artifactId, version, artifactType, content));
+        limitsService.artifactVersionCreated(groupId, artifactId);
+        return dto;
     }
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId,
+    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId,
             String version, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
 
-        return withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData))
-                .execute(() -> super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData))
-                .whenComplete((a, ex) -> {
-                    if (ex == null) {
-                        limitsService.artifactVersionCreated(groupId, artifactId);
-                    }
-                });
-
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData))
+                .execute(() -> super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData));
+        limitsService.artifactVersionCreated(groupId, artifactId);
+        return dto;
     }
 
     /**

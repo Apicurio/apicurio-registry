@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client;
+package io.apicurio.registry;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.spi.RestClientProvider;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.VertxHttpClientProvider;
+import io.quarkus.test.junit.QuarkusTest;
 import io.vertx.core.Vertx;
 
-import java.util.Map;
+import javax.enterprise.inject.Typed;
+
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class VertxHttpClientProvider implements RestClientProvider {
-
-    private final Vertx vertx;
-
-    public VertxHttpClientProvider(Vertx vertx) {
-        this.vertx = vertx;
-    }
+@QuarkusTest
+@Typed(VertxClientTest.class)
+public class VertxClientTest extends RegistryClientTest {
 
     @Override
-    public RegistryHttpClient create(String endpoint, Map<String, Object> configs, Auth auth) {
-        return new VertxHttpClient(vertx, endpoint, configs, auth);
+    protected RegistryClient createRestClientV2() {
+        RegistryClientFactory.setProvider(new VertxHttpClientProvider(Vertx.vertx()));
+        return RegistryClientFactory.create(registryV2ApiUrl);
     }
 }

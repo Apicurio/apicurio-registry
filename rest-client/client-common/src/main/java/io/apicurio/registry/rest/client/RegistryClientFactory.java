@@ -23,12 +23,14 @@ import io.apicurio.registry.auth.Auth;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class RegistryClientFactory {
 
+    private static final AtomicReference<RestClientProvider> providerReference = new AtomicReference<>();
     private static final RestClientServiceLoader serviceLoader = new RestClientServiceLoader();
 
     public static RegistryClient create(RegistryHttpClient registryHttpClient) {
@@ -44,10 +46,17 @@ public class RegistryClientFactory {
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
+        RestClientProvider p = providerReference.get();
+        if (p == null) {
+            providerReference.compareAndSet(null, resolveProviderInstance());
+            p = providerReference.get();
+        }
 
-        final RestClientProvider restClientProvider = resolveProviderInstance();
+        return new RegistryClientImpl(p.create(baseUrl, configs, auth));
+    }
 
-        return new RegistryClientImpl(restClientProvider.create(baseUrl, configs, auth));
+    public static boolean setProvider(RestClientProvider provider) {
+        return providerReference.compareAndSet(null, provider);
     }
 
     private static RestClientProvider resolveProviderInstance() {

@@ -49,6 +49,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+/**
+ * @author Carles Arnal 'carnalca@redhat.com'
+ */
 public class VertxHttpClient implements RegistryHttpClient {
 
     private final WebClient webClient;
@@ -57,10 +60,6 @@ public class VertxHttpClient implements RegistryHttpClient {
 
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
     private static final ThreadLocal<Map<String, String>> requestHeaders = ThreadLocal.withInitial(Collections::emptyMap);
-
-    public VertxHttpClient(String basePath, Map<String, Object> options, Auth auth) {
-        this(Vertx.currentContext() != null ? Vertx.currentContext().owner() : Vertx.vertx(), basePath, options, auth);
-    }
 
     public VertxHttpClient(Vertx vertx, String basePath, Map<String, Object> options, Auth auth) {
         if (!basePath.endsWith("/")) {

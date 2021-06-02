@@ -1,0 +1,1 @@
+custom_maven_command: -Pprod,sql,kafkasql clean install -DskipTests

@@ -17,7 +17,6 @@
 package io.apicurio.registry.test.utils;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import org.apache.kafka.clients.CommonClientConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
@@ -32,26 +31,21 @@ import java.util.Map;
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 
-    private final boolean skipKafkaContainer = Boolean.getBoolean("skipKafkaContainer");
     private KafkaContainer kafka;
 
     @SuppressWarnings("deprecation")
     @Override
     public Map<String, String> start() {
         log.info("Starting the Kafka Test Container");
-        String bootstrapServers = "localhost:9092";
-        if (!skipKafkaContainer) {
-            kafka = new KafkaContainer();
-            kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
-            kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-            kafka.start();
+        kafka = new KafkaContainer();
+        kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
+        kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
+        kafka.start();
 
-            bootstrapServers = kafka.getBootstrapServers();
+        String bootstrapServers = kafka.getBootstrapServers();
 
-        }
-        System.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         return Collections.singletonMap(
-                CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
+                "registry.kafkasql.bootstrap.servers",
                 bootstrapServers
         );
     }
@@ -59,8 +53,6 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     @Override
     public void stop() {
         log.info("Stopping the Kafka Test Container");
-        if (!skipKafkaContainer) {
-            kafka.stop();
-        }
+        kafka.stop();
     }
 }

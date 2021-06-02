@@ -59,7 +59,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String isDatabaseInitialized() {
-        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts' LIMIT 1";
+        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts'";
     }
 
     /**

@@ -19,9 +19,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.jdbi.v3.core.mapper.RowMapper;
-import org.jdbi.v3.core.statement.StatementContext;
-
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 
@@ -39,10 +37,10 @@ public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
     }
 
     /**
-     * @see org.jdbi.v3.core.mapper.RowMapper#map(java.sql.ResultSet, org.jdbi.v3.core.statement.StatementContext)
+     * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
-    public GlobalRuleEntity map(ResultSet rs, StatementContext ctx) throws SQLException {
+    public GlobalRuleEntity map(ResultSet rs) throws SQLException {
         GlobalRuleEntity entity = new GlobalRuleEntity();
         entity.ruleType = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");

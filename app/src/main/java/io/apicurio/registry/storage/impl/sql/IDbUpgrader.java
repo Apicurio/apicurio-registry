@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import org.jdbi.v3.core.Handle;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 
 /**
  * @author eric.wittmann@gmail.com

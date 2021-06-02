@@ -39,7 +39,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.PreDestroy;
@@ -365,7 +364,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
             ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
     }
@@ -374,7 +373,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> createArtifactWithMetadata(String groupId, String artifactId, String version,
+    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
@@ -390,9 +389,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         long globalId = nextClusterGlobalId();
 
-        return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
-                .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
+        UUID uuid = ConcurrentUtil.get(
+                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create,
+                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+        return (ArtifactMetaDataDto) coordinator.waitForResponse(uuid);
     }
 
     /**
@@ -460,7 +460,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
     }
@@ -469,7 +469,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public CompletionStage<ArtifactMetaDataDto> updateArtifactWithMetadata(String groupId, String artifactId, String version,
+    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -485,9 +485,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         long globalId = nextClusterGlobalId();
 
-        return submitter
-                .submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update, globalId, artifactType, contentHash, createdBy, createdOn, metaData)
-                .thenCompose(reqId -> (CompletionStage<ArtifactMetaDataDto>) coordinator.waitForResponse(reqId));
+        UUID reqId = ConcurrentUtil.get(
+                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update,
+                        globalId, artifactType, contentHash, createdBy, createdOn, metaData));
+        return (ArtifactMetaDataDto) coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -554,22 +555,18 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRuleAsync(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
-    public CompletionStage<Void> createArtifactRuleAsync(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactRuleExists(groupId, artifactId, rule)) {
             throw new RuleAlreadyExistsException(rule);
         }
 
-        return submitter
-                .submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.Create, config)
-                .thenCompose(reqId -> {
-                    CompletionStage<Void> rval = (CompletionStage<Void>) coordinator.waitForResponse(reqId);
-                    log.debug("===============> Artifact rule (async) completed.  Rval: {}", rval);
-                    return rval;
-                });
+        UUID reqId = ConcurrentUtil.get(
+                submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.Create, config));
+        coordinator.waitForResponse(reqId);
     }
 
     /**

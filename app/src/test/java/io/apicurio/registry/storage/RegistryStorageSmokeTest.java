@@ -41,7 +41,6 @@ import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
@@ -97,11 +96,11 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1")));
+        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_1);
-        ArtifactMetaDataDto meta2 = ConcurrentUtil.result(getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2")));
+        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"));
         this.waitForGlobalId(meta2.getGlobalId());
-        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3")));
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3"));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_2);
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
@@ -156,7 +155,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testRules() throws Exception {
-        ConcurrentUtil.result(getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1")));
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1"));
 
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_3);
 
@@ -191,17 +190,17 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         final String testId2 = TestUtils.generateArtifactId();
 
         try {
-            ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}")));
+            getStorage()
+                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}"));
             this.waitForArtifact(GROUP_ID, testId0);
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
-            ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}")));
-            ConcurrentUtil.result(getStorage()
-                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}")));
+            getStorage()
+                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}"));
+            getStorage()
+                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}"));
 
             this.waitForArtifact(GROUP_ID, testId1);
             this.waitForArtifact(GROUP_ID, testId2);

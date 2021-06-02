@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
 
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -44,10 +43,9 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
         String bootstrapServers = kafka.getBootstrapServers();
 
-        return Collections.singletonMap(
-                "registry.kafkasql.bootstrap.servers",
-                bootstrapServers
-        );
+        return Map.of(
+                    "registry.events.kafka.config.bootstrap.servers", bootstrapServers,
+                    "registry.kafkasql.bootstrap.servers", bootstrapServers);
     }
 
     @Override

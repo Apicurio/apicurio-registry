@@ -1,0 +1,131 @@
+name: Release Images
+on:
+  workflow_dispatch: {}
+  release:
+    types: [released]
+
+
+# github.event context is only available when the workflow gets triggered by a release event. Therefore, commenting the below
+# section and add an additional step of fething the required details explicitly to make the workflow work with manual triggers
+
+#env:
+#  # Setting up workflow level environment varibles to make them available in both jobs
+#  # The values are extracted from the github.event context, which is automatically availble when a release a created.
+#  RELEASE_VERSION: ${{ github.event.release.name }}
+#  SOURCE_CODE_URL: ${{ github.event.release.zipball_url }}
+#  BRANCH: ${{ github.event.release.target_commitish }}
+
+
+jobs:
+  release-images:
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-18.04 
+    steps:
+
+      - name: Fetch required Details
+        run: |
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
+
+      - name: Download Source Code
+        run: wget -c $SOURCE_CODE_URL && unzip $RELEASE_VERSION && ls -lrt && mv ${{github.repository_owner}}* registry
+        
+      # We have faced issues in the past where a github release was created from a wrong commit
+      # This step will ensure that the release was created from the right commit  
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != $RELEASE_VERSION ]]
+          then
+              echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${RELEASE_VERSION}'"
+              exit 1	  
+          fi
+
+      - name: Set up JDK 11
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: '11'
+          architecture: x64
+
+      - name: Build Project
+        run: cd registry && make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+
+      - name: Build The Images For Docker.io
+        run: cd registry && ./.github/scripts/build-images.sh ${BRANCH} docker.io release ${RELEASE_VERSION} 
+
+      - name: List All Docker Images
+        run: docker images
+      
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          
+      - name: Push The Images To Docker.io 
+        run: cd registry && ./.github/scripts/push-images.sh ${BRANCH} docker.io release ${RELEASE_VERSION}
+        
+      - name: Build The Images For Quay.io
+        run: cd registry && ./.github/scripts/build-images.sh ${BRANCH} quay.io release ${RELEASE_VERSION}
+
+      - name: List All Docker Images
+        run: docker images
+          
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" Quay.io
+          
+      - name: Push The Images To Quay.io 
+        run: cd registry && ./.github/scripts/push-images.sh ${BRANCH} quay.io release ${RELEASE_VERSION}
+          
+      - name: Push The Images To Quay.io 
+        run: cd registry && ./.github/scripts/push-images.sh ${BRANCH} quay.io release ${RELEASE_VERSION}
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}
+
+  verify-release:
+    runs-on: ubuntu-18.04
+    needs: ["release-images"]   # The Job gets triggered only after the "release-images" job has successfully completed. The job doesn't run in case the "release-images" job fails
+    if: github.repository_owner == 'Apicurio'
+    steps:
+
+      - name: Fetch required Details
+        run: |
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
+
+      - name: Checkout Code with Ref '${{ github.ref }}'
+        uses: actions/checkout@v2      
+
+      - name: Determine Floating Tag
+        run: |
+          if [[ $BRANCH == 'master' ]]
+          then
+              echo "FLOATING_TAG=latest-release" >> $GITHUB_ENV
+          else
+              echo "FLOATING_TAG=$BRANCH-release" >> $GITHUB_ENV
+          fi
+
+      - name: Verify Docker Release For mem
+        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${RELEASE_VERSION} apicurio/apicurio-registry-mem:${FLOATING_TAG} 
+     
+      - name: Verify Docker Release For sql
+        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-sql:${RELEASE_VERSION} apicurio/apicurio-registry-sql:${FLOATING_TAG}  
+    
+      - name: Verify Docker Release For kafkasql
+        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${RELEASE_VERSION} apicurio/apicurio-registry-kafkasql:${FLOATING_TAG}
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}  

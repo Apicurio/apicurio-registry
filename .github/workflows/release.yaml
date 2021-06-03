@@ -70,32 +70,6 @@ jobs:
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
           git pull
 
-      - name: Apicurio Website Checkout
-        run: |
-          mkdir website
-          cd website
-          git init
-          git config --global user.name "apicurio-ci"
-          git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
-          git fetch
-          git checkout ${{ github.event.inputs.branch }}
-          git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
-          git pull
-
-      - name: Apicurio Playbook Checkout
-        run: |
-          mkdir docs-playbook
-          cd docs-playbook
-          git init
-          git config --global user.name "apicurio-ci"
-          git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-docs-playbook.git"
-          git fetch
-          git checkout ${{ github.event.inputs.branch}}
-          git branch --set-upstream-to=origin/${{ github.event.inputs.branch}}
-          git pull
-
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
           cd registry
@@ -117,6 +91,21 @@ jobs:
           cd registry-examples
           mvn clean install
 
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v1
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+ 
+      - name: Maven Deploy
+        run: |
+          cd registry
+          # Retry 3 times before the steps actually fails
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "==== Maven Deploy Step Failed ====" && exit 1)
+          
       - name: Commit Release Version Change
         run: |
           cd registry
@@ -128,17 +117,12 @@ jobs:
           git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
           git push
 
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@v1
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          
-      - name: Fetch Latest Commit SHA For Apicurio Registry
+      - name: Tag Examples
         run: |
-          cd registry
-          echo "latest_commit_sha=$(git log -n 1 --pretty=format:"%H")" >> $GITHUB_ENV
-
+          cd registry-examples
+          git tag -a -m "Tagging release ${{ github.event.inputs.release-version}}" ${{ github.event.inputs.release-version}}
+          git push origin ${{ github.event.inputs.release-version}}
+      
       - name: Create GitHub Release
         run: |
           cd registry
@@ -147,46 +131,7 @@ jobs:
       - name: Generate Release Notes
         run: |
           cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
-
-      - name: Tag Examples
-        run: |
-          cd registry-examples
-          git tag -a -m "Tagging release ${{ github.event.inputs.release-version}}" ${{ github.event.inputs.release-version}}
-          git push origin ${{ github.event.inputs.release-version}}
-
-      - name: Login to DockerHub Registry
-        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
-      - name: Build The Images For Docker.io
-        run: cd registry && ./.github/scripts/build-images.sh ${{ github.event.inputs.branch }} docker.io release ${{ github.event.inputs.release-version}} 
-
-      - name: List All Docker Images
-        run: docker images
-          
-      - name: Push The Images To Docker.io 
-        run: cd registry && ./.github/scripts/push-images.sh ${{ github.event.inputs.branch }} docker.io release ${{ github.event.inputs.release-version}}
-          
-      - name: Login to Quay.io Registry
-        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" Quay.io
-        
-      - name: Build The Images For Quay.io
-        run: cd registry && ./.github/scripts/build-images.sh ${{ github.event.inputs.branch }} quay.io release ${{ github.event.inputs.release-version}} 
-
-      - name: List All Docker Images
-        run: docker images
-          
-      - name: Push The Images To Quay.io 
-        run: cd registry && ./.github/scripts/push-images.sh ${{ github.event.inputs.branch }} quay.io release ${{ github.event.inputs.release-version}}
- 
-      - name: Maven Deploy
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
+          gren release --token=${{ secrets.GITHUB_TOKEN }} --override      
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
@@ -205,35 +150,7 @@ jobs:
           cd ../registry-examples
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
-          git push
-
-      - name: Generate Project Documentation for Website
-        run: |
-          echo "********** Building Registry Documentation using Antora **********"
-          cd docs-playbook
-          docker pull apicurio/apicurio-docs-builder:latest
-          docker run -v $(pwd):/apicurio-docs-playbook apicurio/apicurio-docs-builder:latest
-          rm -rf ../website/registry/docs/*
-          cp -rf target/dist/* ../website/registry/docs/.
-
-      - name: Updating Project Website for Release ${{ github.event.inputs.release-version}}
-        run: |
-          cd website
-          echo "********** Downloading Latest Release JSON File **********"
-          cd _data/registry
-          rm latestRelease.json
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          
-          echo "********** Copying Latest Release JSON File **********"
-          PUBLISHED_AT=$(cat latestRelease.json | jq '.tag_name' | sed 's/"//g')
-          cp latestRelease.json releases/$PUBLISHED_AT.json
-
-      - name: Commit Project Website Changes
-        run: |
-          cd website
-          git add .
-          git commit -m "Automated Update For Apicurio Registry Release Version: ${{ github.event.inputs.release-version}}"
-          git push
+          git push  
 
       # TODO: ${{ steps.create_release.outputs.html_url }} will not be available, since we're now using script to do github release. Need to explicitly fetch
       # - name: Tweet About The Release
@@ -245,30 +162,10 @@ jobs:
       #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
       #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
 
-  verify-release:
-    runs-on: ubuntu-18.04
-    needs: ["release"]   # The Job gets triggered only after the "release" job has successfully completed. The job doesn't run in case the "release" job fails
-    if: github.repository_owner == 'Apicurio' && github.event.inputs.branch == 'master'
-    steps:
-      - name: Set up JDK 11
-        uses: AdoptOpenJDK/install-jdk@v1
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
         with:
-          version: '11'
-          architecture: x64
-
-      - name: Checkout Code
-        uses: actions/checkout@v2
-
-      - name: Verify Docker Release For mem
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-mem:latest-release 
-     
-      - name: Verify Docker Release For sql
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-sql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-sql:latest-release 
-    
-      - name: Verify Docker Release For kafkasql
-        run: ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${{ github.event.inputs.release-version}} apicurio/apicurio-registry-kafkasql:latest-release 
-
-#      - name: Verify Maven Release
-#        run: |
-#          cd .github/test-mvn-deploy
-#          mvn clean install "-Dversion.apicurio=${{ github.event.inputs.release-version}}" # Passing the latest version at run-time
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

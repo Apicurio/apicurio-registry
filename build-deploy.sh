@@ -3,20 +3,24 @@
 set -eo pipefail
 
 
-PROJECT_NAME="srs-tenant-manager"
+PROJECT_NAME="multitenant-service-registry"
 IMAGE_REGISTRY="quay.io"
 IMAGE_ORG="rhoas"
-IMAGE_NAME="${PROJECT_NAME}"
 IMAGE_TAG="latest"
 
+SKIP_TESTS=true # skipping tests since tests require docker. fabian working to fix this
+MVN_BUILD_COMMAND="mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=${SKIP_TESTS}"
 
-MVN_BUILD_COMMAND="mvn clean install -am -Pprod -Pmultitenancy -pl multitenancy/tenant-manager-api"
-DOCKER_BUILD_COMMAND="docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG} ./multitenancy/tenant-manager-api/"
+SERVICE_REGISTRY_IMAGE_NAME="srs-service-registry"
+SERVICE_REGISTRY_DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.sql.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${SERVICE_REGISTRY_IMAGE_NAME}:${IMAGE_TAG} ./distro/docker/target/docker"
+
+TENANT_MANAGER_IMAGE_NAME="srs-tenant-manager"
+TENANT_MANAGER_DOCKER_BUILD_COMMAND="docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${TENANT_MANAGER_IMAGE_NAME}:${IMAGE_TAG} ./multitenancy/tenant-manager-api/"
+
 
 
 display_usage() {
     cat <<EOT
-
 
 ##########################################################################################################################
 
@@ -40,11 +44,11 @@ Example: $0 --org rhoas --name srs-service-registry --tag 2.0.0.Final
 options include:
 
 -o, --org         The organization the container image will be part of. If not set defaults to 'rhoas'
--n, --name        The name of the container image. If not set defaults to 'srs-fleet-manager'
 -t, --tag         The tag of the container image. If not set defaults to 'latest'
 -h, --help        This help message
 
-###########################################################################################################################
+##########################################################################################################################
+
 
 
 EOT
@@ -56,11 +60,16 @@ build_project() {
     echo " Building Project '${PROJECT_NAME}'..."
     echo " Build Command: ${MVN_BUILD_COMMAND}"
     echo "#######################################################################################################"
-    ${MVN_BUILD_COMMAND}
+    # AppSRE environments doesn't has maven, jdk11, node and yarn which are required depencies for building this project
+    # Installing these dependencies is a tedious task and also since it's a shared instance, installing the required versions of these dependencies is not possible sometimes
+    # Hence, using custom container that packs the required dependencies with the specific required versions
+    docker run --rm -t -u $(id -u):$(id -g) -w /home/user -v $(pwd):/home/user quay.io/riprasad/srs-project-builder:latest bash -c "${MVN_BUILD_COMMAND}"
 }
 
 
 build_image() {
+    local IMAGE_NAME="$1"
+    local DOCKER_BUILD_COMMAND="$2"
     echo "#######################################################################################################"
     echo " Building Image ${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}"
     echo " IMAGE_REGISTRY: ${IMAGE_REGISTRY}"
@@ -72,8 +81,7 @@ build_image() {
     ${DOCKER_BUILD_COMMAND}
 }
 
-
-push_image() {
+quay_login() {
     echo "Logging to ${IMAGE_REGISTRY}..."
     echo "docker login -u ${RHOAS_QUAY_USER} -p ${RHOAS_QUAY_TOKEN} ${IMAGE_REGISTRY}"
     docker login -u "${RHOAS_QUAY_USER}" -p "${RHOAS_QUAY_TOKEN}" "${IMAGE_REGISTRY}"
@@ -83,7 +91,10 @@ push_image() {
     else
       echo "Login to ${IMAGE_REGISTRY} Failed!"
     fi
+}
 
+push_image() {
+    local IMAGE_NAME="$1"
     echo "#######################################################################################################"
     echo " Pushing Image ${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}"
     echo "#######################################################################################################"
@@ -118,10 +129,6 @@ main() {
             shift
             IMAGE_ORG="$1"
             ;;
-          -n|--name)
-            shift
-            IMAGE_NAME="$1"
-            ;;
           -t|--tag)
             shift
             IMAGE_TAG="$1"
@@ -143,10 +150,19 @@ main() {
        exit 1
     fi
 
-    # function calls
+    # building multitenant service registry
     build_project
-    build_image
-    push_image
+
+    # building images
+    build_image "${SERVICE_REGISTRY_IMAGE_NAME}" "${SERVICE_REGISTRY_DOCKER_BUILD_COMMAND}"
+    build_image "${TENANT_MANAGER_IMAGE_NAME}" "${TENANT_MANAGER_DOCKER_BUILD_COMMAND}"
+
+    # logging to quay
+    quay_login
+
+    # pushing the images to quay
+    push_image ${SERVICE_REGISTRY_IMAGE_NAME}
+    push_image ${TENANT_MANAGER_IMAGE_NAME}
 
 }
 

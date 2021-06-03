@@ -3,8 +3,10 @@
 set -eo pipefail
 
 
-PROJECT_NAME="srs-service-registry"
-MVN_BUILD_COMMAND="mvn clean install -Pprod -Psql -Pmultitenancy"
+PROJECT_NAME="multitenant-service-registry"
+
+SKIP_TESTS=true # skipping tests since tests require docker. fabian working to fix this
+MVN_BUILD_COMMAND="mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=${SKIP_TESTS}"
 
 
 display_usage() {
@@ -35,7 +37,10 @@ build_project() {
     echo " Building Project '${PROJECT_NAME}'..."
     echo " Build Command: ${MVN_BUILD_COMMAND}"
     echo "#######################################################################################################"
-    ${MVN_BUILD_COMMAND}
+    # AppSRE environments doesn't has maven, jdk11, node and yarn which are required depencies for building this project
+    # Installing these dependencies is a tedious task and also since it's a shared instance, installing the required versions of these dependencies is not possible sometimes
+    # Hence, using custom container that packs the required dependencies with the specific required versions
+    docker run --rm -t -u $(id -u):$(id -g) -w /home/user -v $(pwd):/home/user quay.io/riprasad/srs-project-builder:latest bash -c "${MVN_BUILD_COMMAND}"
 }
 
 

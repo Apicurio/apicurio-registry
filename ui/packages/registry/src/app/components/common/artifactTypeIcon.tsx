@@ -128,3 +128,5 @@ export class ArtifactTypeIcon extends PureComponent<ArtifactTypeIconProps, Artif
     }
 
 }
+
+export default ArtifactTypeIcon;

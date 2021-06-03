@@ -167,7 +167,7 @@
 
         <!-- Dependency versions -->
         <lombok.version>1.18.20</lombok.version>
-        <h2.version>1.4.199</h2.version>
+        <h2.version>1.4.198</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
@@ -562,6 +562,41 @@
                 <artifactId>keycloak-authz-client</artifactId>
                 <version>${keycloak-authz-client.version}</version>
             </dependency>
+
+
+
+        <!-- Keycloak Override -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+            <version>${keycloak.version}</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- RESTEasy Override -->
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-core</artifactId>
+            <version>4.5.10.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- Netty Override -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>4.1.54.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+            <version>4.1.61.Final</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <!-- H2 Override -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${h2.version}</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
 
         </dependencies>
     </dependencyManagement>

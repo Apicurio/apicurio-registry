@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.util;
-
-import io.quarkus.test.common.QuarkusTestResource;
+package io.apicurio.registry;
 
 /**
  * @author Fabian Martinez
  */
-@QuarkusTestResource(value = PostgreSqlEmbeddedTestResource.class)
-public class SqlStorageTestResources {
+public class ApicurioTestTags {
+
+    public static final String DOCKER = "docker";
 
 }

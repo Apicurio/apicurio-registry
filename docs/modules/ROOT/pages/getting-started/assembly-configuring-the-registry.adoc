@@ -7,14 +7,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains various configuration options for {registry}, such as authentication settings, logging, and health checks on OpenShift.
 
-* xref:registry-security[]
-* xref:registry-logging[]
 * xref:configuring-liveness-readiness-probes[]
 * xref:registry-liveness-env-vars[]
-
+* xref:registry-security-settings[]
+* xref:registry-logging[]
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-configuring-registry-security.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[leveloffset=+1]

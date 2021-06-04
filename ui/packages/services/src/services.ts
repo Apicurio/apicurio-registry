@@ -28,6 +28,8 @@ import {AuthService} from "./auth";
  */
 export class Services {
 
+    static _isInit: boolean = false;
+
     public static getArtifactsService(): ArtifactsService {
         return Services.all.artifacts;
     }
@@ -68,6 +70,9 @@ export class Services {
 
     // tslint:disable-next-line:member-ordering member-access
     static _intialize(): void {
+        if (Services._isInit) {
+            return;
+        }
         // First perform simple service-service injection.
         Object.keys(Services.all).forEach( svcToInjectIntoName => {
             const svcToInjectInto: any = Services.all[svcToInjectIntoName];
@@ -82,6 +87,8 @@ export class Services {
             const svcToInit: Service = Services.all[svcToInjectIntoName];
             svcToInit.init();
         });
+        Services._isInit = true;
+        Services.getLoggerService().info("[Services] Services successfully initialized.");
     }
 
 }

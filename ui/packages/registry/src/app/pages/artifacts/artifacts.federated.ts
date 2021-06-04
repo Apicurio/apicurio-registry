@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,15 @@
  * limitations under the License.
  */
 
-export * from "./common";
-export * from "./errorPage";
-export * from "./header";
-export * from "./ruleList";
-export * from "./baseComponent";
-export * from "./modals";
-export * from "./test.federated";
+import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
+import {Services} from "@apicurio/registry-services/src";
+
+export default class FederatedArtifactsPage extends ArtifactsPage {
+
+    constructor(props: Readonly<ArtifactsPageProps>) {
+        super(props);
+    }
+
+}
+
+Services._intialize();

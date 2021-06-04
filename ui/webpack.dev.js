@@ -18,7 +18,8 @@ module.exports = merge(common, {
     new CopyWebpackPlugin({
       patterns: [
         {from: "./src/version.js"},
-        {from: "./src/config.js"}
+        {from: "./src/config.js"},
+        {from: "./src/favicon.ico"},
       ]}),
     new NodePolyfillPlugin(),
     new HtmlWebpackPlugin({

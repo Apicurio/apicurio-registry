@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import React, {PureComponent} from "react";
+import {Services} from "../../services";
 
 /**
  * Properties
@@ -40,6 +41,7 @@ export class FederatedTestWidget extends PureComponent<FederatedTestWidgetProps,
     }
 
     public render(): React.ReactElement {
+        Services.getLoggerService().info("[FederatedTestWidget] Rendering!");
         return (
             <h2 className="federated-test">Test Widget</h2>
         );

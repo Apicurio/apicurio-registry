@@ -27,7 +27,7 @@ export interface ArtifactsConfig {
 
 export interface UiConfig {
     url: string;
-    contextPath: string;
+    contextPath: string|null;
 }
 
 export interface AuthConfig {

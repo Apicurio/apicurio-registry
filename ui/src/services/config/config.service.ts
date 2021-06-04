@@ -56,7 +56,7 @@ export class ConfigService implements Service {
             this.config = w.ApicurioRegistryConfig;
             console.info("[ConfigService] Found app config.");
         } else {
-            console.error("[ConfigService] App config not found! (using default)");
+            console.warn("[ConfigService] App config not found! (using default)");
             this.config = DEFAULT_CONFIG;
         }
     }
@@ -65,14 +65,14 @@ export class ConfigService implements Service {
         // Nothing to init (done in c'tor)
     }
 
-    public artifactsType(): string {
+    public artifactsType(): string|null {
         if (!this.config.artifacts) {
             return null;
         }
         return this.config.artifacts.type;
     }
 
-    public artifactsUrl(): string {
+    public artifactsUrl(): string|null {
         if (!this.config.artifacts) {
             return null;
         }
@@ -108,11 +108,11 @@ export class ConfigService implements Service {
     }
 
     public featureReadOnly(): boolean {
-        return this.features().readOnly;
+        return this.features().readOnly || false;
     }
 
     public featureBreadcrumbs(): boolean {
-        return this.features().breadcrumbs;
+        return this.features().breadcrumbs || false;
     }
 
     public authType(): string {

@@ -23,7 +23,7 @@ import {PureComponent, PureComponentProps, PureComponentState} from "../../../..
  * Properties
  */
 export interface ArtifactNameProps extends PureComponentProps {
-    groupId: string;
+    groupId: string|null;
     id: string;
     name: string;
 }

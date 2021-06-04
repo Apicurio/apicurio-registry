@@ -10,11 +10,6 @@ const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 module.exports = merge(common, {
   mode: "production",
   devtool: "source-map",
-  optimization: {
-    minimizer: [
-      new OptimizeCSSAssetsPlugin({})
-    ]
-  },
   plugins: [
     new MiniCssExtractPlugin({
       filename: "[name].css",
@@ -45,6 +40,9 @@ module.exports = merge(common, {
     filename: "[name].bundle.[contenthash].js"
   },
   optimization: {
+    minimizer: [
+      new OptimizeCSSAssetsPlugin({})
+    ],
     moduleIds: "deterministic",
     runtimeChunk: "single",
     splitChunks: {

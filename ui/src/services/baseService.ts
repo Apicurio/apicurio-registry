@@ -251,6 +251,7 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("delete", url, options);
+        // @ts-ignore
         return AXIOS.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;

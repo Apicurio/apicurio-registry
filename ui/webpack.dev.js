@@ -6,7 +6,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 const { ModuleFederationPlugin } = require("webpack").container;
-const {federatedModuleName, dependencies} = require("./package.json");
+const { federatedModuleName, dependencies } = require("./package.json");
 
 const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || "8888";
@@ -29,6 +29,7 @@ module.exports = merge(common, {
       filename: "remoteEntry.js",
       exposes: {
         "./FederatedTestWidget": "./src/app/components/test.federated",
+        "./ArtifactTypeIcon": "./src/app/components/common/artifactTypeIcon",
       },
       shared: {
         ...dependencies,
@@ -45,9 +46,6 @@ module.exports = merge(common, {
       }
     })
   ],
-  output: {
-    publicPath: "auto"
-  },
   devServer: {
     contentBase: "./dist",
     host: HOST,

@@ -18,7 +18,7 @@
 import React from 'react';
 import "./header.css"
 import {Brand, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
-import brandImg from "../../../../assets/images/apicurio_logo_darkbkg_350px.png";
+import brandImg from "./apicurio_logo_darkbkg_350px.png";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {IfAuth} from "../common/ifAuth";
 import {AvatarDropdown} from "./avatarDropdown";

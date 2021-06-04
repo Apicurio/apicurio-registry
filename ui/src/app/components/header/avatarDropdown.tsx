@@ -17,7 +17,7 @@
 
 import React from 'react';
 import "./avatarDropdown.css"
-import avatarImg from "../../../../assets/images/avatar.png";
+import avatarImg from "./avatar.png";
 import {Avatar, Button, Dropdown, DropdownItem, DropdownToggle} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {Services} from "../../../services";
@@ -42,7 +42,7 @@ export class AvatarDropdown extends PureComponent<AvatarDropdownProps, AvatarDro
     public render(): React.ReactElement {
         const dropdownItems = [
             <DropdownItem key="logout">
-                <Button className="avatar-logout-link" onClick={Services.getAuthService().doLogout()} variant="link" isInline={true}>Logout</Button>
+                <Button className="avatar-logout-link" onClick={() => Services.getAuthService().doLogout()} variant="link" isInline={true}>Logout</Button>
             </DropdownItem>,
         ];
 

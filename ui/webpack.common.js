@@ -94,7 +94,6 @@ module.exports = {
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
         include: [
-          path.resolve(__dirname, "assets"),
           path.resolve(__dirname, "src"),
           path.resolve(__dirname, "node_modules/patternfly"),
           path.resolve(__dirname, "node_modules/@patternfly/patternfly/assets"),
@@ -114,10 +113,6 @@ module.exports = {
       }
     ]
   },
-  output: {
-    filename: "[name].bundle.js",
-    path: path.resolve(__dirname, "dist")
-  },
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
     plugins: [
@@ -128,4 +123,14 @@ module.exports = {
     symlinks: false,
     cacheWithContext: false
   },
+  output: {
+    filename: "[name].bundle.js",
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "auto"
+  },
+  performance: {
+    hints: false,
+    maxEntrypointSize: 2097152,
+    maxAssetSize: 1048576
+  }
 };

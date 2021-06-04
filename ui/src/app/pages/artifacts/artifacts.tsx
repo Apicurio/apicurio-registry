@@ -26,7 +26,6 @@ import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
 import {InvalidContentModal} from "../../components/modals";
 import {If} from "../../components/common/if";
-import FederatedTestWidget from "../../components/test.federated";
 import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services} from "../../../services";
 import {SearchedArtifact} from "../../../models";
 
@@ -67,7 +66,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
-                    <FederatedTestWidget />
                 </PageSection>
                 <If condition={this.showToolbar}>
                     <PageSection variant={PageSectionVariants.light} noPadding={true}>

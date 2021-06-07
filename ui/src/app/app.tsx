@@ -39,7 +39,7 @@ export default class App extends React.PureComponent<{}, {}> {
 
     public render() {
         const contextPath: string|undefined = Services.getConfigService().uiContextPath();
-        Services.getLoggerService().info("Using app contextPath: ", contextPath);
+        Services.getLoggerService().info("[App] Using app contextPath: ", contextPath);
 
         // Function to force the Artifact Version Page to fully remount each time we navigate to it.  This
         // is needed because we want the page to fully rerender whenever the browser location changes, which

@@ -99,9 +99,23 @@ export class ConfigService implements Service {
 
     public uiContextPath(): string|undefined {
         if (!this.config.ui || !this.config.ui.contextPath) {
-            return undefined;
+            return "";
+        }
+        if (this.config.ui.contextPath.endsWith("/")) {
+            this.config.ui.contextPath = this.config.ui.contextPath.substr(0, this.config.ui.contextPath.length - 1);
         }
         return this.config.ui.contextPath;
+    }
+
+    public setUiContextPath(contextPath: string): void {
+        if (!this.config.ui || !this.config.ui.contextPath) {
+            this.config.ui = {
+                contextPath,
+                url: ""
+            };
+        } else {
+            this.config.ui.contextPath = contextPath;
+        }
     }
 
     public features(): FeaturesConfig {

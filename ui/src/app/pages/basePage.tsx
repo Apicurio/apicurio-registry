@@ -88,7 +88,7 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected postConstruct(): void {
         // @ts-ignore
-        this.setHistory(this.props.history);
+        PureComponent.setHistory(this.props.history);
         super.postConstruct();
     }
 

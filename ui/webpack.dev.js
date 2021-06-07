@@ -29,7 +29,10 @@ module.exports = merge(common, {
       name: federatedModuleName,
       filename: "remoteEntry.js",
       exposes: {
-        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated"
+        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
+        "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
+        "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
+        "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
       },
       shared: {
         ...dependencies,

@@ -53,7 +53,7 @@ export class RulesPageHeader extends PureComponent<RulesPageHeaderProps, RulesPa
                     </TextContent>
                 </FlexItem>
                 <FlexItem align={{default : "alignRight"}}>
-                    <Link to="/artifacts">Back to artifacts</Link>
+                    <Link to={this.linkTo("/artifacts")}>Back to artifacts</Link>
                 </FlexItem>
             </Flex>
         );

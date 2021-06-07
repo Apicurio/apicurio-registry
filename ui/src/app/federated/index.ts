@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2021 Red Hat
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,4 @@
  * limitations under the License.
  */
 
-import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
-import {FederatedPageProps, FederatedUtils} from "../../federated";
-
-export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedPageProps {
-}
-
-export default class FederatedArtifactsPage extends ArtifactsPage {
-
-    constructor(props: Readonly<FederatedArtifactsPageProps>) {
-        super(props);
-    }
-
-    protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
-        super.postConstruct();
-    }
-
-}
+export * from "./federated-utils";

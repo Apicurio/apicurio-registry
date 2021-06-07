@@ -66,7 +66,9 @@ export class NotFoundPage extends PageComponent<NotFoundPageProps, NotFoundPageS
                         <EmptyStateBody>
                             This page couldn't be found.  If you think this is a bug, please report the issue.
                         </EmptyStateBody>
-                        <Button variant="primary" data-testid="error-btn-artifacts" onClick={this.navigateTo("/artifacts")}>Show all artifacts</Button>
+                        <Button variant="primary"
+                                data-testid="error-btn-artifacts"
+                                onClick={this.navigateTo(this.linkTo("/artifacts"))}>Show all artifacts</Button>
                     </EmptyState>
                 </PageSection>
             </React.Fragment>

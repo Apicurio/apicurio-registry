@@ -59,7 +59,7 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
 
                     <IfAuth isAdmin={true}>
                         <Link className="btn-header-global-rules pf-c-button pf-m-secondary"
-                              data-testid="btn-header-global-rules" to={`/rules`}>Manage global rules</Link>
+                              data-testid="btn-header-global-rules" to={this.linkTo(`/rules`)}>Manage global rules</Link>
                     </IfAuth>
 
                     <IfAuth isDeveloper={true}>

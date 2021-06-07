@@ -15,21 +15,31 @@
  * limitations under the License.
  */
 
-import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
+import {ArtifactRedirectPage, ArtifactRedirectPageProps} from "./artifact";
 import {FederatedPageProps, FederatedUtils} from "../../federated";
 
-export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedPageProps {
+export interface FederatedArtifactRedirectPageProps extends ArtifactRedirectPageProps, FederatedPageProps {
+    groupId: string;
+    artifactId: string;
 }
 
-export default class FederatedArtifactsPage extends ArtifactsPage {
+export default class FederatedArtifactRedirectPage extends ArtifactRedirectPage {
 
-    constructor(props: Readonly<FederatedArtifactsPageProps>) {
+    constructor(props: Readonly<FederatedArtifactRedirectPageProps>) {
         super(props);
     }
 
     protected postConstruct(): void {
         FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
         super.postConstruct();
+    }
+
+    protected groupIdParam(): string {
+        return (<FederatedArtifactRedirectPageProps>this.props).groupId;
+    }
+
+    protected artifactIdParam(): string {
+        return (<FederatedArtifactRedirectPageProps>this.props).artifactId;
     }
 
 }

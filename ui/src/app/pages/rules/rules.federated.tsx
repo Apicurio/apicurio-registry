@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2021 Red Hat
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,25 @@
  * limitations under the License.
  */
 
-import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
+import React from "react";
+import "./rules.css";
+import {RulesPage, RulesPageProps} from "./rules";
 import {FederatedPageProps, FederatedUtils} from "../../federated";
 
-export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedPageProps {
+
+/**
+ * Properties
+ */
+// tslint:disable-next-line:no-empty-interface
+export interface FederatedRulesPageProps extends RulesPageProps, FederatedPageProps {
 }
 
-export default class FederatedArtifactsPage extends ArtifactsPage {
+/**
+ * The global rules page.
+ */
+export default class FederatedRulesPage extends RulesPage {
 
-    constructor(props: Readonly<FederatedArtifactsPageProps>) {
+    constructor(props: Readonly<FederatedRulesPageProps>) {
         super(props);
     }
 

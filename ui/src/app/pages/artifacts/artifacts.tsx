@@ -161,8 +161,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             }
             Services.getGroupsService().createArtifact(this.state.uploadFormData).then(metaData => {
                 const groupId: string = metaData.groupId ? metaData.groupId : "default";
-                const artifactLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`;
-                Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
+                const artifactLocation: string = this.linkTo(`/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`);
+                Services.getLoggerService().info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
                 if (error && error.error_code === 400) {

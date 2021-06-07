@@ -35,6 +35,10 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
     private static HISTORY: any = null;
     private testIdCounter: number = 1;
 
+    public static setHistory(history: any): void {
+        PureComponent.HISTORY = history;
+    }
+
     protected constructor(properties: Readonly<P>) {
         super(properties);
         this.state = this.initializeState();
@@ -49,10 +53,6 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
 
     protected postConstruct(): void {
         // Can optionally be overridden by subclasses.
-    }
-
-    protected setHistory(history: any): void {
-        PureComponent.HISTORY = history;
     }
 
     protected setSingleState(key: string, value: any, callback?: () => void): void {
@@ -80,5 +80,9 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
             }
         };
     };
+
+    protected linkTo(url: string): string {
+        return Services.getConfigService().uiContextPath() + url;
+    }
 
 }

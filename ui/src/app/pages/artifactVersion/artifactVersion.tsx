@@ -114,12 +114,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             tabs.splice(1, 1);
         }
 
-        let groupId: string = this.getPathParam("groupId");
+        let groupId: string = this.groupIdParam();
         let hasGroup: boolean = groupId != "default";
         let breadcrumbs = (
             <Breadcrumb>
-                <BreadcrumbItem><Link to="/artifacts" data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
-                <BreadcrumbItem><Link to={`/artifacts?group=${ encodeURIComponent(groupId) }`}
+                <BreadcrumbItem><Link to={this.linkTo("/artifacts")} data-testid="breadcrumb-lnk-artifacts">Artifacts</Link></BreadcrumbItem>
+                <BreadcrumbItem><Link to={this.linkTo(`/artifacts?group=${ encodeURIComponent(groupId) }`)}
                                       data-testid="breadcrumb-lnk-group">{ groupId }</Link></BreadcrumbItem>
                 <BreadcrumbItem isActive={true}>{ this.artifactId() }</BreadcrumbItem>
             </Breadcrumb>
@@ -140,7 +140,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 </IfFeature>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactVersionPageHeader versions={this.versions()}
-                                               version={this.version()}
+                                               version={this.versionParam()}
                                                onUploadVersion={this.onUploadVersion}
                                                onDeleteArtifact={this.onDeleteArtifact}
                                                groupId={groupId}
@@ -224,17 +224,29 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         };
     }
 
+    protected groupIdParam(): string {
+        return this.getPathParam("groupId");
+    }
+
+    protected artifactIdParam(): string {
+        return this.getPathParam("artifactId");
+    }
+
+    protected versionParam(): string {
+        return this.getPathParam("version");
+    }
+
     // @ts-ignore
     protected createLoaders(): Promise[] | null {
-        let groupId: string|null = this.getPathParam("groupId");
+        let groupId: string|null = this.groupIdParam();
         if (groupId == "default") {
             groupId = null;
         }
-        const artifactId: string = this.getPathParam("artifactId");
+        const artifactId: string = this.artifactIdParam();
         Services.getLoggerService().info("Loading data for artifact: ", artifactId);
         return [
-            Services.getGroupsService().getArtifactMetaData(groupId, artifactId, this.version()).then(md => this.setSingleState("artifact", md)),
-            Services.getGroupsService().getArtifactContent(groupId, artifactId, this.version())
+            Services.getGroupsService().getArtifactMetaData(groupId, artifactId, this.versionParam()).then(md => this.setSingleState("artifact", md)),
+            Services.getGroupsService().getArtifactContent(groupId, artifactId, this.versionParam())
                 .then(content => this.setSingleState("artifactContent", content))
                 .catch(e => {
                     Services.getLoggerService().warn("Failed to get artifact content: ", e);
@@ -248,10 +260,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             Services.getGroupsService().getArtifactRules(groupId, artifactId).then(rules => this.setSingleState("rules", rules)),
             Services.getGroupsService().getArtifactVersions(groupId, artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
         ];
-    }
-
-    private version(): string {
-        return this.getPathParam("version");
     }
 
     private handleTabClick = (event: any, tabIndex: any): void => {
@@ -408,8 +416,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             Services.getGroupsService().createArtifactVersion(this.groupId(), this.artifactId(), data).then(versionMetaData => {
                 const groupId: string = versionMetaData.groupId ? versionMetaData.groupId : "default";
                 const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
-                Services.getLoggerService().info("Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
-                this.navigateTo(artifactVersionLocation)();
+                Services.getLoggerService().info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
+                this.navigateTo(this.linkTo(artifactVersionLocation))();
             }).catch( error => {
                 if (error && error.error_code === 409) {
                     this.handleInvalidContentError(error);
@@ -436,7 +444,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     };
 
     private doEditMetaData = (metaData: EditableMetaData): void => {
-        Services.getGroupsService().updateArtifactMetaData(this.groupId(), this.artifactId(), this.version(), metaData).then( () => {
+        Services.getGroupsService().updateArtifactMetaData(this.groupId(), this.artifactId(), this.versionParam(), metaData).then( () => {
             if (this.state.artifact) {
                 this.setSingleState("artifact", {
                     ...this.state.artifact,

@@ -18,6 +18,7 @@
 import React from "react";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {Redirect} from "react-router";
+import {Services} from "../../../services";
 
 
 /**
@@ -44,12 +45,21 @@ export class ArtifactRedirectPage extends PageComponent<ArtifactRedirectPageProp
     }
 
     public renderPage(): React.ReactElement {
-        const groupId: any = this.getPathParam("groupId");
-        const artifactId: any = this.getPathParam("artifactId");
-        const redirect: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(artifactId) }/versions/latest`;
+        const groupId: any = this.groupIdParam();
+        const artifactId: any = this.artifactIdParam();
+        const redirect: string = this.linkTo(`/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(artifactId) }/versions/latest`);
+        Services.getLoggerService().info("[ArtifactRedirectPage] Redirecting to: %s", redirect);
         return (
             <Redirect to={redirect}  />
         );
+    }
+
+    protected groupIdParam(): string {
+        return this.getPathParam("groupId");
+    }
+
+    protected artifactIdParam(): string {
+        return this.getPathParam("artifactId");
     }
 
     protected initializePageState(): ArtifactRedirectPageState {

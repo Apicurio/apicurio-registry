@@ -105,11 +105,6 @@ export class ArtifactList extends PureComponent<ArtifactListProps, ArtifactListS
         return rval;
     }
 
-    private artifactLink(artifact: SearchedArtifact): string {
-        const link: string = `/artifacts/${ encodeURIComponent(artifact.id) }`;
-        return link;
-    }
-
     private description(artifact: SearchedArtifact): string {
         if (artifact.description) {
             return artifact.description;

@@ -65,7 +65,7 @@ export class ArtifactName extends PureComponent<ArtifactNameProps, ArtifactNameS
     private artifactLink(): string {
         const groupId: string = this.props.groupId == null ? "default" : this.props.groupId;
         const link: string = `/artifacts/${ encodeURIComponent(groupId)}/${ encodeURIComponent(this.props.id) }`;
-        return link;
+        return this.linkTo(link);
     }
 
 }

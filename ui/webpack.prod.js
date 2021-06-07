@@ -4,8 +4,10 @@ const common = require("./webpack.common.js");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { ModuleFederationPlugin } = require("webpack").container;
 // webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
+const { federatedModuleName, dependencies } = require("./package.json");
 
 module.exports = merge(common, {
   mode: "production",

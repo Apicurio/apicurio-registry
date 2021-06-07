@@ -21,7 +21,6 @@ import {
     Button,
     Flex,
     FlexItem,
-    FlexModifiers,
     Text,
     TextContent,
     TextVariants
@@ -70,7 +69,7 @@ export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPage
                         <Text component={TextVariants.h1}>Artifact Details</Text>
                     </TextContent>
                 </FlexItem>
-                <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
+                <FlexItem align={{ default : 'alignRight' }}>
                     <VersionSelector version={this.props.version} versions={this.props.versions}
                                      groupId={this.props.groupId} artifactId={this.props.artifactId} />
                     <IfAuth isDeveloper={true}>

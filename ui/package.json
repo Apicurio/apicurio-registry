@@ -60,8 +60,9 @@
     "webpack-merge": "^5.7.3"
   },
   "dependencies": {
-    "@patternfly/react-core": "3.146.0",
-    "@patternfly/react-icons": "3.15.13",
+    "@patternfly/react-core": "4.121.1",
+    "@patternfly/react-table": "4.27.7",
+    "@patternfly/react-icons": "4.10.7",
     "ace-builds": "1.4.8",
     "apicurio-data-models": "1.1.11",
     "axios": "0.21.1",

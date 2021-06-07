@@ -19,6 +19,7 @@ import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, T
 import {PlusCircleIcon} from "@patternfly/react-icons";
 import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {IfFeature} from "../../../../components/common/ifFeature";
+import {If} from "../../../../components/common/if";
 
 /**
  * Properties
@@ -52,18 +53,18 @@ export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptySta
                 <Title headingLevel="h5" size="lg">
                     No Artifacts Found!
                 </Title>
-                {
-                    this.props.isFiltered ?
-                        <EmptyStateBody>
-                            No artifacts match your filter settings.  Change your filter or perhaps Upload a new
-                            artifact.
-                        </EmptyStateBody>
-                        :
-                        <EmptyStateBody>
-                            There are currently no artifacts in the registry.  Artifacts must be created before
-                            you will see anything here.
-                        </EmptyStateBody>
-                }
+                <If condition={() => this.props.isFiltered}>
+                    <EmptyStateBody>
+                        No artifacts match your filter settings.  Change your filter or perhaps Upload a new
+                        artifact.
+                    </EmptyStateBody>
+                </If>
+                <If condition={() => !this.props.isFiltered}>
+                    <EmptyStateBody>
+                        There are currently no artifacts in the registry.  Artifacts must be created before
+                        you will see anything here.
+                    </EmptyStateBody>
+                </If>
                 <IfAuth isDeveloper={true}>
                     <IfFeature feature="readOnly" isNot={true}>
                         <Button variant="primary" data-testid="empty-btn-upload" onClick={this.props.onUploadArtifact}>Upload artifact</Button>

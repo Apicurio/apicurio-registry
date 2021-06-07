@@ -73,7 +73,7 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
                 toggle={
                     <DropdownToggle id="toggle-id"
                                     data-testid="rules-compatibility-config-toggle"
-                                    onToggle={this.onToggle} iconComponent={CaretDownIcon}>
+                                    onToggle={this.onToggle} toggleIndicator={CaretDownIcon}>
                         {this.displayValue()}
                     </DropdownToggle>
                 }

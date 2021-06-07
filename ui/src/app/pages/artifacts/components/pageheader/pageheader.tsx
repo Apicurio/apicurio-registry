@@ -15,15 +15,7 @@
  * limitations under the License.
  */
 import React from "react";
-import {
-    Button,
-    Flex,
-    FlexItem,
-    FlexModifiers,
-    Text,
-    TextContent,
-    TextVariants, ToolbarItem
-} from '@patternfly/react-core';
+import {Button, Flex, FlexItem, Text, TextContent, TextVariants} from '@patternfly/react-core';
 import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {IfFeature} from "../../../../components/common/ifFeature";
 import {Link} from "react-router-dom";
@@ -63,7 +55,7 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
                         <Text component={TextVariants.h1}>Artifacts</Text>
                     </TextContent>
                 </FlexItem>
-                <FlexItem breakpointMods={[{modifier: FlexModifiers["align-right"]}]}>
+                <FlexItem align={{default:"alignRight"}}>
 
                     <IfAuth isAdmin={true}>
                         <Link className="btn-header-global-rules pf-c-button pf-m-secondary"

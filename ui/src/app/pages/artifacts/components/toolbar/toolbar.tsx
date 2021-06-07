@@ -19,16 +19,16 @@ import "./toolbar.css";
 import {
     Button,
     ButtonVariant,
-    DataToolbar,
-    DataToolbarContent,
-    DataToolbarItem,
     Dropdown,
     DropdownItem,
     DropdownToggle,
     Form,
     InputGroup,
     Pagination,
-    TextInput
+    TextInput,
+    Toolbar,
+    ToolbarContent,
+    ToolbarItem
 } from '@patternfly/react-core';
 import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
@@ -67,9 +67,9 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     public render(): React.ReactElement {
         return (
-            <DataToolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
-                <DataToolbarContent>
-                    <DataToolbarItem className="filter-item">
+            <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
+                <ToolbarContent>
+                    <ToolbarItem className="filter-item">
                         <Form onSubmit={this.onFilterSubmit}>
                             <InputGroup>
                                 <Dropdown
@@ -97,15 +97,15 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                 </Button>
                             </InputGroup>
                         </Form>
-                    </DataToolbarItem>
-                    <DataToolbarItem className="sort-icon-item">
+                    </ToolbarItem>
+                    <ToolbarItem className="sort-icon-item">
                         <Button variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={this.onToggleAscending}>
                             {
                                 this.state.ascending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                             }
                         </Button>
-                    </DataToolbarItem>
-                    <DataToolbarItem className="artifact-paging-item">
+                    </ToolbarItem>
+                    <ToolbarItem className="artifact-paging-item">
                         <Pagination
                             variant="bottom"
                             dropDirection="down"
@@ -117,9 +117,9 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                             widgetId="artifact-list-pagination"
                             className="artifact-list-pagination"
                         />
-                    </DataToolbarItem>
-                </DataToolbarContent>
-            </DataToolbar>
+                    </ToolbarItem>
+                </ToolbarContent>
+            </Toolbar>
         );
     }
 

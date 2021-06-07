@@ -54,7 +54,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         return (
             <Modal
                 title="Edit Artifact Meta-Data"
-                isLarge={true}
+                variant="large"
                 isOpen={this.props.isOpen}
                 onClose={this.props.onClose}
                 className="edit-artifact-metaData pf-m-redhat-font"

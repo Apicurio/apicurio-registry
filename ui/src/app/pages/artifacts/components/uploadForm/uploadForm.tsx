@@ -18,7 +18,6 @@ import React from 'react';
 import "./uploadForm.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {
-    Button,
     debounce,
     Dropdown,
     DropdownItem,
@@ -27,8 +26,8 @@ import {
     FileUpload,
     Form,
     FormGroup,
-    TextInput,
-    FormHelperText
+    FormHelperText,
+    TextInput
 } from "@patternfly/react-core";
 import {CaretDownIcon} from "@patternfly/react-icons";
 import {ArtifactTypes} from "../../../../../models";
@@ -133,7 +132,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                     <div>
                         <Dropdown
                             toggle={
-                                <DropdownToggle id="form-type-toggle" data-testid="form-type-toggle" onToggle={this.onTypeToggle} iconComponent={CaretDownIcon}>
+                                <DropdownToggle id="form-type-toggle" data-testid="form-type-toggle" onToggle={this.onTypeToggle} toggleIndicator={CaretDownIcon}>
                                     { this.state.type ? this.typeLabel(this.state.type) : "Auto-Detect" }
                                 </DropdownToggle>
                             }

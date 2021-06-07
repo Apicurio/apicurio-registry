@@ -155,7 +155,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                     </Flex>
                 </PageSection>
                     :
-                <PageSection variant={PageSectionVariants.light} isFilled={true} noPadding={true} className="artifact-details-main">
+                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{default : "noPadding"}} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                           unmountOnExit={true}
                           isFilled={true}
@@ -167,7 +167,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 }
                 <Modal
                     title="Upload Artifact Version"
-                    isLarge={true}
+                    variant="large"
                     isOpen={this.state.isUploadModalOpen}
                     onClose={this.onUploadModalClose}
                     className="upload-artifact-modal pf-m-redhat-font"
@@ -180,7 +180,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 </Modal>
                 <Modal
                     title="Delete Artifact"
-                    isSmall={true}
+                    variant="small"
                     isOpen={this.state.isDeleteModalOpen}
                     onClose={this.onDeleteModalClose}
                     className="delete-artifact-modal pf-m-redhat-font"

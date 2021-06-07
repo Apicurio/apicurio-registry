@@ -61,7 +61,7 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
                 toggle={
                     <DropdownToggle id="toggle-id"
                                     data-testid="rules-validity-config-toggle"
-                                    onToggle={this.onToggle} iconComponent={CaretDownIcon}>
+                                    onToggle={this.onToggle} toggleIndicator={CaretDownIcon}>
                         {this.displayValue()}
                     </DropdownToggle>
                 }

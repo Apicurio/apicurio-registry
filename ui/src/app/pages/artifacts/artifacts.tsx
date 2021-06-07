@@ -68,7 +68,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
                 </PageSection>
                 <If condition={this.showToolbar}>
-                    <PageSection variant={PageSectionVariants.light} noPadding={true}>
+                    <PageSection variant={PageSectionVariants.light} padding={{default : "noPadding"}}>
                         <ArtifactsPageToolbar artifacts={this.results()}
                                               paging={this.state.paging}
                                               onPerPageSelect={this.onPerPageSelect}
@@ -93,7 +93,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 </PageSection>
                 <Modal
                     title="Upload Artifact"
-                    isLarge={true}
+                    variant="large"
                     isOpen={this.state.isUploadModalOpen}
                     onClose={this.onUploadModalClose}
                     className="upload-artifact-modal pf-m-redhat-font"

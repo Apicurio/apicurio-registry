@@ -16,7 +16,7 @@
  */
 import React from 'react';
 import "./invalidContentModal.css";
-import {Button, Form, FormGroup, Modal, TextArea, TextInput} from "@patternfly/react-core";
+import {Button, Modal, ModalVariant} from "@patternfly/react-core";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 
 
@@ -50,7 +50,7 @@ export class InvalidContentModal extends PureComponent<InvalidContentModalProps,
         return (
             <Modal
                 title="Invalid Content Error"
-                isLarge={true}
+                variant={ModalVariant.large}
                 isOpen={this.props.isOpen}
                 onClose={this.props.onClose}
                 className="edit-artifact-metaData pf-m-redhat-font"

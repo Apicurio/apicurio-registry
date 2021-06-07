@@ -17,7 +17,7 @@
 
 import React from 'react';
 import "./header.css"
-import {Brand, PageHeader, Toolbar, ToolbarGroup, ToolbarItem} from '@patternfly/react-core';
+import {Brand, PageHeader, PageHeaderTools, PageHeaderToolsGroup, PageHeaderToolsItem} from '@patternfly/react-core';
 import brandImg from "./apicurio_logo_darkbkg_350px.png";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {IfAuth} from "../common/ifAuth";
@@ -42,21 +42,21 @@ export class AppHeader extends PureComponent<AppHeaderProps, AppHeaderState> {
     public render(): React.ReactElement {
         let pageToolbar: React.ReactElement;
         pageToolbar = (
-            <Toolbar className="header-toolbar">
-                <ToolbarGroup>
-                    <ToolbarItem>
+            <PageHeaderTools className="header-toolbar">
+                <PageHeaderToolsGroup>
+                    <PageHeaderToolsItem id="avatar">
                         <IfAuth enabled={true}>
                             <AvatarDropdown />
                         </IfAuth>
-                    </ToolbarItem>
-                </ToolbarGroup>
-            </Toolbar>
+                    </PageHeaderToolsItem>
+                </PageHeaderToolsGroup>
+            </PageHeaderTools>
         );
 
         return (<PageHeader
             logo={<Brand onClick={this.navigateTo("/artifacts")} src={brandImg} alt="Apicurio Registry"/>}
             showNavToggle={false}
-            toolbar={pageToolbar}
+            headerTools={pageToolbar}
         />);
     }
 

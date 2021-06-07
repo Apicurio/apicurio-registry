@@ -18,6 +18,8 @@
 export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
+    multiTenant?: boolean;
+    multiTenantUrl?: string;
 }
 
 export interface ArtifactsConfig {

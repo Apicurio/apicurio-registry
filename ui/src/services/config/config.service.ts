@@ -79,6 +79,17 @@ export class ConfigService implements Service {
         return this.config.artifacts.url;
     }
 
+    public setArtifactsUrl(url: string) {
+        if (!this.config.artifacts) {
+            this.config.artifacts = {
+                type: "rest",
+                url
+            };
+        } else {
+            this.config.artifacts.url = url;
+        }
+    }
+
     public uiUrl(): string {
         if (!this.config.ui || !this.config.ui.url) {
             return "";
@@ -127,5 +138,13 @@ export class ConfigService implements Service {
             return "";
         }
         return this.config.auth.options;
+    }
+
+    public featureMultiTenant(): boolean {
+        return this.features().multiTenant || false;
+    }
+
+    public featureMultiTenantUrl(): string {
+        return this.features().multiTenantUrl || "";
     }
 }

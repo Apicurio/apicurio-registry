@@ -205,7 +205,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         );
     }
 
-    protected initializeState(): ArtifactVersionPageState {
+    protected initializePageState(): ArtifactVersionPageState {
         return {
             activeTabKey: 0,
             artifact: null,

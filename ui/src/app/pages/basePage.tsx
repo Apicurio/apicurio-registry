@@ -52,8 +52,19 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected constructor(props: Readonly<P>) {
         super(props);
-        this.loadPageData();
+        setTimeout(() => {
+            this.loadPageData();
+        }, 10);
     }
+
+    protected initializeState(): S {
+        return {
+            ...this.initializePageState(),
+            isLoading: true
+        };
+    }
+
+    protected abstract initializePageState(): S;
 
     public componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
         this.handleError(PageErrorType.React, error, errorInfo);
@@ -108,21 +119,25 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
             if (!Array.isArray(loaders)) {
                 loaders = [ loaders ];
             }
-            this.setSingleState("isLoading", true);
-            Promise.all(loaders).then( () => {
+            if (loaders.length === 0) {
                 this.setSingleState("isLoading", false);
-            }).catch( error => {
-                Services.getLoggerService().debug("[PageComponent] Page data load failed, retrying.");
-                const retries: number = this.getRetries();
-                if (retries < MAX_RETRIES) {
-                    this.incrementRetries();
-                    setTimeout(() => {
-                        this.loadPageData();
-                    }, Math.pow(2, retries) * 100);
-                } else {
-                    this.handleServerError(error, "Error loading page data.");
-                }
-            });
+            } else {
+                this.setSingleState("isLoading", true);
+                Promise.all(loaders).then(() => {
+                    this.setSingleState("isLoading", false);
+                }).catch(error => {
+                    Services.getLoggerService().debug("[PageComponent] Page data load failed, retrying.");
+                    const retries: number = this.getRetries();
+                    if (retries < MAX_RETRIES) {
+                        this.incrementRetries();
+                        setTimeout(() => {
+                            this.loadPageData();
+                        }, Math.pow(2, retries) * 100);
+                    } else {
+                        this.handleServerError(error, "Error loading page data.");
+                    }
+                });
+            }
         }
     }
 

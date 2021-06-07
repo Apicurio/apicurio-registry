@@ -18,12 +18,24 @@
 import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
 import {Services} from "../../../services";
 
+export interface FederatedArtifactsPageProps extends ArtifactsPageProps {
+    tenantId: string;
+}
+
 export default class FederatedArtifactsPage extends ArtifactsPage {
 
-    constructor(props: Readonly<ArtifactsPageProps>) {
+    constructor(props: Readonly<FederatedArtifactsPageProps>) {
         super(props);
     }
 
-}
+    protected postConstruct(): void {
+        // @ts-ignore
+        const tenantUrl: string = Services.getConfigService().featureMultiTenantUrl().replace("$tenantId", this.props.tenantId);
+        Services.getLoggerService().info("[FederatedArtifactsPage] Setting registry API to: %s", tenantUrl);
+        Services.getConfigService().setArtifactsUrl(tenantUrl);
+        Services.getLoggerService().info("[FederatedArtifactsPage] Registry API is now: %s", Services.getConfigService().artifactsUrl());
 
-Services._intialize();
+        super.postConstruct();
+    }
+
+}

@@ -21,4 +21,3 @@ export * from "./header";
 export * from "./ruleList";
 export * from "./baseComponent";
 export * from "./modals";
-export * from "./test.federated";

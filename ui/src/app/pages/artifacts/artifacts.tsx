@@ -111,7 +111,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         );
     }
 
-    protected initializeState(): ArtifactsPageState {
+    protected initializePageState(): ArtifactsPageState {
         return {
             criteria: {
                 sortAscending: true,

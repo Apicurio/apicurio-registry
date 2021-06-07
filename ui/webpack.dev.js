@@ -29,8 +29,7 @@ module.exports = merge(common, {
       name: federatedModuleName,
       filename: "remoteEntry.js",
       exposes: {
-        "./FederatedTestWidget": "./src/app/components/test.federated",
-        "./ArtifactTypeIcon": "./src/app/components/common/artifactTypeIcon",
+        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated"
       },
       shared: {
         ...dependencies,
@@ -43,6 +42,10 @@ module.exports = merge(common, {
           eager: true,
           singleton: true,
           requiredVersion: dependencies["react-dom"],
+        },
+        "react-router-dom": {
+          singleton: true,
+          requiredVersion: dependencies["react-router-dom"],
         },
       }
     })

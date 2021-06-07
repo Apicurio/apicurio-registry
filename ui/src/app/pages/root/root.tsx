@@ -50,7 +50,7 @@ export class RootRedirectPage extends PageComponent<RootRedirectPageProps, RootR
         );
     }
 
-    protected initializeState(): RootRedirectPageState {
+    protected initializePageState(): RootRedirectPageState {
         return {};
     }
 }

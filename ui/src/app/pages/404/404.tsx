@@ -73,7 +73,7 @@ export class NotFoundPage extends PageComponent<NotFoundPageProps, NotFoundPageS
         );
     }
 
-    protected initializeState(): NotFoundPageState {
+    protected initializePageState(): NotFoundPageState {
         return {};
     }
 

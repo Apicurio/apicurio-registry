@@ -70,9 +70,12 @@ export class Services {
 
     // tslint:disable-next-line:member-ordering member-access
     static _intialize(): void {
+        console.info("[Services] _initialize() in Services");
         if (Services._isInit) {
+            console.info("[Services] Services already intialized...skipping.");
             return;
         }
+        console.info("[Services] Actually initializing Services!!!");
         // First perform simple service-service injection.
         Object.keys(Services.all).forEach( svcToInjectIntoName => {
             const svcToInjectInto: any = Services.all[svcToInjectIntoName];

@@ -42,16 +42,8 @@ export abstract class BaseService implements Service {
     protected config: ConfigService = null;
     // @ts-ignore
     protected auth: AuthService = null;
-    // @ts-ignore
-    private apiBaseHref: string;
 
     public init(): void {
-        this.apiBaseHref = this.config.artifactsUrl();
-        if (this.apiBaseHref.endsWith("/")) {
-            this.apiBaseHref = this.apiBaseHref.substring(0, this.apiBaseHref.length - 1);
-        }
-        this.logger.debug("[BaseService] Base HREF of REST API: ", this.apiBaseHref);
-
         this.initAuthInterceptor();
     }
 
@@ -72,7 +64,7 @@ export abstract class BaseService implements Service {
                 path = path.replace(":" + key, value);
             });
         }
-        let rval: string = this.apiBaseHref + path;
+        let rval: string = this.apiBaseHref() + path;
         if (queryParams) {
             let first: boolean = true;
             for (const key in queryParams) {
@@ -278,4 +270,15 @@ export abstract class BaseService implements Service {
         return error;
     }
 
+    private apiBaseHref(): string {
+        let artifactsUrl: string|null = this.config.artifactsUrl();
+        if (artifactsUrl == null) {
+            return "";
+        }
+        if (artifactsUrl.endsWith("/")) {
+            artifactsUrl = artifactsUrl.substring(0, artifactsUrl.length - 1);
+        }
+        this.logger.debug("[BaseService] Base HREF of REST API: ", artifactsUrl);
+        return artifactsUrl;
+    }
 }

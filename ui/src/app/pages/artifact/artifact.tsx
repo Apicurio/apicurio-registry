@@ -52,7 +52,7 @@ export class ArtifactRedirectPage extends PageComponent<ArtifactRedirectPageProp
         );
     }
 
-    protected initializeState(): ArtifactRedirectPageState {
+    protected initializePageState(): ArtifactRedirectPageState {
         return {};
     }
 }

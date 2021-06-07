@@ -18,6 +18,33 @@ module.exports = merge(common, {
     new NodePolyfillPlugin(),
     new HtmlWebpackPlugin({
       template: "./src/index.html"
+    }),
+    new ModuleFederationPlugin({
+      name: federatedModuleName,
+      filename: "remoteEntry.js",
+      exposes: {
+        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
+        "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
+        "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
+        "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
+      },
+      shared: {
+        ...dependencies,
+        react: {
+          eager: true,
+          singleton: true,
+          requiredVersion: dependencies["react"],
+        },
+        "react-dom": {
+          eager: true,
+          singleton: true,
+          requiredVersion: dependencies["react-dom"],
+        },
+        "react-router-dom": {
+          singleton: true,
+          requiredVersion: dependencies["react-router-dom"],
+        },
+      }
     })
   ],
   module: {

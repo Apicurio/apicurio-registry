@@ -73,7 +73,6 @@ public class ConfigJsServlet extends HttpServlet {
 
             config.artifacts.url = this.generateApiUrl(request);
 
-            config.ui.url = this.generateUiUrl(request);
             config.ui.contextPath = "/ui";
 
             config.features.readOnly = uiConfig.isFeatureReadOnly();
@@ -121,33 +120,6 @@ public class ConfigJsServlet extends HttpServlet {
 
             url = request.getRequestURL().toString();
             url = new URI(url).resolve(apiRelativePath).toString();
-            if (url.startsWith("http:") && request.isSecure()) {
-                url = url.replaceFirst("http", "https");
-            }
-            return url;
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Generates a URL that the caller can use to access the UI.
-     * @param request
-     */
-    private String generateUiUrl(HttpServletRequest request) {
-        try {
-            String uiUrl = uiConfig.getUiUrl();
-            if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
-                return uiUrl;
-            }
-
-            String url = resolveUrlFromXForwarded(request, "/ui");
-            if (url != null) {
-                return url;
-            }
-
-            url = request.getRequestURL().toString();
-            url = new URI(url).resolve("/ui").toString();
             if (url.startsWith("http:") && request.isSecure()) {
                 url = url.replaceFirst("http", "https");
             }

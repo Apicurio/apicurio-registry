@@ -5,8 +5,7 @@ var ApicurioRegistryConfig = {
         url: "http://localhost:8080/apis/registry"
     },
     ui: {
-        contextPath: null,
-        url: "http://localhost:8080/ui"
+        contextPath: null
     },
     auth: {
         type: "none"

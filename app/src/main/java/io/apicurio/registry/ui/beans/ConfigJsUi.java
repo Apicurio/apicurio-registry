@@ -20,10 +20,9 @@ package io.apicurio.registry.ui.beans;
  * @author eric.wittmann@gmail.com
  */
 public class ConfigJsUi {
-    
-    public String url;
+
     public String contextPath;
-    
+
     /**
      * Constructor.
      */

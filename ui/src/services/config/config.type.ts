@@ -28,7 +28,6 @@ export interface ArtifactsConfig {
 }
 
 export interface UiConfig {
-    url: string;
     contextPath: string|null;
 }
 

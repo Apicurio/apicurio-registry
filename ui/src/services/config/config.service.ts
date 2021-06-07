@@ -38,8 +38,7 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     mode: "dev",
     ui: {
-        contextPath: null,
-        url: "http://localhost:8888/"
+        contextPath: null
     }
 };
 
@@ -90,13 +89,6 @@ export class ConfigService implements Service {
         }
     }
 
-    public uiUrl(): string {
-        if (!this.config.ui || !this.config.ui.url) {
-            return "";
-        }
-        return this.config.ui.url;
-    }
-
     public uiContextPath(): string|undefined {
         if (!this.config.ui || !this.config.ui.contextPath) {
             return "";
@@ -110,8 +102,7 @@ export class ConfigService implements Service {
     public setUiContextPath(contextPath: string): void {
         if (!this.config.ui || !this.config.ui.contextPath) {
             this.config.ui = {
-                contextPath,
-                url: ""
+                contextPath
             };
         } else {
             this.config.ui.contextPath = contextPath;

@@ -37,9 +37,13 @@ export interface AuthenticatedUser {
 export class AuthService implements Service {
 
     private enabled: boolean = false;
+    // @ts-ignore
     private config: ConfigService = null;
+    // @ts-ignore
     private logger: LoggerService = null;
+    // @ts-ignore
     private keycloak: Keycloak.KeycloakInstance;
+    // @ts-ignore
     private user: AuthenticatedUser;
 
     public init = () => {
@@ -59,7 +63,8 @@ export class AuthService implements Service {
 
             if (this.keycloak.resourceAccess) {
                 Object.keys(this.keycloak.resourceAccess)
-                    .forEach(key => (user.roles = user.roles.concat(this.keycloak.resourceAccess[key].roles)))
+                    // @ts-ignore
+                    .forEach(key => (user.roles = user.roles.concat(this.keycloak.resourceAccess[key].roles)));
             }
 
             this.logger.info("----------------");

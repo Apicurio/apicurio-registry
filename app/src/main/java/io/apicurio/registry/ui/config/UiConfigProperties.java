@@ -44,8 +44,8 @@ public class UiConfigProperties {
     boolean featureReadOnly;
 
     @Inject
-    @ConfigProperty(name = "registry.ui.config.uiUrl")
-    String uiUrl;
+    @ConfigProperty(name = "registry.ui.config.uiContextPath", defaultValue = "/ui/")
+    String uiContextPath;
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.apiUrl")
@@ -71,7 +71,7 @@ public class UiConfigProperties {
         log.debug("============> kcProperties  " + keycloakConfig);
         log.debug("============> tenantEnabled  " + tenantEnabled);
         log.debug("============> featureReadOnly  " + featureReadOnly);
-        log.debug("============> uiUrl  " + uiUrl);
+        log.debug("============> uiContextPath  " + uiContextPath);
         log.debug("============> apiUrl  " + apiUrl);
     }
 
@@ -83,8 +83,8 @@ public class UiConfigProperties {
         return featureReadOnly;
     }
 
-    public String getUiUrl() {
-        return uiUrl;
+    public String getUiContextPath() {
+        return uiContextPath;
     }
 
     public String getApiUrl() {

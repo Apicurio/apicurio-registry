@@ -38,7 +38,8 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     mode: "dev",
     ui: {
-        contextPath: null
+        contextPath: "/",
+        navPrefixPath: "/"
     }
 };
 
@@ -91,21 +92,40 @@ export class ConfigService implements Service {
 
     public uiContextPath(): string|undefined {
         if (!this.config.ui || !this.config.ui.contextPath) {
-            return "";
-        }
-        if (this.config.ui.contextPath.endsWith("/")) {
-            this.config.ui.contextPath = this.config.ui.contextPath.substr(0, this.config.ui.contextPath.length - 1);
+            return "/";
         }
         return this.config.ui.contextPath;
     }
 
+    public uiNavPrefixPath(): string|undefined {
+        if (!this.config.ui || !this.config.ui.navPrefixPath) {
+            return "";
+        }
+        if (this.config.ui.navPrefixPath.endsWith("/")) {
+            this.config.ui.navPrefixPath = this.config.ui.navPrefixPath.substr(0, this.config.ui.navPrefixPath.length - 1);
+        }
+        return this.config.ui.navPrefixPath;
+    }
+
     public setUiContextPath(contextPath: string): void {
-        if (!this.config.ui || !this.config.ui.contextPath) {
+        if (!this.config.ui) {
             this.config.ui = {
-                contextPath
+                contextPath,
+                navPrefixPath: "/"
             };
         } else {
             this.config.ui.contextPath = contextPath;
+        }
+    }
+
+    public setUiNavPrefixPath(navPrefixPath: string): void {
+        if (!this.config.ui) {
+            this.config.ui = {
+                contextPath: "/",
+                navPrefixPath
+            };
+        } else {
+            this.config.ui.navPrefixPath = navPrefixPath;
         }
     }
 

@@ -73,7 +73,7 @@ public class ConfigJsServlet extends HttpServlet {
 
             config.artifacts.url = this.generateApiUrl(request);
 
-            config.ui.contextPath = "/ui";
+            config.ui.contextPath = uiConfig.getUiContextPath();
 
             config.features.readOnly = uiConfig.isFeatureReadOnly();
 

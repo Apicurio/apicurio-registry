@@ -29,6 +29,7 @@ export interface ArtifactsConfig {
 
 export interface UiConfig {
     contextPath: string|null;
+    navPrefixPath: string|null;
 }
 
 export interface AuthConfig {

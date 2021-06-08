@@ -23,7 +23,7 @@ import {PureComponent} from "../components";
  */
 export interface FederatedPageProps {
     tenantId: string;
-    contextPath: string;
+    navPrefixPath: string;
     history: any;
 }
 
@@ -32,10 +32,11 @@ export class FederatedUtils {
     static updateConfiguration(props: FederatedPageProps): void {
         // @ts-ignore
         const tenantUrl: string = Services.getConfigService().featureMultiTenantUrl().replace("$tenantId", props.tenantId);
-        Services.getLoggerService().info("[FederatedArtifactsPage] Setting registry API to: %s", tenantUrl);
+        Services.getLoggerService().info("[FederatedUtils] Setting registry API to: %s", tenantUrl);
         Services.getConfigService().setArtifactsUrl(tenantUrl);
         // @ts-ignore
-        Services.getConfigService().setUiContextPath(props.contextPath);
+        Services.getLoggerService().info("[FederatedUtils] Using nav prefix: ", props.navPrefixPath);
+        Services.getConfigService().setUiNavPrefixPath(props.navPrefixPath);
         PureComponent.setHistory(props.history);
     }
 

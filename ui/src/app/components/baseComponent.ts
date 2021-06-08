@@ -82,7 +82,7 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
     };
 
     protected linkTo(url: string): string {
-        return Services.getConfigService().uiContextPath() + url;
+        return Services.getConfigService().uiNavPrefixPath() + url;
     }
 
 }

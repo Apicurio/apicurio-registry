@@ -31,7 +31,7 @@ export class FederatedUtils {
 
     static updateConfiguration(props: FederatedPageProps): void {
         // @ts-ignore
-        const tenantUrl: string = Services.getConfigService().featureMultiTenantUrl().replace("$tenantId", props.tenantId);
+        const tenantUrl: string = Services.getConfigService().featureMultiTenantUrl().replace(":tenantId", props.tenantId);
         Services.getLoggerService().info("[FederatedUtils] Setting registry API to: %s", tenantUrl);
         Services.getConfigService().setArtifactsUrl(tenantUrl);
         // @ts-ignore

@@ -71,17 +71,6 @@ module.exports = merge(common, {
   optimization: {
     minimizer: [
       new OptimizeCSSAssetsPlugin({})
-    ],
-    moduleIds: "deterministic",
-    runtimeChunk: "single",
-    splitChunks: {
-      cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendors",
-          chunks: "all"
-        }
-      }
-    }
+    ]
   }
 });

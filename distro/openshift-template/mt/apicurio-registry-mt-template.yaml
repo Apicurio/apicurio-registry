@@ -1,0 +1,299 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: multitenant-apicurio-registry
+labels:
+  template: multitenant-apicurio-registry
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry
+    name: apicurio-registry
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: tenant-manager
+    name: tenant-manager
+  spec:
+    ports:
+    - port: 8585
+      protocol: TCP
+      targetPort: 8585
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+    name: apicurio-registry
+  spec:
+    selector:
+      matchLabels:
+        app: apicurio-registry
+        template: multitenant-apicurio-registry
+    replicas: ${{REPLICAS}}
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apicurio-registry
+          template: multitenant-apicurio-registry
+      spec:
+        containers:
+        - name: apicurio-registry
+          image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${APICURIO_REGISTRY_IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: AUTH_ENABLED
+            value: "false"
+          - name: REGISTRY_ENABLE_MULTITENANCY
+            value: "true"
+          - name: REGISTRY_LOG_LEVEL
+            value: DEBUG
+          - name: LOG_LEVEL
+            value: INFO
+          - name: QUARKUS_PROFILE
+            value: prod
+
+          - name: DB_HOST
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.host
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.port
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.name
+          - name: REGISTRY_DATASOURCE_URL
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+          - name: REGISTRY_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.user
+          - name: REGISTRY_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.password
+          
+          - name: AUTH_ENABLED
+            value: ${AUTH_ENABLED}
+          - name: KEYCLOAK_URL
+            value: ${KEYCLOAK_URL}
+          - name: KEYCLOAK_REALM
+            value: ${KEYCLOAK_REALM}
+          - name: KEYCLOAK_API_CLIENT_ID
+            value: ${KEYCLOAK_API_CLIENT_ID}
+          - name: KEYCLOAK_UI_CLIENT_ID
+            value: ${KEYCLOAK_UI_CLIENT_ID}
+
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          ports:
+          - containerPort: 8080
+            name: web
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: ${APICURIO_REGISTRY_CPU_LIMIT}
+              memory: ${APICURIO_REGISTRY_MEMORY_LIMIT}
+            requests:
+              cpu: ${APICURIO_REGISTRY_CPU_REQUEST}
+              memory: ${APICURIO_REGISTRY_MEMORY_REQUEST}
+          terminationMessagePath: /dev/termination-log
+        - name: tenant-manager
+          image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${TENANT_MANAGER_IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: DB_HOST
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.host
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.port
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.name
+          - name: DATASOURCE_URL
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+          - name: DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.user
+          - name: DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.password
+
+          - name: REGISTRY_ROUTE_URL
+            value: http://localhost:8080
+          - name: QUARKUS_HTTP_PORT
+            value: "8585"
+          - name: QUARKUS_LOG_LEVEL
+            value: DEBUG
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 8585
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          ports:
+          - containerPort: 8585
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /health/ready
+              port: 8585
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: ${TENANT_MANAGER_CPU_LIMIT}
+              memory: ${TENANT_MANAGER_MEMORY_LIMIT}
+            requests:
+              cpu: ${TENANT_MANAGER_CPU_REQUEST}
+              memory: ${TENANT_MANAGER_MEMORY_REQUEST}
+          terminationMessagePath: /dev/termination-log
+
+parameters:
+
+- name: REPLICAS
+  description: Number of replicas of the service to run.
+  value: "3"
+
+- name: IMAGE_REGISTRY
+  displayName: Image Registry
+  required: true
+
+- name: APICURIO_REGISTRY_IMAGE_REPOSITORY
+  displayName: Apicurio Registry Image Repository
+  required: true
+
+- name: APICURIO_REGISTRY_IMAGE_TAG
+  displayName: Apicurio Registry Image tag
+  value: latest
+
+- name: TENANT_MANAGER_IMAGE_REPOSITORY
+  displayName: Tenant Manager Image Repository
+  required: true
+
+- name: TENANT_MANAGER_IMAGE_TAG
+  displayName: Tenant Manager Image tag
+  value: latest
+
+
+- name: APICURIO_REGISTRY_MEMORY_REQUEST
+  description: Apicurio Registry Memory request.
+  value: "600Mi"
+
+- name: APICURIO_REGISTRY_MEMORY_LIMIT
+  description: Apicurio Registry Memory limit.
+  value: "1300Mi"
+
+- name: APICURIO_REGISTRY_CPU_REQUEST
+  description: Apicurio Registry CPU request.
+  value: "200m"
+
+- name: APICURIO_REGISTRY_CPU_LIMIT
+  description: Apicurio Registry CPU limit.
+  value: "1000m"
+
+
+- name: TENANT_MANAGER_MEMORY_REQUEST
+  description: Tenant Manager Memory request.
+  value: "600Mi"
+
+- name: TENANT_MANAGER_MEMORY_LIMIT
+  description: Tenant Manager  Memory limit.
+  value: "1000Mi"
+
+- name: TENANT_MANAGER_CPU_REQUEST
+  description: Tenant Manager  CPU request.
+  value: "200m"
+
+- name: TENANT_MANAGER_CPU_LIMIT
+  description: Tenant Manager CPU limit.
+  value: "500m"
+
+- name: DATABASE_SECRET_NAME
+  description: Secret name with database connection details
+  required: true
+
+- name: AUTH_ENABLED
+  value: "false"
+- name: KEYCLOAK_URL
+  description: Keycloak base url
+  value: ""
+- name: KEYCLOAK_REALM
+  description: Keycloak realm
+  value: ""
+- name: KEYCLOAK_API_CLIENT_ID
+  description: client id for Apicurio Registry API
+  value: registry-api
+- name: KEYCLOAK_UI_CLIENT_ID
+  description: client id for Apicurio Registry UI
+  value: apicurio-registry
+

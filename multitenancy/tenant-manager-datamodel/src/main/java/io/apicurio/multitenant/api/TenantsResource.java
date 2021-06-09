@@ -2,11 +2,13 @@ package io.apicurio.multitenant.api;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -24,6 +26,14 @@ public interface TenantsResource {
   @GET
   @Produces("application/json")
   RegistryTenant getTenant(@PathParam("tenantId") String tenantId);
+
+  /**
+   * Updates the name, description, and resources for a tenant.
+   */
+  @Path("/{tenantId}")
+  @PUT
+  @Consumes("application/json")
+  void updateTenant(@PathParam("tenantId") String tenantId, UpdateRegistryTenantRequest data);
 
   /**
    * Deletes an existing `Tenant`.

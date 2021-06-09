@@ -18,11 +18,14 @@ package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public abstract class Entity {
-    
+
     @JsonIgnore
     public abstract EntityType getEntityType();
 

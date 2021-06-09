@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
@@ -172,11 +173,6 @@ public class RegistryFacade {
             throw new IllegalStateException("Only sql storage allowed for multitenancy tests");
         }
 
-        String path = getJarPath();
-        if (path == null) {
-            throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +
-                "This may happen if you are using an IDE to debug.");
-        }
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("LOG_LEVEL", "DEBUG");
@@ -185,10 +181,10 @@ public class RegistryFacade {
         if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
             Map<String, String> registry1Env = new HashMap<>(appEnv);
             deployStorage(registry1Env);
-            runRegistryNode(path, registry1Env, String.valueOf(TestUtils.getRegistryPort()));
+            runRegistry(registry1Env, "node-1", String.valueOf(TestUtils.getRegistryPort()));
             Map<String, String> registry2Env = new HashMap<>(appEnv);
             deployStorage(registry2Env);
-            runRegistryNode(path, registry2Env, String.valueOf(TestUtils.getRegistryPort() + 1));
+            runRegistry(registry2Env, "node-2", String.valueOf(TestUtils.getRegistryPort() + 1));
         } else {
 
             deployStorage(appEnv);
@@ -196,17 +192,17 @@ public class RegistryFacade {
             if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
 
                 Map<String, String> node1Env = new HashMap<>(appEnv);
-                runRegistryNode(path, node1Env, String.valueOf(TestUtils.getRegistryPort()));
+                runRegistry(node1Env, "node-1" ,String.valueOf(TestUtils.getRegistryPort()));
 
                 int c2port = TestUtils.getRegistryPort() + 1;
 
                 Map<String, String> node2Env = new HashMap<>(appEnv);
-                runRegistryNode(path, node2Env, String.valueOf(c2port));
+                runRegistry(node2Env, "node-2" ,String.valueOf(c2port));
 
                 int c3port = c2port + 1;
 
                 Map<String, String> node3Env = new HashMap<>(appEnv);
-                runRegistryNode(path, node3Env, String.valueOf(c3port));
+                runRegistry(node3Env, "node-3" ,String.valueOf(c3port));
 
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
@@ -218,7 +214,7 @@ public class RegistryFacade {
                     runKeycloak(appEnv);
                 }
 
-                runRegistry(path, appEnv);
+                runRegistry(appEnv, "default", "8081");
             }
         }
 
@@ -280,56 +276,6 @@ public class RegistryFacade {
 
     }
 
-    private void runRegistryNode(String path, Map<String, String> appEnv, String httpPort) {
-        Exec executor = new Exec();
-        LOGGER.info("Starting Registry app from: {}", path);
-        CompletableFuture.supplyAsync(() -> {
-            try {
-
-                List<String> cmd = new ArrayList<>();
-                cmd.add("java");
-                cmd.addAll(Arrays.asList(
-                        // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=" + httpPort,
-                        "-jar", path));
-                int timeout = executor.execute(cmd, appEnv);
-                return timeout == 0;
-            } catch (Exception e) {
-                LOGGER.error("Failed to start registry (could not find runner JAR).", e);
-                System.exit(1);
-                return false;
-            }
-        }, runnable -> new Thread(runnable).start());
-        processes.add(new RegistryTestProcess() {
-
-            @Override
-            public String getName() {
-                return "registry-node" + httpPort;
-            }
-
-            @Override
-            public void close() throws Exception {
-                executor.stop();
-            }
-
-            @Override
-            public String getStdOut() {
-                return executor.stdOut();
-            }
-
-            @Override
-            public String getStdErr() {
-                return executor.stdErr();
-            }
-
-            @Override
-            public boolean isContainer() {
-                return false;
-            }
-
-        });
-    }
-
     private void runTenantManager(Map<String, String> registryAppEnv) throws Exception {
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("DATASOURCE_URL", registryAppEnv.get("REGISTRY_DATASOURCE_URL"));
@@ -337,28 +283,47 @@ public class RegistryFacade {
         appEnv.put("DATASOURCE_PASSWORD", registryAppEnv.get("REGISTRY_DATASOURCE_PASSWORD"));
 
         appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
+        appEnv.put("LOG_LEVEL", "DEBUG");
+
+        var nativeExec = getTenantManagerNativeExecutablePath();
 
         Exec executor = new Exec();
-        String path = getTenantManagerJarPath();
-        LOGGER.info("Starting Tenant Manager app from: {}", path);
-        CompletableFuture.supplyAsync(() -> {
-            try {
+        if (nativeExec.isPresent()) {
+            LOGGER.info("Starting Tenant Manager Native Executable app from: {}", nativeExec.get());
+            CompletableFuture.supplyAsync(() -> {
+                try {
 
-                List<String> cmd = new ArrayList<>();
-                cmd.add("java");
-                cmd.addAll(Arrays.asList(
-                        // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.log.console.level=DEBUG",
-                        "-Dquarkus.log.category.\"io\".level=DEBUG",
-                        "-jar", path));
-                int timeout = executor.execute(cmd, appEnv);
-                return timeout == 0;
-            } catch (Exception e) {
-                LOGGER.error("Failed to start tenant manager (could not find runner JAR).", e);
-                System.exit(1);
-                return false;
-            }
-        }, runnable -> new Thread(runnable).start());
+                    List<String> cmd = new ArrayList<>();
+                    cmd.add(nativeExec.get());
+                    int timeout = executor.execute(cmd, appEnv);
+                    return timeout == 0;
+                } catch (Exception e) {
+                    LOGGER.error("Failed to start native tenant-manager.", e);
+                    System.exit(1);
+                    return false;
+                }
+            }, runnable -> new Thread(runnable).start());
+        } else {
+            String path = getTenantManagerJarPath();
+            LOGGER.info("Starting Tenant Manager app from: {}", path);
+            CompletableFuture.supplyAsync(() -> {
+                try {
+
+                    List<String> cmd = new ArrayList<>();
+                    cmd.add("java");
+                    cmd.addAll(Arrays.asList(
+                            // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
+                            "-jar", path));
+                    int timeout = executor.execute(cmd, appEnv);
+                    return timeout == 0;
+                } catch (Exception e) {
+                    LOGGER.error("Failed to start tenant manager (could not find runner JAR).", e);
+                    System.exit(1);
+                    return false;
+                }
+            }, runnable -> new Thread(runnable).start());
+        }
+
         processes.add(new RegistryTestProcess() {
 
             @Override
@@ -534,7 +499,13 @@ public class RegistryFacade {
         processes.add(kafkaFacade);
     }
 
-    private void runRegistry(String path, Map<String, String> appEnv) {
+    private void runRegistry(Map<String, String> appEnv, String nameSuffix, String port) throws IOException {
+        appEnv.put("QUARKUS_HTTP_PORT", port);
+        if (RegistryUtils.DEPLOY_NATIVE_IMAGES.equals("true")) {
+            runRegistryNativeImage(appEnv, nameSuffix);
+            return;
+        }
+        String path = getJarPath();
         Exec executor = new Exec();
         LOGGER.info("Starting Registry app from: {}", path);
         CompletableFuture.supplyAsync(() -> {
@@ -544,7 +515,7 @@ public class RegistryFacade {
                 cmd.add("java");
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=8081",
+//                        "-Dquarkus.http.port=8081",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;
@@ -558,7 +529,7 @@ public class RegistryFacade {
 
             @Override
             public String getName() {
-                return "registry";
+                return "registry-" + nameSuffix;
             }
 
             @Override
@@ -584,22 +555,73 @@ public class RegistryFacade {
         });
     }
 
-    private String findTenantManagerRunner() {
+    private void runRegistryNativeImage(Map<String, String> appEnv, String nameSuffix) throws IOException {
+        String path = getNativeExecutablePath();
+        Exec executor = new Exec();
+        LOGGER.info("Starting Registry Native Executable app from: {}", path);
+        CompletableFuture.supplyAsync(() -> {
+            try {
+
+                List<String> cmd = new ArrayList<>();
+                cmd.add(path);
+                int timeout = executor.execute(cmd, appEnv);
+                return timeout == 0;
+            } catch (Exception e) {
+                LOGGER.error("Failed to start registry.", e);
+                System.exit(1);
+                return false;
+            }
+        }, runnable -> new Thread(runnable).start());
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return "registry-native-" + nameSuffix;
+            }
+
+            @Override
+            public void close() throws Exception {
+                executor.stop();
+            }
+
+            @Override
+            public String getStdOut() {
+                return executor.stdOut();
+            }
+
+            @Override
+            public String getStdErr() {
+                return executor.stdErr();
+            }
+
+            @Override
+            public boolean isContainer() {
+                return false;
+            }
+
+        });
+    }
+
+    private String findTenantManagerJar() {
         LOGGER.info("Attempting to find tenant manager runner. Starting at cwd: " + new File("").getAbsolutePath());
-        return findRunner(findTenantManagerModuleDir());
+        return findRunner(findTenantManagerModuleDir(), "jar");
     }
 
     private String findInMemoryRunner() {
         LOGGER.info("Attempting to find runner. Starting at cwd: " + new File("").getAbsolutePath());
-        return findRunner(findAppModuleDir());
+        return findRunner(findAppModuleDir(), "jar");
     }
 
-    private String findRunner(File mavenModuleDir) {
+    private String findRunner(File mavenModuleDir, String extension) {
         File targetDir = new File(mavenModuleDir, "target");
         if (targetDir.isDirectory()) {
             File[] files = targetDir.listFiles();
             for (File file : files) {
-                if (file.getName().contains("-runner") && file.getName().endsWith(".jar")) {
+                if (extension != null) {
+                    if (file.getName().contains("-runner") && file.getName().endsWith("." + extension)) {
+                        return file.getAbsolutePath();
+                    }
+                } else if (file.getName().endsWith("-runner")) {
                     return file.getAbsolutePath();
                 }
             }
@@ -647,6 +669,17 @@ public class RegistryFacade {
         return file.isFile();
     }
 
+    private String getNativeExecutablePath() throws IOException {
+        String execPath = "../../storage/%s/target/apicurio-registry-storage-%s-%s-runner";
+        String path = String.format(execPath, RegistryUtils.REGISTRY_STORAGE, RegistryUtils.REGISTRY_STORAGE, PROJECT_VERSION);
+        if (!runnerExists(path)) {
+            LOGGER.info("No runner JAR found.  Throwing an exception.");
+            throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +
+                "This may happen if you are using an IDE to debug.");
+        }
+        return path;
+    }
+
     private String getJarPath() throws IOException {
         String path = REGISTRY_JAR_PATH;
         LOGGER.info("Checking runner JAR path (1): " + path);
@@ -668,8 +701,16 @@ public class RegistryFacade {
         return path;
     }
 
+    private Optional<String> getTenantManagerNativeExecutablePath() throws IOException {
+        String path = findRunner(findTenantManagerModuleDir(), null);
+        if (runnerExists(path)) {
+            return Optional.of(path);
+        }
+        return Optional.empty();
+    }
+
     private String getTenantManagerJarPath() throws IOException {
-        String path = findTenantManagerRunner();
+        String path = findTenantManagerJar();
         LOGGER.info("Checking tenant manager runner JAR path: " + path);
         if (!runnerExists(path)) {
             LOGGER.info("No runner JAR found.  Throwing an exception.");

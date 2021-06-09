@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 @Alternative
@@ -61,8 +62,13 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.keycloak.realm")
     String authRealm;
 
+    /**
+     * This is a custom property, not part of standard quarkus properties.
+     * Because of sharing the prefix with other standard quarkus properties it's ignored and gives issues when compiled to native.
+     * Making the property optional as a workaround.
+     */
     @ConfigProperty(name = "quarkus.oidc.client-secret")
-    String clientSecret;
+    Optional<String> clientSecret;
 
     @ConfigProperty(name = "quarkus.oidc.client-id")
     String clientId;
@@ -75,16 +81,17 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
-            //Extracts username, password pair from the header and request a token to keycloak
-            String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret).getBearerToken();
+            if (clientSecret.isPresent()) {
+                //Extracts username, password pair from the header and request a token to keycloak
+                String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret.get()).getBearerToken();
 
-            if (jwtToken != null) {
-                //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-                return identityProviderManager
-                        .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
-            } else {
-                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+                if (jwtToken != null) {
+                    //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+                    return identityProviderManager
+                            .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+                }
             }
+            return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else {
             return Uni.createFrom().nullItem();
         }

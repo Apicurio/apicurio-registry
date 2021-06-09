@@ -21,10 +21,12 @@ import java.util.Map;
 
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ArtifactVersionEntity extends Entity {
 
     public long globalId;

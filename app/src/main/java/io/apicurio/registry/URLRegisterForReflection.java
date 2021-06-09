@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.dto;
+package io.apicurio.registry;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.net.URL;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.*;
-
-import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * @author Carles Arnal 'carles.arnal@redhat.com'
+ * @author Fabian Martinez
  */
-@JsonAutoDetect(isGetterVisibility = NONE)
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@EqualsAndHashCode
-@ToString
-@Builder
-@RegisterForReflection
-public class SubjectVersion {
+@RegisterForReflection(targets = URL.class)
+public class URLRegisterForReflection {
 
-    @JsonProperty("subject")
-    private String subject;
-
-    @JsonProperty("version")
-    private Long version;
 }

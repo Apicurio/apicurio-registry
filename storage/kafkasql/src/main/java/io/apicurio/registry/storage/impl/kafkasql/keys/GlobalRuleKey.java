@@ -18,16 +18,18 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.RuleType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class GlobalRuleKey extends AbstractMessageKey {
-    
+
     private static final String GLOBAL_RULE_PARTITION_KEY = "__apicurio_registry_global_rule__";
-    
+
     private RuleType ruleType;
-    
+
     /**
      * Creator method.
      * @param tenantId

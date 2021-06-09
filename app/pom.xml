@@ -14,6 +14,10 @@
     <packaging>jar</packaging>
     <name>apicurio-registry-app</name>
 
+    <properties>
+        <groups></groups>
+    </properties>
+
     <dependencies>
         <!-- Projects -->
         <dependency>
@@ -291,6 +295,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <groups>${groups}</groups>
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemProperties>
@@ -384,6 +389,12 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>no-docker</id>
+            <properties>
+                <groups>!docker</groups>
+            </properties>
+        </profile>
         <profile>
             <id>native</id>
             <activation>

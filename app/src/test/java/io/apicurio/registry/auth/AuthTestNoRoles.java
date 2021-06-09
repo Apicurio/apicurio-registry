@@ -17,6 +17,7 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
@@ -29,6 +30,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -38,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileWithoutRoles.class)
-public class AuthTestRolesDisabled extends AbstractResourceTestBase {
+@Tag(ApicurioTestTags.DOCKER)
+public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.keycloak.url")
     String authServerUrl;

@@ -18,6 +18,21 @@ import javax.ws.rs.core.Response;
 @Path("/api/v1/tenants")
 public interface TenantsResource {
   /**
+   * Gets the details of a single instance of a `Tenant`.
+   */
+  @Path("/{tenantId}")
+  @GET
+  @Produces("application/json")
+  RegistryTenant getTenant(@PathParam("tenantId") String tenantId);
+
+  /**
+   * Deletes an existing `Tenant`.
+   */
+  @Path("/{tenantId}")
+  @DELETE
+  void deleteTenant(@PathParam("tenantId") String tenantId);
+
+  /**
    * Gets a list of all `Tenant` entities.
    */
   @GET
@@ -31,19 +46,4 @@ public interface TenantsResource {
   @Produces("application/json")
   @Consumes("application/json")
   Response createTenant(NewRegistryTenantRequest data);
-
-  /**
-   * Gets the details of a single instance of a `Tenant`.
-   */
-  @Path("/{tenantId}")
-  @GET
-  @Produces("application/json")
-  RegistryTenant getTenant(@PathParam("tenantId") String tenantId);
-
-  /**
-   * Deletes an existing `Tenant`.
-   */
-  @Path("/{tenantId}")
-  @DELETE
-  Response deleteTenant(@PathParam("tenantId") String tenantId);
 }

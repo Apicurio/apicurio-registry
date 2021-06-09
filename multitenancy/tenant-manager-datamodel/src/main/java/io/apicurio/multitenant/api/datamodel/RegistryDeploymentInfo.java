@@ -1,6 +1,7 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "name",
     "url"
 })
+@Generated("jsonschema2pojo")
 public class RegistryDeploymentInfo {
 
     @JsonProperty("name")

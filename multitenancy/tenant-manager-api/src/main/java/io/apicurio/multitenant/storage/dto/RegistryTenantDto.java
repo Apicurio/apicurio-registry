@@ -52,10 +52,10 @@ public class RegistryTenantDto {
     @Column(name = "organizationId")
     private String organizationId;
 
-    @Column(name = "name")
+    @Column(name = "name", length = 512)
     private String name;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 2048)
     private String description;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -102,6 +102,9 @@ public class RegistryTenantDto {
     }
 
     public void setName(String name) {
+        if (description != null && description.length() > 512) {
+            description = description.substring(0, 512);
+        }
         this.name = name;
     }
 
@@ -110,6 +113,9 @@ public class RegistryTenantDto {
     }
 
     public void setDescription(String description) {
+        if (description != null && description.length() > 2048) {
+            description = description.substring(0, 2048);
+        }
         this.description = description;
     }
 

@@ -20,8 +20,6 @@ import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.transaction.Transactional;
-
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 import io.apicurio.multitenant.storage.hibernate.RegistryTenantPanacheRepository;
 
@@ -35,7 +33,6 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
     RegistryTenantPanacheRepository repo;
 
     @Override
-    @Transactional
     public void save(RegistryTenantDto dto) {
         repo.persist(dto);
     }
@@ -51,7 +48,6 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
     }
 
     @Override
-    @Transactional
     public void delete(String tenantId) {
         RegistryTenantDto dto = findByTenantId(tenantId)
             .orElseThrow(() -> TenantNotFoundException.create(tenantId));

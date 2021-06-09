@@ -97,11 +97,9 @@ public class TenantsResourceImpl implements TenantsResource {
     }
 
     @Override
-    public Response deleteTenant(@PathParam("tenantId") String tenantId) {
+    public void deleteTenant(@PathParam("tenantId") String tenantId) {
 
         tenantsRepository.delete(tenantId);
-
-        return Response.noContent().build();
     }
 
     private void required(String parameter, String message) {

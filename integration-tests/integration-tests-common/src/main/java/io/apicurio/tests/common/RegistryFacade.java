@@ -398,7 +398,7 @@ public class RegistryFacade {
                 Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, keycloakContainer::isRunning);
 
         appEnv.put("AUTH_ENABLED", "true");
-        appEnv.put("AUTHZ_ENABLED", "true");
+        appEnv.put("REGISTRY_AUTHZ_ENABLED", "true");
 
         appEnv.put("KEYCLOAK_URL", keycloakContainer.getAuthServerUrl());
         appEnv.put("KEYCLOAK_REALM", "registry");

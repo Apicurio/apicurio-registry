@@ -24,7 +24,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "createdOn",
     "createdBy",
     "organizationId",
-    "resources"
+    "resources",
+    "name",
+    "description"
 })
 @Generated("jsonschema2pojo")
 public class RegistryTenant {
@@ -69,6 +71,20 @@ public class RegistryTenant {
     @JsonProperty("resources")
     @JsonPropertyDescription("The list of resources that this tenant has available")
     private List<TenantResource> resources = new ArrayList<TenantResource>();
+    /**
+     * The name of the tenant.
+     * 
+     */
+    @JsonProperty("name")
+    @JsonPropertyDescription("The name of the tenant.")
+    private String name;
+    /**
+     * The description of the tenant.
+     * 
+     */
+    @JsonProperty("description")
+    @JsonPropertyDescription("The description of the tenant.")
+    private String description;
 
     /**
      * Unique identifier of a tenant within a registry deployment
@@ -166,6 +182,42 @@ public class RegistryTenant {
     @JsonProperty("resources")
     public void setResources(List<TenantResource> resources) {
         this.resources = resources;
+    }
+
+    /**
+     * The name of the tenant.
+     * 
+     */
+    @JsonProperty("name")
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * The name of the tenant.
+     * 
+     */
+    @JsonProperty("name")
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * The description of the tenant.
+     * 
+     */
+    @JsonProperty("description")
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * The description of the tenant.
+     * 
+     */
+    @JsonProperty("description")
+    public void setDescription(String description) {
+        this.description = description;
     }
 
 }

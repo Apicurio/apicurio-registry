@@ -85,6 +85,32 @@
                 "summary": "Get a Tenant",
                 "description": "Gets the details of a single instance of a `Tenant`."
             },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRegistryTenantRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Returned when the operation was successful."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateTenant",
+                "summary": "Update a tenant",
+                "description": "Updates the name, description, and resources for a tenant."
+            },
             "delete": {
                 "responses": {
                     "204": {
@@ -213,7 +239,8 @@
                 "title": "Root Type for NewTenant",
                 "description": "The information required when creating a new tenant.",
                 "required": [
-                    "organizationId"
+                    "organizationId",
+                    "tenantId"
                 ],
                 "type": "object",
                 "properties": {
@@ -231,11 +258,20 @@
                         "items": {
                             "$ref": "#/components/schemas/TenantResource"
                         }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
                     }
                 },
                 "example": {
                     "organizationId": "bank-of-foo",
                     "tenantId": "tenant1",
+                    "name": "Foo Tenant",
                     "resources": [
                         {
                             "type": "MAX_TOTAL_SCHEMAS",
@@ -296,10 +332,20 @@
                         "items": {
                             "$ref": "#/components/schemas/TenantResource"
                         }
+                    },
+                    "name": {
+                        "description": "The name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "The description of the tenant.",
+                        "type": "string"
                     }
                 },
                 "example": {
                     "tenantId": "12345",
+                    "name": "Foo Tenant",
+                    "description": "This is the description of the foo tenant.",
                     "createdOn": "2021-03-17T21:35:00Z",
                     "createdBy": "usernamefoo",
                     "organizationId": "bank-of-foo",
@@ -379,6 +425,41 @@
                     "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS"
                 ],
                 "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "UpdateRegistryTenantRequest": {
+                "title": "Root Type for NewTenant",
+                "description": "The information required when creating a new tenant.",
+                "required": [
+                ],
+                "type": "object",
+                "properties": {
+                    "resources": {
+                        "description": "The list of resources that this tenant will have at max. available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Updated Name",
+                    "description": "The updated description of the tenant.",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ]
+                },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             }
         },

@@ -18,31 +18,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "tenantId",
-    "organizationId",
     "resources",
     "name",
     "description"
 })
 @Generated("jsonschema2pojo")
-public class NewRegistryTenantRequest {
+public class UpdateRegistryTenantRequest {
 
-    /**
-     * Unique identifier of a tenant within a registry deployment
-     * (Required)
-     * 
-     */
-    @JsonProperty("tenantId")
-    @JsonPropertyDescription("Unique identifier of a tenant within a registry deployment")
-    private String tenantId;
-    /**
-     * ID of the organization the tenant belongs to
-     * (Required)
-     * 
-     */
-    @JsonProperty("organizationId")
-    @JsonPropertyDescription("ID of the organization the tenant belongs to")
-    private String organizationId;
     /**
      * The list of resources that this tenant will have at max. available
      * 
@@ -64,46 +46,6 @@ public class NewRegistryTenantRequest {
     @JsonProperty("description")
     @JsonPropertyDescription("An optional description for the tenant.")
     private String description;
-
-    /**
-     * Unique identifier of a tenant within a registry deployment
-     * (Required)
-     * 
-     */
-    @JsonProperty("tenantId")
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    /**
-     * Unique identifier of a tenant within a registry deployment
-     * (Required)
-     * 
-     */
-    @JsonProperty("tenantId")
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    /**
-     * ID of the organization the tenant belongs to
-     * (Required)
-     * 
-     */
-    @JsonProperty("organizationId")
-    public String getOrganizationId() {
-        return organizationId;
-    }
-
-    /**
-     * ID of the organization the tenant belongs to
-     * (Required)
-     * 
-     */
-    @JsonProperty("organizationId")
-    public void setOrganizationId(String organizationId) {
-        this.organizationId = organizationId;
-    }
 
     /**
      * The list of resources that this tenant will have at max. available

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.AuthTestProfile;
 import io.apicurio.registry.auth.KeycloakAuth;
@@ -27,6 +28,7 @@ import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -34,6 +36,7 @@ import java.util.Collections;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
+@Tag(ApicurioTestTags.DOCKER)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
     @ConfigProperty(name = "registry.keycloak.url")

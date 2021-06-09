@@ -14,6 +14,10 @@
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-sql</name>
     
+    <properties>
+        <groups></groups>
+    </properties>
+    
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -50,11 +54,12 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${test-containers.version}</version><!--$NO-MVN-MAN-VER$-->
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
             <scope>test</scope>
         </dependency>
+        
     </dependencies>
     
     <build>
@@ -161,6 +166,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <groups>${groups}</groups>
                     <systemProperties>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemProperties>
@@ -205,6 +211,12 @@
     </build>
     
     <profiles>
+        <profile>
+            <id>no-docker</id>
+            <properties>
+                <groups>!docker</groups>
+            </properties>
+        </profile>
         <profile>
             <id>native</id>
             <activation>

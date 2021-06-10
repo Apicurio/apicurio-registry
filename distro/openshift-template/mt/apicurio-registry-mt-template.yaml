@@ -61,6 +61,8 @@ objects:
           app: apicurio-registry
           template: multitenant-apicurio-registry
       spec:
+        serviceAccount: ${SERVICE_ACCOUNT_NAME}
+        serviceAccountName: ${SERVICE_ACCOUNT_NAME}
         containers:
         - name: apicurio-registry
           image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${APICURIO_REGISTRY_IMAGE_TAG}
@@ -217,6 +219,10 @@ objects:
           terminationMessagePath: /dev/termination-log
 
 parameters:
+
+- name: SERVICE_ACCOUNT_NAME
+  displayName: Service Account to use for the deployment
+  required: true
 
 - name: REPLICAS
   description: Number of replicas of the service to run.

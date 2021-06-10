@@ -17,10 +17,12 @@
 package io.apicurio.registry.storage.impl.kafkasql.keys;
 
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ContentIdKey extends AbstractMessageKey {
 
     private static final String CONTENT_ID_PARTITION_KEY = "__apicurio_registry_content_id__";

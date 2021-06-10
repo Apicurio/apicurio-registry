@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -28,10 +29,11 @@ import lombok.ToString;
 @Builder
 @EqualsAndHashCode
 @ToString
+@RegisterForReflection
 public class RuleConfigurationDto {
 
     private String configuration; // TODO why not a map?
-    
+
     /**
      * Constructor.
      */

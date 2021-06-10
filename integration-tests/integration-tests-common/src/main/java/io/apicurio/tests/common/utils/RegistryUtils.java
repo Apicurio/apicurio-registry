@@ -31,6 +31,11 @@ public class RegistryUtils {
             Optional.ofNullable(System.getProperty("groups"))
                 .orElse("");
 
+    public static final String DEPLOY_NATIVE_IMAGES =
+            Optional.ofNullable(System.getProperty("testNative"))
+                .orElse("");
+
+
     private RegistryUtils() {
         //utils class
     }

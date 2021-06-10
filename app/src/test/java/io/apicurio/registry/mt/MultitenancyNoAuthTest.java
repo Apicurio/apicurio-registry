@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.rest.client.RegistryClient;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
@@ -35,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;

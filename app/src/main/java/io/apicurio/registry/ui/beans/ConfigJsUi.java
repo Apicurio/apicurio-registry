@@ -16,14 +16,17 @@
 
 package io.apicurio.registry.ui.beans;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ConfigJsUi {
-    
+
     public String url;
     public String contextPath;
-    
+
     /**
      * Constructor.
      */

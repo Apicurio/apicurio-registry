@@ -116,8 +116,7 @@ public class RegistryTenantResourceTest {
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
         assertNotNull(req.getResources());
         assertNotNull(tenant.getResources());
-        assertEquals(req.getResources().size(), tenant.getResources().size());
-        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
+        assertEquals(toString(req.getResources()), toString(tenant.getResources()));
         assertEquals(req.getName(), tenant.getName());
         assertEquals(req.getDescription(), tenant.getDescription());
     }

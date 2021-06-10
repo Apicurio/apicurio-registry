@@ -1262,6 +1262,27 @@
     },
     {
       "enabled": true,
+      "id": "Array: tuples 4",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array"
+      }
+    },
+    {
+      "enabled": true,
       "id": "Array: additionalItems",
       "compatibility": "backward",
       "original": {

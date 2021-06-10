@@ -10,6 +10,136 @@
         }
     },
     "paths": {
+        "/registry": {
+            "summary": "Path used to access the information of the registry deployment being managed",
+            "description": "This path only contains a `GET` operation to obtain the details of the registry deployment that this tenant manager API is managing",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryDeploymentInfo"
+                                }
+                            }
+                        },
+                        "description": "Basic information about the Registry deployment being managed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getRegistryInfo",
+                "summary": "Returns the details of the registry deployment being managed"
+            }
+        },
+        "/system/info": {
+            "summary": "Retrieve system information",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SystemInfo"
+                                }
+                            }
+                        },
+                        "description": "On success, returns the system information."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getSystemInfo",
+                "summary": "Get system information",
+                "description": "This operation retrieves information about the running registry system, such as the version\nof the software and when it was built."
+            }
+        },
+        "/tenants/{tenantId}": {
+            "summary": "Path used to manage a single Tenant.",
+            "description": "The REST endpoint/path used to get, update, and delete single instances of an `Tenant`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenant"
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns a single `Tenant`."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getTenant",
+                "summary": "Get a Tenant",
+                "description": "Gets the details of a single instance of a `Tenant`."
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRegistryTenantRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Returned when the operation was successful."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateTenant",
+                "summary": "Update a tenant",
+                "description": "Updates the name, description, and resources for a tenant."
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Successful response.",
+                        "x-codegen-returnType": "javax.ws.rs.core.Response"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteTenant",
+                "summary": "Delete a Tenant",
+                "description": "Deletes an existing `Tenant`."
+            },
+            "parameters": [
+                {
+                    "name": "tenantId",
+                    "description": "A unique identifier for a `Tenant`.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "/tenants": {
             "summary": "Path used to manage the list of tenants.",
             "description": "The REST endpoint/path used to list and create zero or more `Tenant` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
@@ -54,7 +184,8 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/RegistryTenant"
-                                }
+                                },
+                                "x-codegen-returnType": "javax.ws.rs.core.Response"
                             }
                         },
                         "description": "Successful response."
@@ -69,83 +200,6 @@
                 "operationId": "createTenant",
                 "summary": "Create a Tenant",
                 "description": "Creates a new instance of a `Tenant`."
-            }
-        },
-        "/tenants/{tenantId}": {
-            "summary": "Path used to manage a single Tenant.",
-            "description": "The REST endpoint/path used to get, update, and delete single instances of an `Tenant`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.",
-            "get": {
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RegistryTenant"
-                                }
-                            }
-                        },
-                        "description": "Successful response - returns a single `Tenant`."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getTenant",
-                "summary": "Get a Tenant",
-                "description": "Gets the details of a single instance of a `Tenant`."
-            },
-            "delete": {
-                "responses": {
-                    "204": {
-                        "description": "Successful response."
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "deleteTenant",
-                "summary": "Delete a Tenant",
-                "description": "Deletes an existing `Tenant`."
-            },
-            "parameters": [
-                {
-                    "name": "tenantId",
-                    "description": "A unique identifier for a `Tenant`.",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
-        "/registry": {
-            "summary": "Path used to access the information of the registry deployment being managed",
-            "description": "This path only contains a `GET` operation to obtain the details of the registry deployment that this tenant manager API is managing",
-            "get": {
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RegistryDeploymentInfo"
-                                }
-                            }
-                        },
-                        "description": "Basic information about the Registry deployment being managed"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    }
-                },
-                "operationId": "getRegistryInfo",
-                "summary": "Returns the details of the registry deployment being managed"
             }
         },
         "x-codegen-contextRoot": "/api/v1"
@@ -185,7 +239,8 @@
                 "title": "Root Type for NewTenant",
                 "description": "The information required when creating a new tenant.",
                 "required": [
-                    "organizationId"
+                    "organizationId",
+                    "tenantId"
                 ],
                 "type": "object",
                 "properties": {
@@ -203,11 +258,20 @@
                         "items": {
                             "$ref": "#/components/schemas/TenantResource"
                         }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
                     }
                 },
                 "example": {
                     "organizationId": "bank-of-foo",
                     "tenantId": "tenant1",
+                    "name": "Foo Tenant",
                     "resources": [
                         {
                             "type": "MAX_TOTAL_SCHEMAS",
@@ -268,10 +332,20 @@
                         "items": {
                             "$ref": "#/components/schemas/TenantResource"
                         }
+                    },
+                    "name": {
+                        "description": "The name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "The description of the tenant.",
+                        "type": "string"
                     }
                 },
                 "example": {
                     "tenantId": "12345",
+                    "name": "Foo Tenant",
+                    "description": "This is the description of the foo tenant.",
                     "createdOn": "2021-03-17T21:35:00Z",
                     "createdBy": "usernamefoo",
                     "organizationId": "bank-of-foo",
@@ -281,6 +355,33 @@
                             "limit": 1000
                         }
                     ]
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "SystemInfo": {
+                "title": "Root Type for SystemInfo",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "builtOn": {
+                        "format": "date-time",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Apicurio Registry (SQL)",
+                    "description": "The Apicurio Registry application.",
+                    "version": "2.0.0.Final",
+                    "builtOn": "2021-03-19T12:55:00Z"
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
@@ -306,7 +407,8 @@
                 "example": {
                     "type": "MAX_TOTAL_SCHEMAS",
                     "limit": 1000
-                }
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
             "ResourceType": {
                 "description": "The list of possible types of a resource that can be limited",
@@ -322,7 +424,43 @@
                     "MAX_ARTIFACT_NAME_LENGTH_CHARS",
                     "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS"
                 ],
-                "type": "string"
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "UpdateRegistryTenantRequest": {
+                "title": "Root Type for NewTenant",
+                "description": "The information required when creating a new tenant.",
+                "required": [
+                ],
+                "type": "object",
+                "properties": {
+                    "resources": {
+                        "description": "The list of resources that this tenant will have at max. available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Updated Name",
+                    "description": "The updated description of the tenant.",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ]
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             }
         },
         "responses": {

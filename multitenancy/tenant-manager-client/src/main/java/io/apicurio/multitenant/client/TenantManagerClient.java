@@ -18,6 +18,7 @@ package io.apicurio.multitenant.client;
 import java.util.List;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 
 /**
  * @author Fabian Martinez
@@ -27,6 +28,8 @@ public interface TenantManagerClient {
     public List<RegistryTenant> listTenants();
 
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest);
+
+    public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest);
 
     public RegistryTenant getTenant(String tenantId);
 

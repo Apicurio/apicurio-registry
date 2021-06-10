@@ -15,6 +15,7 @@
  */
 package io.apicurio.multitenant.api;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
@@ -31,6 +33,7 @@ import javax.ws.rs.core.Response.Status;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.api.dto.DtoMappers;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
@@ -54,6 +57,7 @@ public class TenantsResourceImpl implements TenantsResource {
     }
 
     @Override
+    @Transactional
     public Response createTenant(NewRegistryTenantRequest tenantRequest) {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
@@ -62,9 +66,9 @@ public class TenantsResourceImpl implements TenantsResource {
         RegistryTenantDto tenant = new RegistryTenantDto();
 
         tenant.setTenantId(tenantRequest.getTenantId());
-
         tenant.setOrganizationId(tenantRequest.getOrganizationId());
-
+        tenant.setName(tenantRequest.getName());
+        tenant.setDescription(tenantRequest.getDescription());
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(null); //TODO extract user from auth details
 
@@ -78,10 +82,10 @@ public class TenantsResourceImpl implements TenantsResource {
                 }
             }
 
-            tenant.setResources(tenantRequest.getResources()
-                    .stream()
-                    .map(DtoMappers::toStorageDto)
-                    .collect(Collectors.toList()));
+            tenantRequest.getResources()
+                .stream()
+                .map(DtoMappers::toStorageDto)
+                .forEach(dto -> tenant.addResource(dto));
         }
 
         tenantsRepository.save(tenant);
@@ -96,12 +100,50 @@ public class TenantsResourceImpl implements TenantsResource {
                 .orElseThrow(() -> TenantNotFoundException.create(tenantId));
     }
 
+    /**
+     * @see io.apicurio.multitenant.api.TenantsResource#updateTenant(java.lang.String, io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest)
+     */
     @Override
-    public Response deleteTenant(@PathParam("tenantId") String tenantId) {
+    @Transactional
+    public void updateTenant(String tenantId, UpdateRegistryTenantRequest tenantRequest) {
+        RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
+        if (tenantRequest.getName() != null) {
+            tenant.setName(tenantRequest.getName());
+        }
+        if (tenantRequest.getDescription() != null) {
+            tenant.setDescription(tenantRequest.getDescription());
+        }
+
+        if (tenantRequest.getResources() != null) {
+            //find duplicates, invalid config
+            Set<ResourceType> items = new HashSet<>();
+            for (var resource : tenantRequest.getResources()) {
+                if (!items.add(resource.getType())) {
+                    throw new BadRequestException(
+                            String.format("Invalid configuration, resource type %s is duplicated", resource.getType().name()));
+                }
+            }
+
+            // First remove all the old resources
+            if (tenant.getResources() != null) {
+                new ArrayList<>(tenant.getResources()).forEach(r -> tenant.removeResource(r));
+            }
+
+            // Now add in the new ones
+            tenantRequest.getResources()
+                .stream()
+                .map(DtoMappers::toStorageDto)
+                .forEach(dto -> tenant.addResource(dto));
+        }
+
+        tenantsRepository.save(tenant);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTenant(@PathParam("tenantId") String tenantId) {
 
         tenantsRepository.delete(tenantId);
-
-        return Response.noContent().build();
     }
 
     private void required(String parameter, String message) {

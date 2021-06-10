@@ -19,6 +19,7 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +65,8 @@ public class RegistryTenantResourceTest {
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
+        req.setName("foo");
+        req.setDescription("bar");
         TenantResource tr = new TenantResource();
         tr.setLimit(5L);
         tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
@@ -83,9 +87,13 @@ public class RegistryTenantResourceTest {
         assertNotNull(tenant.getTenantId());
         assertNotNull(tenant.getCreatedOn());
         assertNotNull(tenant.getResources());
+        assertNotNull(tenant.getName());
+        assertNotNull(tenant.getDescription());
         assertFalse(tenant.getResources().isEmpty());
 
         testGetTenant(tenant.getTenantId(), req);
+
+        testUpdateTenant(tenant.getTenantId());
 
         testDelete(tenant.getTenantId());
     }
@@ -108,9 +116,46 @@ public class RegistryTenantResourceTest {
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
         assertNotNull(req.getResources());
         assertNotNull(tenant.getResources());
-        assertEquals(req.getResources().size(), tenant.getResources().size());
-        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
+        assertEquals(toString(req.getResources()), toString(tenant.getResources()));
+        assertEquals(req.getName(), tenant.getName());
+        assertEquals(req.getDescription(), tenant.getDescription());
+    }
 
+
+    private void testUpdateTenant(String tenantId) {
+        UpdateRegistryTenantRequest req = new UpdateRegistryTenantRequest();
+        req.setDescription("new description");
+        req.setName("new name");
+        TenantResource tr = new TenantResource();
+        tr.setLimit(256L);
+        tr.setType(ResourceType.MAX_LABEL_SIZE_BYTES);
+        req.setResources(List.of(tr));
+
+        given().when()
+                .contentType(ContentType.JSON)
+                .body(req)
+                .put(TENANTS_PATH + "/" + tenantId)
+                .then()
+                .statusCode(204);
+
+        testGetTenantUpdated(tenantId, req);
+    }
+
+    private void testGetTenantUpdated(String tenantId, UpdateRegistryTenantRequest req) {
+        Response res = given()
+            .when().get(TENANTS_PATH + "/" + tenantId)
+            .thenReturn();
+
+        assertEquals(200, res.statusCode());
+
+        RegistryTenant tenant = res.as(RegistryTenant.class);
+
+        assertEquals(tenantId, tenant.getTenantId());
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getName(), tenant.getName());
+        assertEquals(req.getDescription(), tenant.getDescription());
+        assertEquals(toString(req.getResources()), toString(tenant.getResources()));
     }
 
     public void testDelete(String tenantId) {
@@ -127,6 +172,21 @@ public class RegistryTenantResourceTest {
         .when().get(TENANTS_PATH + "/" + tenantId)
         .then()
            .statusCode(404);
+    }
+
+    public static String toString(List<TenantResource> resources) {
+        StringBuilder builder = new StringBuilder();
+        if (resources != null && !resources.isEmpty()) {
+            List<TenantResource> sorted = new ArrayList<>(resources);
+            sorted.sort((r1, r2) -> r1.getType().name().compareTo(r2.getType().name()));
+            sorted.forEach(r -> {
+                builder.append(r.getType().name());
+                builder.append("@");
+                builder.append(r.getLimit());
+                builder.append("\n");
+            });
+        }
+        return builder.toString();
     }
 
 }

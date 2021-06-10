@@ -16,12 +16,16 @@
 
 package io.apicurio.multitenant.storage.dto;
 
+import java.util.Objects;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import io.apicurio.multitenant.api.datamodel.ResourceType;
@@ -44,6 +48,9 @@ public class RegistryTenantResourceLimitDto {
 
     @Column(name = "resourcelimit")
     private Long limit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private RegistryTenantDto tenant;
 
     /**
      * @return the id
@@ -93,5 +100,44 @@ public class RegistryTenantResourceLimitDto {
         r.setType(this.type);
         return r;
     }
+
+    /**
+     * @return the tenant
+     */
+    public RegistryTenantDto getTenant() {
+        return tenant;
+    }
+
+    /**
+     * @param tenant the tenant to set
+     */
+    public void setTenant(RegistryTenantDto tenant) {
+        this.tenant = tenant;
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    /**
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RegistryTenantResourceLimitDto other = (RegistryTenantResourceLimitDto) obj;
+        return Objects.equals(id, other.id);
+    }
+
+
 
 }

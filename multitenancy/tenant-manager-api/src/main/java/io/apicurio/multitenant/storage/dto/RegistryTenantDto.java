@@ -15,6 +15,7 @@
  */
 package io.apicurio.multitenant.storage.dto;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -25,7 +26,6 @@ import java.util.stream.Stream;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -52,8 +52,14 @@ public class RegistryTenantDto {
     @Column(name = "organizationId")
     private String organizationId;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<RegistryTenantResourceLimitDto> resources;
+    @Column(name = "name", length = 512)
+    private String name;
+
+    @Column(name = "description", length = 2048)
+    private String description;
+
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RegistryTenantResourceLimitDto> resources = new ArrayList<>();
 
     public RegistryTenantDto() {
         // empty
@@ -91,6 +97,28 @@ public class RegistryTenantDto {
         this.organizationId = organizationId;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        if (name != null && name.length() > 512) {
+            name = name.substring(0, 512);
+        }
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        if (description != null && description.length() > 2048) {
+            description = description.substring(0, 2048);
+        }
+        this.description = description;
+    }
+
     public List<RegistryTenantResourceLimitDto> getResources() {
         return resources;
     }
@@ -99,12 +127,24 @@ public class RegistryTenantDto {
         this.resources = resources;
     }
 
+    public void addResource(RegistryTenantResourceLimitDto resource) {
+        resources.add(resource);
+        resource.setTenant(this);
+    }
+
+    public void removeResource(RegistryTenantResourceLimitDto resource) {
+        resources.remove(resource);
+        resource.setTenant(null);
+    }
+
     public RegistryTenant toDatamodel() {
         final RegistryTenant t = new RegistryTenant();
         t.setTenantId(this.tenantId);
         t.setCreatedOn(this.createdOn);
         t.setCreatedBy(this.createdBy);
         t.setOrganizationId(this.organizationId);
+        t.setName(this.getName());
+        t.setDescription(this.getDescription());
         t.setResources(
                 Optional.ofNullable(this.resources)
                     .map(Collection::stream)

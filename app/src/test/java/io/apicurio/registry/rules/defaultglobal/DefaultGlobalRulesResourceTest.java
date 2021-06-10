@@ -43,7 +43,7 @@ public class DefaultGlobalRulesResourceTest extends AbstractResourceTestBase {
 
     @BeforeEach
     protected void beforeEach() throws Exception {
-        prepareServiceInitializers();
+        setupRestAssured();
         deleteGlobalRules(1);
     }
 

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -42,8 +44,12 @@ public class DisabledApisMatcherService {
     Logger log;
 
     private static final String UI_PATTERN = "/ui/.*";
+    private static final String APIS_PATTERN = "/apis/.*";
+    private static final String API_PATTERN = "/api/.*";
 
     private List<Pattern> disabledPatternsList;
+
+    private List<Pattern> apisPatterns;
 
     @Inject
     MultitenancyProperties mtProperties;
@@ -70,12 +76,25 @@ public class DisabledApisMatcherService {
                 log.error("An error occurred parsing a regexp for disabling APIs: " + regexp, e);
             }
         }
+
+        apisPatterns = Stream.of(APIS_PATTERN, API_PATTERN)
+                .map(r -> Pattern.compile(r))
+                .collect(Collectors.toList());
     }
 
     public boolean isDisabled(String requestPath) {
         for (Pattern pattern : disabledPatternsList) {
             if (pattern.matcher(requestPath).matches()) {
                 log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath, pattern.pattern());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isApiRequest(String requestPath) {
+        for (Pattern pattern : apisPatterns) {
+            if (pattern.matcher(requestPath).matches()) {
                 return true;
             }
         }

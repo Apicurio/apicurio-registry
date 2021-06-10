@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 
 /**
  * Root Type for ArtifactStateChange
@@ -33,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "state",
     "version"
 })
+@RegisterForReflection
 public class ArtifactStateChange {
 
     @JsonProperty("groupId")

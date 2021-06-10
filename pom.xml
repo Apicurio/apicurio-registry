@@ -110,7 +110,9 @@
         <module>storage</module>
         <module>distro</module>
         <module>docs</module>
-        <module>client</module>
+        <module>rest-client/client</module>
+        <module>rest-client/client-vertx-impl</module>
+        <module>rest-client/client-common</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
     </modules>
@@ -216,6 +218,7 @@
         <test-containers.version>1.15.3</test-containers.version>
         <keycloak.testcontainers.version>1.6.1</keycloak.testcontainers.version>
         <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
+        <embedded-postgres.version>1.2.10</embedded-postgres.version>
     </properties>
 
     <dependencyManagement>
@@ -239,6 +242,21 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-client-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-client-vertx</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-client-jdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -23,7 +23,10 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -34,6 +37,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,10 +124,17 @@ public class SerdesTester<K, P, C> {
                     P data = dataGenerator.generate(producedMessages);
                     LOGGER.info("Sending message {} to topic {}", data, topicName);
                     ProducerRecord<K, P> producedRecord = new ProducerRecord<>(topicName, data);
-                    producer.send(producedRecord);
-                    producedMessages++;
+                    Future<RecordMetadata> fr = producer.send(producedRecord);
+
+                    if (fr.get(MILLIS_PER_MESSAGE * 2, TimeUnit.MILLISECONDS) != null) {
+                        producedMessages++;
+                    }
+
                 }
                 LOGGER.info("Produced {} messages", producedMessages);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                LOGGER.info("Error with producer future, throwing exception");
+                throw new RuntimeException(e);
             } finally {
                 producer.flush();
                 if (autoClose) {

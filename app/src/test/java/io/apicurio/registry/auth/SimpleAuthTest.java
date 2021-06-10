@@ -23,9 +23,11 @@ import java.util.Collections;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -47,6 +49,7 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
+@Tag(ApicurioTestTags.DOCKER)
 public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.keycloak.url")

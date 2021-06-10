@@ -16,6 +16,7 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.types.LogLevel;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -24,6 +25,7 @@ import lombok.ToString;
  */
 @EqualsAndHashCode
 @ToString
+@RegisterForReflection
 public class LogConfigurationDto {
 
     private String logger;

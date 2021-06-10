@@ -11,12 +11,11 @@ This project supports several build configuration options that affect the produc
 
 By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation. 
 
-Apicurio Registry supports 4 persistence implementations:
+Apicurio Registry supports 3 persistence implementations:
  - In-Memory
- - Kafka (Topics vs. KV-Store / Streams)
+ - KafkaSQL
  - SQL
- - Infinispan (POC / WIP)
- 
+  
 If you enable one, a separate set of artifacts is produced with the persistence implementation available.
 
 Additionally, there are 2 main configuration profiles:
@@ -63,53 +62,14 @@ To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
  - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
-
-### Streams
-
-Streams storage implementation goes beyond plain Kafka usage and uses Kafka Streams to handle storage in a distributed and fault-tolerant way.
-
- - In the *dev* mode, the application expects a Kafka broker running at `localhost:9092`.
- - In the *prod* mode, you have to provide an environment variable `KAFKA_BOOTSTRAP_SERVERS` pointing to Kafka brokers and `APPLICATION_ID` to name your Kafka Streams application
-
-Both modes require 2 topics: storage topic and globalId topic. This is configurable, by default we use storage-topic and global-id-topic names.
-
-Streams storage implementation uses the following Kafka (Streams) API / architecture
-
- - Storage producer to forward REST API HTTP requests to Kafka broker
- - Streams input KStream to handle previously sent  REST API HTTP requests as Kafka messages
- - Streams KStream to handle input's KStream result
- - Both KStreams use KeyValueStores to keep current storage state
-
-The two KeyValueStores keep the following structure:
- - storage store: <String, Str.Data> -- where the String is artifactId and Str.Data is whole artifact info: content, metadata, rules, etc
- - global id store: <Long, Str.Tuple> -- where the Long is unique globalId and Str.Tuple is a <artifactId, version> pair
  
-We use global id store to map unique id to <artifactId, version> pair, which also uniquely identifies an artifact.
-The data is distributed among node's stores, where we access those remote stores based on key distribution via gRPC. 
-
-We already have sensible defaults for all these things, but they can still be overridden or added by adding appropriate properties to app's configuration. The following property name prefix must be used:
-
- - Storage producer: registry.streams.storage-producer.
- - Streams topology: registry.streams.topology.
-
-We then strip away the prefix and use the rest of the property name in instance's Properties.
-
-e.g. registry.streams.topology.replication.factor=1 --> replication.factor=1
-
-For the actual configuration options check (although best config docs are in the code itself):
- - [Kafka configuration](https://kafka.apache.org/documentation/)
- - [Kafka Streams](https://kafka.apache.org/documentation/streams/)
-
-To help setup development / testing environment for the module, see streams_setup.sh script. You just need to have KAFKA_HOME env variable set, and script does the rest.
-
 ## Docker containers
 Every time a commit is pushed to `master` an updated set of docker images are built and pushed to Docker 
 Hub.  There are several docker images to choose from, one for each storage option.  The images include:
 
 * [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
 * [apicurio-registry-sql](https://hub.docker.com/r/apicurio/apicurio-registry-sql)
-* [apicurio-registry-infinispan](https://hub.docker.com/r/apicurio/apicurio-registry-infinispan)
-* [apicurio-registry-streams](https://hub.docker.com/r/apicurio/apicurio-registry-streams)
+* [apicurio-registry-kafkasql](https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql)
 
 Run one of the above docker images like this:
 
@@ -145,7 +105,7 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry-sql:1.0.0-SNAPSHOT
+    image: apicurio/apicurio-registry-sql:2.0.0-SNAPSHOT
     ports:
       - 8080:8080
     environment:
@@ -157,22 +117,19 @@ services:
 
 ## Security
 
-To run Apicurio Registry against secured Kafka broker(s) in Docker/Kubernetes/OpenShift,
-you can put the following system properties into JAVA_OPTIONS env var:
 
-* -D%dev.registry.streams.topology.security.protocol=SSL
-* -D%dev.registry.streams.topology.ssl.truststore.location=[location]
-* -D%dev.registry.streams.topology.ssl.truststore.password=[password]
-* -D%dev.registry.streams.topology.ssl.truststore.type=[type]
-* (optional) -D%dev.registry.streams.topology.ssl.endpoint.identification.algorithm=
-* -D%dev.registry.streams.storage-producer.security.protocol=SSL
-* -D%dev.registry.streams.storage-producer.ssl.truststore.location=[location]
-* -D%dev.registry.streams.storage-producer.ssl.truststore.password=[password]
-* -D%dev.registry.streams.storage-producer.ssl.truststore.type=[type]
-* (optional) -D%dev.registry.streams.storage-producer.ssl.endpoint.identification.algorithm=
-* etc ...
+You can enable authentication for the application web console and core REST API  using a server based on OpenID Connect (OIDC). The same server realm and users are federated across the application web console and core REST API using Open ID Connect so that you only require one set of credentials.
+In order no enable this integration, you just need to set the following environment variables.
 
-Of course that %dev depends on the Quarkus profile you're gonna use -- should be %prod when used in production.
+|Option|Env. variable|
+|---|---|
+|`AUTH_ENABLED`|Whether to enable authentication or not|
+|`KEYCLOAK_URL`|Server url|
+|`KEYCLOAK_REALM`|Security realm|
+|`KEYCLOAK_API_CLIENT_ID`|The client for the api|
+|`KEYCLOAK_UI_CLIENT_ID`|The client for the ui|
+
+Note that you will need to have everything created before starting the application, the realm and the two clients.
 
 
 ## Eclipse IDE

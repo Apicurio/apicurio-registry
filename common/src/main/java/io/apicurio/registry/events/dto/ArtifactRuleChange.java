@@ -19,9 +19,12 @@ package io.apicurio.registry.events.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author Fabian Martinez
  */
+@RegisterForReflection
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ArtifactRuleChange extends ArtifactId {
 

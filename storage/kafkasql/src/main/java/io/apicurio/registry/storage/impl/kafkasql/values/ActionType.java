@@ -19,9 +19,12 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public enum ActionType {
 
     Create(1), Update(2), Delete(3), Clear(4), Import(5), Reset(6);

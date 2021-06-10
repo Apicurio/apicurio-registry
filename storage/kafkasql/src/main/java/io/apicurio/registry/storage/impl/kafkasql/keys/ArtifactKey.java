@@ -19,10 +19,12 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 import java.util.UUID;
 
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ArtifactKey extends AbstractMessageKey {
 
     private String groupId;

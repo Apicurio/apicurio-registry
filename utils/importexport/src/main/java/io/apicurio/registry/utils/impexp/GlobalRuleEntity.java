@@ -17,10 +17,12 @@
 package io.apicurio.registry.utils.impexp;
 
 import io.apicurio.registry.types.RuleType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class GlobalRuleEntity extends Entity {
 
     public RuleType ruleType;

@@ -186,7 +186,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         String artifactId = UUID.randomUUID().toString();
         String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
-        byte[] content = ("{\"type\":\"record\",\"title\":\"" + name+ "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+        byte[] content = ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                 .getBytes(StandardCharsets.UTF_8);
 
         ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toStream(content));
@@ -599,7 +599,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         });
 
 
-
     }
 
     @Test
@@ -878,9 +877,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         ArtifactSearchResults result = clientV2.searchArtifacts(null, null, null, null, null, null, null, null, 100);
 
         SearchedArtifact artifact1 = result.getArtifacts().stream()
-            .filter(s -> s.getId().equals(artifactId1))
-            .findFirst()
-            .orElseThrow();
+                .filter(s -> s.getId().equals(artifactId1))
+                .findFirst()
+                .orElseThrow();
 
         assertNull(artifact1.getGroupId());
 
@@ -911,9 +910,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertNull(vmeta.getGroupId());
 
         clientV2.listArtifactsInGroup(null).getArtifacts()
-            .stream()
-            .filter(s -> s.getId().equals(artifactId))
-            .forEach(s -> assertNull(s.getGroupId()));
+                .stream()
+                .filter(s -> s.getId().equals(artifactId))
+                .forEach(s -> assertNull(s.getGroupId()));
 
     }
 

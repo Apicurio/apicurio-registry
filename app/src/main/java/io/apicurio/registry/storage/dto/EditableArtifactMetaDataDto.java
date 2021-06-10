@@ -25,6 +25,8 @@ import lombok.ToString;
 import java.util.List;
 import java.util.Map;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -32,6 +34,7 @@ import java.util.Map;
 @Builder
 @EqualsAndHashCode
 @ToString
+@RegisterForReflection
 public class EditableArtifactMetaDataDto {
 
     private String name;

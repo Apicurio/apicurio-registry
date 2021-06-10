@@ -1,11 +1,12 @@
 version: 2
+
 updates:
-- package-ecosystem: maven
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-  ignore:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    ignore:
   - dependency-name: com.squareup.wire:wire-schema
     versions:
     - ">= 3.6.a, < 3.7"

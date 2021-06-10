@@ -2,11 +2,13 @@
 
 set -eo pipefail
 
+# The version should be the short hash from git. This is what the deployent process expects.
+VERSION="$(git log --pretty=format:'%h' -n 1)"
 
 PROJECT_NAME="multitenant-service-registry"
 IMAGE_REGISTRY="quay.io"
 IMAGE_ORG="rhoas"
-IMAGE_TAG="latest"
+IMAGE_TAG="${VERSION}"
 
 SKIP_TESTS=false
 MVN_BUILD_COMMAND="mvn clean install -Pprod -Pno-docker -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests=${SKIP_TESTS}"
@@ -103,6 +105,8 @@ push_image() {
     echo " Pushing Image ${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}"
     echo "#######################################################################################################"
     docker push "${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}"
+    docker tag "${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:latest"
+    docker push "${IMAGE_REGISTRY}/${IMAGE_ORG}/${IMAGE_NAME}:latest"
     if [ $? -eq 0 ]
     then
       echo "Image successfully pushed to ${IMAGE_REGISTRY}"

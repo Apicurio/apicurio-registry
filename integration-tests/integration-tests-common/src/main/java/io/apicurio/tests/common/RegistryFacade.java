@@ -235,17 +235,17 @@ public class RegistryFacade {
 
     public void waitForRegistryReady() throws Exception {
 
+        ThrowingConsumer<Integer> nodeIsReady = (port) -> {
+            TestUtils.waitFor("Cannot connect to registries on node :" + port + " in timeout!",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", port, "registry node"));
+
+            TestUtils.waitFor("Registry reports is ready",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY,
+                    () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", false, "registry node"),
+                    () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", true, "registry node"));
+        };
+
         if (RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
-
-            ThrowingConsumer<Integer> nodeIsReady = (port) -> {
-                TestUtils.waitFor("Cannot connect to registries on node :" + port + " in timeout!",
-                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", port, "registry node"));
-
-                TestUtils.waitFor("Registry reports is ready",
-                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY,
-                        () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", false, "registry node"),
-                        () -> TestUtils.isReady("http://localhost:" + port, "/health/ready", true, "registry node"));
-            };
 
             try {
                 nodeIsReady.accept(TestUtils.getRegistryPort());
@@ -256,6 +256,17 @@ public class RegistryFacade {
             } catch (Throwable e) {
                 throw new Exception(e);
             }
+
+        } if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
+
+            try {
+                nodeIsReady.accept(TestUtils.getRegistryPort());
+                int c2port = TestUtils.getRegistryPort() + 1;
+                nodeIsReady.accept(c2port);
+            } catch (Throwable e) {
+                throw new Exception(e);
+            }
+
         } else {
             TestUtils.waitFor("Cannot connect to registries on " + TestUtils.getRegistryV1ApiUrl() + " in timeout!",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, TestUtils::isReachable);

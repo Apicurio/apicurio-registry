@@ -102,8 +102,8 @@ public class RegistryTenantDto {
     }
 
     public void setName(String name) {
-        if (description != null && description.length() > 512) {
-            description = description.substring(0, 512);
+        if (name != null && name.length() > 512) {
+            name = name.substring(0, 512);
         }
         this.name = name;
     }

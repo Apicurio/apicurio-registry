@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: multitenant-apicurio-registry
@@ -61,13 +61,13 @@ objects:
           app: apicurio-registry
           template: multitenant-apicurio-registry
       spec:
+        serviceAccount: ${SERVICE_ACCOUNT_NAME}
+        serviceAccountName: ${SERVICE_ACCOUNT_NAME}
         containers:
         - name: apicurio-registry
           image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${APICURIO_REGISTRY_IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           env:
-          - name: AUTH_ENABLED
-            value: "false"
           - name: REGISTRY_ENABLE_MULTITENANCY
             value: "true"
           - name: REGISTRY_LOG_LEVEL
@@ -220,6 +220,10 @@ objects:
 
 parameters:
 
+- name: SERVICE_ACCOUNT_NAME
+  displayName: Service Account to use for the deployment
+  required: true
+
 - name: REPLICAS
   description: Number of replicas of the service to run.
   value: "3"
@@ -286,10 +290,10 @@ parameters:
   value: "false"
 - name: KEYCLOAK_URL
   description: Keycloak base url
-  value: ""
+  value: "http:localhost:8090"
 - name: KEYCLOAK_REALM
   description: Keycloak realm
-  value: ""
+  value: "apicurio-registry"
 - name: KEYCLOAK_API_CLIENT_ID
   description: client id for Apicurio Registry API
   value: registry-api

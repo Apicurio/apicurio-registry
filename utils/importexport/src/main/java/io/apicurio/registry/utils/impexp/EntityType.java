@@ -16,9 +16,12 @@
 
 package io.apicurio.registry.utils.impexp;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public enum EntityType {
 
     Manifest, GlobalRule, Content, Group, ArtifactVersion, ArtifactRule

@@ -42,8 +42,6 @@ import io.quarkus.test.junit.TestProfile;
 @TestProfile(DisableApisTestProfile.class)
 public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
-//    registry.disable.apis
-
     @Inject
     DisabledApisMatcherService matcherService;
 
@@ -61,15 +59,15 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
 
     @Test
     public void testRestApi() throws Exception {
-        doTestDisabledApis();
+        doTestDisabledApis(false);
     }
 
-    public static void doTestDisabledApis() throws Exception {
-        doTestDisabledSubPathRegexp();
+    public static void doTestDisabledApis(boolean disabledDirectAccess) throws Exception {
+        doTestDisabledSubPathRegexp(disabledDirectAccess);
 
         doTestDisabledPathExactMatch();
 
-        doTestDisabledChildPathByParentPath();
+        doTestDisabledChildPathByParentPath(disabledDirectAccess);
 
         doTestUIDisabled();
     }
@@ -83,7 +81,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
-    private static void doTestDisabledSubPathRegexp() {
+    private static void doTestDisabledSubPathRegexp(boolean disabledDirectAccess) {
         //this should return http 404, it's disabled
         given()
             .when()
@@ -93,12 +91,16 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(404);
 
-        //this should return http 200, it's not disabled
-        given()
+        var req = given()
             .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
-            .then()
-            .statusCode(200)
-            .body(anything());
+            .then();
+        if (disabledDirectAccess) {
+            req.statusCode(404);
+        } else {
+            //this should return http 200, it's not disabled
+            req.statusCode(200)
+                .body(anything());
+        }
     }
 
     private static void doTestDisabledPathExactMatch() {
@@ -117,19 +119,24 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
-    private static void doTestDisabledChildPathByParentPath() throws Exception {
+    private static void doTestDisabledChildPathByParentPath(boolean disabledDirectAccess) throws Exception {
         String artifactContent = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
         String schemaId = TestUtils.generateArtifactId();
 
-        given()
+        var req = given()
             .when()
                 .contentType(CT_JSON + "; artifactType=AVRO")
                 .pathParam("groupId", "default")
                 .header("X-Registry-ArtifactId", schemaId)
                 .body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts")
-            .then()
-                .statusCode(200);
+            .then();
+
+        if (disabledDirectAccess) {
+            req.statusCode(404);
+        } else {
+            req.statusCode(200);
+        }
 
 
         //the entire ibmcompat api is disabled

@@ -18,9 +18,6 @@ package io.apicurio.registry;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,7 +31,6 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.ServiceInitializer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -47,19 +43,15 @@ import io.restassured.response.ValidatableResponse;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
 
-    protected static final String CT_JSON = "application/json";
+    public static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
-
-    @Inject
-    Instance<ServiceInitializer> initializers;
 
     protected String registryApiBaseUrl;
     protected String registryV1ApiUrl;
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
-
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -75,16 +67,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     @BeforeEach
     protected void beforeEach() throws Exception {
-        prepareServiceInitializers();
+        setupRestAssured();
         deleteGlobalRules(0);
     }
 
-    protected void prepareServiceInitializers() {
+    protected void setupRestAssured() {
         RestAssured.baseURI = registryApiBaseUrl;
         RestAssured.registerParser(ArtifactMediaTypes.BINARY.toString(), Parser.JSON);
-
-        // run all initializers::beforeEach
-        initializers.stream().forEach(ServiceInitializer::beforeEach);
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {

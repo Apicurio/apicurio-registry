@@ -38,14 +38,14 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(MultipleRequestFiltersTestProfile.class)
-public class MultitenancyAndDisabledApisTest extends AbstractResourceTestBase {
+public class MultitenancyAndDisabledApisTest {
 
     @Inject
     MockTenantMetadataService tenantMetadataService;
 
     @Test
     public void testRestApi() throws Exception {
-        DisableApisFlagsTest.doTestDisabledApis();
+        DisableApisFlagsTest.doTestDisabledApis(true);
 
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId("abc");
@@ -65,7 +65,7 @@ public class MultitenancyAndDisabledApisTest extends AbstractResourceTestBase {
         //this should return http 200, it's not disabled
         given()
             .baseUri("http://localhost:8081")
-            .when().contentType(CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
+            .when().contentType(AbstractResourceTestBase.CT_JSON).get("/t/abc/apis/ccompat/v6/subjects")
             .then()
             .statusCode(200)
             .body(anything());

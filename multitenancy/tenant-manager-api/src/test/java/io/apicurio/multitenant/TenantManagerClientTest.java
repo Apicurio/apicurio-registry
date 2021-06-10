@@ -88,8 +88,7 @@ public class TenantManagerClientTest {
         assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
         assertNotNull(req.getResources());
         assertNotNull(tenant.getResources());
-        assertEquals(req.getResources().size(), tenant.getResources().size());
-        assertEquals(req.getResources().get(0), tenant.getResources().get(0));
+        assertEquals(RegistryTenantResourceTest.toString(req.getResources()), RegistryTenantResourceTest.toString(tenant.getResources()));
     }
 
     private void testUpdateTenant(String tenantId) {

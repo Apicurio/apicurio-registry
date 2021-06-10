@@ -175,7 +175,7 @@ public class RegistryTenantResourceTest {
            .statusCode(404);
     }
 
-    private static String toString(List<TenantResource> resources) {
+    public static String toString(List<TenantResource> resources) {
         StringBuilder builder = new StringBuilder();
         if (resources != null && !resources.isEmpty()) {
             List<TenantResource> sorted = new ArrayList<>(resources);

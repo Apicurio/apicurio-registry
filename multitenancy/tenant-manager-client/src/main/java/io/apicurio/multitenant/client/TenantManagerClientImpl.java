@@ -32,6 +32,7 @@ import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 
 /**
  * @author Fabian Martinez
@@ -83,6 +84,25 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
             if (res.statusCode() == 201) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
+            }
+            throw new TenantManagerClientException(res.toString());
+        } catch ( IOException | InterruptedException e ) {
+            throw new TenantManagerClientException(e);
+        }
+    }
+
+    @Override
+    public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
+                    .header("Content-Type", "application/json")
+                    .PUT(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(updateRequest)))
+                    .build();
+
+            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            if (res.statusCode() == 204) {
+                return;
             }
             throw new TenantManagerClientException(res.toString());
         } catch ( IOException | InterruptedException e ) {

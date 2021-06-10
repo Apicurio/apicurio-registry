@@ -32,6 +32,7 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -70,6 +71,8 @@ public class TenantManagerClientTest {
 
         testGetTenant(tenant.getTenantId(), req);
 
+        testUpdateTenant(tenant.getTenantId());
+
         testDelete(tenant.getTenantId());
     }
 
@@ -87,6 +90,31 @@ public class TenantManagerClientTest {
         assertNotNull(tenant.getResources());
         assertEquals(req.getResources().size(), tenant.getResources().size());
         assertEquals(req.getResources().get(0), tenant.getResources().get(0));
+    }
+
+    private void testUpdateTenant(String tenantId) {
+        UpdateRegistryTenantRequest req = new UpdateRegistryTenantRequest();
+        req.setDescription("new description");
+        req.setName("new name");
+        TenantResource tr = new TenantResource();
+        tr.setLimit(256L);
+        tr.setType(ResourceType.MAX_LABEL_SIZE_BYTES);
+        req.setResources(List.of(tr));
+
+        client.updateTenant(tenantId, req);
+
+        testGetTenantUpdated(tenantId, req);
+    }
+
+    private void testGetTenantUpdated(String tenantId, UpdateRegistryTenantRequest req) {
+        RegistryTenant tenant = client.getTenant(tenantId);
+
+        assertEquals(tenantId, tenant.getTenantId());
+        assertNotNull(req.getResources());
+        assertNotNull(tenant.getResources());
+        assertEquals(req.getName(), tenant.getName());
+        assertEquals(req.getDescription(), tenant.getDescription());
+        assertEquals(RegistryTenantResourceTest.toString(req.getResources()), RegistryTenantResourceTest.toString(tenant.getResources()));
     }
 
     public void testDelete(String tenantId) {

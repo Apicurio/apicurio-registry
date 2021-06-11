@@ -29,6 +29,7 @@ import {UploadArtifactForm} from "./components/uploadForm";
 import {SearchedArtifact} from "@apicurio/registry-models";
 import {InvalidContentModal} from "../../components/modals";
 import {If} from "../../components/common/if";
+import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 
 
 /**
@@ -47,6 +48,7 @@ export interface ArtifactsPageState extends PageState {
     isUploadModalOpen: boolean;
     isUploadFormValid: boolean;
     isInvalidContentModalOpen: boolean;
+    isPleaseWaitModalOpen: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
@@ -108,6 +110,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
+                <PleaseWaitModal message="Creating artifact, please wait..."
+                                 isOpen={this.state.isPleaseWaitModalOpen} />
             </React.Fragment>
         );
     }
@@ -122,6 +126,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             invalidContentError: null,
             isInvalidContentModalOpen: false,
             isLoading: true,
+            isPleaseWaitModalOpen: false,
             isUploadFormValid: false,
             isUploadModalOpen: false,
             paging: {
@@ -155,6 +160,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     private doUploadArtifact = (): void => {
         this.onUploadModalClose();
+        this.pleaseWait(true);
         if (this.state.uploadFormData !== null) {
             // If no groupId is provided, set it to the "default" group
             if (!this.state.uploadFormData.groupId) {
@@ -166,6 +172,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 Services.getLoggerService().info("Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
             }).catch( error => {
+                this.pleaseWait(false);
                 if (error && error.error_code === 400) {
                     this.handleInvalidContentError(error);
                 } else {
@@ -250,6 +257,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     private closeInvalidContentModal = (): void => {
         this.setSingleState("isInvalidContentModalOpen", false);
+    };
+
+    private pleaseWait = (isOpen: boolean): void => {
+        this.setSingleState("isPleaseWaitModalOpen", isOpen);
     };
 
     private handleInvalidContentError(error: any): void {

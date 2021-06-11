@@ -1,5 +1,6 @@
-/*
- * Copyright 2020 Red Hat
+/**
+ * @license
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +15,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ui.beans;
+import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
+import {FederatedPageProps, FederatedUtils} from "../../federated";
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedPageProps {
+}
 
-/**
- * @author eric.wittmann@gmail.com
- */
-@RegisterForReflection
-public class ConfigJsUi {
+export default class FederatedArtifactsPage extends ArtifactsPage {
 
-    public String contextPath;
+    constructor(props: Readonly<FederatedArtifactsPageProps>) {
+        super(props);
+    }
 
-    /**
-     * Constructor.
-     */
-    public ConfigJsUi() {
+    protected postConstruct(): void {
+        FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
+        super.postConstruct();
     }
 
 }

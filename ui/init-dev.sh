@@ -11,7 +11,7 @@ then
   CONFIG_TYPE="keycloakjs"
 fi
 
-cp config/version.js packages/registry/src
-cp config/config-$CONFIG_TYPE.js packages/registry/src/config.js
+cp config/version.js src/version.js
+cp config/config-$CONFIG_TYPE.js src/config.js
 
-echo "Done.  Try:  'yarn start:registry'"
+echo "Done.  Try:  'yarn start'"

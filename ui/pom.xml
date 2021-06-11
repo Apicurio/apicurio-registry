@@ -105,7 +105,7 @@
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.basedir}/packages/registry/dist</directory>
+                                    <directory>${project.basedir}/dist</directory>
                                     <filtering>false</filtering>
                                     <excludes>
                                         <exclude>config.js</exclude>

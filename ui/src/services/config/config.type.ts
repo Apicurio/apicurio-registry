@@ -1,5 +1,6 @@
-/*
- * Copyright 2020 Red Hat
+/**
+ * @license
+ * Copyright 2020 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +15,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ui.beans;
+export interface FeaturesConfig {
+    readOnly?: boolean;
+    breadcrumbs?: boolean;
+    multiTenant?: boolean;
+    multiTenantUrl?: string;
+}
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+export interface ArtifactsConfig {
+    url: string;
+    type: string;
+}
 
-/**
- * @author eric.wittmann@gmail.com
- */
-@RegisterForReflection
-public class ConfigJsUi {
+export interface UiConfig {
+    contextPath: string|null;
+    navPrefixPath: string|null;
+}
 
-    public String contextPath;
+export interface AuthConfig {
+    type: string;
+    options: any;
+}
 
-    /**
-     * Constructor.
-     */
-    public ConfigJsUi() {
-    }
-
+export interface ConfigType {
+    mode: string;
+    artifacts: ArtifactsConfig;
+    auth: AuthConfig;
+    features?: FeaturesConfig;
+    ui: UiConfig;
 }

@@ -45,17 +45,16 @@ public class DiffContext {
     final Set<SchemaLocation> visited = new HashSet<>();
 
 
-    private DiffContext(DiffContext rootContext, DiffContext parentContext, String pathUpdated) {
+    private DiffContext(DiffContext rootContext, DiffContext parentContext, String pathUpdated, Set<SchemaLocation> visited) {
         this.rootContext = rootContext;
         this.parentContext = parentContext;
         this.pathUpdated = pathUpdated;
-        if (parentContext != null) // Is empty when constructing root context.
-            this.visited.addAll(parentContext.visited);
+        this.visited.addAll(visited);
     }
 
 
     public DiffContext sub(String pathFragmentUpdated) {
-        return new DiffContext(rootContext, this, pathUpdated + "/" + pathFragmentUpdated);
+        return new DiffContext(rootContext, this, pathUpdated + "/" + pathFragmentUpdated, this.visited);
     }
 
 
@@ -66,14 +65,16 @@ public class DiffContext {
         parentContext = rootContext;
     }
 
-    public static DiffContext createRootContext(String basePathFragmentUpdated) {
-        DiffContext rootContext = new DiffContext(null, null, basePathFragmentUpdated);
+    public static DiffContext createRootContext(String basePathFragmentUpdated, Set<SchemaLocation> visited) {
+        if(visited == null)
+            visited = new HashSet<>();
+        DiffContext rootContext = new DiffContext(null, null, basePathFragmentUpdated, visited);
         rootContext.initRootContext(rootContext);
         return rootContext;
     }
 
     public static DiffContext createRootContext() {
-        return createRootContext("");
+        return createRootContext("", null);
     }
 
 

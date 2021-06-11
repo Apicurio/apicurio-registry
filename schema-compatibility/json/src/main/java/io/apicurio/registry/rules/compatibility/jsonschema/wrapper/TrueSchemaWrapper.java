@@ -17,7 +17,6 @@
 package io.apicurio.registry.rules.compatibility.jsonschema.wrapper;
 
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisitor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.everit.json.schema.TrueSchema;
@@ -25,15 +24,14 @@ import org.everit.json.schema.TrueSchema;
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
  */
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class TrueSchemaWrapper implements SchemaWrapper {
+public class TrueSchemaWrapper extends EqualitySchemaWrapper implements SchemaWrapper {
 
     @Getter
-    @EqualsAndHashCode.Include
     private final TrueSchema wrapped;
 
     public TrueSchemaWrapper(TrueSchema wrapped) {
+        super(wrapped);
         this.wrapped = wrapped;
     }
 

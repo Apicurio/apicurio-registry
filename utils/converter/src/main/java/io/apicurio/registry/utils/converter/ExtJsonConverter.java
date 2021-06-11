@@ -85,8 +85,11 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
     @Override
     public byte[] fromConnectData(String topic, Headers headers, Schema schema, Object value) {
+        if (schema == null && value == null) {
+            return null;
+        }
         JsonNode jsonSchema = jsonConverter.asJsonSchema(schema);
-        String schemaString = jsonSchema.toString();
+        String schemaString = jsonSchema != null ? jsonSchema.toString() : null;
         ParsedSchema<JsonNode> parsedSchema = new ParsedSchemaImpl<JsonNode>()
                 .setParsedSchema(jsonSchema)
                 .setRawSchema(IoUtil.toBytes(schemaString));

@@ -16,7 +16,6 @@
  */
 
 export * from "./admin";
-export * from "./artifacts";
 export * from "./baseService";
 export * from "./config";
 export * from "./downloader";

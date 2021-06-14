@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {ArtifactsService} from "./artifacts";
 import {GroupsService} from "./groups";
 import {ConfigService} from "./config";
 import {LoggerService} from "./logger";
@@ -29,10 +28,6 @@ import {AuthService} from "./auth";
 export class Services {
 
     static _isInit: boolean = false;
-
-    public static getArtifactsService(): ArtifactsService {
-        return Services.all.artifacts;
-    }
 
     public static getGroupsService(): GroupsService {
         return Services.all.groups;
@@ -59,7 +54,6 @@ export class Services {
     }
 
     private static all: any = {
-        artifacts: new ArtifactsService(),
         groups: new GroupsService(),
         config: new ConfigService(),
         downloader: new DownloaderService(),

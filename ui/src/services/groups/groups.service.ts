@@ -25,7 +25,6 @@ import {
 } from "../../models";
 import {BaseService} from "../baseService";
 import YAML from "yaml";
-import {ArtifactsService} from "../artifacts";
 
 export interface CreateArtifactData {
     groupId: string;
@@ -69,9 +68,6 @@ export interface EditableMetaData {
  */
 export class GroupsService extends BaseService {
 
-    // @ts-ignore
-    protected artifacts: ArtifactsService = null;
-
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId });
         const headers: any = {};
@@ -86,9 +82,7 @@ export class GroupsService extends BaseService {
     }
 
     public createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersionData): Promise<VersionMetaData> {
-        if (groupId == null) {
-            return this.artifacts.createArtifactVersion(artifactId, data);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
         const headers: any = {};
@@ -131,9 +125,7 @@ export class GroupsService extends BaseService {
     }
 
     public getArtifactMetaData(groupId: string|null, artifactId: string, version: string): Promise<ArtifactMetaData> {
-        if (groupId == null) {
-            return this.artifacts.getArtifactMetaData(artifactId, version);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
         if (version === "latest") {
@@ -143,9 +135,7 @@ export class GroupsService extends BaseService {
     }
 
     public updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
-        if (groupId == null) {
-            return this.artifacts.updateArtifactMetaData(artifactId, version,  metaData);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version/meta", { groupId, artifactId, version });
         if (version === "latest") {
@@ -155,9 +145,7 @@ export class GroupsService extends BaseService {
     }
 
     public getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
-        if (groupId == null) {
-            return this.artifacts.getArtifactContent(artifactId, version);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         let endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions/:version", { groupId, artifactId, version });
         if (version === "latest") {
@@ -174,9 +162,7 @@ export class GroupsService extends BaseService {
     }
 
     public getArtifactVersions(groupId: string|null, artifactId: string): Promise<SearchedVersion[]> {
-        if (groupId == null) {
-            return this.artifacts.getArtifactVersions(artifactId);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Getting the list of versions for artifact: ", groupId, artifactId);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, {
@@ -189,9 +175,7 @@ export class GroupsService extends BaseService {
     }
 
     public getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]> {
-        if (groupId == null) {
-            return this.artifacts.getArtifactRules(artifactId);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
@@ -201,9 +185,7 @@ export class GroupsService extends BaseService {
     }
 
     public getArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<Rule> {
-        if (groupId == null) {
-            return this.artifacts.getArtifactRule(artifactId, type);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
             groupId,
@@ -214,9 +196,7 @@ export class GroupsService extends BaseService {
     }
 
     public createArtifactRule(groupId: string|null, artifactId: string, type: string, config: string): Promise<Rule> {
-        if (groupId == null) {
-            return this.artifacts.createArtifactRule(artifactId, type, config);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Creating rule:", type);
 
@@ -229,9 +209,7 @@ export class GroupsService extends BaseService {
     }
 
     public updateArtifactRule(groupId: string|null, artifactId: string, type: string, config: string): Promise<Rule> {
-        if (groupId == null) {
-            return this.artifacts.updateArtifactRule(artifactId, type, config);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Updating rule:", type);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
@@ -244,9 +222,7 @@ export class GroupsService extends BaseService {
     }
 
     public deleteArtifactRule(groupId: string|null, artifactId: string, type: string): Promise<void> {
-        if (groupId == null) {
-            return this.artifacts.deleteArtifactRule(artifactId, type);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Deleting rule:", type);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules/:rule", {
@@ -258,13 +234,15 @@ export class GroupsService extends BaseService {
     }
 
     public deleteArtifact(groupId: string|null, artifactId: string): Promise<void> {
-        if (groupId == null) {
-            return this.artifacts.deleteArtifact(artifactId);
-        }
+        groupId = this.normalizeGroupId(groupId);
 
         this.logger.info("[GroupsService] Deleting artifact:", groupId, artifactId);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
         return this.httpDelete(endpoint);
+    }
+
+    private normalizeGroupId(groupId: string|null): string {
+        return groupId || "default";
     }
 
     private contentType(type: string, content: string): string {

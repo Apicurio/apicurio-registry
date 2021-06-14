@@ -210,7 +210,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
-                <PleaseWaitModal message="Uploading new version, please wait..."
+                <PleaseWaitModal message={this.state.pleaseWaitMessage}
                                  isOpen={this.state.isPleaseWaitModalOpen} />
             </React.Fragment>
         );

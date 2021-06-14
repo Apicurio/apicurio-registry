@@ -442,7 +442,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.pleaseWait(true, "Deleting artifact, please wait...");
         Services.getGroupsService().deleteArtifact(this.groupId(), this.artifactId()).then( () => {
             this.pleaseWait(false, "");
-            this.navigateTo("/artifacts")();
+            this.navigateTo(this.linkTo("/artifacts"))();
         });
     };
 

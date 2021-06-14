@@ -39,6 +39,7 @@ import {InvalidContentModal} from "../../components/modals";
 import {IfFeature} from "../../components";
 import {ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion} from "../../../models";
 import {CreateVersionData, EditableMetaData, Services} from "../../../services";
+import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 
 
 /**
@@ -61,6 +62,8 @@ export interface ArtifactVersionPageState extends PageState {
     isUploadModalOpen: boolean;
     isDeleteModalOpen: boolean;
     isEditModalOpen: boolean;
+    isPleaseWaitModalOpen: boolean;
+    pleaseWaitMessage: string;
     rules: Rule[] | null;
     uploadFormData: string | null;
     versions: SearchedVersion[] | null;
@@ -201,6 +204,8 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
+                <PleaseWaitModal message={this.state.pleaseWaitMessage}
+                                 isOpen={this.state.isPleaseWaitModalOpen} />
             </React.Fragment>
         );
     }
@@ -216,8 +221,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             isEditModalOpen: false,
             isInvalidContentModalOpen: false,
             isLoading: true,
+            isPleaseWaitModalOpen: false,
             isUploadFormValid: false,
             isUploadModalOpen: false,
+            pleaseWaitMessage: "",
             rules: null,
             uploadFormData: null,
             versions: null
@@ -408,6 +415,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private doUploadArtifactVersion = (): void => {
         this.onUploadModalClose();
+        this.pleaseWait(true, "Uploading new version, please wait...");
         if (this.state.uploadFormData !== null) {
             const data: CreateVersionData = {
                 content: this.state.uploadFormData,
@@ -419,6 +427,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 Services.getLoggerService().info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(this.linkTo(artifactVersionLocation))();
             }).catch( error => {
+                this.pleaseWait(false, "");
                 if (error && error.error_code === 409) {
                     this.handleInvalidContentError(error);
                 } else {
@@ -430,7 +439,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private doDeleteArtifact = (): void => {
         this.onDeleteModalClose();
+        this.pleaseWait(true, "Deleting artifact, please wait...");
         Services.getGroupsService().deleteArtifact(this.groupId(), this.artifactId()).then( () => {
+            this.pleaseWait(false, "");
             this.navigateTo("/artifacts")();
         });
     };
@@ -459,6 +470,13 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private closeInvalidContentModal = (): void => {
         this.setSingleState("isInvalidContentModalOpen", false);
+    };
+
+    private pleaseWait = (isOpen: boolean, message: string): void => {
+        this.setMultiState({
+            isPleaseWaitModalOpen: isOpen,
+            pleaseWaitMessage: message
+        });
     };
 
     private handleInvalidContentError(error: any): void {

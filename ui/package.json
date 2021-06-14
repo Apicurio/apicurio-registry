@@ -8,13 +8,9 @@
   "private": true,
   "federatedModuleName": "apicurio_registry",
   "scripts": {
-    "prebuild": "yarn clean",
+    "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
-    "start": "webpack serve --hot --color --progress --client-log-level=info --config webpack.dev.js",
-    "lint": "tslint -c ./tslint.json --project .",
-    "build:bundle-profile": "webpack --profile --json > stats.json",
-    "bundle-profile:analyze": "yarn build:bundle-profile && webpack-bundle-analyzer ./stats.json",
-    "clean": "rimraf dist"
+    "start": "webpack serve --hot --color --progress --client-log-level=info --config webpack.dev.js"
   },
   "devDependencies": {
     "@types/enzyme": "^3.9.0",

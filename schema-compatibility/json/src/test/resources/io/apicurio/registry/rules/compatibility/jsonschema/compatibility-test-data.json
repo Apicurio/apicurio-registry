@@ -630,8 +630,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -639,10 +643,16 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
-        "additionalProperties": {"type": "string"}
+        "additionalProperties": {
+          "type": "string"
+        }
       }
     },
     {
@@ -962,24 +972,46 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "address": {"type": "string"},
-          "postal_code": {"type":  "number"}
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "number"
+          }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "dependencies": {
-          "address": {"properties": {"city": { "type": "string" }}}
+          "address": {
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            }
+          }
         }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "address": {"type": "string"},
-          "postal_code": {"type":  "number"}
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "number"
+          }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       }
     },
     {
@@ -990,27 +1022,59 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "address": {"type": "string"},
-          "postal_code": {"type":  "number"}
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "number"
+          }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "dependencies": {
-          "address": {"properties": {"city": { "type": "string"}}},
-          "postal_code": {"required": ["address"]}
+          "address": {
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            }
+          },
+          "postal_code": {
+            "required": [
+              "address"
+            ]
+          }
         }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "address": {"type": "string"},
-          "postal_code": {"type":  "number"}
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "number"
+          }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "dependencies": {
-          "address": {"properties": {"city": { "type": "string"}}}
+          "address": {
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
@@ -1022,8 +1086,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -1031,9 +1099,15 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"},
-          "country": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         }
       }
     },
@@ -1045,8 +1119,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -1054,9 +1132,15 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"},
-          "country": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       }
@@ -1069,8 +1153,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -1078,11 +1166,19 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"},
-          "country": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         },
-        "additionalProperties": {"type": "string"}
+        "additionalProperties": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1093,9 +1189,15 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"},
-          "country": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -1103,8 +1205,12 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         }
       }
     },
@@ -1116,9 +1222,15 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"},
-          "country": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
@@ -1126,10 +1238,16 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "postal_code": {"type": "number"},
-          "street": {"type": "string"}
+          "postal_code": {
+            "type": "number"
+          },
+          "street": {
+            "type": "string"
+          }
         },
-        "additionalProperties": {"type": "string"}
+        "additionalProperties": {
+          "type": "string"
+        }
       }
     },
     {
@@ -1262,6 +1380,27 @@
     },
     {
       "enabled": true,
+      "id": "Array: tuples 4",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array"
+      }
+    },
+    {
+      "enabled": true,
       "id": "Array: additionalItems",
       "compatibility": "backward",
       "original": {
@@ -1306,7 +1445,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       }
     },
     {
@@ -1321,7 +1462,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1346,7 +1489,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "integer" }
+        "additionalItems": {
+          "type": "integer"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1356,7 +1501,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       }
     },
     {
@@ -1374,7 +1521,9 @@
             "type": "number"
           }
         ],
-        "additionalItems": { "type": "integer" }
+        "additionalItems": {
+          "type": "integer"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1387,7 +1536,9 @@
             "type": "number"
           }
         ],
-        "additionalItems": { "type": "boolean" }
+        "additionalItems": {
+          "type": "boolean"
+        }
       }
     },
     {
@@ -1477,7 +1628,9 @@
             "type": "boolean"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       }
     },
     {
@@ -1492,7 +1645,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1520,7 +1675,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1613,7 +1770,9 @@
             "type": "boolean"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1651,7 +1810,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       }
     },
     {
@@ -1679,7 +1840,9 @@
             "type": "string"
           }
         ],
-        "additionalItems": { "type": "number" }
+        "additionalItems": {
+          "type": "number"
+        }
       }
     },
     {
@@ -3136,6 +3299,89 @@
                 "default": []
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "References: Recursive in combined schema, Issue #1551",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "Details": {
+            "type": "object",
+            "properties": {
+              "Type": {
+                "type": "string"
+              },
+              "Subject": {
+                "type": "object",
+                "$ref": "#/definitions/Subject"
+              }
+            }
+          },
+          "Subject": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "Details": {
+                "type": "object",
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Details"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "type": "object",
+        "properties": {
+          "Subject": {
+            "$ref": "#/definitions/Subject"
+          }
+        }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "Details": {
+            "type": "object",
+            "properties": {
+              "Type": {
+                "type": "string"
+              },
+              "Subject": {
+                "type": "object",
+                "$ref": "#/definitions/Subject"
+              }
+            }
+          },
+          "Subject": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "Details": {
+                "type": "object",
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Details"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "type": "object",
+        "properties": {
+          "Subject": {
+            "$ref": "#/definitions/Subject"
           }
         }
       }

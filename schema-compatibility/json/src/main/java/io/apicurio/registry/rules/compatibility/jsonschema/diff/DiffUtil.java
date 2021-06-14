@@ -225,10 +225,10 @@ public class DiffUtil {
             } else {
                 // original schema: additional = schema
                 if (!updatedPermitsAdditional &&
-                        areListOfSchemasCompatible(addedSchemas, originalSchemaOfAdditional, false)) {
+                        areListOfSchemasCompatible(ctx, addedSchemas, originalSchemaOfAdditional, false)) {
                     ctx.addDifference(narrowedType, originalSchemaOfAdditional, addedSchemas);
                 } else if (updatedPermitsAdditional &&
-                        areListOfSchemasCompatible(addedSchemas, originalSchemaOfAdditional, true)) {
+                        areListOfSchemasCompatible(ctx, addedSchemas, originalSchemaOfAdditional, true)) {
                     ctx.addDifference(extendedType, originalSchemaOfAdditional, addedSchemas);
                 } else {
                     ctx.addDifference(changedType, originalSchemaOfAdditional, addedSchemas);
@@ -251,10 +251,10 @@ public class DiffUtil {
             } else {
                 // updated schema: additional = schema
                 if (!originalPermitsAdditional &&
-                        areListOfSchemasCompatible(removedSchemas, updatedSchemaOfAdditional, false)) {
+                        areListOfSchemasCompatible(ctx, removedSchemas, updatedSchemaOfAdditional, false)) {
                     ctx.addDifference(extendedType, removedSchemas, updatedSchemaOfAdditional);
                 } else if (originalPermitsAdditional &&
-                        areListOfSchemasCompatible(removedSchemas, updatedSchemaOfAdditional, true)) {
+                        areListOfSchemasCompatible(ctx, removedSchemas, updatedSchemaOfAdditional, true)) {
                     ctx.addDifference(narrowedType, removedSchemas, updatedSchemaOfAdditional);
                 } else {
                     ctx.addDifference(changedType, removedSchemas, updatedSchemaOfAdditional);
@@ -291,8 +291,8 @@ public class DiffUtil {
 
     public static void compareSchemaWhenExist(DiffContext ctx, Schema original, Schema updated, DiffType bothType,
                                                DiffType backwardType, DiffType forwardType, DiffType noneType) {
-        boolean backward = isSchemaCompatible(original, updated, true);
-        boolean forward = isSchemaCompatible(original, updated, false);
+        boolean backward = isSchemaCompatible(ctx, original, updated, true);
+        boolean forward = isSchemaCompatible(ctx, original, updated, false);
 
         if (backward && forward) {
             ctx.addDifference(bothType, original, updated);
@@ -308,18 +308,18 @@ public class DiffUtil {
         }
     }
 
-    public static boolean areListOfSchemasCompatible(List<SchemaWrapper> itemSchemas, SchemaWrapper additionalSchema,
+    public static boolean areListOfSchemasCompatible(DiffContext ctx, List<SchemaWrapper> itemSchemas, SchemaWrapper additionalSchema,
                                                      boolean notReverse) {
         for (SchemaWrapper itemSchema: itemSchemas) {
-            if (!isSchemaCompatible(itemSchema.getWrapped(), additionalSchema.getWrapped(), notReverse)) {
+            if (!isSchemaCompatible(ctx, itemSchema.getWrapped(), additionalSchema.getWrapped(), notReverse)) {
                 return false;
             }
         }
         return true;
     }
 
-    public static boolean isSchemaCompatible(Schema original, Schema updated, boolean backward) {
-        DiffContext rootCtx = DiffContext.createRootContext();
+    public static boolean isSchemaCompatible(DiffContext ctx, Schema original, Schema updated, boolean backward) {
+        DiffContext rootCtx = DiffContext.createRootContext("", ctx.visited);
         if (backward) {
             new SchemaDiffVisitor(rootCtx, original).visit(wrap(updated));
         } else {

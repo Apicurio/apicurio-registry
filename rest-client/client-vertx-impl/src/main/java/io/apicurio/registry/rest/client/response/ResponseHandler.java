@@ -39,6 +39,7 @@ public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buff
         this.targetType = targetType;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void handle(AsyncResult<HttpResponse<Buffer>> event) {
 

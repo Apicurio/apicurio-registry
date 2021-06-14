@@ -16,3 +16,4 @@
  */
 
 export * from "./invalidContentModal";
+export * from "./pleaseWaitModal";

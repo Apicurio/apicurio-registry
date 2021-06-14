@@ -112,4 +112,8 @@ public class WrapUtil {
     public static Optional<SchemaWrapper> wrap(Optional<Schema> schema) {
         return schema.map(WrapUtil::wrap);
     }
+
+    public static EqualitySchemaWrapper equalityWrap(Schema wrapped) {
+        return new EqualitySchemaWrapper(wrapped);
+    }
 }

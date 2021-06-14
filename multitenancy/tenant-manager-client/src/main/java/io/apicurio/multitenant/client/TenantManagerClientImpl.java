@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
@@ -50,7 +52,10 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             endpoint += "/";
         }
         this.endpoint = endpoint;
-        this.client = HttpClient.newHttpClient();
+        this.client = HttpClient.newBuilder()
+                .version(Version.HTTP_1_1)
+                .followRedirects(Redirect.ALWAYS)
+                .build();
         this.mapper = new ObjectMapper();
     }
 
@@ -92,12 +97,17 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
+        System.out.println("======> getTenant() : " + tenantId);
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
                 .GET()
                 .build();
         try {
             HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+
+            System.out.println("======> getTenant() res code: " + res.statusCode());
+            System.out.println("======> getTenant() res toString: " + res.toString());
+
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
             } else if (res.statusCode() == 404) {
@@ -105,6 +115,9 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             }
             throw new TenantManagerClientException(res.toString());
         } catch ( IOException | InterruptedException e ) {
+            System.out.println("======> getTenant() ::::::::::::::");
+            e.printStackTrace();
+            System.out.println("======> getTenant() ::::::::::::::");
             throw new TenantManagerClientException(e);
         }
     }

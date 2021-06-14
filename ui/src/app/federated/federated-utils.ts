@@ -15,28 +15,22 @@
  * limitations under the License.
  */
 
-import {Services} from "../../services";
+import {ConfigType, Services} from "../../services";
 import {PureComponent} from "../components";
 
 /**
  * Component properties shared by all federated pages.
  */
 export interface FederatedPageProps {
-    tenantId: string;
-    navPrefixPath: string;
+    config: ConfigType;
     history: any;
 }
 
 export class FederatedUtils {
 
     static updateConfiguration(props: FederatedPageProps): void {
-        // @ts-ignore
-        const tenantUrl: string = Services.getConfigService().featureMultiTenantUrl().replace(":tenantId", props.tenantId);
-        Services.getLoggerService().info("[FederatedUtils] Setting registry API to: %s", tenantUrl);
-        Services.getConfigService().setArtifactsUrl(tenantUrl);
-        // @ts-ignore
-        Services.getLoggerService().info("[FederatedUtils] Using nav prefix: ", props.navPrefixPath);
-        Services.getConfigService().setUiNavPrefixPath(props.navPrefixPath);
+        Services.getLoggerService().info("[FederatedUtils] Updating config: %o", props.config);
+        Services.getConfigService().updateConfig(props.config);
         PureComponent.setHistory(props.history);
     }
 

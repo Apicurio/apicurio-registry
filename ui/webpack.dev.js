@@ -2,11 +2,6 @@ const path = require("path");
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-// webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
-const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
-const { ModuleFederationPlugin } = require("webpack").container;
-const { federatedModuleName, dependencies } = require("./package.json");
 
 const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || "8888";
@@ -20,38 +15,7 @@ module.exports = merge(common, {
         {from: "./src/version.js"},
         {from: "./src/config.js"},
         {from: "./src/favicon.ico"},
-      ]}),
-    new NodePolyfillPlugin(),
-    new HtmlWebpackPlugin({
-      template: "./src/index.html"
-    }),
-    new ModuleFederationPlugin({
-      name: federatedModuleName,
-      filename: "remoteEntry.js",
-      exposes: {
-        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
-        "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
-        "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
-        "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
-      },
-      shared: {
-        ...dependencies,
-        react: {
-          eager: true,
-          singleton: true,
-          requiredVersion: dependencies["react"],
-        },
-        "react-dom": {
-          eager: true,
-          singleton: true,
-          requiredVersion: dependencies["react-dom"],
-        },
-        "react-router-dom": {
-          singleton: true,
-          requiredVersion: dependencies["react-router-dom"],
-        },
-      }
-    })
+      ]})
   ],
   devServer: {
     contentBase: "./dist",

@@ -25,5 +25,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class ConfigJsFeatures {
 
     public boolean readOnly;
+    public boolean breadcrumbs;
+    public boolean multiTenant;
 
 }

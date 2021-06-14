@@ -24,7 +24,6 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public class ConfigJsArtifacts {
 
-    public String type = "rest";
     public String url;
 
 }

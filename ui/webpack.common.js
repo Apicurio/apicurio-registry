@@ -1,11 +1,49 @@
 const path = require("path");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+// webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
+const { ModuleFederationPlugin } = require("webpack").container;
+const { federatedModuleName, dependencies } = require("./package.json");
+
 
 module.exports = {
   entry: {
     app: "./src/index.tsx"
   },
-  plugins: [],
+  plugins: [
+    new NodePolyfillPlugin(),
+    new HtmlWebpackPlugin({
+      template: "./src/index.html"
+    }),
+    new ModuleFederationPlugin({
+      name: federatedModuleName,
+      filename: "remoteEntry.js",
+      exposes: {
+        "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
+        "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
+        "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
+        "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
+      },
+      shared: {
+        ...dependencies,
+        react: {
+          eager: true,
+          singleton: true,
+          requiredVersion: dependencies["react"],
+        },
+        "react-dom": {
+          eager: true,
+          singleton: true,
+          requiredVersion: dependencies["react-dom"],
+        },
+        "react-router-dom": {
+          singleton: true,
+          requiredVersion: dependencies["react-router-dom"],
+        },
+      }
+    })
+  ],
   module: {
     rules: [
       // fixes issue with babel dependencies not declaring the package correctly for webpack 5

@@ -21,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
@@ -637,6 +639,59 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
                 .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
+                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+                .build()
+                .test();
+
+    }
+
+    /**
+     * From issue https://github.com/Apicurio/apicurio-registry/issues/1479
+     * @throws Exception
+     */
+    @Test
+    void testFirstEmptyFieldConfusedAsMagicByte() throws Exception {
+
+        String s = "{\n"
+                + "    \"type\": \"record\",\n"
+                + "    \"name\": \"userInfo\",\n"
+                + "    \"namespace\": \"my.example\",\n"
+                + "    \"fields\": [\n"
+                + "        {\n"
+                + "            \"name\": \"username\",\n"
+                + "            \"type\": [\"null\", { \"type\": \"string\"} ]\n"
+                + "        }"
+                + "    ]\n"
+                + "} ";
+
+        String topicName = TestUtils.generateTopic();
+        String artifactId = topicName;
+        kafkaCluster.createTopic(topicName, 1, 1);
+
+        Schema schema = new Schema.Parser().parse(s);
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+                .withTopic(topicName)
+                .withSerializer(serializer)
+                .withDeserializer(deserializer)
+                .withStrategy(SimpleTopicIdStrategy.class)
+                .withDataGenerator((c) -> {
+                    GenericRecord record = new GenericData.Record(schema);
+                    if ( c != 0 && (c % 2) == 0 ) {
+                        record.put("username", "value-" + c);
+                    }
+                    return record;
+                })
+                .withDataValidator((record) -> {
+                    return schema.equals(record.getSchema());
+                })
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);

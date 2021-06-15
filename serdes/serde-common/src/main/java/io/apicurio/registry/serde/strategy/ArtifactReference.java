@@ -54,6 +54,10 @@ public class ArtifactReference {
         //empty initialize using setters
     }
 
+    public boolean hasValue() {
+        return groupId != null || artifactId != null || version != null || globalId != null || contentId != null;
+    }
+
     /**
      * @return the groupId
      */
@@ -230,16 +234,6 @@ public class ArtifactReference {
         }
 
         public ArtifactReference build() {
-            //TODO revisit, not sure if this is a good idea
-//            if (groupId == null && artifactId == null) {
-//                Objects.requireNonNull(globalId, "globalId is required if no groupId and artifactId is provided");
-//            }
-//            if (globalId == null) {
-//                Objects.requireNonNull(groupId, "groupId is required");
-//            }
-//            if (globalId == null) {
-//                Objects.requireNonNull(artifactId, "artifactId is required");
-//            }
             return reference;
         }
 

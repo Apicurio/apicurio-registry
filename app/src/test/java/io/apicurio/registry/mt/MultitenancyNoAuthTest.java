@@ -29,6 +29,8 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
@@ -39,6 +41,8 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.registry.rest.client.exception.TenantNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
@@ -74,6 +78,34 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
 
     @Inject
     MockTenantMetadataService tenantMetadataService;
+
+    @Test
+    public void testTenantErrorExceptions() throws Exception {
+
+        if (!storage.supportsMultiTenancy()) {
+            throw new TestAbortedException("Multitenancy not supported - aborting test");
+        }
+
+        String tenantId1 = UUID.randomUUID().toString();
+
+        String tenantId2 = UUID.randomUUID().toString();
+        tenantMetadataService.addToUnauthorizedList(tenantId2);
+
+        String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
+        String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
+
+        RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
+        RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
+
+        Assertions.assertThrows(TenantNotFoundException.class, () -> {
+            clientTenant1.listGlobalRules();
+        });
+
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            clientTenant2.listGlobalRules();
+        });
+
+    }
 
     @Test
     public void testMultitenantRegistry() throws Exception {

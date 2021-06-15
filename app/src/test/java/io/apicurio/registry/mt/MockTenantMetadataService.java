@@ -17,10 +17,12 @@
 package io.apicurio.registry.mt;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.quarkus.test.Mock;
+import io.vertx.core.impl.ConcurrentHashSet;
 
 /**
  * @author Fabian Martinez
@@ -30,12 +32,17 @@ public class MockTenantMetadataService extends TenantMetadataService {
 
     private static final Map<String, RegistryTenant> cache = new ConcurrentHashMap<String, RegistryTenant>();
 
+    private static final Set<String> unauthorizedList = new ConcurrentHashSet<>();
 
     /**
      * @see io.apicurio.registry.mt.TenantMetadataService#getTenant(java.lang.String)
      */
     @Override
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
+        if (unauthorizedList.contains(tenantId)) {
+            throw new TenantNotAuthorizedException("Tenant not authorized");
+        }
+
         var tenant = cache.get(tenantId);
         if (tenant == null) {
             throw new TenantNotFoundException("not found " + tenantId);
@@ -49,5 +56,8 @@ public class MockTenantMetadataService extends TenantMetadataService {
         cache.put(tenant.getTenantId(), tenant);
     }
 
+    public void addToUnauthorizedList(String tenantId) {
+        unauthorizedList.add(tenantId);
+    }
 
 }

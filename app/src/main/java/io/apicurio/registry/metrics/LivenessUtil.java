@@ -26,7 +26,7 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import io.apicurio.registry.rest.RegistryExceptionMapper;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -50,7 +50,7 @@ public class LivenessUtil {
     }
 
     private boolean isIgnored(Throwable ex) {
-        Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapper.getIgnored();
+        Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapperService.getIgnored();
         if (ignoredClasses.contains(ex.getClass())) {
             return true;
         }

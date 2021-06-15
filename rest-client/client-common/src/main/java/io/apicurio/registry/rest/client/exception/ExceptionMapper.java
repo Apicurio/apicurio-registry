@@ -51,6 +51,10 @@ public class ExceptionMapper {
                 return new InvalidArtifactTypeException(ex.getError());
             case "LimitExceededException":
                 return new LimitExceededException(ex.getError());
+            case "TenantNotFoundException":
+                return new TenantNotFoundException(ex.getError());
+            case "TenantNotAuthorizedException":
+                return new TenantNotAuthorizedException(ex.getError());
             default:
                 return ex;
         }

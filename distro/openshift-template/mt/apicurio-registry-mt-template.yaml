@@ -184,7 +184,9 @@ objects:
             value: http://localhost:8080
           - name: QUARKUS_HTTP_PORT
             value: "8585"
-          - name: QUARKUS_LOG_LEVEL
+          - name: LOG_LEVEL
+            value: INFO
+          - name: TENANT_MANAGER_LOG_LEVEL
             value: DEBUG
           livenessProbe:
             failureThreshold: 3

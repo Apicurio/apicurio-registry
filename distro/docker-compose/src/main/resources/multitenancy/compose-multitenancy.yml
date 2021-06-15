@@ -8,7 +8,7 @@ services:
       POSTGRESQL_USER: apicurio-registry
       POSTGRESQL_PASSWORD: password
   app:
-    image: quay.io/famargon/apicurio-registry-mem:latest
+    image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
     ports:
       - 8080:8080
     environment:
@@ -18,7 +18,7 @@ services:
     depends_on:
       - tenant-manager
   tenant-manager:
-    image: quay.io/famargon/apicurio-registry-tenant-manager-api:latest
+    image: quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-snapshot
     ports:
       - 8585:8585
     environment:

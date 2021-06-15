@@ -130,7 +130,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
 
                 return readData(headers, parsedSchema, buffer, start, length);
             }
-        } else if (data[0] == MAGIC_BYTE) {
+        }
+        if (data[0] == MAGIC_BYTE) {
             return deserialize(topic, data);
         }
         throw new SerializationException("Impossible to retrieve schema information");

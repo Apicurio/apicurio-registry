@@ -13,6 +13,7 @@
     "start": "webpack serve --hot --color --progress --client-log-level=info --config webpack.dev.js"
   },
   "devDependencies": {
+    "@redhat-cloud-services/frontend-components-config": "4.1.10",
     "@types/enzyme": "^3.9.0",
     "@types/enzyme-adapter-react-16": "^1.0.5",
     "@types/jest": "^24.0.9",

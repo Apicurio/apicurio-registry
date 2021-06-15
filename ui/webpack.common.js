@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 const { ModuleFederationPlugin } = require("webpack").container;
 const { federatedModuleName, dependencies } = require("./package.json");
+const ChunkMapper = require('@redhat-cloud-services/frontend-components-config/chunk-mapper')
 
 
 module.exports = {
@@ -15,6 +16,11 @@ module.exports = {
     new NodePolyfillPlugin(),
     new HtmlWebpackPlugin({
       template: "./src/index.html"
+    }),
+    new ChunkMapper({
+      modules: [
+        federatedModuleName
+      ]
     }),
     new ModuleFederationPlugin({
       name: federatedModuleName,

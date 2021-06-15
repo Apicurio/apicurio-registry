@@ -80,8 +80,6 @@ public class TenantManagerClientTest {
     }
 
     private void testTenantNotFound(String tenantId) {
-        System.out.println("======> testTenantNotFound() : " + tenantId);
-
         Assertions.assertThrows(RegistryTenantNotFoundException.class, () -> {
             client.getTenant(tenantId);
         });

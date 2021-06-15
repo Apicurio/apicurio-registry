@@ -34,6 +34,11 @@ public interface HeadersHandler {
 
     public void writeHeaders(Headers headers, ArtifactReference reference);
 
+    /**
+     * Reads the kafka message headers and returns an ArtifactReference that can contain or not information to identify an Artifact in the registry.
+     * @param headers
+     * @return ArtifactReference
+     */
     public ArtifactReference readHeaders(Headers headers);
 
 }

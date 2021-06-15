@@ -97,16 +97,12 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
-        System.out.println("======> getTenant() : " + tenantId);
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
                 .GET()
                 .build();
         try {
             HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
-
-            System.out.println("======> getTenant() res code: " + res.statusCode());
-            System.out.println("======> getTenant() res toString: " + res.toString());
 
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
@@ -115,9 +111,6 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             }
             throw new TenantManagerClientException(res.toString());
         } catch ( IOException | InterruptedException e ) {
-            System.out.println("======> getTenant() ::::::::::::::");
-            e.printStackTrace();
-            System.out.println("======> getTenant() ::::::::::::::");
             throw new TenantManagerClientException(e);
         }
     }

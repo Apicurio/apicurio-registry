@@ -100,6 +100,9 @@
                         <goals>
                             <goal>build</goal>
                         </goals>
+                        <configuration>
+                            <skipOriginalJarRename>true</skipOriginalJarRename>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -112,7 +115,6 @@
                 </configuration>
             </plugin>
         </plugins>
-
 
     </build>
 </project>

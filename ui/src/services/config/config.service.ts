@@ -15,17 +15,16 @@
  * limitations under the License.
  */
 
-import {ConfigType, FeaturesConfig} from './config.type';
+import {ConfigType, FeaturesConfig, KeycloakJsAuthConfig} from './config.type';
 import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
     artifacts: {
-        type: "rest",
         url: "http://localhost:8080/apis/registry"
     },
     auth: {
         options: {
-            clientId:'registry-ui',
+            clientId: 'registry-ui',
             onLoad: 'login-required',
             realm: 'registry',
             url: 'http://localhost:8090/auth'
@@ -36,7 +35,6 @@ const DEFAULT_CONFIG: ConfigType = {
         readOnly: false,
         breadcrumbs: true
     },
-    mode: "dev",
     ui: {
         contextPath: "/",
         navPrefixPath: "/"
@@ -65,11 +63,8 @@ export class ConfigService implements Service {
         // Nothing to init (done in c'tor)
     }
 
-    public artifactsType(): string|null {
-        if (!this.config.artifacts) {
-            return null;
-        }
-        return this.config.artifacts.type;
+    public updateConfig(config: ConfigType): void {
+        this.config = config;
     }
 
     public artifactsUrl(): string|null {
@@ -77,17 +72,6 @@ export class ConfigService implements Service {
             return null;
         }
         return this.config.artifacts.url;
-    }
-
-    public setArtifactsUrl(url: string) {
-        if (!this.config.artifacts) {
-            this.config.artifacts = {
-                type: "rest",
-                url
-            };
-        } else {
-            this.config.artifacts.url = url;
-        }
     }
 
     public uiContextPath(): string|undefined {
@@ -105,28 +89,6 @@ export class ConfigService implements Service {
             this.config.ui.navPrefixPath = this.config.ui.navPrefixPath.substr(0, this.config.ui.navPrefixPath.length - 1);
         }
         return this.config.ui.navPrefixPath;
-    }
-
-    public setUiContextPath(contextPath: string): void {
-        if (!this.config.ui) {
-            this.config.ui = {
-                contextPath,
-                navPrefixPath: "/"
-            };
-        } else {
-            this.config.ui.contextPath = contextPath;
-        }
-    }
-
-    public setUiNavPrefixPath(navPrefixPath: string): void {
-        if (!this.config.ui) {
-            this.config.ui = {
-                contextPath: "/",
-                navPrefixPath
-            };
-        } else {
-            this.config.ui.navPrefixPath = navPrefixPath;
-        }
     }
 
     public features(): FeaturesConfig {
@@ -159,17 +121,14 @@ export class ConfigService implements Service {
     }
 
     public authOptions(): any {
-        if (!this.config.auth || !this.config.auth.options) {
-            return "";
+        if (this.config.auth) {
+            const auth: KeycloakJsAuthConfig = this.config.auth as KeycloakJsAuthConfig;
+            return auth.options;
         }
-        return this.config.auth.options;
+        return {};
     }
 
     public featureMultiTenant(): boolean {
         return this.features().multiTenant || false;
-    }
-
-    public featureMultiTenantUrl(): string {
-        return this.features().multiTenantUrl || "";
     }
 }

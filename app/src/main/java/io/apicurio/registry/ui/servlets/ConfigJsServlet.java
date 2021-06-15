@@ -69,7 +69,6 @@ public class ConfigJsServlet extends HttpServlet {
             g.useDefaultPrettyPrinter();
 
             ConfigJs config = new ConfigJs();
-            config.mode = "prod";
 
             config.artifacts.url = this.generateApiUrl(request);
 

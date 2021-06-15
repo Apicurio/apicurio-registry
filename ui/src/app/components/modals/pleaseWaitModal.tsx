@@ -53,7 +53,8 @@ export class PleaseWaitModal extends PureComponent<PleaseWaitModalProps, PleaseW
                 header={<a href="#" />}
                 showClose={false}
                 className="please-wait pf-m-redhat-font"
-            > 
+                aria-label="please-wait-modal"
+            >
                 <Spinner size="md" className="spinner" />
                 <span className="message">{ this.props.message }</span>
             </Modal>

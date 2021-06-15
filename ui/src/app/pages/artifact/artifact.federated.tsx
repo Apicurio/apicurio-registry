@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-import {ArtifactVersionPage, ArtifactVersionPageProps} from "./artifactVersion";
+import React from "react";
+import {ArtifactRedirectPage, ArtifactRedirectPageProps} from "./artifact";
 import {FederatedPageProps, FederatedUtils} from "../../federated";
 
-export interface FederatedArtifactsPageProps extends ArtifactVersionPageProps, FederatedPageProps {
+export interface FederatedArtifactRedirectPageProps extends ArtifactRedirectPageProps, FederatedPageProps {
     groupId: string;
     artifactId: string;
-    version: string;
 }
 
-export default class FederatedArtifactVersionPage extends ArtifactVersionPage {
+export default class FederatedArtifactRedirectPage extends ArtifactRedirectPage {
 
-    constructor(props: Readonly<FederatedArtifactsPageProps>) {
+    constructor(props: Readonly<FederatedArtifactRedirectPageProps>) {
         super(props);
     }
 
@@ -36,15 +36,11 @@ export default class FederatedArtifactVersionPage extends ArtifactVersionPage {
     }
 
     protected groupIdParam(): string {
-        return (<FederatedArtifactsPageProps>this.props).groupId;
+        return (this.props as FederatedArtifactRedirectPageProps).groupId;
     }
 
     protected artifactIdParam(): string {
-        return (<FederatedArtifactsPageProps>this.props).artifactId;
-    }
-
-    protected versionParam(): string {
-        return (<FederatedArtifactsPageProps>this.props).version;
+        return (this.props as FederatedArtifactRedirectPageProps).artifactId;
     }
 
 }

@@ -28,7 +28,7 @@ public class UploadArtifactDialog extends BasePage {
     }
 
     private WebElement getUploadArtifactDialog() {
-        return selenium.getDriver().findElement(By.xpath("//div[@aria-label='Upload Artifact']"));
+        return selenium.getDriver().findElement(By.xpath("//div[@aria-modal='true']"));
     }
 
     public WebElement getGroupIdInput() {

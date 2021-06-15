@@ -230,7 +230,8 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .body(SCHEMA_INVALID_WRAPPED)
                     .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                     .then()
-                    .statusCode(422);
+                    .statusCode(422)
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(42201)));
         });
     }
 
@@ -275,7 +276,8 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "latest")
                 .then()
-                    .statusCode(404);
+                    .statusCode(404)
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
         });
 
         // GET schema only - shouldn't return as the state has been changed to DISABLED
@@ -285,7 +287,8 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get("/ccompat/v6/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                    .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
         });
     }
 

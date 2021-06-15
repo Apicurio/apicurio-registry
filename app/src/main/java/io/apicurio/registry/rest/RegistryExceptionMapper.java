@@ -42,6 +42,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import org.slf4j.Logger;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
@@ -86,6 +87,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
+    private static final Map<Class<? extends Exception>, Integer> CONFLUENT_CODE_MAP;
+
     @Inject
     Logger log;
 
@@ -126,6 +129,18 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 
+    static {
+        Map<Class<? extends Exception>, Integer> map = new HashMap<>();
+        map.put(AlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(ArtifactNotFoundException.class, ErrorCode.SUBJECT_NOT_FOUND.value());
+        map.put(ContentNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
+        map.put(RuleViolationException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
+        map.put(VersionNotFoundException.class, ErrorCode.VERSION_NOT_FOUND.value());
+        map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
+        CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
+    }
+
     public static Set<Class<? extends Exception>> getIgnored() {
         return CODE_MAP.keySet();
     }
@@ -164,6 +179,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         if (isCompatEndpoint()) {
             error.setDetail(null);
             error.setName(null);
+            error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
         }
         return builder.type(MediaType.APPLICATION_JSON)
                       .entity(error)

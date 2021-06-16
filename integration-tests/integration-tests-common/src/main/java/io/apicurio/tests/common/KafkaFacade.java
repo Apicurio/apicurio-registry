@@ -91,9 +91,9 @@ public class KafkaFacade implements RegistryTestProcess {
         kafkaContainer.start();
     }
 
-    public KafkaContainer startNewKafka() {
+    public StrimziKafkaContainer startNewKafka() {
         LOGGER.info("Starting new kafka container");
-        KafkaContainer c = new KafkaContainer();
+        StrimziKafkaContainer c = new StrimziKafkaContainer();
         c.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         c.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         c.start();

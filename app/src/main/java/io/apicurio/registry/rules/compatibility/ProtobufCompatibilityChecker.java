@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
-import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 /**
  * @author Ales Justin

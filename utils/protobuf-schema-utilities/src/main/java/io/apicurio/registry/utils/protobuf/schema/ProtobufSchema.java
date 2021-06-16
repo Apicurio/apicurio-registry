@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde.protobuf.schema;
+package io.apicurio.registry.utils.protobuf.schema;
 
 import java.util.Objects;
 
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-
-import io.apicurio.registry.protobuf.ProtobufFile;
 
 /**
  * @author Fabian Martinez

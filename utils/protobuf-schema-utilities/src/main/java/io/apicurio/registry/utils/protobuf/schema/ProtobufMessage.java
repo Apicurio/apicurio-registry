@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde.protobuf.schema;
+package io.apicurio.registry.utils.protobuf.schema;
 
 import java.util.HashMap;
 import java.util.Map;

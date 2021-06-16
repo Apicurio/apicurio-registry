@@ -15,6 +15,11 @@
     <name>apicurio-registry-schema-compatibility-protobuf</name>
 
     <dependencies>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+        </dependency>
     
         <dependency>
             <groupId>com.squareup.wire</groupId>

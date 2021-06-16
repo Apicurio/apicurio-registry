@@ -63,10 +63,6 @@ public class UploadArtifactDialog extends BasePage {
         return getUploadArtifactDialog().findElement(byDataTestId("modal-btn-upload"));
     }
 
-    public WebElement getLinkToArtifactsListPage() {
-        return selenium.getDriver().findElement(byDataTestId("breadcrumb-lnk-artifacts"));
-    }
-
     public void fillGroupId(String groupId) {
         selenium.fillInputItem(this.getGroupIdInput(), groupId);
     }

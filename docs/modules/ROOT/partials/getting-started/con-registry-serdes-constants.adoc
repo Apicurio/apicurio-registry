@@ -7,7 +7,7 @@
 [role="_abstract"]
 You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
-The following sections show examples of SerDe constants and configuration options.
+The following sections show examples of commonly used SerDe constants and configuration options.
 
 
 [discrete]
@@ -30,7 +30,7 @@ The setting should not be used with the `ID_HANDLER` option.
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 
+* For more details and security configuration options, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 
 
 [discrete]
 == Configuration for SerDe lookup strategies
@@ -39,9 +39,12 @@ The setting should not be used with the `ID_HANDLER` option.
 ----
 public class SerdeConfig {
     
-   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; 
+   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; <1>
+   public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
 ...      
 ----
+<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDe and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+<2> Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
 
 [role="_additional-resources"]
 .Additional resources

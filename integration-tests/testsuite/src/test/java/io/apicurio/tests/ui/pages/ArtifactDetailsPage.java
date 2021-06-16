@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.time.Duration;
 
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
@@ -42,6 +43,10 @@ public class ArtifactDetailsPage extends BasePage {
         selenium.getDriverWait().withTimeout(Duration.ofSeconds(30)).until(ExpectedConditions.and(
                 ExpectedConditions.urlContains("/versions/")));
         assertNotNull(selenium.getWebElement(() -> getDeleteButton()));
+    }
+
+    public WebElement getLinkToArtifactsListPage() {
+        return selenium.getDriver().findElement(By.className("pf-c-brand"));
     }
 
 }

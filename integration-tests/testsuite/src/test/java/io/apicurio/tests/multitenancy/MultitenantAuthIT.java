@@ -38,6 +38,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
 
     }
 
+
 //    private void performTenantAdminOperations(RegistryClient client) throws Exception {
 //        assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 //

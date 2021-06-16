@@ -23,8 +23,8 @@ import com.google.protobuf.Descriptors.FileDescriptor;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 

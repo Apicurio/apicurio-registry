@@ -19,9 +19,9 @@ package io.apicurio.registry.rules.validity;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.protobuf.ProtobufFile;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 /**
  * A content validator implementation for the Protobuf content type.

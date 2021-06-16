@@ -42,7 +42,7 @@ import io.apicurio.registry.serde.ParsedSchema;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
-import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.serde.utils.Utils;
 
 /**

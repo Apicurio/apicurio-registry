@@ -100,6 +100,7 @@
         <module>utils/tools</module>
         <module>utils/importexport</module>
         <module>utils/exportV1</module>
+        <module>utils/protobuf-schema-utilities</module>
         <module>schema-compatibility/json</module>
         <module>schema-compatibility/protobuf</module>
         <module>utils/tests</module>
@@ -348,6 +349,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-import-export</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

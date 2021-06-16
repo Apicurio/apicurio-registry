@@ -95,9 +95,11 @@ public class RegistryUITester {
     }
 
     public void goBackToArtifactsList() throws Exception {
-        assertNotNull(selenium.getWebElement(() -> artifactsListPage.getUploadArtifactDialogPage().getLinkToArtifactsListPage()));
+        var detailsPage = artifactsListPage.getCurrentArtifactDetailsPage();
+        detailsPage.verifyIsOpen();
+        assertNotNull(selenium.getWebElement(() -> detailsPage.getLinkToArtifactsListPage()));
 
-        selenium.clickOnItem(artifactsListPage.getUploadArtifactDialogPage().getLinkToArtifactsListPage());
+        selenium.clickOnItem(detailsPage.getLinkToArtifactsListPage());
 
         try {
             artifactsListPage.verifyIsOpen();

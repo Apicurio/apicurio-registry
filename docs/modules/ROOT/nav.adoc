@@ -3,6 +3,7 @@
 * xref:getting-started/assembly-installing-registry-docker.adoc[]
 * xref:getting-started/assembly-installing-registry-openshift.adoc[]
 * xref:getting-started/assembly-installing-registry-storage-openshift.adoc[]
+* xref:getting-started/assembly-migrating-registry-v1-v2.adoc[]
 * xref:getting-started/assembly-configuring-the-registry.adoc[]
 * xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 * xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]

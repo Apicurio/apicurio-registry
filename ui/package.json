@@ -6,7 +6,7 @@
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
   "private": true,
-  "federatedModuleName": "sr",
+  "federatedModuleName": "apicurio_registry",
   "scripts": {
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",

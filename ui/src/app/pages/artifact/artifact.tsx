@@ -16,6 +16,7 @@
  */
 
 import React from "react";
+import {BrowserRouter} from 'react-router-dom';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {Redirect} from "react-router";
 import {Services} from "../../../services";
@@ -50,7 +51,7 @@ export class ArtifactRedirectPage extends PageComponent<ArtifactRedirectPageProp
         const redirect: string = this.linkTo(`/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(artifactId) }/versions/latest`);
         Services.getLoggerService().info("[ArtifactRedirectPage] Redirecting to: %s", redirect);
         return (
-            <Redirect to={redirect}  />
+            <BrowserRouter><Redirect to={redirect}  /></BrowserRouter>
         );
     }
 

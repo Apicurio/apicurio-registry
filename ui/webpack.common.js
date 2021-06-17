@@ -11,29 +11,28 @@ module.exports = (env, argv) => {
   const isProduction = argv && argv.mode === "production";
   return {
     entry: {
-      app: "./src/index.tsx",
+      app: "./src/index.tsx"
     },
     plugins: [
       new NodePolyfillPlugin(),
       new HtmlWebpackPlugin({
-        template: "./src/index.html",
+        template: "./src/index.html"
       }),
       new ChunkMapper({
-        modules: [federatedModuleName],
+        modules: [
+          federatedModuleName
+        ]
       }),
       new ModuleFederationPlugin({
         name: federatedModuleName,
         filename: `${federatedModuleName}${
-          isProduction ? "[chunkhash:8]" : ""
+          isProduction ? ".[chunkhash:8]" : ""
         }.js`,
         exposes: {
-          "./FederatedArtifactsPage":
-            "./src/app/pages/artifacts/artifacts.federated",
-          "./FederatedArtifactRedirectPage":
-            "./src/app/pages/artifact/artifact.federated",
-          "./FederatedArtifactVersionPage":
-            "./src/app/pages/artifactVersion/artifactVersion.federated",
-          "./FederatedRulesPage": "./src/app/pages/rules/rules.federated",
+          "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
+          "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
+          "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
+          "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
         },
         shared: {
           ...dependencies,
@@ -51,8 +50,8 @@ module.exports = (env, argv) => {
             singleton: true,
             requiredVersion: dependencies["react-router-dom"],
           },
-        },
-      }),
+        }
+      })
     ],
     module: {
       rules: [
@@ -60,13 +59,13 @@ module.exports = (env, argv) => {
         {
           test: /\.m?js/,
           resolve: {
-            fullySpecified: false,
-          },
+            fullySpecified: false
+          }
         },
         // fixes issue with yaml dependency not declaring the package correctly for webpack 5
         {
           test: /node_modules[\\\/]yaml[\\\/]browser[\\\/]dist[\\\/].*/,
-          type: "javascript/auto",
+          type: "javascript/auto"
         },
         {
           test: /\.(tsx|ts)?$/,
@@ -77,9 +76,9 @@ module.exports = (env, argv) => {
               options: {
                 transpileOnly: true,
                 experimentalWatchApi: true,
-              },
-            },
-          ],
+              }
+            }
+          ]
         },
         {
           test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -87,14 +86,8 @@ module.exports = (env, argv) => {
           // if they live under a "fonts" or "pficon" directory
           include: [
             path.resolve(__dirname, "node_modules/patternfly/dist/fonts"),
-            path.resolve(
-              __dirname,
-              "node_modules/@patternfly/react-core/dist/styles/assets/fonts"
-            ),
-            path.resolve(
-              __dirname,
-              "node_modules/@patternfly/react-core/dist/styles/assets/pficon"
-            ),
+            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/fonts"),
+            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/pficon"),
           ],
           use: {
             loader: "file-loader",
@@ -102,65 +95,57 @@ module.exports = (env, argv) => {
               // Limit at 50k. larger files emited into separate files
               limit: 5000,
               outputPath: "fonts",
-              name: isProduction ? "[contenthash:8].[ext]" : "[name].[ext]",
-            },
-          },
+              name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+            }
+          }
         },
         {
           test: /\.svg$/,
-          include: (input) => input.indexOf("background-filter.svg") > 1,
+          include: input => input.indexOf("background-filter.svg") > 1,
           use: [
             {
               loader: "url-loader",
               options: {
                 limit: 5000,
                 outputPath: "svgs",
-                name: isProduction ? "[contenthash:8].[ext]" : "[name].[ext]",
-              },
-            },
-          ],
+                name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+              }
+            }
+          ]
         },
         {
           test: /\.svg$/,
           // only process SVG modules with this loader if they live under a "bgimages" directory
           // this is primarily useful when applying a CSS background using an SVG
-          include: (input) => input.indexOf("bgimages") > -1,
+          include: input => input.indexOf("bgimages") > -1,
           use: {
             loader: "svg-url-loader",
-            options: {},
-          },
+            options: {}
+          }
         },
         {
           test: /\.svg$/,
           // only process SVG modules with this loader when they don"t live under a "bgimages",
           // "fonts", or "pficon" directory, those are handled with other loaders
-          include: (input) =>
-            input.indexOf("bgimages") === -1 &&
-            input.indexOf("fonts") === -1 &&
-            input.indexOf("background-filter") === -1 &&
-            input.indexOf("pficon") === -1,
+          include: input => (
+            (input.indexOf("bgimages") === -1) &&
+            (input.indexOf("fonts") === -1) &&
+            (input.indexOf("background-filter") === -1) &&
+            (input.indexOf("pficon") === -1)
+          ),
           use: {
             loader: "raw-loader",
-            options: {},
-          },
+            options: {}
+          }
         },
         {
           test: /\.(jpg|jpeg|png|gif)$/i,
           include: [
             path.resolve(__dirname, "src"),
             path.resolve(__dirname, "node_modules/patternfly"),
-            path.resolve(
-              __dirname,
-              "node_modules/@patternfly/patternfly/assets"
-            ),
-            path.resolve(
-              __dirname,
-              "node_modules/@patternfly/react-core/dist/styles/assets/images"
-            ),
-            path.resolve(
-              __dirname,
-              "node_modules/@patternfly/react-styles/css/assets/images"
-            ),
+            path.resolve(__dirname, "node_modules/@patternfly/patternfly/assets"),
+            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/images"),
+            path.resolve(__dirname, "node_modules/@patternfly/react-styles/css/assets/images")
           ],
           use: [
             {
@@ -168,32 +153,32 @@ module.exports = (env, argv) => {
               options: {
                 limit: 5000,
                 outputPath: "images",
-                name: isProduction ? "[contenthash:8].[ext]" : "[name].[ext]",
-              },
-            },
-          ],
-        },
-      ],
+                name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+              }
+            }
+          ]
+        }
+      ]
     },
     resolve: {
       extensions: [".ts", ".tsx", ".js"],
       plugins: [
         new TsconfigPathsPlugin({
-          configFile: path.resolve(__dirname, "./tsconfig.json"),
-        }),
+          configFile: path.resolve(__dirname, "./tsconfig.json")
+        })
       ],
       symlinks: false,
-      cacheWithContext: false,
+      cacheWithContext: false
     },
     output: {
       filename: "[name].bundle.js",
       path: path.resolve(__dirname, "dist"),
-      publicPath: "auto",
+      publicPath: "auto"
     },
     performance: {
       hints: false,
       maxEntrypointSize: 2097152,
-      maxAssetSize: 1048576,
-    },
-  };
+      maxAssetSize: 1048576
+    }
+  }
 };

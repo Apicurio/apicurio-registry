@@ -17,11 +17,12 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.spi.RestClientProvider;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClientProvider;
 
 import java.util.Map;
 
-public class JdkHttpClientProvider implements RestClientProvider {
+public class JdkHttpClientProvider implements RegistryHttpClientProvider {
 
     @Override
     public RegistryHttpClient create(String endpoint, Map<String, Object> configs, Auth auth) {

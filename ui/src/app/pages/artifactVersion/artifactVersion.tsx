@@ -16,6 +16,7 @@
  */
 
 import React from "react";
+import { BrowserRouter } from "react-router-dom";
 import "./artifactVersion.css";
 import {
     Breadcrumb, BreadcrumbItem,
@@ -137,7 +138,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         }
 
         return (
-            <React.Fragment>
+            <BrowserRouter>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
@@ -206,7 +207,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                      onClose={this.closeInvalidContentModal} />
                 <PleaseWaitModal message={this.state.pleaseWaitMessage}
                                  isOpen={this.state.isPleaseWaitModalOpen} />
-            </React.Fragment>
+            </BrowserRouter>
         );
     }
 

@@ -17,7 +17,8 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.rest.client.spi.RestClientProvider;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClientProvider;
 import io.vertx.core.Vertx;
 
 import java.util.Map;
@@ -25,7 +26,7 @@ import java.util.Map;
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class VertxHttpClientProvider implements RestClientProvider {
+public class VertxHttpClientProvider implements RegistryHttpClientProvider {
 
     private final Vertx vertx;
 

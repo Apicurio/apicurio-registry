@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.rest.client;
+package io.apicurio.registry.rest.client.spi;
 
 import io.apicurio.registry.rest.client.request.Request;
 

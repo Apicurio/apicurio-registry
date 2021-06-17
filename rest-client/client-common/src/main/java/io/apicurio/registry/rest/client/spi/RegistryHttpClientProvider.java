@@ -16,12 +16,11 @@
 
 package io.apicurio.registry.rest.client.spi;
 
-import io.apicurio.registry.rest.client.RegistryHttpClient;
 import io.apicurio.registry.auth.Auth;
 
 import java.util.Map;
 
-public interface RestClientProvider {
+public interface RegistryHttpClientProvider {
 
     RegistryHttpClient create(String endpoint, Map<String, Object> configs, Auth auth);
 }

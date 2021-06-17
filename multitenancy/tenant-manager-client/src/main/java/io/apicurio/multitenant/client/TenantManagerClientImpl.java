@@ -23,7 +23,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,28 +43,36 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     private static final String TENANTS_API_BASE_PATH = "api/v1/tenants";
 
-    private HttpClient client;
-    private ObjectMapper mapper;
-
-    private String endpoint;
+    private final HttpClient client;
+    private final ObjectMapper mapper;
+    private final String endpoint;
+    private final Auth auth;
 
     public TenantManagerClientImpl(String endpoint) {
+        this(endpoint, null);
+
+    }
+
+    public TenantManagerClientImpl(String endpoint, Auth auth) {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
         this.endpoint = endpoint;
         this.client = HttpClient.newHttpClient();
         this.mapper = new ObjectMapper();
+        this.auth = auth;
     }
 
     @Override
     public List<RegistryTenant> listTenants() {
-        HttpRequest req = HttpRequest.newBuilder()
+        final Map<String, String> headers = prepareRequestHeaders();
+        HttpRequest.Builder req = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
-                .GET()
-                .build();
+                .GET();
+
+        headers.forEach(req::header);
         try {
-            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), new TypeReference<List<RegistryTenant>>(){});
             }
@@ -75,13 +85,14 @@ public class TenantManagerClientImpl implements TenantManagerClient {
     @Override
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest) {
         try {
-            HttpRequest req = HttpRequest.newBuilder()
+            final Map<String, String> headers = prepareRequestHeaders();
+            HttpRequest.Builder req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
                     .header("Content-Type", "application/json")
-                    .POST(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(tenantRequest)))
-                    .build();
+                    .POST(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(tenantRequest)));
 
-            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            headers.forEach(req::header);
+            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 201) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
             }
@@ -94,13 +105,14 @@ public class TenantManagerClientImpl implements TenantManagerClient {
     @Override
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest) {
         try {
-            HttpRequest req = HttpRequest.newBuilder()
+            final Map<String, String> headers = prepareRequestHeaders();
+            HttpRequest.Builder req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
                     .header("Content-Type", "application/json")
-                    .PUT(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(updateRequest)))
-                    .build();
+                    .PUT(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(updateRequest)));
 
-            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            headers.forEach(req::header);
+            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 204) {
                 return;
             }
@@ -112,12 +124,13 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
-        HttpRequest req = HttpRequest.newBuilder()
+        final Map<String, String> headers = prepareRequestHeaders();
+        HttpRequest.Builder req = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                .GET()
-                .build();
+                .GET();
+        headers.forEach(req::header);
         try {
-            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
             } else if (res.statusCode() == 404) {
@@ -131,12 +144,13 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public void deleteTenant(String tenantId) {
-        HttpRequest req = HttpRequest.newBuilder()
+        final Map<String, String> headers = prepareRequestHeaders();
+        HttpRequest.Builder req = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                .DELETE()
-                .build();
+                .DELETE();
+        headers.forEach(req::header);
         try {
-            HttpResponse<InputStream> res = client.send(req, BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() != 204) {
                 throw new TenantManagerClientException(res.toString());
             }
@@ -145,4 +159,11 @@ public class TenantManagerClientImpl implements TenantManagerClient {
         }
     }
 
+    private Map<String, String> prepareRequestHeaders() {
+        final Map<String, String> headers = new HashMap<>();
+        if (null != auth) {
+            headers.put("Authorization", auth.obtainAuthorizationValue());
+        }
+        return headers;
+    }
 }

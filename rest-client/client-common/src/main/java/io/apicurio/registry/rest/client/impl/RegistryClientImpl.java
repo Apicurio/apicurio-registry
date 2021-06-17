@@ -20,7 +20,7 @@ import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.request.Parameters;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.client.RegistryHttpClient;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.request.provider.AdminRequestsProvider;

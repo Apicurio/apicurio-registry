@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
 import io.apicurio.registry.rest.client.response.ResponseHandler;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.vertx.core.Context;

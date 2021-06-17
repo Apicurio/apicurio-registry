@@ -16,6 +16,7 @@
  */
 
 import React from "react";
+import { BrowserRouter } from "react-router-dom";
 import "./rules.css";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
@@ -52,7 +53,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     public renderPage(): React.ReactElement {
         return (
-            <React.Fragment>
+            <BrowserRouter>
                 <PageSection className="ps_rules-header" variant={PageSectionVariants.light}>
                     <RulesPageHeader />
                 </PageSection>
@@ -78,7 +79,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                             </React.Fragment>
                     }
                 </PageSection>
-            </React.Fragment>
+            </BrowserRouter>
         );
     }
 

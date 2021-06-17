@@ -20,11 +20,11 @@ package io.apicurio.registry.rest.client.spi;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
-public class RestClientServiceLoader {
+public class RegistryHttpClientServiceLoader {
 
-    private static final ServiceLoader<RestClientProvider> loader = ServiceLoader.load(RestClientProvider.class);
+    private static final ServiceLoader<RegistryHttpClientProvider> loader = ServiceLoader.load(RegistryHttpClientProvider.class);
 
-    public Iterator<RestClientProvider> providers(boolean refresh) {
+    public Iterator<RegistryHttpClientProvider> providers(boolean refresh) {
         if (refresh) {
             loader.reload();
         }

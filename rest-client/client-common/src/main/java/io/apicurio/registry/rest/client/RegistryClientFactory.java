@@ -17,8 +17,9 @@
 package io.apicurio.registry.rest.client;
 
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
-import io.apicurio.registry.rest.client.spi.RestClientProvider;
-import io.apicurio.registry.rest.client.spi.RestClientServiceLoader;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClientProvider;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClientServiceLoader;
 import io.apicurio.registry.auth.Auth;
 
 import java.util.Collections;
@@ -30,8 +31,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RegistryClientFactory {
 
-    private static final AtomicReference<RestClientProvider> providerReference = new AtomicReference<>();
-    private static final RestClientServiceLoader serviceLoader = new RestClientServiceLoader();
+    private static final AtomicReference<RegistryHttpClientProvider> providerReference = new AtomicReference<>();
+    private static final RegistryHttpClientServiceLoader serviceLoader = new RegistryHttpClientServiceLoader();
 
     public static RegistryClient create(RegistryHttpClient registryHttpClient) {
         return new RegistryClientImpl(registryHttpClient);
@@ -46,7 +47,7 @@ public class RegistryClientFactory {
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        RestClientProvider p = providerReference.get();
+        RegistryHttpClientProvider p = providerReference.get();
         if (p == null) {
             providerReference.compareAndSet(null, resolveProviderInstance());
             p = providerReference.get();
@@ -55,11 +56,11 @@ public class RegistryClientFactory {
         return new RegistryClientImpl(p.create(baseUrl, configs, auth));
     }
 
-    public static boolean setProvider(RestClientProvider provider) {
+    public static boolean setProvider(RegistryHttpClientProvider provider) {
         return providerReference.compareAndSet(null, provider);
     }
 
-    private static RestClientProvider resolveProviderInstance() {
+    private static RegistryHttpClientProvider resolveProviderInstance() {
         return serviceLoader.providers(true)
                 .next();
     }

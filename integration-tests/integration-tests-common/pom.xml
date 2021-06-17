@@ -106,15 +106,9 @@
             <version>${test-containers.version}</version>
         </dependency>
         <dependency>
-                <groupId>io.strimzi</groupId>
-                <artifactId>strimzi-test-container</artifactId>
-                <scope>compile</scope>
-<!--                 <exclusions> -->
-<!--                     <exclusion> -->
-<!--                         <groupId>org.apache.logging.log4j</groupId> -->
-<!--                         <artifactId>log4j-core</artifactId> -->
-<!--                     </exclusion> -->
-<!--                 </exclusions> -->
+            <groupId>io.strimzi</groupId>
+            <artifactId>strimzi-test-container</artifactId>
+            <scope>compile</scope>
        </dependency>
         
         <dependency>

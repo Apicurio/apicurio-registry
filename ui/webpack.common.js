@@ -95,7 +95,7 @@ module.exports = (env, argv) => {
               // Limit at 50k. larger files emited into separate files
               limit: 5000,
               outputPath: "fonts",
-              name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+              name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
             }
           }
         },
@@ -108,7 +108,7 @@ module.exports = (env, argv) => {
               options: {
                 limit: 5000,
                 outputPath: "svgs",
-                name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+                name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
               }
             }
           ]
@@ -153,7 +153,7 @@ module.exports = (env, argv) => {
               options: {
                 limit: 5000,
                 outputPath: "images",
-                name: isProduction ? '.[contenthash:8].[ext]' : '[name].[ext]',
+                name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
               }
             }
           ]

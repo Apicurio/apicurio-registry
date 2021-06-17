@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.AuthTestProfile;
 import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

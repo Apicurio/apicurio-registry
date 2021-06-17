@@ -43,7 +43,7 @@ import org.junit.jupiter.api.TestInstance;
  */
 @QuarkusTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class TenantManagerClientTest {
+public class TenantManagerClientTest {
 
     private static TenantManagerClient client;
 

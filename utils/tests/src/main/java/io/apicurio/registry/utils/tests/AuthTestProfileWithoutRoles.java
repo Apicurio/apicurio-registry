@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry;
+package io.apicurio.registry.utils.tests;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
-public class ApicurioTestTags {
+public class AuthTestProfileWithoutRoles extends AuthTestProfile {
 
-    public static final String DOCKER = "docker";
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        return Collections.emptyMap();
+    }
 
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return Collections.singletonList(
+                new TestResourceEntry(KeycloakTestResourceWithoutRoles.class));
+    }
 }

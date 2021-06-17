@@ -61,11 +61,6 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         props.put("registry.auth.owner-only-authorization", "true");
         props.put("registry.auth.roles.enabled", "true");
 
-        //set tenant manager properties
-        props.put("tenant-manager.auth.enabled", "true");
-        props.put("tenant-manager.keycloak.url", container.getAuthServerUrl());
-        props.put("tenant-manager.keycloak.realm", "registry");
-
         createTestUser();
 
         return props;

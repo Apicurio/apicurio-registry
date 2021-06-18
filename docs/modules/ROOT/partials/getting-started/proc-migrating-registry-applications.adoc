@@ -95,7 +95,7 @@ _New registry v2 API path_:
 props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
 ----
 +
-The refactored SerDes libraries also include other changes to optional configuration properties. You can find more details on the SerDes in 
+The refactored SerDes libraries also include other important changes to configuration properties. For more details on SerDes configuration, see
 ifdef::apicurio-registry[]
 {kafka-client-serdes}. 
 endif::[]

@@ -155,7 +155,7 @@
 :NameServiceRegistryUser: Service Registry User Guide
 
 :LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/migrating_service_registry/index
-:NameServiceRegistryMigration: Migrating Service Registry
+:NameServiceRegistryMigration: Migrating Service Registry deployments
 
 // AMQ Streams titles
 

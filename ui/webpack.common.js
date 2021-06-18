@@ -7,8 +7,23 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const { federatedModuleName, dependencies } = require("./package.json");
 const ChunkMapper = require("@redhat-cloud-services/frontend-components-config/chunk-mapper");
 
+
+const cmdArgs = {};
+process.argv.forEach(arg => {
+  if (arg && arg.startsWith("--env=")) {
+    const idx = arg.indexOf(":");
+    const name = arg.substring(6, idx);
+    const value = arg.substring(idx+1);
+    cmdArgs[name] = value;
+  }
+});
+
 module.exports = (env, argv) => {
   const isProduction = argv && argv.mode === "production";
+  const isMtUi = cmdArgs.target === "mtui" ? true : false;
+  if (isMtUi) {
+    console.info("Build target is mt-ui: %o", isMtUi);
+  }
   return {
     entry: {
       app: "./src/index.tsx"
@@ -26,7 +41,7 @@ module.exports = (env, argv) => {
       new ModuleFederationPlugin({
         name: federatedModuleName,
         filename: `${federatedModuleName}${
-          isProduction ? ".[chunkhash:8]" : ""
+            (isProduction && !isMtUi) ? ".[chunkhash:8]" : ""
         }.js`,
         exposes: {
           "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",

@@ -10,6 +10,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
+    "build-mtui": "webpack --config webpack.prod.js --env=target:mtui",
     "start": "webpack serve --hot --color --progress --client-log-level=info --config webpack.dev.js"
   },
   "devDependencies": {

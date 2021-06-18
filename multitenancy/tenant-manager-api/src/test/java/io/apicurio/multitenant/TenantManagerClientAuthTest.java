@@ -60,8 +60,6 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
     public void testWrongCreds() throws Exception {
         Auth auth = new Auth(authServerUrl, realm, clientId, "wrongsecret");
         TenantManagerClient client = createClient(auth);
-        Assertions.assertThrows(HttpResponseException.class, () -> {
-            client.listTenants();
-        });
+        Assertions.assertThrows(HttpResponseException.class, client::listTenants);
     }
 }

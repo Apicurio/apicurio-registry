@@ -49,6 +49,7 @@ public class KeycloakTestResourceWithoutRoles implements QuarkusTestResourceLife
         props.put("tenant-manager.auth.enabled", "true");
         props.put("tenant-manager.keycloak.url", container.getAuthServerUrl());
         props.put("tenant-manager.keycloak.realm", "registry");
+        props.put("tenant-manager.authz.enabled", "true");
 
         return props;
     }

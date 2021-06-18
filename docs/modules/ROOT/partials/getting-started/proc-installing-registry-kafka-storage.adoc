@@ -17,7 +17,7 @@ This topic explains how to install and run {registry} with Kafka storage from a 
 
 * You must have Docker installed and the Docker daemon running.
 ifdef::apicurio-registry[]
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql.
 endif::[] 
 * Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system. 
 * You must already have your Kafka broker running. For example: 

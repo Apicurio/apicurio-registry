@@ -21,7 +21,7 @@ ifndef::service-registry-downstream[]
 :apicurio-registry:
 :registry: Apicurio Registry
 :kafka-streams: Strimzi
-:registry-version: 2.0.1.Final
+:registry-version: 2.0
 :registry-v1: 1.3.x
 :operator-version: 1.0.0
 :keycloak: Keycloak

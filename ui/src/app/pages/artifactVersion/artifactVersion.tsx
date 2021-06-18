@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import React from "react";
-import { BrowserRouter } from "react-router-dom";
 import "./artifactVersion.css";
 import {
     Breadcrumb, BreadcrumbItem,
@@ -138,7 +136,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         }
 
         return (
-            <BrowserRouter>
+            <React.Fragment>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
@@ -207,7 +205,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                      onClose={this.closeInvalidContentModal} />
                 <PleaseWaitModal message={this.state.pleaseWaitMessage}
                                  isOpen={this.state.isPleaseWaitModalOpen} />
-            </BrowserRouter>
+            </React.Fragment>
         );
     }
 

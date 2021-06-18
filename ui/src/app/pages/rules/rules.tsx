@@ -53,7 +53,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     public renderPage(): React.ReactElement {
         return (
-            <BrowserRouter>
+            <React.Fragment>
                 <PageSection className="ps_rules-header" variant={PageSectionVariants.light}>
                     <RulesPageHeader />
                 </PageSection>
@@ -79,7 +79,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                             </React.Fragment>
                     }
                 </PageSection>
-            </BrowserRouter>
+            </React.Fragment>
         );
     }
 

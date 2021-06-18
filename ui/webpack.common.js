@@ -23,9 +23,7 @@ module.exports = (mode) => {
   const isProduction = mode === "production";
   const isMtUi = cmdArgs.target === "mtui" ? true : false;
   console.info("Is production build? %o", isProduction);
-  if (isMtUi) {
-    console.info("Is Multi-Tenant UI build? %o", isMtUi);
-  }
+  console.info("Is Multi-Tenant UI build? %o", isMtUi);
   return {
     mode,
     entry: {

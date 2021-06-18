@@ -16,7 +16,6 @@
  */
 
 import React from "react";
-import { BrowserRouter } from "react-router-dom";
 import "./rules.css";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";

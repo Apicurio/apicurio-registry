@@ -18,13 +18,16 @@ process.argv.forEach(arg => {
   }
 });
 
-module.exports = (env, argv) => {
-  const isProduction = argv && argv.mode === "production";
+
+module.exports = (mode) => {
+  const isProduction = mode === "production";
   const isMtUi = cmdArgs.target === "mtui" ? true : false;
+  console.info("Is production build? %o", isProduction);
   if (isMtUi) {
-    console.info("Build target is mt-ui: %o", isMtUi);
+    console.info("Is Multi-Tenant UI build? %o", isMtUi);
   }
   return {
+    mode,
     entry: {
       app: "./src/index.tsx"
     },

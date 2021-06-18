@@ -5,8 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 // webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
 
-module.exports = merge(common("production", { mode: "production" }), {
-  mode: "production",
+module.exports = merge(common("production"), {
   devtool: "source-map",
   plugins: [
     new MiniCssExtractPlugin({

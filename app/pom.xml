@@ -123,6 +123,12 @@
 		    <groupId>uk.gov.nationalarchives</groupId>
 		    <artifactId>csv-validator-java-api</artifactId>
 		</dependency>
+        <!-- TODO: Resolve this exclusion: we had to bump down the dependency version because our Jenkins pipeline couldn't
+find alternative sources for the most recent version of this dependency - Z Evans 6/21/2021   -->
+        <dependency>
+            <groupId>com.gilt</groupId>
+            <artifactId>gfc-semver_2.11</artifactId>
+        </dependency>
 		<dependency>
 		    <groupId>uk.gov.nationalarchives</groupId>
 		    <artifactId>csv-validator-parent</artifactId>

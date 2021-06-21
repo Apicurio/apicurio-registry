@@ -42,8 +42,10 @@ public class SqlStatementsProducer {
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();
         } else if ("postgresql".equals(databaseType)) {
+            logger.info("Using postgres");
             return new PostgreSQLSqlStatements();
         } else {
+            logger.info("Using CloudSpanner");
             return new CloudSpannerSqlStatements();
         }
 //        throw new RuntimeException("Unsupported database type: " + databaseType);

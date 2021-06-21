@@ -10,6 +10,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
+    "build-mtui": "webpack --config webpack.prod.js --env=target:mtui",
     "start": "webpack serve --hot --color --progress --client-log-level=info --config webpack.dev.js"
   },
   "devDependencies": {
@@ -70,7 +71,6 @@
     "react-ace": "8.1.0",
     "react-dom": "17.0.1",
     "react-moment": "0.9.7",
-    "react-router": "5.2.0",
     "react-router-dom": "5.2.0",
     "redoc": "2.0.0-rc.28",
     "to-arraybuffer": "^1.0.1",

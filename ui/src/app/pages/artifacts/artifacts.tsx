@@ -16,7 +16,6 @@
  */
 
 import React from "react";
-import { BrowserRouter } from "react-router-dom";
 import "./artifacts.css";
 import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
 import {ArtifactsPageHeader} from "./components/pageheader";
@@ -66,7 +65,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     public renderPage(): React.ReactElement {
         return (
-            <BrowserRouter>
+            <React.Fragment>
                 <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
                     <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
                 </PageSection>
@@ -112,7 +111,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                      onClose={this.closeInvalidContentModal} />
                 <PleaseWaitModal message="Creating artifact, please wait..."
                                  isOpen={this.state.isPleaseWaitModalOpen} />
-            </BrowserRouter>
+            </React.Fragment>
         );
     }
 

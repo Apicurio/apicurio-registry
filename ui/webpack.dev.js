@@ -7,7 +7,6 @@ const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || "8888";
 
 module.exports = merge(common('development'), {
-  mode: "development",
   devtool: "eval-source-map",
   plugins: [
     new CopyWebpackPlugin({

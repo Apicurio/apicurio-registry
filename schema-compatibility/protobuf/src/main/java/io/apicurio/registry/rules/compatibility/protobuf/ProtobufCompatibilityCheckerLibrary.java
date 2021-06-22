@@ -29,7 +29,7 @@ import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.FieldElement;
 
 import io.apicurio.registry.protobuf.ProtobufDifference;
-import io.apicurio.registry.protobuf.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 /**
  * Provides compatibility validation functions for changes between two versions of a Protobuf schema document.

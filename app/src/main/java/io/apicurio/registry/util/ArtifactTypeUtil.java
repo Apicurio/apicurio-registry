@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.protobuf.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
 

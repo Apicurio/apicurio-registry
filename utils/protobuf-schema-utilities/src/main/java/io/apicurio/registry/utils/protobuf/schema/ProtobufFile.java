@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.protobuf;
+package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;

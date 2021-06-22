@@ -29,7 +29,7 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.google.protobuf.Message;
 
 import io.apicurio.registry.protobuf.ProtobufDifference;
-import io.apicurio.registry.protobuf.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
@@ -38,7 +38,7 @@ import io.apicurio.registry.serde.ParsedSchemaImpl;
 import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
-import io.apicurio.registry.serde.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.utils.IoUtil;
 

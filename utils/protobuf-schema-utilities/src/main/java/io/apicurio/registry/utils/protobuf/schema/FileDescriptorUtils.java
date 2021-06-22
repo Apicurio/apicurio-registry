@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde.protobuf.schema;
+package io.apicurio.registry.utils.protobuf.schema;
 
 import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;

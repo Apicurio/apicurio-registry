@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.auth;
+package io.apicurio.registry.utils.tests;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import dasniko.testcontainers.keycloak.KeycloakContainer;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -27,8 +24,11 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import dasniko.testcontainers.keycloak.KeycloakContainer;
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Fabian Martinez
@@ -51,6 +51,8 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         container.start();
 
         Map<String, String> props = new HashMap<>();
+
+        //Set registry properties
         props.put("registry.keycloak.url", container.getAuthServerUrl());
         props.put("registry.keycloak.realm", "registry");
         props.put("registry.auth.enabled", "true");

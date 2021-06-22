@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth;
+package io.apicurio.registry.utils.tests;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
@@ -44,6 +44,12 @@ public class KeycloakTestResourceWithoutRoles implements QuarkusTestResourceLife
         props.put("registry.keycloak.realm", "registry");
         props.put("registry.auth.enabled", "true");
         props.put("quarkus.oidc.client-secret", "test1");
+
+        //set tenant manager properties
+        props.put("tenant-manager.auth.enabled", "true");
+        props.put("tenant-manager.keycloak.url", container.getAuthServerUrl());
+        props.put("tenant-manager.keycloak.realm", "registry");
+        props.put("tenant-manager.authz.enabled", "true");
 
         return props;
     }

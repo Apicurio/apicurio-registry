@@ -18,10 +18,12 @@ package io.apicurio.multitenant;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,14 +36,25 @@ import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.TestInstance;
 
 /**
  * @author Fabian Martinez
  */
 @QuarkusTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TenantManagerClientTest {
 
-    private TenantManagerClient client = new TenantManagerClientImpl("http://localhost:8081/");
+    private static TenantManagerClient client;
+
+    @BeforeAll
+    public void beforeAll() {
+        client = createRestClient();
+    }
+
+    protected TenantManagerClient createRestClient() {
+        return new TenantManagerClientImpl("http://localhost:8081/");
+    }
 
     @BeforeEach
     public void cleanup() {

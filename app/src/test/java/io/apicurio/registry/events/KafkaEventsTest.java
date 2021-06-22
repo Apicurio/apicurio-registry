@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -44,7 +45,6 @@ import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.rnorth.ducttape.unreliables.Unreliables;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.events.dto.RegistryEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;

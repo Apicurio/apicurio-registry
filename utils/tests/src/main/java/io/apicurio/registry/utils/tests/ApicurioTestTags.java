@@ -13,28 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.auth;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import io.quarkus.test.junit.QuarkusTestProfile;
+package io.apicurio.registry.utils.tests;
 
 /**
  * @author Fabian Martinez
  */
-public class AuthTestProfile implements QuarkusTestProfile {
+public class ApicurioTestTags {
 
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public List<TestResourceEntry> testResources() {
-        return Arrays.asList(
-                new TestResourceEntry(KeycloakTestResource.class));
-    }
+    public static final String DOCKER = "docker";
 
 }

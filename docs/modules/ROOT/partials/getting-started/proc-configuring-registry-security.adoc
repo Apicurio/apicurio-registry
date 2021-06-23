@@ -2,19 +2,19 @@
 
 [id="registry-security"]
 
-= Configuring {registry} authentication and authorization using {keycloak}
+= Configuring {registry} authentication and authorization with {keycloak}
 
 [role="_abstract"]
 This section explains how to manually configure authentication and authorization options for {registry} using {keycloak}. 
 
 [NOTE]
 ====
-Alternatively, for details on how to automatically configure these settings using the 
+Alternatively, for details on how to configure these settings automatically, 
 ifdef::apicurio-registry[]
-{keycloak} Operator, see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
+see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
 endif::[]
 ifdef::rh-service-registry[]
-{keycloak} Operator Technology Preview, see xref:registry-security-keycloak[]. 
+see xref:registry-security-keycloak[]. 
 endif::[]
 ====
 

@@ -55,4 +55,5 @@ Alternatively, you can set the properties for the kafka producer using the `regi
 
 [role="_additional-resources"]
 .Additional resources
+* For an open source example application, see the https://github.com/Apicurio/apicurio-registry-examples/tree/2.0.x/cloudevents[Apicurio Registry CloudEvents demo]
 * For more details, see the link:https://cloudevents.io/[CNCF CloudEvents specification]

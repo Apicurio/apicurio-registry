@@ -18,28 +18,28 @@ see xref:registry-security-keycloak[].
 endif::[]
 ====
 
-You can enable authentication for the {registry} web console and core REST API using {keycloak} based on OAuth using OpenID Connect (OIDC). HTTP basic authentication is also suported for development purposes. The same {keycloak} realm and users are federated across the {registry} web console and core REST API using Open ID Connect so that you only require one set of credentials.
+You can enable authentication for the {registry} web console and core REST API using {keycloak} based on OAuth using OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
 
 {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default. 
 
 .Prerequisites
-* {keycloak} is installed and running. For details on using {keycloak}, see
+* {keycloak} is installed and running. For more details, see
 ifdef::apicurio-registry[]
 link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/html-single/getting_started_guide/index[Getting Started with {keycloak}]
+link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
 endif::[]
 * {registry} is installed and running.
 
 .Procedure
 
-. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For more details on creating {keycloak} realms, see
+. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For more details on creating realms, see
 ifdef::apicurio-registry[]
 link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/html-single/getting_started_guide/index[Getting Started with {keycloak}]
+link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
 endif::[]
 
 . Create a {keycloak} client for the {registry} API. By default, {registry} expects the following settings:

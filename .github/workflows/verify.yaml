@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [master, 2.0.x]
 
 jobs:
   build-verify:

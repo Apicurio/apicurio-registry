@@ -1,5 +1,5 @@
 [id="registry-cloud-events"]
-= Configuring {registry} cloud events
+= Configuring {registry} event sourcing
 
 You can configure {registry} to send events when changes are made to the registry. For example, {registry} can trigger events when schema and API artifacts are created, updated, deleted, and so on. You can configure {registry} to send events to your applications and to third-party integrations in this way.
 
@@ -19,7 +19,7 @@ You can configure cloud events in {registry} using Java system properties or equ
 * You must have an application that you want to send {registry} cloud events to. For example, this can be a custom application or a third-party application.
 
 [discrete]
-== Configuring {registry} cloud events using HTTP
+== Configuring {registry} event sourcing using HTTP
 
 The example in this section shows a custom application running at `\http://my-app-host:8888/events`. 
 
@@ -35,7 +35,7 @@ The example in this section shows a custom application running at `\http://my-ap
 
 
 [discrete]
-== Configuring {registry} cloud events using Apache Kafka
+== Configuring {registry} event sourcing using Apache Kafka
 
 The example in this section shows a Kafka topic named `my-registry-events` running on `my-kafka-host:9092`. 
 

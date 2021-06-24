@@ -6,46 +6,46 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.apicurio.registry.types.RuleType;
 
 
 /**
- * Root Type for Rule
- * <p>
- * 
+ * The mapping between a user/principal and their role.
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "config",
-    "type"
+    "principalId",
+    "role"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-public class Rule {
+public class RoleMapping {
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    private String config;
-    /**
-     * 
-     */
-    @JsonProperty("type")
+    @JsonProperty("principalId")
     @JsonPropertyDescription("")
-    private RuleType type;
+    private String principalId;
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("role")
+    @JsonPropertyDescription("")
+    private Role role;
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    public String getConfig() {
-        return config;
+    @JsonProperty("principalId")
+    public String getPrincipalId() {
+        return principalId;
     }
 
     /**
@@ -53,25 +53,29 @@ public class Rule {
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    public void setConfig(String config) {
-        this.config = config;
+    @JsonProperty("principalId")
+    public void setPrincipalId(String principalId) {
+        this.principalId = principalId;
     }
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public RuleType getType() {
-        return type;
+    @JsonProperty("role")
+    public Role getRole() {
+        return role;
     }
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public void setType(RuleType type) {
-        this.type = type;
+    @JsonProperty("role")
+    public void setRole(Role role) {
+        this.role = role;
     }
 
 }

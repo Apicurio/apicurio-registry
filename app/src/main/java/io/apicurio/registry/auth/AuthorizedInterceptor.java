@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.auth;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
@@ -30,15 +29,15 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.types.Current;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@Interceptor
+@Authorized @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)
-@Authorized
 public class AuthorizedInterceptor {
 
     @Inject
@@ -54,29 +53,66 @@ public class AuthorizedInterceptor {
     @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
     boolean authenticationEnabled;
 
+    @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
+    boolean roleBasedAuthorizationEnabled;
+
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean authorizationEnabled;
+    boolean ownerOnlyAuthorizationEnabled;
+
+    @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
+    String readOnlyRole;
+
+    @ConfigProperty(name = "registry.auth.roles.developer", defaultValue = "sr-developer")
+    String developerRole;
 
     @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
     String adminRole;
 
-    @PostConstruct
-    public void onConstruct(InvocationContext context) {
-        if (isAuthEnabled()) {
-            log.info("*** Owner-only authorization is enabled ***");
-        }
-    }
-
-    private boolean isAuthEnabled() {
-        return authenticationEnabled && authorizationEnabled;
-    }
-
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
-        if (!isAuthEnabled() || isAllowed(context)) {
+        // If authentication is not enabled, just do it.
+        if (!authenticationEnabled) {
             return context.proceed();
-        } else {
+        }
+
+        // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            throw new AuthenticationFailedException("User is not authenticated.");
+        }
+
+        // If RBAC is enabled, apply role based rules
+        if (roleBasedAuthorizationEnabled && !isRoleAllowed(context)) {
             throw new UnauthorizedException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+        }
+
+        // If Owner-only is enabled, apply ownership rules
+        if (ownerOnlyAuthorizationEnabled && !isOwnerAllowed(context)) {
+            throw new UnauthorizedException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+        }
+
+        return context.proceed();
+    }
+
+    /**
+     * Checks whether the user has the role necessary to invoke the operation.  The role names
+     * can be configured in application.properties.
+     * @param context
+     */
+    private boolean isRoleAllowed(InvocationContext context) {
+        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+        AuthorizedLevel level = annotation.level();
+
+        switch (level) {
+            case Admin:
+                return isAdmin();
+            case None:
+                return true;
+            case Read:
+                return canRead();
+            case Write:
+                return canWrite();
+            default:
+                throw new RuntimeException("Unhandled case: " + level);
         }
     }
 
@@ -86,13 +122,19 @@ public class AuthorizedInterceptor {
      * currently authenticated user.  If they are the same, then the operation is allowed.
      * @param context
      */
-    private boolean isAllowed(InvocationContext context) {
+    private boolean isOwnerAllowed(InvocationContext context) {
         if (isAdmin()) {
             return true;
         }
 
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        AuthorizedStyle mode = annotation.value();
+        AuthorizedStyle mode = annotation.style();
+        AuthorizedLevel level = annotation.level();
+
+        // Don't protected 'read-only' or 'none' level operations.
+        if (level == AuthorizedLevel.Read || level == AuthorizedLevel.None) {
+            return true;
+        }
 
         if (mode == AuthorizedStyle.GroupAndArtifact) {
             String groupId = getStringParam(context, 0);
@@ -102,8 +144,11 @@ public class AuthorizedInterceptor {
             String groupId = getStringParam(context, 0);
             return verifyGroupCreatedBy(groupId);
         } else if (mode == AuthorizedStyle.ArtifactOnly) {
-            String artifactId = getStringParam(context, 1);
+            String artifactId = getStringParam(context, 0);
             return verifyArtifactCreatedBy(null, artifactId);
+        } else if (mode == AuthorizedStyle.GlobalId) {
+            long globalId = getLongParam(context, 0);
+            return verifyArtifactCreatedBy(globalId);
         } else {
             return true;
         }
@@ -133,12 +178,41 @@ public class AuthorizedInterceptor {
         }
     }
 
+    private boolean verifyArtifactCreatedBy(long globalId) {
+        try {
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
+            String createdBy = dto.getCreatedBy();
+            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+        } catch (NotFoundException nfe) {
+            // If the artifact is not found, then return true and let the operation proceed
+            // as normal. The result of which will typically be a 404 response, but sometimes
+            // will be some other result (e.g. creating an artifact that doesn't exist)
+            return true;
+        }
+    }
+
+    private boolean canWrite() {
+        return hasRole(developerRole) || hasRole(adminRole);
+    }
+
+    private boolean canRead() {
+        return hasRole(readOnlyRole) || hasRole(developerRole) || hasRole(adminRole);
+    }
+
     private boolean isAdmin() {
-        return securityIdentity.hasRole(adminRole);
+        return hasRole(adminRole);
+    }
+
+    private boolean hasRole(String roleName) {
+        return securityIdentity.hasRole(roleName);
     }
 
     private static String getStringParam(InvocationContext context, int index) {
         return (String) context.getParameters()[index];
+    }
+
+    private static Long getLongParam(InvocationContext context, int index) {
+        return (Long) context.getParameters()[index];
     }
 
 }

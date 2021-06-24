@@ -37,6 +37,9 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -78,6 +81,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#listGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
         List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
@@ -90,6 +94,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#createGlobalRule(io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -100,6 +105,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#deleteAllGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
     }
@@ -108,6 +114,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule getGlobalRuleConfig(RuleType rule) {
         RuleConfigurationDto dto;
         try {
@@ -129,6 +136,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -153,6 +161,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
             storage.deleteGlobalRule(rule);

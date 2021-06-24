@@ -47,6 +47,10 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.slf4j.Logger;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -99,6 +103,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
         List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
@@ -111,6 +116,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -121,6 +127,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteAllGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
     }
@@ -129,6 +136,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule getGlobalRuleConfig(RuleType rule) {
         RuleConfigurationDto dto;
         try {
@@ -150,6 +158,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -174,6 +183,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
             storage.deleteGlobalRule(rule);
@@ -193,6 +203,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration getLogConfiguration(String logger) {
         return logConfigService.getLogConfiguration(logger);
     }
@@ -201,6 +212,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<NamedLogConfiguration> listLogConfigurations() {
         return logConfigService.listLogConfigurations();
     }
@@ -209,6 +221,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration removeLogConfiguration(String logger) {
         return logConfigService.removeLogLevelConfiguration(logger);
     }
@@ -217,6 +230,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
         if (data.getLevel() == null) {
             throw new MissingRequiredParameterException("logLevel");
@@ -228,6 +242,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#importData(java.io.InputStream)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void importData(InputStream data) {
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
         final EntityReader reader = new EntityReader(zip);
@@ -254,6 +269,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#exportData()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData() {
         StreamingOutput stream = new StreamingOutput() {
             @Override

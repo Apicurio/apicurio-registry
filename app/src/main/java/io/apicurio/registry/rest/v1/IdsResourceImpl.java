@@ -39,6 +39,9 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -85,6 +88,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
      * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactByGlobalId(long)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public Response getArtifactByGlobalId(long globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -107,6 +111,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
      * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactMetaDataByGlobalId(long)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
         return V1ApiUtil.dtoToMetaData(dto.getId(), dto.getType(), dto);

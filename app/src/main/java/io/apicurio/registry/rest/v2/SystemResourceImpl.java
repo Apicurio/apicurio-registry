@@ -34,6 +34,9 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import io.apicurio.registry.System;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -61,6 +64,7 @@ public class SystemResourceImpl implements SystemResource {
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
     public SystemInfo getSystemInfo() {
         SystemInfo info = new SystemInfo();
         info.setName(system.getName());

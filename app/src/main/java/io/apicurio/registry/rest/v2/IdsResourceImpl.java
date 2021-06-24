@@ -37,6 +37,9 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
@@ -78,6 +81,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(int)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentById(int contentId) {
         ContentHandle content = storage.getArtifactByContentId(contentId);
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -88,6 +92,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public Response getContentByGlobalId(int globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -114,6 +119,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getArtifactByContentHash(contentHash);
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);

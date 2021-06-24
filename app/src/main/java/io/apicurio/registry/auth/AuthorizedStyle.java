@@ -21,6 +21,6 @@ package io.apicurio.registry.auth;
  */
 public enum AuthorizedStyle {
 
-    GroupAndArtifact, GroupOnly, ArtifactOnly
+    GroupAndArtifact, GroupOnly, ArtifactOnly, GlobalId, None
 
 }

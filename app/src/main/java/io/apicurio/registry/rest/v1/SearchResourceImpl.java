@@ -36,6 +36,9 @@ import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
@@ -78,6 +81,7 @@ public class SearchResourceImpl implements SearchResource {
      * @see io.apicurio.registry.rest.v1.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v1.beans.SearchOver, io.apicurio.registry.rest.v1.beans.SortOrder)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
         if (offset == null) {
             offset = 0;
@@ -114,6 +118,7 @@ public class SearchResourceImpl implements SearchResource {
     }
 
 	@Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
 	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
         if (offset == null) {
             offset = 0;

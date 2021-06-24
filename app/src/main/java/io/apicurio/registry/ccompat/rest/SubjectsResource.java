@@ -123,7 +123,7 @@ public interface SubjectsResource {
      */
     @DELETE
     @Path("/{subject}")
-    @Authorized(AuthorizedStyle.ArtifactOnly)
+    @Authorized(style=AuthorizedStyle.ArtifactOnly)
     List<Integer> deleteSubject(
             @PathParam("subject") String subject) throws Exception;
 }

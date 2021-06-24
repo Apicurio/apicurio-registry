@@ -166,6 +166,13 @@ export class AuthService implements Service {
                     config.headers.Authorization = `Bearer ${this.getToken()}`;
                     return Promise.resolve(config);
                 });
+            } else if (self.config.authType() === "gettoken") {
+                this.logger.info("[AuthService] Using 'getToken' auth type.")
+                return self.config.authGetToken()().then(token => {
+                    this.logger.info("[AuthService] Token acquired.");
+                    config.headers.Authorization = `Bearer ${token}`;
+                    return Promise.resolve(config);
+                });
             } else {
                 return Promise.resolve(config);
             }

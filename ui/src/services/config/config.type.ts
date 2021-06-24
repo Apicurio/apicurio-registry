@@ -46,7 +46,7 @@ export interface NoneAuthConfig extends AuthConfig {
 
 // Used when `type=gettoken`
 export interface GetTokenAuthConfig extends AuthConfig {
-    getToken: () => string;
+    getToken: () => Promise<string>;
 }
 
 export interface ConfigType {

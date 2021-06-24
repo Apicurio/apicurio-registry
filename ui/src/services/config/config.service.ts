@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {ConfigType, FeaturesConfig, KeycloakJsAuthConfig} from './config.type';
+import {ConfigType, FeaturesConfig, GetTokenAuthConfig, KeycloakJsAuthConfig} from './config.type';
 import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -126,6 +126,17 @@ export class ConfigService implements Service {
             return auth.options;
         }
         return {};
+    }
+
+    public authGetToken(): () => Promise<string> {
+        if (this.config.auth) {
+            const auth: GetTokenAuthConfig = this.config.auth as GetTokenAuthConfig;
+            return auth.getToken;
+        }
+        return () => {
+            console.error("[ConfigService] Missing: 'getToken' from auth config.");
+            return Promise.resolve("");
+        };
     }
 
     public featureMultiTenant(): boolean {

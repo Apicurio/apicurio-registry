@@ -51,10 +51,12 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -601,5 +603,196 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         var meta = clientV2.createArtifact(null, "newartifact", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         assertEquals(1006, meta.getGlobalId().intValue());
     }
+
+
+    @Test
+    public void testRoleMappings() throws Exception {
+        // Start with no role mappings
+        given()
+            .when()
+                .get("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
+
+        // Add
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId("TestUser");
+        mapping.setRole(RoleType.DEVELOPER);
+        given()
+            .when()
+                .contentType(CT_JSON).body(mapping)
+                .post("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the mapping was added.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("principalId", equalTo("TestUser"))
+                    .body("role", equalTo("DEVELOPER"));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", equalTo("TestUser"))
+                    .body("[0].role", equalTo("DEVELOPER"));
+        });
+
+        // Try to add the rule again - should get a 409
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON).body(mapping)
+                    .post("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(409)
+                    .body("error_code", equalTo(409))
+                    .body("message", equalTo("A role mapping for this principal already exists."));
+        });
+
+        // Add another mapping
+        mapping.setPrincipalId("TestUser2");
+        mapping.setRole(RoleType.ADMIN);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(mapping)
+                .post("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the list of mappings (should be 2 of them)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                    .body("[1].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                    .body("[2]", nullValue());
+        });
+
+        // Get a single mapping by principal
+        given()
+            .when()
+                .get("/registry/v2/admin/roleMappings/TestUser2")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("principalId", equalTo("TestUser2"))
+                .body("role", equalTo("ADMIN"));
+
+        // Update a mapping
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body("\"" + RoleType.READ_ONLY + "\"")
+                .put("/registry/v2/admin/roleMappings/TestUser")
+            .then()
+                .statusCode(204)
+                .contentType(ContentType.JSON);
+
+        // Get a single (updated) mapping
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("principalId", equalTo("TestUser"))
+                    .body("role", equalTo("READ_ONLY"));
+        });
+
+        // Try to update a role mapping that doesn't exist
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(RoleType.ADMIN)
+                .put("/registry/v2/admin/roleMappings/UnknownPrincipal")
+            .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+
+        // Delete a role mapping
+        given()
+            .when()
+                .delete("/registry/v2/admin/roleMappings/TestUser2")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the (deleted) mapping by name (should fail with a 404)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser2")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+        });
+//
+//        // Get the list of rules (should be 1 of them)
+//        TestUtils.retry(() -> {
+//            given()
+//                .when()
+//                    .get("/registry/v2/admin/rules")
+//                .then()
+//                .log().all()
+//                    .statusCode(200)
+//                    .contentType(ContentType.JSON)
+//                    .body("[0]", equalTo("VALIDITY"))
+//                    .body("[1]", nullValue());
+//        });
+//
+//        // Delete all rules
+//        given()
+//            .when()
+//                .delete("/registry/v2/admin/rules")
+//            .then()
+//                .statusCode(204);
+//
+//        // Get the list of rules (no rules now)
+//        TestUtils.retry(() -> {
+//            given()
+//                .when()
+//                    .get("/registry/v2/admin/rules")
+//                .then()
+//                    .statusCode(200)
+//                    .contentType(ContentType.JSON)
+//                    .body("[0]", nullValue());
+//        });
+//
+//        // Get the other (deleted) rule by name (should fail with a 404)
+//        given()
+//            .when()
+//                .get("/registry/v2/admin/rules/VALIDITY")
+//            .then()
+//                .statusCode(404)
+//                .contentType(ContentType.JSON)
+//                .body("error_code", equalTo(404))
+//                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
+    }
+
 
 }

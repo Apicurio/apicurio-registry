@@ -62,6 +62,9 @@ public class MessageTypeToKeyClass {
                 case ContentId:
                     index.put(type, ContentIdKey.class);
                     break;
+                case RoleMapping:
+                    index.put(type, RoleMappingKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

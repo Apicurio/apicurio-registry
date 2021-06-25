@@ -59,15 +59,18 @@ import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
@@ -302,6 +305,61 @@ public class AdminResourceImpl implements AdminResource {
         };
 
         return Response.ok(stream).type("application/zip").build();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void createRoleMapping(RoleMapping data) {
+        storage.createRoleMapping(data.getPrincipalId(), data.getRole().name());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listRoleMappings()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public List<RoleMapping> listRoleMappings() {
+        List<RoleMappingDto> mappings = storage.getRoleMappings();
+        return mappings.stream().map(dto -> {
+            RoleMapping mapping = new RoleMapping();
+            mapping.setPrincipalId(dto.getPrincipalId());
+            mapping.setRole(RoleType.valueOf(dto.getRole()));
+            return mapping;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#getRoleMapping(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public RoleMapping getRoleMapping(String principalId) {
+        RoleMappingDto dto = storage.getRoleMapping(principalId);
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId(dto.getPrincipalId());
+        mapping.setRole(RoleType.valueOf(dto.getRole()));
+        return mapping;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateRoleMapping(java.lang.String, io.apicurio.registry.rest.v2.beans.Role)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void updateRoleMapping(String principalId, RoleType data) {
+        storage.updateRoleMapping(principalId, data.name());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void deleteRoleMapping(String principalId) {
+        storage.deleteRoleMapping(principalId);
     }
 
 }

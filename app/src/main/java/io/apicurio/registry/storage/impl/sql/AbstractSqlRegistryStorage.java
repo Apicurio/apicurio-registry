@@ -53,6 +53,8 @@ import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
@@ -65,6 +67,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
@@ -88,6 +91,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
@@ -114,7 +118,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 1;
+    private static int DB_VERSION = 2;
     private static final Object dbMutex = new Object();
 
     @Inject
@@ -163,7 +167,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("SqlRegistryStorage constructed successfully.");
 
         if (initDB) {
-            // TODO create the JDBI handle once and pass it in to all these DB related methods
+            // TODO create the JDB handle once and pass it in to all these DB related methods
             synchronized (dbMutex) {
                 if (!isDatabaseInitialized()) {
                     log.info("Database not initialized.");
@@ -2299,6 +2303,119 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
             return count;
         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
+        log.debug("Inserting a role mapping row for: {}", principalId);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.insertRoleMapping();
+                handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, principalId)
+                      .bind(2, role)
+                      .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new RoleMappingAlreadyExistsException();
+            }
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    public void deleteRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Deleting a role mapping row for: {}", principalId);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.deleteRoleMapping();
+                int rowCount = handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, principalId)
+                      .execute();
+                if (rowCount == 0) {
+                    throw new RoleMappingNotFoundException();
+                }
+                return null;
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMapping(java.lang.String)
+     */
+    @Override
+    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Selecting a single role mapping for: {}", principalId);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectRoleMappingByPrincipalId();
+                Optional<RoleMappingDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, principalId)
+                        .map(RoleMappingDtoMapper.instance)
+                        .findOne();
+                return res.orElseThrow(() -> new RoleMappingNotFoundException());
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
+     */
+    @Override
+    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
+        log.debug("Getting a list of all role mappings.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectRoleMappings();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(RoleMappingDtoMapper.instance)
+                    .list();
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        log.debug("Updating a role mapping: {}::{}", principalId, role);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.updateRoleMapping();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, role)
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, principalId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new RoleMappingNotFoundException();
+                }
+                return null;
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     protected void resetGlobalId(Handle handle) {

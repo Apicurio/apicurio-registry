@@ -450,4 +450,21 @@ public interface SqlStatements {
 
     public String selectGlobalIdExists();
 
+
+    /*
+     * The next few statements support role mappings
+     */
+
+    public String insertRoleMapping();
+
+    public String deleteRoleMapping();
+
+    public String selectRoleMappingByPrincipalId();
+
+    public String selectRoleMappings();
+
+    public String updateRoleMapping();
+
+    public String selectRoleMappingCountByPrincipal();
+
 }

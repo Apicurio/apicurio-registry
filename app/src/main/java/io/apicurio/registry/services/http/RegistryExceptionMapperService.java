@@ -64,6 +64,8 @@ import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.NotFoundException;
+import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
@@ -112,6 +114,8 @@ public class RegistryExceptionMapperService {
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
+        map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

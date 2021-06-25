@@ -2057,7 +2057,7 @@
                     "Admin"
                 ],
                 "responses": {
-                    "201": {
+                    "204": {
                         "description": "Returned when the role mapping was successfully created."
                     },
                     "500": {

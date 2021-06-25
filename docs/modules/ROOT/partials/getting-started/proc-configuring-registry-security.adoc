@@ -47,7 +47,9 @@ endif::[]
 ** *Client Protocol*: `openid-connect`
 ** *Access Type*: `bearer-only`
 + 
-You can use the defaults for the other client settings.  
+You can use the defaults for the other client settings. 
++
+NOTE: If you are using OpenShift service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`. 
 
 . Create a {keycloak} client for the {registry} web console. By default, {registry} expects the following settings:
 ** *Client ID*: `apicurio-registry` 
@@ -151,7 +153,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 
 [role="_additional-resources"]
 .Additional resources
-* For an open source Docker-based example of authentication using {keycloak}, see https://github.com/Apicurio/apicurio-registry/tree/master/distro/docker-compose
+* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/2.0.x/distro/docker-compose[Docker Compose-based example of using Keycloak with Apicurio Registry]
 * For details on how to use {keycloak} in a production environment, see
 ifdef::apicurio-registry[]
 the link:https://www.keycloak.org/documentation[Keycloak documentation]

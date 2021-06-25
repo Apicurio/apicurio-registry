@@ -162,33 +162,6 @@ public interface AdminResource {
   void importData(InputStream data);
 
   /**
-   * Gets a list of all role mappings configured in the registry (if any).
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/roleMappings")
-  @GET
-  @Produces("application/json")
-  List<RoleMapping> listRoleMappings();
-
-  /**
-   * Creates a new mapping between a user/principal and a role.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   *
-   */
-  @Path("/roleMappings")
-  @POST
-  @Consumes("application/json")
-  void createRoleMapping(RoleMapping data);
-
-  /**
    * Gets the details of a single role mapping (by principalId).
    *
    * This operation can fail for the following reasons:
@@ -228,4 +201,31 @@ public interface AdminResource {
   @Path("/roleMappings/{principalId}")
   @DELETE
   void deleteRoleMapping(@PathParam("principalId") String principalId);
+
+  /**
+   * Gets a list of all role mappings configured in the registry (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/roleMappings")
+  @GET
+  @Produces("application/json")
+  List<RoleMapping> listRoleMappings();
+
+  /**
+   * Creates a new mapping between a user/principal and a role.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   *
+   */
+  @Path("/roleMappings")
+  @POST
+  @Consumes("application/json")
+  void createRoleMapping(RoleMapping data);
 }

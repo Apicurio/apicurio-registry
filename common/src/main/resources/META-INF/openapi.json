@@ -2047,7 +2047,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/RoleType"
+                                "$ref": "#/components/schemas/UpdateRole"
                             }
                         }
                     },

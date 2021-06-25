@@ -71,4 +71,4 @@ Then when you start Kafka and {registry}, you can access the schema to format me
 .Retrieve schemas using a content ID
 Alternatively, you can configure to retrieve schemas from {registry} based on the content ID, which is the unique ID of the artifact content. While the global ID is the unique ID of an artifact version. 
 
-The content ID does not uniquely identify a version, but uniquely identifies the version content only. If multiple versions share the exact same content, they have a different global ID but the same content ID. The Confluent schema registry uses content ID by default.
+The content ID does not uniquely identify a version, but uniquely identifies the version content only. If multiple versions share the exact same content, they have a different global ID but the same content ID. Confluent Schema Registry uses content ID by default.

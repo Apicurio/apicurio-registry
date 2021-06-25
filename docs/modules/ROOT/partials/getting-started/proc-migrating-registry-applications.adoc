@@ -81,7 +81,7 @@ In {registry} 2.x, the SerDes libraries have been split into three Maven depende
 
 . In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v1 API path to the new v2 path. For example:
 +
-_Existing v1 registry v1 API path_:
+_Existing registry v1 API path_:
 +
 [source,java]
 ----

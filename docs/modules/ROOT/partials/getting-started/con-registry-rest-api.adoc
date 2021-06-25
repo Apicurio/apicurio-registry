@@ -26,9 +26,9 @@ Export or import registry content in a `.zip` file, and manage logging levels fo
 {registry} version 2 provides API compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} version 1 
-* Confluent schema registry version 6
-* IBM schema registry version 1
-* Cloud Native Computing Foundation schema registry version 0
+* Confluent Schema Registry version 6
+* IBM Event Streams schema registry version 1
+* CNCF CloudEvents schema registry version 0
 
 Applications using Confluent client libraries can use {registry} as a drop-in replacement. 
 ifdef::rh-service-registry[]

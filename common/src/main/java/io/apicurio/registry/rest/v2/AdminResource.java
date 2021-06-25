@@ -4,7 +4,7 @@ import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.types.RoleType;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
 import java.util.List;
@@ -187,7 +187,7 @@ public interface AdminResource {
   @Path("/roleMappings/{principalId}")
   @PUT
   @Consumes("application/json")
-  void updateRoleMapping(@PathParam("principalId") String principalId, RoleType data);
+  void updateRoleMapping(@PathParam("principalId") String principalId, UpdateRole data);
 
   /**
    * Deletes a single role mapping, effectively denying access to a user/principal.

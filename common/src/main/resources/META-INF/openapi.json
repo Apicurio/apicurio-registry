@@ -2101,7 +2101,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/Role"
+                                "$ref": "#/components/schemas/RoleType"
                             }
                         }
                     },
@@ -2894,7 +2894,7 @@
                         "type": "string"
                     },
                     "role": {
-                        "$ref": "#/components/schemas/Role",
+                        "$ref": "#/components/schemas/RoleType",
                         "description": ""
                     }
                 },
@@ -2903,14 +2903,15 @@
                     "role": "READ_ONLY"
                 }
             },
-            "Role": {
+            "RoleType": {
                 "description": "",
                 "enum": [
                     "READ_ONLY",
                     "DEVELOPER",
                     "ADMIN"
                 ],
-                "type": "string"
+                "type": "string",
+                "x-codegen-package": "io.apicurio.registry.types"
             }
         },
         "responses": {

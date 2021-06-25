@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.registry.types.RoleType;
 
 
 /**
@@ -36,7 +37,7 @@ public class RoleMapping {
      */
     @JsonProperty("role")
     @JsonPropertyDescription("")
-    private Role role;
+    private RoleType role;
 
     /**
      * 
@@ -64,7 +65,7 @@ public class RoleMapping {
      * 
      */
     @JsonProperty("role")
-    public Role getRole() {
+    public RoleType getRole() {
         return role;
     }
 
@@ -74,7 +75,7 @@ public class RoleMapping {
      * 
      */
     @JsonProperty("role")
-    public void setRole(Role role) {
+    public void setRole(RoleType role) {
         this.role = role;
     }
 

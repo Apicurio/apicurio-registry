@@ -53,6 +53,7 @@ import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
@@ -698,14 +699,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .body("role", equalTo("ADMIN"));
 
         // Update a mapping
+        UpdateRole update = new UpdateRole();
+        update.setRole(RoleType.READ_ONLY);
         given()
             .when()
                 .contentType(CT_JSON)
-                .body("\"" + RoleType.READ_ONLY + "\"")
+                .body(update)
                 .put("/registry/v2/admin/roleMappings/TestUser")
             .then()
-                .statusCode(204)
-                .contentType(ContentType.JSON);
+                .statusCode(204);
 
         // Get a single (updated) mapping
         TestUtils.retry(() -> {
@@ -723,13 +725,13 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON)
-                .body(RoleType.ADMIN)
+                .body(update)
                 .put("/registry/v2/admin/roleMappings/UnknownPrincipal")
             .then()
                 .statusCode(404)
                 .contentType(ContentType.JSON)
                 .body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+                .body("message", equalTo("Role mapping not found for principal."));
 
         // Delete a role mapping
         given()
@@ -748,49 +750,21 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(404)
                     .contentType(ContentType.JSON)
                     .body("error_code", equalTo(404))
-                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+                    .body("message", equalTo("Role mapping not found for principal."));
         });
-//
-//        // Get the list of rules (should be 1 of them)
-//        TestUtils.retry(() -> {
-//            given()
-//                .when()
-//                    .get("/registry/v2/admin/rules")
-//                .then()
-//                .log().all()
-//                    .statusCode(200)
-//                    .contentType(ContentType.JSON)
-//                    .body("[0]", equalTo("VALIDITY"))
-//                    .body("[1]", nullValue());
-//        });
-//
-//        // Delete all rules
-//        given()
-//            .when()
-//                .delete("/registry/v2/admin/rules")
-//            .then()
-//                .statusCode(204);
-//
-//        // Get the list of rules (no rules now)
-//        TestUtils.retry(() -> {
-//            given()
-//                .when()
-//                    .get("/registry/v2/admin/rules")
-//                .then()
-//                    .statusCode(200)
-//                    .contentType(ContentType.JSON)
-//                    .body("[0]", nullValue());
-//        });
-//
-//        // Get the other (deleted) rule by name (should fail with a 404)
-//        given()
-//            .when()
-//                .get("/registry/v2/admin/rules/VALIDITY")
-//            .then()
-//                .statusCode(404)
-//                .contentType(ContentType.JSON)
-//                .body("error_code", equalTo(404))
-//                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
+        // Get the list of mappings (should be 1 of them)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                .log().all()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", equalTo("TestUser"))
+                    .body("[1]", nullValue());
+        });
 
     }
 

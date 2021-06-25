@@ -61,6 +61,7 @@ import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
@@ -349,8 +350,8 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void updateRoleMapping(String principalId, RoleType data) {
-        storage.updateRoleMapping(principalId, data.name());
+    public void updateRoleMapping(String principalId, UpdateRole data) {
+        storage.updateRoleMapping(principalId, data.getRole().name());
     }
 
     /**

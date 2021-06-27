@@ -2104,7 +2104,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.selectGroupByGroupId();
                 Optional<GroupMetaDataDto> res = handle.createQuery(sql)
                         .bind(0, tenantContext.tenantId())
-                        .bind(0, groupId)
+                        .bind(1, groupId)
                         .map(GroupMetaDataDtoMapper.instance)
                         .findOne();
                 return res.orElseThrow(() -> new GroupNotFoundException(groupId));

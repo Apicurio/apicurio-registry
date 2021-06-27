@@ -766,6 +766,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .body("[1]", nullValue());
         });
 
+        // Clean up
+        given()
+            .when()
+                .delete("/registry/v2/admin/roleMappings/TestUser")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+
     }
 
 

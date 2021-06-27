@@ -77,7 +77,10 @@ public class AuthorizedInterceptor {
 
         // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            throw new AuthenticationFailedException("User is not authenticated.");
+            Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+            if (annotation.level() != AuthorizedLevel.None) {
+                throw new AuthenticationFailedException("User is not authenticated.");
+            }
         }
 
         // If RBAC is enabled, apply role based rules

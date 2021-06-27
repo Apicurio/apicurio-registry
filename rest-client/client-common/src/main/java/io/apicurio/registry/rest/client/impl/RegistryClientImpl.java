@@ -34,6 +34,7 @@ import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
@@ -41,6 +42,7 @@ import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 
@@ -352,6 +354,39 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public void importData(InputStream data) {
         registryHttpClient.sendRequest(AdminRequestsProvider.importData(data));
+    }
+
+    @Override
+    public void createRoleMapping(RoleMapping data) {
+        try {
+            registryHttpClient.sendRequest(AdminRequestsProvider.createRoleMapping(data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteRoleMapping(String principalId) {
+        registryHttpClient.sendRequest(AdminRequestsProvider.deleteRoleMapping(principalId));
+    }
+
+    @Override
+    public RoleMapping getRoleMapping(String principalId) {
+        return registryHttpClient.sendRequest(AdminRequestsProvider.getRoleMapping(principalId));
+    }
+
+    @Override
+    public List<RoleMapping> listRoleMappings() {
+        return registryHttpClient.sendRequest(AdminRequestsProvider.listRoleMappings());
+    }
+
+    @Override
+    public void updateRoleMapping(String principalId, RoleType role) {
+        try {
+            registryHttpClient.sendRequest(AdminRequestsProvider.updateRoleMapping(principalId, role));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
     }
 
     @Override

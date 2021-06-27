@@ -47,6 +47,9 @@ public class Routes {
     protected static final String RULES_BASE_PATH = ADMIN_BASE_PATH + "/rules";
     protected static final String RULE_PATH = RULES_BASE_PATH + "/%s";
 
+    protected static final String ROLE_MAPPINGS_BASE_PATH = ADMIN_BASE_PATH + "/roleMappings";
+    protected static final String ROLE_MAPPING_PATH = ROLE_MAPPINGS_BASE_PATH + "/%s";
+
     protected static final String LOGS_BASE_PATH = ADMIN_BASE_PATH + "/loggers";
     protected static final String LOG_PATH = LOGS_BASE_PATH + "/%s";
 

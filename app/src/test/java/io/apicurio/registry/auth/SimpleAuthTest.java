@@ -21,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -41,6 +39,8 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -99,7 +99,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
             Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
@@ -196,7 +196,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         EditableMetaData updatedMetaData = new EditableMetaData();
         updatedMetaData.setName("Updated Name");
         // Dev user cannot edit the same artifact because Dev user is not the owner
-        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+        Assertions.assertThrows(ForbiddenException.class, () -> {
             clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
         });
 

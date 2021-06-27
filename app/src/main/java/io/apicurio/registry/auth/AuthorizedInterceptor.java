@@ -24,12 +24,13 @@ import javax.interceptor.InvocationContext;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.types.Current;
-import io.quarkus.security.AuthenticationFailedException;
+import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
 
@@ -79,18 +80,18 @@ public class AuthorizedInterceptor {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
             Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
             if (annotation.level() != AuthorizedLevel.None) {
-                throw new AuthenticationFailedException("User is not authenticated.");
+                throw new UnauthorizedException("User is not authenticated.");
             }
         }
 
         // If RBAC is enabled, apply role based rules
         if (roleBasedAuthorizationEnabled && !isRoleAllowed(context)) {
-            throw new UnauthorizedException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
         if (ownerOnlyAuthorizationEnabled && !isOwnerAllowed(context)) {
-            throw new UnauthorizedException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         return context.proceed();
@@ -126,16 +127,17 @@ public class AuthorizedInterceptor {
      * @param context
      */
     private boolean isOwnerAllowed(InvocationContext context) {
-        if (isAdmin()) {
-            return true;
-        }
-
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
         AuthorizedStyle mode = annotation.style();
         AuthorizedLevel level = annotation.level();
 
         // Don't protected 'read-only' or 'none' level operations.
         if (level == AuthorizedLevel.Read || level == AuthorizedLevel.None) {
+            return true;
+        }
+
+        // If the user is an admin, they get access.
+        if (isAdmin()) {
             return true;
         }
 

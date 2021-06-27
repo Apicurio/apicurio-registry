@@ -493,7 +493,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Read)
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId,
             ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
             IfExists ifExists, Boolean canonical, InputStream data) {

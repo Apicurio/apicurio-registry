@@ -19,7 +19,7 @@ package io.apicurio.registry.test.utils;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.KafkaContainer;
+import io.strimzi.StrimziKafkaContainer;
 
 import java.util.Map;
 
@@ -30,13 +30,12 @@ import java.util.Map;
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 
-    private KafkaContainer kafka;
+    private StrimziKafkaContainer kafka;
 
-    @SuppressWarnings("deprecation")
     @Override
     public Map<String, String> start() {
         log.info("Starting the Kafka Test Container");
-        kafka = new KafkaContainer();
+        kafka = new StrimziKafkaContainer();
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         kafka.start();

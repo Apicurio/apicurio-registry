@@ -21,6 +21,41 @@ objects:
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry-envoy
+    name: apicurio-registry-envoy
+  spec:
+    ports:
+    - port: 9001
+      protocol: TCP
+      targetPort: 9001
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry-envoy
+    name: apicurio-registry-envoy-metrics
+  spec:
+    ports:
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -37,6 +72,7 @@ objects:
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
+
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -63,6 +99,14 @@ objects:
       spec:
         serviceAccount: ${SERVICE_ACCOUNT_NAME}
         serviceAccountName: ${SERVICE_ACCOUNT_NAME}
+        volumes:
+        - name: envoy-config
+          configMap:
+            name: ${ENVOY_CONFIG_CM_NAME}
+        - name: envoy-unix-sockets
+          emptyDir:
+            medium: Memory
+
         containers:
         - name: apicurio-registry
           image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${APICURIO_REGISTRY_IMAGE_TAG}
@@ -184,7 +228,9 @@ objects:
             value: http://localhost:8080
           - name: QUARKUS_HTTP_PORT
             value: "8585"
-          - name: QUARKUS_LOG_LEVEL
+          - name: LOG_LEVEL
+            value: INFO
+          - name: TENANT_MANAGER_LOG_LEVEL
             value: DEBUG
           livenessProbe:
             failureThreshold: 3
@@ -217,6 +263,51 @@ objects:
               cpu: ${TENANT_MANAGER_CPU_REQUEST}
               memory: ${TENANT_MANAGER_MEMORY_REQUEST}
           terminationMessagePath: /dev/termination-log
+        - name: envoy
+          image: ${ENVOY_IMAGE}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: envoy-config
+            mountPath: /configs/envoy
+          - name: envoy-unix-sockets
+            mountPath: /sockets
+          command:
+          - envoy
+          - --config-path
+          - /configs/envoy/main.yaml
+          ports:
+          - name: api-envoy
+            protocol: TCP
+            containerPort: 9001
+          - name: metrics-envoy
+            protocol: TCP
+            containerPort: 9000
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+
 
 parameters:
 
@@ -301,3 +392,9 @@ parameters:
   description: client id for Apicurio Registry UI
   value: apicurio-registry
 
+- name: ENVOY_IMAGE
+  description: Envoy image.
+  value: envoyproxy/envoy:v1.16.1
+- name: ENVOY_CONFIG_CM_NAME
+  description: ConfigMap containing Envoy config file
+  value: apicurio-registry-envoy-config

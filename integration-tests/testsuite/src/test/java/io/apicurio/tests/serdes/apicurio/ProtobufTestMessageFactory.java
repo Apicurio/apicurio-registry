@@ -23,7 +23,7 @@ import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Timestamp;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
-import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.protobuf.Header;
 import io.apicurio.tests.protobuf.Point;

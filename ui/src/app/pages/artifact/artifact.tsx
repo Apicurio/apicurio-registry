@@ -17,8 +17,8 @@
 
 import React from "react";
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {Redirect} from "react-router";
 import {Services} from "../../../services";
+import {Redirect} from "react-router-dom";
 
 
 /**

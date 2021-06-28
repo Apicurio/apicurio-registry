@@ -21,6 +21,7 @@ import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.handler.BodyHandler;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.request.Request;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
 import io.apicurio.registry.utils.BooleanUtil;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;

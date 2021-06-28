@@ -21,13 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.ApicurioTestTags;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -196,12 +197,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         updatedMetaData.setName("Updated Name");
         // Dev user cannot edit the same artifact because Dev user is not the owner
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
+            clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
         });
 
         // But the admin user CAN make the change.
-        clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData );
-
+        clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
 
 
         // Now the Dev user will create an artifact
@@ -212,6 +212,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientAdmin.createArtifactRule(groupId, artifactId2, rule );
+        clientAdmin.createArtifactRule(groupId, artifactId2, rule);
     }
 }

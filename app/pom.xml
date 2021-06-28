@@ -52,6 +52,11 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
+	<dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+        </dependency>
+
         <!-- Quarkus Dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -71,7 +76,7 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-metrics</artifactId>
+            <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -247,8 +252,8 @@
             <type>test-jar</type>
         </dependency>
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>kafka</artifactId>
+            <groupId>io.strimzi</groupId>
+            <artifactId>strimzi-test-container</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

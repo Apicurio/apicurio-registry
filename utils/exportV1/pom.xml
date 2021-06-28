@@ -79,6 +79,28 @@
 
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
+                            <descriptors>
+                                <descriptor>src/main/assembly/exportV1.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.jboss.jandex</groupId>
                 <artifactId>jandex-maven-plugin</artifactId>
                 <version>1.0.8</version><!--$NO-MVN-MAN-VER$-->

@@ -100,6 +100,7 @@
         <module>utils/tools</module>
         <module>utils/importexport</module>
         <module>utils/exportV1</module>
+        <module>utils/protobuf-schema-utilities</module>
         <module>schema-compatibility/json</module>
         <module>schema-compatibility/protobuf</module>
         <module>utils/tests</module>
@@ -129,7 +130,7 @@
         <tar.long.file.mode>gnu</tar.long.file.mode>
         
         <!-- UI Build Tools -->
-        <node.version>10.20.1</node.version>
+        <node.version>12.13.0</node.version>
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
@@ -219,6 +220,7 @@
         <keycloak.testcontainers.version>1.6.1</keycloak.testcontainers.version>
         <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
         <embedded-postgres.version>1.2.10</embedded-postgres.version>
+        <strimzi.version>0.23.0</strimzi.version>
     </properties>
 
     <dependencyManagement>
@@ -252,11 +254,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client-vertx</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client-jdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -352,6 +349,11 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-import-export</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -553,9 +555,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>kafka</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>${strimzi.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>

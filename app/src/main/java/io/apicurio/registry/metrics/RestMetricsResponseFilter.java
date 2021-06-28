@@ -15,14 +15,14 @@
  */
 package io.apicurio.registry.metrics;
 
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static org.eclipse.microprofile.metrics.MetricRegistry.Type.APPLICATION;
-import static org.eclipse.microprofile.metrics.MetricType.COUNTER;
-import static org.eclipse.microprofile.metrics.MetricType.TIMER;
+import io.apicurio.registry.mt.TenantContext;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 import javax.ws.rs.Path;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -32,97 +32,95 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
+import java.io.IOException;
+import java.util.regex.Pattern;
 
-import org.eclipse.microprofile.metrics.Counter;
-import org.eclipse.microprofile.metrics.Metadata;
-import org.eclipse.microprofile.metrics.MetricRegistry;
-import org.eclipse.microprofile.metrics.Tag;
-import org.eclipse.microprofile.metrics.Timer;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
-
-import io.smallrye.metrics.app.Clock;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_DESCRIPTION;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_METHOD;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_PATH;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_FAMILY;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_TENANT;
 
 /**
- * Filter class that filters REST API requests and responses to report metrics
- * about them. Binding of the methods being filtered is performed through the
- * {@link io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding}
- * annotation added in the {@link io.apicurio.registry.rest.RegistryApplication}
- * JAX-RS Application class
+ * Filters REST API requests and responses to report metrics
+ * about them.
+ *
+ * @author Miguel Soriano
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @Provider
-@RestMetricsResponseFilteredNameBinding
+@Default
+@ApplicationScoped
 public class RestMetricsResponseFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-	@Inject
-	@RegistryType(type = APPLICATION)
-	MetricRegistry metricRegistry;
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-	String REST_HTTP_REQUESTS_TOTAL = "rest_http_requests_total";
-	String REST_HTTP_REQUESTS_TOTAL_DESC = "Total number of REST HTTP Requests";
+    @Inject
+    MeterRegistry registry;
 
-	String REST_HTTP_REQUESTS_TIME = "rest_http_request_duration";
-	String REST_HTTP_REQUESTS_TIME_DESC = "Execution time of REST HTTP Requests in seconds";
+    @Inject
+    TenantContext tenantContext;
 
-	private Clock clock = Clock.defaultClock();
+    public static final String TIMER_SAMPLE_CONTEXT_PROPERTY_NAME = "request-timer-sample";
 
-	public static final String REQUEST_START_TIME_CONTEXT_PROPERTY_NAME = "request-start-time";
+    @Context
+    private ResourceInfo resourceInfo;
 
-	@Context
-	private ResourceInfo resourceInfo;
+    // I couldn't figure out an easy way to use an annotation that can be applied on the whole REST resource class,
+    // instead of on each method (or javax.ws.rs.core.Application).
+    // See https://docs.oracle.com/javaee/7/api/javax/ws/rs/NameBinding.html
+    static final Pattern ENABLED_PATTERN = Pattern.compile("/apis/.*");
 
-	@Override
-	public void filter(ContainerRequestContext requestContext) throws IOException {
-		long sample = clock.getTick();
-		requestContext.setProperty(REQUEST_START_TIME_CONTEXT_PROPERTY_NAME, sample);
-	}
+    @Override
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        final boolean enabled = ENABLED_PATTERN.matcher(requestContext.getUriInfo().getPath()).matches();
+        if (enabled) {
+            Timer.Sample sample = Timer.start(registry);
+            requestContext.setProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME, sample);
+        }
+    }
 
-	@Override
-	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
-			throws IOException {
-		// Don't do anything when response code has not been set or when
-		// response code is not between 1XX and 5XX
-		int statusCode = responseContext.getStatus();
-		if (statusCode == -1) {
-			return;
-		}
-		if (statusCode < 100 || statusCode >= 600) {
-			return;
-		}
-		int statusFamilyCode = statusCode / 100;
+    @Override
+    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
+        throws IOException {
 
-		final Metadata metadata = Metadata.builder().withName(REST_HTTP_REQUESTS_TOTAL)
-				.withDescription(REST_HTTP_REQUESTS_TOTAL_DESC).withType(COUNTER).build();
-		Tag[] counterTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TOTAL),
-				new Tag("status", String.format("%dxx", statusFamilyCode)), new Tag("endpoint", this.getUri()),
-				new Tag("method", requestContext.getMethod()), };
-		Counter statusFamilyCounter = metricRegistry.counter(metadata, counterTags);
-		statusFamilyCounter.inc();
+        if (requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME) == null)
+            return;
 
-		long startTimeSample = (long) requestContext.getProperty(REQUEST_START_TIME_CONTEXT_PROPERTY_NAME);
-		long endTimeSample = clock.getTick();
-		long elapsed = endTimeSample - startTimeSample;
+        Timer timer = Timer
+            .builder(REST_REQUESTS)
+            .description(REST_REQUESTS_DESCRIPTION)
+            .tag(REST_REQUESTS_TAG_TENANT, this.tenantContext.getTenantIdOrElse(""))
+            .tag(REST_REQUESTS_TAG_PATH, this.getPath())
+            .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
+            .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
+            .register(registry);
 
-		final Metadata timerMetadata = Metadata.builder().withName(REST_HTTP_REQUESTS_TIME)
-				.withDescription(REST_HTTP_REQUESTS_TIME_DESC).withType(TIMER).build();
-		Tag[] timerTags = { new Tag("group", REST_GROUP_TAG), new Tag("metric", REST_HTTP_REQUESTS_TIME),
-				new Tag("status", String.format("%dxx", statusFamilyCode)), new Tag("endpoint", this.getUri()),
-				new Tag("method", requestContext.getMethod()), };
-		Timer timer = metricRegistry.timer(timerMetadata, timerTags);
-		timer.update(elapsed, TimeUnit.NANOSECONDS);
-	}
+        Timer.Sample sample = (Timer.Sample) requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME);
+        sample.stop(timer);
+    }
 
-	private String getUri() {
-		return getResourceClassPath() + getResourceMethodPath();
-	}
+    private String getStatusGroup(int statusCode) {
+        if (statusCode < 100 || statusCode >= 600) {
+            return "";
+        }
+        int statusCodeGroup = statusCode / 100;
+        return String.format("%dxx", statusCodeGroup);
+    }
 
-	private String getResourceClassPath() {
-		Path classPath = resourceInfo.getResourceClass().getAnnotation(Path.class);
-		return classPath != null ? classPath.value() : "";
-	}
+    private String getPath() {
+        return getResourceClassPath() + getResourceMethodPath();
+    }
 
-	private String getResourceMethodPath() {
-		Path methodPath = resourceInfo.getResourceMethod().getAnnotation(Path.class);
-		return methodPath != null ? methodPath.value() : "";
-	}
+    private String getResourceClassPath() {
+        Path classPath = resourceInfo.getResourceClass().getAnnotation(Path.class);
+        return classPath != null ? classPath.value() : "";
+    }
+
+    private String getResourceMethodPath() {
+        Path methodPath = resourceInfo.getResourceMethod().getAnnotation(Path.class);
+        return methodPath != null ? methodPath.value() : "";
+    }
 
 }

@@ -22,7 +22,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 
-import io.apicurio.registry.serde.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.common.serdes.proto.TestCmmn;
 

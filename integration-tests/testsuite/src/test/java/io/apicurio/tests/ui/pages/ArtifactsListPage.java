@@ -91,14 +91,18 @@ public class ArtifactsListPage extends BasePage {
     }
 
     //sub-pages
-
     public UploadArtifactDialog getUploadArtifactDialogPage() {
         return this.uploadArtifactDialog;
     }
 
     public ArtifactDetailsPage openArtifactDetailsPage(String groupId, String artifactId) throws Exception {
         selenium.clickOnItem(this.getViewArtifactLink(groupId, artifactId));
+        return getCurrentArtifactDetailsPage();
+    }
+
+    public ArtifactDetailsPage getCurrentArtifactDetailsPage() {
         return new ArtifactDetailsPage(selenium);
     }
+
 
 }

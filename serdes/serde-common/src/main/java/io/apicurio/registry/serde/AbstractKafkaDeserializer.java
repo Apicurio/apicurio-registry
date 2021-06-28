@@ -18,6 +18,7 @@
 package io.apicurio.registry.serde;
 
 import java.nio.ByteBuffer;
+
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -112,26 +113,36 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         if (data == null) {
             return null;
         }
-        // check if data contains the magic byte
-        if (data[0] == MAGIC_BYTE){
+        ArtifactReference artifactReference = null;
+        if (headers != null) {
+            artifactReference = headersHandler.readHeaders(headers);
+
+            if (artifactReference.hasValue()) {
+                return readData(topic, headers, data, artifactReference);
+            }
+        }
+        if (data[0] == MAGIC_BYTE) {
             return deserialize(topic, data);
         } else if (headers == null){
             throw new IllegalStateException("Headers cannot be null");
         } else {
-            ArtifactReference artifactReference = headersHandler.readHeaders(headers);
-
-            SchemaLookupResult<T> schema = resolve(topic, headers, data, artifactReference);
-
-            ByteBuffer buffer = ByteBuffer.wrap(data);
-            int length = buffer.limit();
-            int start = buffer.position();
-
-            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
-                    .setRawSchema(schema.getRawSchema())
-                    .setParsedSchema(schema.getSchema());
-
-            return readData(headers, parsedSchema, buffer, start, length);
+            //try to read data even if artifactReference has no value, maybe there is a fallbackArtifactProvider configured
+            return readData(topic, headers, data, artifactReference);
         }
+    }
+
+    private U readData(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
+        SchemaLookupResult<T> schema = resolve(topic, headers, data, artifactReference);
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        int length = buffer.limit();
+        int start = buffer.position();
+
+        ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
+                .setRawSchema(schema.getRawSchema())
+                .setParsedSchema(schema.getSchema());
+
+        return readData(headers, parsedSchema, buffer, start, length);
     }
 
     private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {

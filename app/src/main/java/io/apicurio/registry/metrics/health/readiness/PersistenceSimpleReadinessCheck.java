@@ -1,16 +1,16 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.readiness;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
-import javax.inject.Inject;
-
+import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessCheck;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
 import org.slf4j.Logger;
 
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Default;
+import javax.inject.Inject;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -29,7 +29,7 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
 
     /**
      * An exception should also be caught by
-     * {@link io.apicurio.registry.metrics.PersistenceExceptionLivenessCheck}
+     * {@link PersistenceExceptionLivenessCheck}
      */
     private boolean test() {
         try {
@@ -43,8 +43,8 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
     @Override
     public synchronized HealthCheckResponse call() {
         return HealthCheckResponse.builder()
-                .name("PersistenceSimpleReadinessCheck")
-                .state(test())
-                .build();
+            .name("PersistenceSimpleReadinessCheck")
+            .state(test())
+            .build();
     }
 }

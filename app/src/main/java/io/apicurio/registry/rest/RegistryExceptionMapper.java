@@ -16,23 +16,7 @@
 
 package io.apicurio.registry.rest;
 
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-
-
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
-import org.slf4j.Logger;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -43,6 +27,21 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import org.slf4j.Logger;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
 
 /**
  * TODO use v1 beans when appropriate (when handling REST API v1 calls)

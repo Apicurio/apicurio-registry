@@ -1,4 +1,4 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.readiness;
 
 import java.time.Duration;
 
@@ -7,6 +7,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 
+import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
@@ -74,5 +75,9 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
 
     public Duration getTimeoutSec() {
         return timeoutSec;
+    }
+
+    public void suspect() {
+        this.suspectSuper();
     }
 }

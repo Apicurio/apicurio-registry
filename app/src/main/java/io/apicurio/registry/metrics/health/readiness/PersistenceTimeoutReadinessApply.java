@@ -1,10 +1,11 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.readiness;
 
-import javax.interceptor.InterceptorBinding;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
+import javax.interceptor.InterceptorBinding;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -12,5 +13,5 @@ import java.lang.annotation.Target;
 @InterceptorBinding
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
-public @interface RestMetricsApply {
+public @interface PersistenceTimeoutReadinessApply {
 }

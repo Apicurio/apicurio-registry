@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.liveness;
 
 import java.util.List;
 import java.util.Optional;

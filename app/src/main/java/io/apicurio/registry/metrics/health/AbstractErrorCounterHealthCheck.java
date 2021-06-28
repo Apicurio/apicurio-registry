@@ -1,4 +1,4 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -9,7 +9,7 @@ import java.util.Optional;
  *
  * @author Jakub Senko 'jsenko@redhat.com'
  */
-public class AbstractErrorCounterHealthCheck {
+public abstract class AbstractErrorCounterHealthCheck {
 
     protected long errorCounter = 0;
     private Instant nextCounterReset;

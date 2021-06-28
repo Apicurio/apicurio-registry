@@ -166,67 +166,64 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected void initialize() {
         log.debug("SqlRegistryStorage constructed successfully.");
 
-        if (initDB) {
-            // TODO create the JDB handle once and pass it in to all these DB related methods
-            synchronized (dbMutex) {
-                if (!isDatabaseInitialized()) {
-                    log.info("Database not initialized.");
-                    initializeDatabase();
+        synchronized (dbMutex) {
+            handles.withHandleNoException((handle) -> {
+                if (initDB) {
+                    if (!isDatabaseInitialized(handle)) {
+                        log.info("Database not initialized.");
+                        initializeDatabase(handle);
+                    } else {
+                        log.info("Database was already initialized, skipping.");
+                    }
+
+                    if (!isDatabaseCurrent(handle)) {
+                        log.info("Old database version detected, upgrading.");
+                        upgradeDatabase(handle);
+                    }
                 } else {
-                    log.info("Database was already initialized, skipping.");
-                }
+                    if (!isDatabaseInitialized(handle)) {
+                        log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
+                        throw new RuntimeException("Database not initialized.");
+                    }
 
-                if (!isDatabaseCurrent()) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabase();
+                    if (!isDatabaseCurrent(handle)) {
+                        log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
+                        throw new RuntimeException("Database not upgraded.");
+                    }
                 }
-            }
-        } else {
-            if (!isDatabaseInitialized()) {
-                log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
-                throw new RuntimeException("Database not initialized.");
-            }
-
-            if (!isDatabaseCurrent()) {
-                log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
-                throw new RuntimeException("Database not upgraded.");
-            }
+                return null;
+            });
         }
     }
 
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseInitialized() {
+    private boolean isDatabaseInitialized(Handle handle) {
         log.info("Checking to see if the DB is initialized.");
-        return handles.withHandleNoException(handle -> {
-            int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class).one();
-            return count > 0;
-        });
+        int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class).one();
+        return count > 0;
     }
 
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseCurrent() {
+    private boolean isDatabaseCurrent(Handle handle) {
         log.info("Checking to see if the DB is up-to-date.");
-        int version = this.getDatabaseVersion();
+        int version = this.getDatabaseVersion(handle);
         return version == DB_VERSION;
     }
 
-    private void initializeDatabase() {
+    private void initializeDatabase(Handle handle) {
         log.info("Initializing the Apicurio Registry database.");
         log.info("\tDatabase type: " + this.sqlStatements.dbType());
 
         final List<String> statements = this.sqlStatements.databaseInitialization();
         log.debug("---");
 
-        handles.withHandleNoException( handle -> {
-            statements.forEach( statement -> {
-                log.debug(statement);
-                handle.createUpdate(statement).execute();
-            });
-            return null;
+        statements.forEach( statement -> {
+            log.debug(statement);
+            handle.createUpdate(statement).execute();
         });
         log.debug("---");
     }
@@ -235,10 +232,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * Upgrades the database by executing a number of DDL statements found in DB-specific
      * DDL upgrade scripts.
      */
-    private void upgradeDatabase() {
+    private void upgradeDatabase(Handle handle) {
         log.info("Upgrading the Apicurio Hub API database.");
 
-        int fromVersion = this.getDatabaseVersion();
+        int fromVersion = this.getDatabaseVersion(handle);
         int toVersion = DB_VERSION;
 
         log.info("\tDatabase type: {}", this.sqlStatements.dbType());
@@ -247,18 +244,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         final List<String> statements = this.sqlStatements.databaseUpgrade(fromVersion, toVersion);
         log.debug("---");
-        handles.withHandleNoException( handle -> {
-            statements.forEach( statement -> {
-                log.debug(statement);
+        statements.forEach( statement -> {
+            log.debug(statement);
 
-                if (statement.startsWith("UPGRADER:")) {
-                    String cname = statement.substring(9).trim();
-                    applyUpgrader(handle, cname);
-                } else {
-                    handle.createUpdate(statement).execute();
-                }
-            });
-            return null;
+            if (statement.startsWith("UPGRADER:")) {
+                String cname = statement.substring(9).trim();
+                applyUpgrader(handle, cname);
+            } else {
+                handle.createUpdate(statement).execute();
+            }
         });
         log.debug("---");
     }
@@ -284,19 +278,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * Reuturns the current DB version by selecting the value in the 'apicurio' table.
      */
-    private int getDatabaseVersion() {
-        return handles.withHandleNoException(handle -> {
-            try {
-                int version = handle.createQuery(this.sqlStatements.getDatabaseVersion())
-                        .bind(0, "db_version")
-                        .mapTo(Integer.class)
-                        .one();
-                return version;
-            } catch (Exception e) {
-                log.error("Error getting DB version.", e);
-                return 0;
-            }
-        });
+    private int getDatabaseVersion(Handle handle) {
+        try {
+            int version = handle.createQuery(this.sqlStatements.getDatabaseVersion())
+                    .bind(0, "db_version")
+                    .mapTo(Integer.class)
+                    .one();
+            return version;
+        } catch (Exception e) {
+            log.error("Error getting DB version.", e);
+            return 0;
+        }
     }
 
     /**

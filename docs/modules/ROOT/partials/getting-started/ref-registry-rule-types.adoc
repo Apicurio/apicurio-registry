@@ -3,6 +3,8 @@
 
 [id="registry-rule-types"]
 = {registry} content rule types
+
+[role="_abstract"]
 You can specify the following rule types to govern content evolution in {registry}: 
 
 .{registry} content rule types

@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-serdes-config-props-{context}"]
-= {registry} serializer/deserializer configuration reference
+= {registry} serializer/deserializer configuration properties
 
 [role="_abstract"]
 This section provides reference information on Java configuration properties for {registry} Kafka serializers/deserializers (SerDes). 
@@ -69,11 +69,11 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |`String`
 |None
 |`apicurio.auth.username`
-|Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using using HTTP basic authentication. 
+|Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication. 
 |`String`
 |None
 |`apicurio.auth.password`
-|Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using using HTTP basic authentication. 
+|Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication. 
 |`String`
 |None
 |===
@@ -149,7 +149,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`apicurio.registry.headers.handler`
 |Used by serializers and deserializers. Fully-qualified Java classname that implements `HeadersHandler` and writes/reads the artifact identifier to/from the Kafka message headers.
 |`String`
-|`io.apicurio.registry.serde.headers`
+|`io.apicurio.registry.serde.headers.DefaultHeadersHandler`
 |`apicurio.registry.id-handler`
 |Used by serializers and deserializers. Fully-qualified Java classname of a class that implements `IdHandler` and writes/reads the artifact identifier to/from the message payload. Only used if `apicurio.registry.headers.enabled` is set to `false`.
 |`String`
@@ -190,6 +190,10 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 |Default
 |`apicurio.registry.fallback.artifact-id`
 |Used by deserializers only. Sets the `artifactId` used as fallback for resolving the artifact used for deserialization.
+|`String`
+|None
+|`apicurio.registry.fallback.group-id`
+|Used by deserializers only. Sets the `groupId` used as fallback for resolving the group used for deserialization.
 |`String`
 |None
 |`apicurio.registry.fallback.version`

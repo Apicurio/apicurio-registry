@@ -1,12 +1,12 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="using-kafka-client-serdes"]
+[id="configuring-kafka-client-serdes"]
 = Configuring Kafka serializers/deserializers in Java clients
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides detailed information on how to configure Kafka client SerDes in your producer and consumer client applications:
+This chapter provides detailed information on how to configure Kafka SerDes in your producer and consumer Java client applications:
 
 * xref:registry-serdes-concepts-constants-{context}[]
 * xref:registry-serdes-config-props-{context}[]

@@ -28,7 +28,7 @@ ifdef::apicurio-registry[]
 link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
+the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
 endif::[]
 * {registry} is installed and running.
 
@@ -39,7 +39,7 @@ ifdef::apicurio-registry[]
 link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
+the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
 endif::[]
 
 . Create a {keycloak} client for the {registry} API. By default, {registry} expects the following settings:
@@ -49,7 +49,7 @@ endif::[]
 + 
 You can use the defaults for the other client settings. 
 +
-NOTE: If you want to use {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`. 
+NOTE: If you are using {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`. 
 
 . Create a {keycloak} client for the {registry} web console. By default, {registry} expects the following settings:
 ** *Client ID*: `apicurio-registry` 

@@ -28,7 +28,7 @@ Export or import registry content in a `.zip` file, and manage logging levels fo
 * {registry} version 1 
 * Confluent Schema Registry version 6
 * IBM Event Streams schema registry version 1
-* CNCF CloudEvents schema registry version 0
+* CNCF CloudEvents Schema Registry version 0
 
 Applications using Confluent client libraries can use {registry} as a drop-in replacement. 
 ifdef::rh-service-registry[]

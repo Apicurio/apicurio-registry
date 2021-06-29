@@ -1,9 +1,12 @@
-FROM fabric8/java-alpine-openjdk11-jre
+FROM registry.access.redhat.com/ubi8/openjdk-11:latest
 
 ENV APP_URL="${docker.app.file}"
 ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV AB_ENABLED=jmx_exporter
+ENV JAVA_APP_DIR=/deployments
 
-ADD "$APP_URL" /deployments
+EXPOSE 8080 8778 9779
 
-ENTRYPOINT [ "/deployments/run-java.sh" ]
+USER 185
+
+ADD "$APP_URL" /deployments/

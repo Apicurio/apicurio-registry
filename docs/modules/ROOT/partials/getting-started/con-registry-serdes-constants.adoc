@@ -50,7 +50,7 @@ public class SerdeConfig {
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see xref:registry-serdes-concepts-strategy-registry[]
+* For more details on look up strategies, see {kafka-client-serdes}
 * For more details on configuration options, see xref:registry-serdes-config-props-{context}[]
 
 [discrete]

@@ -90,8 +90,3 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 |`-`
 
 |===
-
-[role="_additional-resources"]
-.Additional resources
-
-** For more details on configuration options, see xref:registry-serdes-config-props-{context}[]

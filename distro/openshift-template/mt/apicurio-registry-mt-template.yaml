@@ -109,7 +109,7 @@ objects:
 
         containers:
         - name: apicurio-registry
-          image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${APICURIO_REGISTRY_IMAGE_TAG}
+          image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           env:
           - name: REGISTRY_ENABLE_MULTITENANCY
@@ -193,7 +193,7 @@ objects:
               memory: ${APICURIO_REGISTRY_MEMORY_REQUEST}
           terminationMessagePath: /dev/termination-log
         - name: tenant-manager
-          image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${TENANT_MANAGER_IMAGE_TAG}
+          image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           env:
           - name: DB_HOST
@@ -327,16 +327,12 @@ parameters:
   displayName: Apicurio Registry Image Repository
   required: true
 
-- name: APICURIO_REGISTRY_IMAGE_TAG
-  displayName: Apicurio Registry Image tag
-  value: latest
-
 - name: TENANT_MANAGER_IMAGE_REPOSITORY
   displayName: Tenant Manager Image Repository
   required: true
 
-- name: TENANT_MANAGER_IMAGE_TAG
-  displayName: Tenant Manager Image tag
+- name: IMAGE_TAG
+  displayName: Image tag for Apicurio Registry and Tenant Manager
   value: latest
 
 
@@ -381,7 +377,7 @@ parameters:
   value: "false"
 - name: KEYCLOAK_URL
   description: Keycloak base url
-  value: "http:localhost:8090"
+  value: "http://localhost:8090"
 - name: KEYCLOAK_REALM
   description: Keycloak realm
   value: "apicurio-registry"

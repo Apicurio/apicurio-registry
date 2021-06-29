@@ -101,7 +101,7 @@ public class SerdeConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
-     * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registrry.
+     * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry.
      */
     public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
 
@@ -159,8 +159,7 @@ public class SerdeConfig {
     public static final String HEADERS_HANDLER_DEFAULT = DefaultHeadersHandler.class.getName();
 
     /**
-     * Indicates how long to cache the global id in a global-id strategy.  If not included, the global id will
-     * be fetched every time.
+     * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be fetched every time.
      */
     public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
 

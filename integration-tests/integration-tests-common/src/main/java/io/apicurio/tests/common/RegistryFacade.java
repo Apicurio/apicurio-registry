@@ -51,6 +51,7 @@ import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 public class RegistryFacade {
     static final Logger LOGGER = LoggerFactory.getLogger(RegistryFacade.class);
@@ -207,7 +208,7 @@ public class RegistryFacade {
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-                    //TODO decide what to do with this and MultitenantAuthIT
+                    //TODO when auth is enabled in staging run tests with auth enabled
 //                    runKeycloak(appEnv);
                     runTenantManager(appEnv);
                 } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
@@ -415,43 +416,88 @@ public class RegistryFacade {
 
     @SuppressWarnings("rawtypes")
     private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
-        PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
-        database.start();
-        TestUtils.waitFor("Database is running",
-                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, database::isRunning);
 
-        String datasourceUrl = "jdbc:postgresql://" + database.getContainerIpAddress() + ":" +
-                database.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + database.getDatabaseName();
-        appEnv.put("REGISTRY_DATASOURCE_URL", datasourceUrl);
-        appEnv.put("REGISTRY_DATASOURCE_USERNAME", database.getUsername());
-        appEnv.put("REGISTRY_DATASOURCE_PASSWORD", database.getPassword());
-        processes.add(new RegistryTestProcess() {
+        String noDocker = System.getenv("NO_DOCKER");
 
-            @Override
-            public String getName() {
-                return "postgresql";
-            }
+        if (noDocker != null && noDocker.equals("true")) {
+            EmbeddedPostgres database = EmbeddedPostgres.start();
 
-            @Override
-            public void close() throws Exception {
-                database.close();
-            }
 
-            @Override
-            public String getStdOut() {
-                return database.getLogs(OutputType.STDOUT);
-            }
+            String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
 
-            @Override
-            public String getStdErr() {
-                return database.getLogs(OutputType.STDERR);
-            }
+            appEnv.put("REGISTRY_DATASOURCE_URL", datasourceUrl);
+            appEnv.put("REGISTRY_DATASOURCE_USERNAME", "postgres");
+            appEnv.put("REGISTRY_DATASOURCE_PASSWORD", "postgres");
+            processes.add(new RegistryTestProcess() {
 
-            @Override
-            public boolean isContainer() {
-                return true;
-            }
-        });
+                @Override
+                public String getName() {
+                    return "postgresql";
+                }
+
+                @Override
+                public void close() throws Exception {
+                    database.close();
+                }
+
+                @Override
+                public String getStdOut() {
+                    return "";
+                }
+
+                @Override
+                public String getStdErr() {
+                    return "";
+                }
+
+                @Override
+                public boolean isContainer() {
+                    return false;
+                }
+            });
+
+        } else {
+
+            PostgreSQLContainer database = new PostgreSQLContainer<>("postgres:10.12");
+            database.start();
+            TestUtils.waitFor("Database is running",
+                    Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, database::isRunning);
+
+            String datasourceUrl = "jdbc:postgresql://" + database.getContainerIpAddress() + ":" +
+                    database.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + database.getDatabaseName();
+            appEnv.put("REGISTRY_DATASOURCE_URL", datasourceUrl);
+            appEnv.put("REGISTRY_DATASOURCE_USERNAME", database.getUsername());
+            appEnv.put("REGISTRY_DATASOURCE_PASSWORD", database.getPassword());
+            processes.add(new RegistryTestProcess() {
+
+                @Override
+                public String getName() {
+                    return "postgresql";
+                }
+
+                @Override
+                public void close() throws Exception {
+                    database.close();
+                }
+
+                @Override
+                public String getStdOut() {
+                    return database.getLogs(OutputType.STDOUT);
+                }
+
+                @Override
+                public String getStdErr() {
+                    return database.getLogs(OutputType.STDERR);
+                }
+
+                @Override
+                public boolean isContainer() {
+                    return true;
+                }
+            });
+
+        }
+
     }
 
     private void setupKafkaStorage(Map<String, String> appEnv) throws TimeoutException, InterruptedException, ExecutionException {

@@ -135,10 +135,12 @@
             <optional>true</optional>
         </dependency>
 
-<!--         <dependency> -->
-<!--             <groupId>commons-codec</groupId> -->
-<!--             <artifactId>commons-codec</artifactId> -->
-<!--         </dependency> -->
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
+<!--             <scope>test</scope> -->
+        </dependency>
 
     </dependencies>
 

@@ -436,10 +436,13 @@ public class FileDescriptorUtils {
             OptionElement option = new OptionElement(JSON_NAME_OPTION, kind, fd.getJsonName(), false);
             options.add(option);
         }
+        //Implicitly jsonName to null as Options is already setting it. Setting it here results in duplicate json_name
+        //option in inferred schema.
+        String jsonName = null;
         String defaultValue = fd.hasDefaultValue() && fd.getDefaultValue() != null ? fd.getDefaultValue()
                 : null;
         return new FieldElement(DEFAULT_LOCATION, inOneof ? null : label(file, fd), dataType(fd), name,
-                defaultValue, fd.getJsonName(), fd.getNumber(), "", options.build());
+                defaultValue, jsonName, fd.getNumber(), "", options.build());
     }
 
     private static Field.Label label(FileDescriptorProto file, FieldDescriptorProto fd) {

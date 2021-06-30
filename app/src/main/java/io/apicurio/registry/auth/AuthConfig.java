@@ -16,53 +16,84 @@
 
 package io.apicurio.registry.auth;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
+@Singleton
 public class AuthConfig {
 
+    @Inject
+    Logger log;
+
     @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
-    public boolean authenticationEnabled;
+    boolean authenticationEnabled;
 
     @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
-    public boolean roleBasedAuthorizationEnabled;
+    boolean roleBasedAuthorizationEnabled;
 
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    public boolean ownerOnlyAuthorizationEnabled;
+    boolean ownerOnlyAuthorizationEnabled;
 
     @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
-    public String readOnlyRole;
+    String readOnlyRole;
 
     @ConfigProperty(name = "registry.auth.roles.developer", defaultValue = "sr-developer")
-    public String developerRole;
+    String developerRole;
 
     @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
-    public String adminRole;
+    String adminRole;
 
     @ConfigProperty(name = "registry.auth.role-source", defaultValue = "token")
-    public String roleSource;
+    String roleSource;
 
     @ConfigProperty(name = "registry.auth.admin-override.enabled", defaultValue = "false")
-    public boolean adminOverrideEnabled;
+    boolean adminOverrideEnabled;
 
     @ConfigProperty(name = "registry.auth.admin-override.from", defaultValue = "token")
-    public String adminOverrideFrom;
+    String adminOverrideFrom;
 
     @ConfigProperty(name = "registry.auth.admin-override.type", defaultValue = "role")
-    public String adminOverrideType;
+    String adminOverrideType;
 
     @ConfigProperty(name = "registry.auth.admin-override.role", defaultValue = "sr-admin")
-    public String adminOverrideRole;
+    String adminOverrideRole;
 
     @ConfigProperty(name = "registry.auth.admin-override.claim", defaultValue = "org-admin")
-    public String adminOverrideClaim;
+    String adminOverrideClaim;
 
     @ConfigProperty(name = "registry.auth.admin-override.claim-value", defaultValue = "true")
-    public String adminOverrideClaimValue;
+    String adminOverrideClaimValue;
+
+    @PostConstruct
+    void onConstruct() {
+        log.debug("===============================");
+        log.debug("Auth Enabled: " + authenticationEnabled);
+        log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
+        if (roleBasedAuthorizationEnabled) {
+            log.debug("   RBAC Roles: " + readOnlyRole + ", " + developerRole + ", " + adminRole);
+            log.debug("   Role Source: " + roleSource);
+        }
+        log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
+        log.debug("Admin Override Enabled: " + adminOverrideEnabled);
+        if (adminOverrideEnabled) {
+            log.debug("   Admin Override from: " + adminOverrideFrom);
+            log.debug("   Admin Override type: " + adminOverrideType);
+            log.debug("   Admin Override role: " + adminOverrideRole);
+            log.debug("   Admin Override claim: " + adminOverrideClaim);
+            log.debug("   Admin Override claim-value: " + adminOverrideClaimValue);
+        }
+        log.debug("===============================");
+    }
+
+    public boolean isAuthEnabled() {
+        return this.authenticationEnabled;
+    }
 
 }

@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth;
+package io.apicurio.registry.utils.tests;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Carles Arnal
  */
-public interface AuthorizedRoleProvider {
+public class AuthTestProfileWithLocalRoles extends AuthTestProfile {
 
-    public boolean hasRole(String role);
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        return Collections.emptyMap();
+    }
 
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return Collections.singletonList(
+                new TestResourceEntry(KeycloakTestResourceWithLocalRoles.class));
+    }
 }

@@ -24,11 +24,6 @@ import javax.interceptor.InvocationContext;
 
 import org.slf4j.Logger;
 
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.types.Current;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -53,14 +48,10 @@ public class AuthorizedInterceptor {
     AdminOverride adminOverride;
 
     @Inject
-    @Current
-    RegistryStorage storage;
+    RoleBasedAccessController rbac;
 
     @Inject
-    StorageRoleProvider storageRoleProvider;
-
-    @Inject
-    TokenRoleProvider tokenRoleProvider;
+    OwnerBasedAccessController obac;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
@@ -69,160 +60,36 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
+        log.trace("Authentication enabled, protected resource: " + context.getMethod());
+        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
+
         // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
             Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
             if (annotation.level() != AuthorizedLevel.None) {
+                log.trace("Authentication credentials missing and required for protected endpoint.");
                 throw new UnauthorizedException("User is not authenticated.");
             }
         }
 
         if (adminOverride.isAdmin()) {
-            return true;
+            log.trace("Admin override successful.");
+            return context.proceed();
         }
 
         // If RBAC is enabled, apply role based rules
-        if (authConfig.roleBasedAuthorizationEnabled && !isRoleAllowed(context)) {
+        if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
+            log.trace("RBAC enabled and required role missing.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled && !isOwnerAllowed(context)) {
+        if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
+            log.trace("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         return context.proceed();
-    }
-
-    /**
-     * Checks whether the user has the role necessary to invoke the operation.  The role names
-     * can be configured in application.properties.
-     * @param context
-     */
-    private boolean isRoleAllowed(InvocationContext context) {
-        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        AuthorizedLevel level = annotation.level();
-
-        switch (level) {
-            case Admin:
-                return isAdmin();
-            case None:
-                return true;
-            case Read:
-                return canRead();
-            case Write:
-                return canWrite();
-            default:
-                throw new RuntimeException("Unhandled case: " + level);
-        }
-    }
-
-    /**
-     * Checks the invocation context for the groupId and artifactId of the artifact being
-     * changed.  Checks the createdBy field of the artifact against the principal of the
-     * currently authenticated user.  If they are the same, then the operation is allowed.
-     * @param context
-     */
-    private boolean isOwnerAllowed(InvocationContext context) {
-        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        AuthorizedStyle mode = annotation.style();
-        AuthorizedLevel level = annotation.level();
-
-        // Don't protected 'read-only' or 'none' level operations.
-        if (level == AuthorizedLevel.Read || level == AuthorizedLevel.None) {
-            return true;
-        }
-
-        // If the user is an admin, they get access.
-        if (isAdmin()) {
-            return true;
-        }
-
-        if (mode == AuthorizedStyle.GroupAndArtifact) {
-            String groupId = getStringParam(context, 0);
-            String artifactId = getStringParam(context, 1);
-            return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (mode == AuthorizedStyle.GroupOnly) {
-            String groupId = getStringParam(context, 0);
-            return verifyGroupCreatedBy(groupId);
-        } else if (mode == AuthorizedStyle.ArtifactOnly) {
-            String artifactId = getStringParam(context, 0);
-            return verifyArtifactCreatedBy(null, artifactId);
-        } else if (mode == AuthorizedStyle.GlobalId) {
-            long globalId = getLongParam(context, 0);
-            return verifyArtifactCreatedBy(globalId);
-        } else {
-            return true;
-        }
-    }
-
-    private boolean verifyGroupCreatedBy(String groupId) {
-        try {
-            GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the group is not found, then return true and let the operation proceed.
-            return true;
-        }
-    }
-
-    private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {
-        try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the artifact is not found, then return true and let the operation proceed
-            // as normal. The result of which will typically be a 404 response, but sometimes
-            // will be some other result (e.g. creating an artifact that doesn't exist)
-            return true;
-        }
-    }
-
-    private boolean verifyArtifactCreatedBy(long globalId) {
-        try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the artifact is not found, then return true and let the operation proceed
-            // as normal. The result of which will typically be a 404 response, but sometimes
-            // will be some other result (e.g. creating an artifact that doesn't exist)
-            return true;
-        }
-    }
-
-    private AuthorizedRoleProvider getRoleProvider() {
-        if ("token".equals(authConfig.roleSource)) {
-            return tokenRoleProvider;
-        } else {
-            return storageRoleProvider;
-        }
-    }
-
-    private boolean canWrite() {
-        return hasRole(authConfig.developerRole) || hasRole(authConfig.adminRole);
-    }
-
-    private boolean canRead() {
-        return hasRole(authConfig.readOnlyRole) || hasRole(authConfig.developerRole) || hasRole(authConfig.adminRole);
-    }
-
-    private boolean isAdmin() {
-        return hasRole(authConfig.adminRole);
-    }
-
-    private boolean hasRole(String roleName) {
-        return this.getRoleProvider().hasRole(roleName);
-    }
-
-    private static String getStringParam(InvocationContext context, int index) {
-        return (String) context.getParameters()[index];
-    }
-
-    private static Long getLongParam(InvocationContext context, int index) {
-        return (Long) context.getParameters()[index];
     }
 
 }

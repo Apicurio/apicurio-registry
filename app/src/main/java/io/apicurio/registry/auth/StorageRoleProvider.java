@@ -23,13 +23,14 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RoleType;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class StorageRoleProvider implements AuthorizedRoleProvider {
+public class StorageRoleProvider implements RoleProvider {
 
     @Inject
     SecurityIdentity securityIdentity;
@@ -38,17 +39,37 @@ public class StorageRoleProvider implements AuthorizedRoleProvider {
     @Current
     RegistryStorage storage;
 
-    /**
-     * @see io.apicurio.registry.auth.AuthorizedRoleProvider#hasRole(java.lang.String)
-     */
-    @Override
-    public boolean hasRole(String role) {
+    private boolean hasRole(String role) {
         try {
             RoleMappingDto roleMapping = storage.getRoleMapping(securityIdentity.getPrincipal().getName());
             return role.equals(roleMapping.getRole());
         } catch (RoleMappingNotFoundException nfe) {
             return false;
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.auth.RoleProvider#isDeveloper()
+     */
+    @Override
+    public boolean isDeveloper() {
+        return hasRole(RoleType.DEVELOPER.name());
+    }
+
+    /**
+     * @see io.apicurio.registry.auth.RoleProvider#isReadOnly()
+     */
+    @Override
+    public boolean isReadOnly() {
+        return hasRole(RoleType.READ_ONLY.name());
+    }
+
+    /**
+     * @see io.apicurio.registry.auth.RoleProvider#isAdmin()
+     */
+    @Override
+    public boolean isAdmin() {
+        return hasRole(RoleType.ADMIN.name());
     }
 
 }

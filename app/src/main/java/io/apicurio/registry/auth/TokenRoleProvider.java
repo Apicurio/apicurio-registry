@@ -25,17 +25,40 @@ import io.quarkus.security.identity.SecurityIdentity;
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
-public class TokenRoleProvider implements AuthorizedRoleProvider {
+public class TokenRoleProvider implements RoleProvider {
+
+    @Inject
+    AuthConfig authConfig;
 
     @Inject
     SecurityIdentity securityIdentity;
 
+    private boolean hasRole(String role) {
+        return securityIdentity.hasRole(role);
+    }
+
     /**
-     * @see io.apicurio.registry.auth.AuthorizedRoleProvider#hasRole(java.lang.String)
+     * @see io.apicurio.registry.auth.RoleProvider#isAdmin()
      */
     @Override
-    public boolean hasRole(String role) {
-        return securityIdentity.hasRole(role);
+    public boolean isAdmin() {
+        return hasRole(authConfig.adminRole);
+    }
+
+    /**
+     * @see io.apicurio.registry.auth.RoleProvider#isDeveloper()
+     */
+    @Override
+    public boolean isDeveloper() {
+        return hasRole(authConfig.developerRole);
+    }
+
+    /**
+     * @see io.apicurio.registry.auth.RoleProvider#isReadOnly()
+     */
+    @Override
+    public boolean isReadOnly() {
+        return hasRole(authConfig.readOnlyRole);
     }
 
 }

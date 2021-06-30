@@ -95,7 +95,7 @@ public class TenantContextLoader {
     }
 
     private void checkTenantAuthorization(final RegistryTenant tenant) {
-        if (authConfig.authenticationEnabled) {
+        if (authConfig.isAuthEnabled()) {
             if (!isTokenResolvable()) {
                 throw new TenantNotAuthorizedException("JWT not found");
             }

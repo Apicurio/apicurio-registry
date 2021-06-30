@@ -22,7 +22,6 @@ import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.storage.NotFoundException;
@@ -45,34 +44,28 @@ public class AuthorizedInterceptor {
     Logger log;
 
     @Inject
+    AuthConfig authConfig;
+
+    @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    AdminOverride adminOverride;
 
     @Inject
     @Current
     RegistryStorage storage;
 
-    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
-    boolean authenticationEnabled;
+    @Inject
+    StorageRoleProvider storageRoleProvider;
 
-    @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
-    boolean roleBasedAuthorizationEnabled;
-
-    @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean ownerOnlyAuthorizationEnabled;
-
-    @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
-    String readOnlyRole;
-
-    @ConfigProperty(name = "registry.auth.roles.developer", defaultValue = "sr-developer")
-    String developerRole;
-
-    @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
-    String adminRole;
+    @Inject
+    TokenRoleProvider tokenRoleProvider;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
         // If authentication is not enabled, just do it.
-        if (!authenticationEnabled) {
+        if (!authConfig.authenticationEnabled) {
             return context.proceed();
         }
 
@@ -84,13 +77,17 @@ public class AuthorizedInterceptor {
             }
         }
 
+        if (adminOverride.isAdmin()) {
+            return true;
+        }
+
         // If RBAC is enabled, apply role based rules
-        if (roleBasedAuthorizationEnabled && !isRoleAllowed(context)) {
+        if (authConfig.roleBasedAuthorizationEnabled && !isRoleAllowed(context)) {
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (ownerOnlyAuthorizationEnabled && !isOwnerAllowed(context)) {
+        if (authConfig.ownerOnlyAuthorizationEnabled && !isOwnerAllowed(context)) {
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
@@ -196,20 +193,28 @@ public class AuthorizedInterceptor {
         }
     }
 
+    private AuthorizedRoleProvider getRoleProvider() {
+        if ("token".equals(authConfig.roleSource)) {
+            return tokenRoleProvider;
+        } else {
+            return storageRoleProvider;
+        }
+    }
+
     private boolean canWrite() {
-        return hasRole(developerRole) || hasRole(adminRole);
+        return hasRole(authConfig.developerRole) || hasRole(authConfig.adminRole);
     }
 
     private boolean canRead() {
-        return hasRole(readOnlyRole) || hasRole(developerRole) || hasRole(adminRole);
+        return hasRole(authConfig.readOnlyRole) || hasRole(authConfig.developerRole) || hasRole(authConfig.adminRole);
     }
 
     private boolean isAdmin() {
-        return hasRole(adminRole);
+        return hasRole(authConfig.adminRole);
     }
 
     private boolean hasRole(String roleName) {
-        return securityIdentity.hasRole(roleName);
+        return this.getRoleProvider().hasRole(roleName);
     }
 
     private static String getStringParam(InvocationContext context, int index) {

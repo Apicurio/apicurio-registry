@@ -1,0 +1,54 @@
+/*
+ * Copyright 2021 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.auth;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RoleMappingNotFoundException;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.types.Current;
+import io.quarkus.security.identity.SecurityIdentity;
+
+/**
+ * @author eric.wittmann@gmail.com
+ */
+@ApplicationScoped
+public class StorageRoleProvider implements AuthorizedRoleProvider {
+
+    @Inject
+    SecurityIdentity securityIdentity;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
+
+    /**
+     * @see io.apicurio.registry.auth.AuthorizedRoleProvider#hasRole(java.lang.String)
+     */
+    @Override
+    public boolean hasRole(String role) {
+        try {
+            RoleMappingDto roleMapping = storage.getRoleMapping(securityIdentity.getPrincipal().getName());
+            return role.equals(roleMapping.getRole());
+        } catch (RoleMappingNotFoundException nfe) {
+            return false;
+        }
+    }
+
+}

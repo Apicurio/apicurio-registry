@@ -16,22 +16,23 @@
 
 package io.apicurio.registry.mt;
 
+import java.util.Optional;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
 import io.quarkus.runtime.StartupEvent;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-
-import java.util.Optional;
 
 /**
  * Component responsible for creating instances of {@link RegistryTenantContext} so they can be set with {@link TenantContext}
@@ -51,8 +52,7 @@ public class TenantContextLoader {
     Logger logger;
 
     @Inject
-    @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
-    Long cacheCheckPeriod;
+    AuthConfig authConfig;
 
     @Inject
     TenantMetadataService tenantMetadataService;
@@ -63,11 +63,12 @@ public class TenantContextLoader {
     @Inject
     Instance<JsonWebToken> jsonWebToken;
 
+    @Inject
+    @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
+    Long cacheCheckPeriod;
+
     @ConfigProperty(name = "registry.organization-id.claim-name")
     String organizationIdClaimName;
-
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
 
     public void onStart(@Observes StartupEvent ev) {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
@@ -94,7 +95,7 @@ public class TenantContextLoader {
     }
 
     private void checkTenantAuthorization(final RegistryTenant tenant) {
-        if (authEnabled) {
+        if (authConfig.authenticationEnabled) {
             if (!isTokenResolvable()) {
                 throw new TenantNotAuthorizedException("JWT not found");
             }

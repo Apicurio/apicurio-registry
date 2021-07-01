@@ -13,7 +13,7 @@ This section provides reference information on Java configuration properties for
 {registry} SerDes are based on the `SchemaResolver` interface, which abstracts access to the registry and applies the same lookup logic for the SerDes classes of all supported formats.
 
 .Configuration property for SchemaResolver interface
-[.table-expandable,width="100%",cols="5,5,5,2,5",options="header"]
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
 |===
 |Constant
 |Property
@@ -44,7 +44,7 @@ You can use the `DefaultSchemaResolver` to configure features such as:
 The `DefaultSchemaResolver` provides the following properties to configure access to the core registry API:
 
 .Configuration properties for access to registry API
-[.table-expandable,width="100%",cols="4,5,5,2,2",options="header"]
+[.table-expandable,width="100%",cols="4,5,5,3,2",options="header"]
 |===
 |Constant
 |Property
@@ -94,7 +94,7 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 The `DefaultSchemaResolver` uses the following properties to configure how to look up artifacts in {registry}.
 
 .Configuration properties for registry artifact lookup
-[.table-expandable,width="100%",cols="5,5,5,2,4",options="header"]
+[.table-expandable,width="100%",cols="5,5,5,3,4",options="header"]
 |===
 |Constant
 |Property
@@ -155,7 +155,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
 
 .Configuration properties to read/write artifact information in Kafka
-[.table-expandable,width="100%",cols="5,5,5,2,5",options="header"]
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
 |===
 |Constant 
 |Property 
@@ -191,7 +191,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 The `DefaultSchemaResolver` uses the following property to configure a fall-back provider for all deserializers.
 
 .Configuration property for deserializer fall-back provider
-[.table-expandable,width="100%",cols="5,5,5,2,5",options="header"]
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
 |===
 |Constant
 |Property
@@ -208,7 +208,7 @@ The `DefaultSchemaResolver` uses the following property to configure a fall-back
 The `DefaultFallbackArtifactProvider` uses the following properties to configure deserializer fall-back options:
 
 .Configuration properties for deserializer fall-back options
-[.table-expandable,width="100%",cols="5,5,5,2,2",options="header"]
+[.table-expandable,width="100%",cols="5,5,5,3,2",options="header"]
 |===
 |Constant
 |Property

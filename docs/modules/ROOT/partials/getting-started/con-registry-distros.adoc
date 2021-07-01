@@ -58,13 +58,16 @@ ifdef::rh-service-registry[]
 |Example custom resource definitions for installation
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
-|Kafka Connect converters 
+|{registry} v1 to v2 migration tool 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |Maven repository
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |Source code 
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
+|General Availability
+|Kafka Connect converters 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |===

@@ -63,7 +63,7 @@ You can use the defaults for the other client settings.
 . In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication using {keycloak}:
 +
 .Configuration for {registry} authentication
-[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+[.table-expandable,width="100%",cols="5,5,2,4",options="header"]
 |===
 |Environment variable
 |Description
@@ -96,7 +96,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 . Set the following option to `true` to enable {registry} user roles in {keycloak}:
 +
 .Configuration for {registry} user roles
-[%header,cols="1,2,1,1"]
+[.table-expandable,width="100%",cols="4,5,3,2",options="header"]
 |===
 |Environment variable
 |Java system property
@@ -138,7 +138,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 . Set the following to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
 +
 .Configuration for owner-only authorization
-[%header,cols="2,2,1,1"]
+[.table-expandable,width="100%",cols="2,2,1,1",options="header"]
 |===
 |Environment variable
 |Java system property

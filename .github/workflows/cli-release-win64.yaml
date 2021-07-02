@@ -1,44 +1,48 @@
 name: cli-release-build-native-win64
 
 on:
+  workflow_dispatch: {}
   release:
-    types: [created]
-  workflow_dispatch:
-    inputs:
-      tag_name:
-        description: 'Release Version (e.g. 2.0.0.Final)'
-        required: true
+    types: [released]
 
 jobs:
   build:
+    if: github.repository_owner == 'Apicurio'
     runs-on: windows-2019
     steps:
-    - uses: actions/checkout@v2
-    - name: Configure Environment (release)
-      if: github.event.release.tag_name != null
-      run: echo TAG_NAME=${{ github.event.release.tag_name }}>> %GITHUB_ENV%
-      shell: cmd
-    - name: Configure Environment (dispatch)
-      if: github.event.inputs.tag_name != null
-      run: echo TAG_NAME=${{ github.event.inputs.tag_name }}>> %GITHUB_ENV%
-      shell: cmd
-    - name: Check ENV Var file
-      run: echo %GITHUB_ENV%
-      shell: cmd
-    - name: Get Upload URL
+    - name: Fetch required Details
+      shell: bash
       run: |
-        Get-ChildItem env:
-        echo "TAG_NAME is $env:TAG_NAME"
-        $upload_url = (Invoke-RestMethod -URI https://api.github.com/repos/Apicurio/apicurio-registry/releases/tags/$env:TAG_NAME).upload_url
-        $env_entry = "UPLOAD_URL=$upload_url"
-        Add-Content $env:GITHUB_ENV $env_entry
-        echo "UPLOAD_URL env var set to $upload_url"
-      shell: powershell
-    - name: Log Environment Variables
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+          echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
+          
+    - name: Echo Environment Variables
+      shell: bash
       run: |
-        echo "Tag name:   %TAG_NAME%"
-        echo "Upload URL: %UPLOAD_URL%"
-      shell: cmd
+        echo "$RELEASE_VERSION"
+        echo "$SOURCE_CODE_URL"
+        echo "$UPLOAD_URL"
+
+    - name: Download Source Code Zip
+      run: Invoke-WebRequest $Env:SOURCE_CODE_URL -OutFile $Env:RELEASE_VERSION
+      
+    - name: Unzip Source code
+      shell: bash
+      run: pwd && ls -lrt && jar xf $RELEASE_VERSION && ls -lrt && mv ${{github.repository_owner}}* registry
+        
+    - name: Verify Project Version
+      shell: bash
+      run: |
+        cd registry
+        PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        if [[ $PROJECT_VERSION != $RELEASE_VERSION ]]
+        then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${RELEASE_VERSION}'"
+            exit 1	  
+        fi
+
     - name: Install graalvm
       uses: DeLaGuardo/setup-graalvm@4.0
       with:
@@ -48,25 +52,36 @@ jobs:
         java: 'java11'
         # Architecture flag, optional, defaults to 'amd64'. Available options are 'amd64' and 'aarch64'. Later is available only for linux runners.
         arch: 'amd64'
+
     - name: Install native-image
       run: |
         %JAVA_HOME%/bin/gu.cmd install native-image
       shell: cmd
+
     - name: Configure Pagefile
       # Increased the page-file size due to memory-consumption of native-image command
       # For details see https://github.com/actions/virtual-environments/issues/785
       uses: al-cheb/configure-pagefile-action@v1.2
-    - name: Set version
-      run: mvn versions:set -DnewVersion="%TAG_NAME%"
-      shell: cmd
+
+    - name: Get maven wrapper
+      shell: bash
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+
     - name: Build jvm jar
-      run: mvn -pl cli -am install
+      shell: cmd
+      run: cd registry && mvnw.cmd -pl cli -am install
+
     - name: Build native executable
       # Invoke the native-image build with the necessary Visual Studio tooling/environment intialized
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-        mvn -pl cli package -Dnative
+        cd registry && mvnw.cmd -pl cli package -Dnative
       shell: cmd
+      
+    - name: List Files
+      shell: bash
+      run: ls -lrt registry/cli/target/
+
     - name: Upload native executable
       id: upload-native-executable
       uses: actions/upload-release-asset@v1
@@ -74,7 +89,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ env.UPLOAD_URL }}
-        asset_path: ./cli/target/apicurio-registry-cli-${{ env.TAG_NAME }}-runner.exe
-        asset_name: apicurio-registry-cli-${{ env.TAG_NAME }}-win64.exe
+        asset_path: ./registry/cli/target/apicurio-registry-cli-${{ env.RELEASE_VERSION }}-runner.exe
+        asset_name: apicurio-registry-cli-${{ env.RELEASE_VERSION }}-win64.exe
         asset_label: win64
         asset_content_type: application/octet-stream
+
+    - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

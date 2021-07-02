@@ -1788,7 +1788,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
-        log.debug("Getting a list of all Global Rules");
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectGlobalRules();
             return handle.createQuery(sql)
@@ -1985,7 +1984,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
-        log.debug("Selecting all log configurations");
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements.selectAllLogConfigurations();
             return handle.createQuery(sql)

@@ -18,17 +18,18 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-
 import java.util.List;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 
 /**
  * Note:
@@ -39,7 +40,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Path("/apis/ccompat/v6/schemas")
-@RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SchemasResource {

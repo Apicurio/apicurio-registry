@@ -1,4 +1,4 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.readiness;
 
 import java.time.Instant;
 
@@ -31,7 +31,7 @@ public class PersistenceTimeoutReadinessInterceptor {
         Instant start = Instant.now();
         Object result = context.proceed();
         if (start.plus(check.getTimeoutSec()).isBefore(Instant.now())) {
-            check.suspectSuper();
+            check.suspect();
         }
         return result;
     }

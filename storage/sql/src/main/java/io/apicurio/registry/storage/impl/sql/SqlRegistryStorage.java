@@ -16,37 +16,25 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_CONCURRENT_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.STORAGE_OPERATION_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.StorageMetricsApply;
+import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
+import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
+import io.apicurio.registry.storage.RegistryStorage;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.PersistenceExceptionLivenessApply;
-import io.apicurio.registry.metrics.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.RegistryStorage;
-
 /**
  * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
  * use any ORM technology - it simply uses native SQL for all operations.
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
 @PersistenceTimeoutReadinessApply
-@Counted(name = STORAGE_OPERATION_COUNT, description = STORAGE_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_COUNT})
-@ConcurrentGauge(name = STORAGE_CONCURRENT_OPERATION_COUNT, description = STORAGE_CONCURRENT_OPERATION_COUNT_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_CONCURRENT_OPERATION_COUNT})
-@Timed(name = STORAGE_OPERATION_TIME, description = STORAGE_OPERATION_TIME_DESC, tags = {"group=" + STORAGE_GROUP_TAG, "metric=" + STORAGE_OPERATION_TIME}, unit = MILLISECONDS)
+@StorageMetricsApply
 @Logged
 public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
 

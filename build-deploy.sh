@@ -11,7 +11,7 @@ IMAGE_ORG="rhoas"
 IMAGE_TAG="${VERSION}"
 
 SKIP_TESTS=false
-MVN_BUILD_COMMAND="mvn clean install -Pprod -Pno-docker -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests=${SKIP_TESTS}"
+MVN_BUILD_COMMAND="mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests=${SKIP_TESTS}"
 
 SERVICE_REGISTRY_IMAGE_NAME="srs-service-registry"
 SERVICE_REGISTRY_DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.sql.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${SERVICE_REGISTRY_IMAGE_NAME}:${IMAGE_TAG} ./distro/docker/target/docker"

@@ -18,7 +18,6 @@ package io.apicurio.registry.ccompat.rest;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
-import io.apicurio.registry.metrics.RestMetricsResponseFilteredNameBinding;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -28,7 +27,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 
 /**
  * Note:
@@ -41,7 +43,6 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Path("/apis/ccompat/v6/config")
-@RestMetricsResponseFilteredNameBinding
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface ConfigResource {

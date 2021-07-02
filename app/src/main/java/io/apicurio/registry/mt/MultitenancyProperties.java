@@ -34,7 +34,7 @@ public class MultitenancyProperties {
     boolean multitenancyEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.enable.auth")
+    @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
     @Inject

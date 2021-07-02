@@ -133,7 +133,7 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            tenantContext.setContext(new RegistryTenantContext(tenantId, null));
+            tenantContext.setContext(new RegistryTenantContext(tenantId, null, null));
         }
         try {
             MessageType messageType = key.getType();

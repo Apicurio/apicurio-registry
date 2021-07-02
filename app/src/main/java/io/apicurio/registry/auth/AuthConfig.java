@@ -53,6 +53,9 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.role-source", defaultValue = "token")
     String roleSource;
 
+    @ConfigProperty(name = "registry.auth.tenant-owner-is-admin.enabled", defaultValue = "true")
+    boolean tenantOwnerIsAdminEnabled;
+
     @ConfigProperty(name = "registry.auth.admin-override.enabled", defaultValue = "false")
     boolean adminOverrideEnabled;
 

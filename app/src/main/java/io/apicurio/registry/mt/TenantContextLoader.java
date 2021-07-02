@@ -82,14 +82,14 @@ public class TenantContextLoader {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
             checkTenantAuthorization(tenantMetadata);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-            return new RegistryTenantContext(tenantId, limitsConfiguration);
+            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration);
         });
         return context;
     }
 
     public RegistryTenantContext defaultTenantContext() {
         if (defaultTenantContext == null) {
-            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, limitsConfigurationService.defaultConfigurationTenant());
+            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant());
         }
         return defaultTenantContext;
     }

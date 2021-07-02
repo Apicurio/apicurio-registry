@@ -24,6 +24,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
@@ -41,8 +43,18 @@ public class AdminOverride {
     @Inject
     Instance<JsonWebToken> jsonWebToken;
 
+    @Inject
+    TenantContext tenantContext;
+
+    @Inject
+    MultitenancyProperties mtProperties;
+
     public boolean isAdmin() {
-        // This feature must be enabled.
+        // When multi-tenancy is enabled, the owner of the tenant is always an admin.
+        if (mtProperties.isMultitenancyEnabled() && isTenantOwner()) {
+            return true;
+        }
+
         if (!authConfig.adminOverrideEnabled) {
             return false;
         }
@@ -55,6 +67,14 @@ public class AdminOverride {
             }
         }
         return false;
+    }
+
+    private boolean isTenantOwner() {
+        String tOwner = tenantContext.tenantOwner();
+        return tOwner != null &&
+                securityIdentity != null &&
+                securityIdentity.getPrincipal() != null &&
+                tOwner.equals(securityIdentity.getPrincipal().getName());
     }
 
     private boolean hasAdminRole() {

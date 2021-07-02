@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.SubjectsResource;
@@ -34,24 +37,23 @@ import java.util.List;
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
-
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> listSubjects() {
         return facade.getSubjects();
     }
 
     @Override
-    public Schema findSchemaByContent(
-            String subject,
-            SchemaContent request) throws Exception {
-
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
+    public Schema findSchemaByContent(String subject, SchemaContent request) throws Exception {
         return facade.getSchema(subject, request);
     }
 
     @Override
-    public List<Integer> deleteSubject(
-            String subject) throws Exception {
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    public List<Integer> deleteSubject(String subject) throws Exception {
 
         return facade.deleteSubject(subject);
     }
+
 }

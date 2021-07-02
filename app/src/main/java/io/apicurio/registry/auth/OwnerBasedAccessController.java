@@ -46,25 +46,25 @@ public class OwnerBasedAccessController implements IAccessController {
     @Override
     public boolean isAuthorized(InvocationContext context) {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        AuthorizedStyle mode = annotation.style();
+        AuthorizedStyle style = annotation.style();
         AuthorizedLevel level = annotation.level();
 
-        // Don't protected 'read-only' or 'none' level operations.
-        if (level == AuthorizedLevel.Read || level == AuthorizedLevel.None) {
+        // Only protect level == Write operations
+        if (level != AuthorizedLevel.Write) {
             return true;
         }
 
-        if (mode == AuthorizedStyle.GroupAndArtifact) {
+        if (style == AuthorizedStyle.GroupAndArtifact) {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (mode == AuthorizedStyle.GroupOnly) {
+        } else if (style == AuthorizedStyle.GroupOnly) {
             String groupId = getStringParam(context, 0);
             return verifyGroupCreatedBy(groupId);
-        } else if (mode == AuthorizedStyle.ArtifactOnly) {
+        } else if (style == AuthorizedStyle.ArtifactOnly) {
             String artifactId = getStringParam(context, 0);
             return verifyArtifactCreatedBy(null, artifactId);
-        } else if (mode == AuthorizedStyle.GlobalId) {
+        } else if (style == AuthorizedStyle.GlobalId) {
             long globalId = getLongParam(context, 0);
             return verifyArtifactCreatedBy(globalId);
         } else {

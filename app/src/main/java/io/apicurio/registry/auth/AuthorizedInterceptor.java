@@ -72,6 +72,8 @@ public class AuthorizedInterceptor {
             }
         }
 
+        // If the user is an admin (via the admin-override check) then there's no need to
+        // check rbac or obac.
         if (adminOverride.isAdmin()) {
             log.trace("Admin override successful.");
             return context.proceed();

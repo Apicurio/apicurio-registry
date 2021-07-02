@@ -41,6 +41,9 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
     boolean ownerOnlyAuthorizationEnabled;
 
+    @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
+    boolean ownerOnlyAuthorizationLimitGroupAccess;
+
     @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
     String readOnlyRole;
 

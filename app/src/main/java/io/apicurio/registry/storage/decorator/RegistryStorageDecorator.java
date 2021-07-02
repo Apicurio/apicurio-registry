@@ -829,6 +829,14 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     */
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        return delegate.getRoleForPrincipal(principalId);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
      */
     @Override

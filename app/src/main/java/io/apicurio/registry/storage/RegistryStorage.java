@@ -608,6 +608,13 @@ public interface RegistryStorage {
     public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
+     * Gets the role for a single user.  This returns null if there is no role mapped for
+     * the given principal.
+     * @param principalId
+     */
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException;
+
+    /**
      * Updates a single role mapping.
      * @param principalId
      * @param role

@@ -34,6 +34,9 @@ import io.quarkus.security.identity.SecurityIdentity;
 public class OwnerBasedAccessController implements IAccessController {
 
     @Inject
+    AuthConfig authConfig;
+
+    @Inject
     SecurityIdentity securityIdentity;
 
     @Inject
@@ -58,7 +61,7 @@ public class OwnerBasedAccessController implements IAccessController {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (style == AuthorizedStyle.GroupOnly) {
+        } else if (style == AuthorizedStyle.GroupOnly && authConfig.ownerOnlyAuthorizationLimitGroupAccess) {
             String groupId = getStringParam(context, 0);
             return verifyGroupCreatedBy(groupId);
         } else if (style == AuthorizedStyle.ArtifactOnly) {

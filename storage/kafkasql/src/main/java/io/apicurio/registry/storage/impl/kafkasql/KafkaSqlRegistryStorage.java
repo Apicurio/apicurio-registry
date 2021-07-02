@@ -1025,6 +1025,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     */
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        return sqlStore.getRoleForPrincipal(principalId);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
      */
     @Override

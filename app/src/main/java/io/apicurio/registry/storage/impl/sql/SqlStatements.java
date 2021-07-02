@@ -461,6 +461,8 @@ public interface SqlStatements {
 
     public String selectRoleMappingByPrincipalId();
 
+    public String selectRoleByPrincipalId();
+
     public String selectRoleMappings();
 
     public String updateRoleMapping();

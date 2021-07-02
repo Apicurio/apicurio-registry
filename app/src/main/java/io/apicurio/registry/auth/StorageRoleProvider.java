@@ -20,8 +20,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -40,12 +38,8 @@ public class StorageRoleProvider implements RoleProvider {
     RegistryStorage storage;
 
     private boolean hasRole(String role) {
-        try {
-            RoleMappingDto roleMapping = storage.getRoleMapping(securityIdentity.getPrincipal().getName());
-            return role.equals(roleMapping.getRole());
-        } catch (RoleMappingNotFoundException nfe) {
-            return false;
-        }
+        String role4principal = storage.getRoleForPrincipal(securityIdentity.getPrincipal().getName());
+        return role.equals(role4principal);
     }
 
     /**

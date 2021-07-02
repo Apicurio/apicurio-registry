@@ -781,6 +781,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleByPrincipalId()
+     */
+    @Override
+    public String selectRoleByPrincipalId() {
+        return "SELECT a.role FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleMappings()
      */
     @Override

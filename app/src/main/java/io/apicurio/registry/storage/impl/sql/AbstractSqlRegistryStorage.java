@@ -2368,6 +2368,27 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     */
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        log.debug("Selecting the role for: {}", principalId);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectRoleByPrincipalId();
+                Optional<String> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, principalId)
+                        .mapTo(String.class)
+                        .findOne();
+                return res.orElse(null);
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
      */
     @Override

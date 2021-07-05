@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.liveness;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;

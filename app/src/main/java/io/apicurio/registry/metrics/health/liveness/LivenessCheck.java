@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.metrics;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-import javax.ws.rs.NameBinding;
+package io.apicurio.registry.metrics.health.liveness;
 
 /**
- * Meta-Annotation used to perform name-binding between REST API methods and
- * {@link io.apicurio.registry.metrics.RestMetricsResponseFilter} filter
+ * Common interface for a liveness check.
+ *
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Target({ ElementType.TYPE, ElementType.METHOD })
-@Retention(value = RetentionPolicy.RUNTIME)
-@NameBinding
-public @interface RestMetricsResponseFilteredNameBinding {
+public interface LivenessCheck {
+
+    void suspect(String reason);
+
+    void suspectWithException(Throwable reason);
 }

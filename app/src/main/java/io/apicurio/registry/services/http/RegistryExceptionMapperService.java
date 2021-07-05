@@ -16,33 +16,10 @@
 
 package io.apicurio.registry.services.http;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
-import org.slf4j.Logger;
-
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
-import io.apicurio.registry.metrics.LivenessUtil;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
+import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
+import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import io.apicurio.registry.mt.TenantNotFoundException;
 import io.apicurio.registry.mt.limits.LimitExceededException;
@@ -67,6 +44,27 @@ import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import org.slf4j.Logger;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
 /**
  * @author Fabian Martinez
@@ -169,6 +167,7 @@ public class RegistryExceptionMapperService {
 
     /**
      * Converts rule violations to appropriate error beans.
+     *
      * @param violations
      */
     private List<RuleViolationCause> toRestCauses(Set<RuleViolation> violations) {
@@ -186,6 +185,7 @@ public class RegistryExceptionMapperService {
     /**
      * Gets the full stack trace for the given exception and returns it as a
      * string.
+     *
      * @param t
      */
     private String getStackTrace(Throwable t) {

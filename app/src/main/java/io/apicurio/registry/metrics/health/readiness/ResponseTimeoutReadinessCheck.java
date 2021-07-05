@@ -1,5 +1,6 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.readiness;
 
+import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;

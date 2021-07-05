@@ -1,4 +1,4 @@
-package io.apicurio.registry.metrics;
+package io.apicurio.registry.metrics.health.liveness;
 
 import javax.annotation.Priority;
 import javax.inject.Inject;

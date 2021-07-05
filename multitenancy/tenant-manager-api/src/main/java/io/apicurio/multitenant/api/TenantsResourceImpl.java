@@ -70,7 +70,7 @@ public class TenantsResourceImpl implements TenantsResource {
         tenant.setName(tenantRequest.getName());
         tenant.setDescription(tenantRequest.getDescription());
         tenant.setCreatedOn(new Date());
-        tenant.setCreatedBy(null); //TODO extract user from auth details
+        tenant.setCreatedBy(tenantRequest.getCreatedBy());
 
         if (tenantRequest.getResources() != null) {
             //find duplicates, invalid config

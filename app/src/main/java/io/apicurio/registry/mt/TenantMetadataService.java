@@ -22,6 +22,7 @@ import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
@@ -56,8 +57,18 @@ public class TenantMetadataService {
             throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled "
                     + "but the no \"registry.tenant.manager.url\" is provided");
         }
+
+        if (mtProperties.isMultitenancyEnabled() && mtProperties.isAuthEnabled() && (mtProperties.getTenantManagerAuthUrl().isEmpty() || mtProperties.getTenantManagerAuthUrl().isEmpty() || mtProperties.getTenantManagerClientId().isEmpty() || mtProperties.getTenantManagerClientSecret().isEmpty())) {
+            throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " + "\"registry.enable.auth\" is enabled "
+                    + "but the no auth properties aren't properly configured");
+        }
+
         if (mtProperties.isMultitenancyEnabled()) {
-            this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
+            if (mtProperties.isAuthEnabled()) {
+                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), new Auth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
+            } else {
+                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
+            }
         }
     }
 

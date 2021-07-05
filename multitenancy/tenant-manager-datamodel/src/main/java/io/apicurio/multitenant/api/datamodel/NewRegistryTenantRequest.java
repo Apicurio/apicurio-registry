@@ -22,7 +22,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "organizationId",
     "resources",
     "name",
-    "description"
+    "description",
+    "createdBy"
+
 })
 @Generated("jsonschema2pojo")
 public class NewRegistryTenantRequest {
@@ -64,6 +66,14 @@ public class NewRegistryTenantRequest {
     @JsonProperty("description")
     @JsonPropertyDescription("An optional description for the tenant.")
     private String description;
+
+    /**
+     * User who requested the tenant.
+     *
+     */
+    @JsonProperty("createdBy")
+    @JsonPropertyDescription("User who created the tenant")
+    private String createdBy;
 
     /**
      * Unique identifier of a tenant within a registry deployment
@@ -159,4 +169,21 @@ public class NewRegistryTenantRequest {
         this.description = description;
     }
 
+    /**
+     * User who requested the tenant.
+     *
+     */
+    @JsonProperty("createdBy")
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    /**
+     * User who requested the tenant.
+     *
+     */
+    @JsonProperty("createdBy")
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
 }

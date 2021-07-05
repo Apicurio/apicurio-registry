@@ -34,12 +34,32 @@ public class MultitenancyProperties {
     boolean multitenancyEnabled;
 
     @Inject
+    @ConfigProperty(name = "registry.auth.enabled")
+    boolean authEnabled;
+
+    @Inject
     @ConfigProperty(name = "registry.multitenancy.base.path")
     String nameMultitenancyBasePath;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
     Optional<String> tenantManagerUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.url")
+    Optional<String> tenantManagerAuthUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.realm")
+    Optional<String> tenantManagerAuthRealm;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.client-id")
+    Optional<String> tenantManagerClientId;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
+    Optional<String> tenantManagerClientSecret;
 
     /**
      * @return the multitenancyEnabled
@@ -62,4 +82,38 @@ public class MultitenancyProperties {
         return tenantManagerUrl;
     }
 
+    /**
+     * @return if auth is enabled
+     */
+    public boolean isAuthEnabled() {
+        return authEnabled;
+    }
+
+    /**
+     * @return the tenant manager authentication server url
+     */
+    public Optional<String> getTenantManagerAuthUrl() {
+        return tenantManagerAuthUrl;
+    }
+
+    /**
+     * @return the tenant manager auth realm
+     */
+    public Optional<String> getTenantManagerAuthRealm() {
+        return tenantManagerAuthRealm;
+    }
+
+    /**
+     * @return the tenant manager auth client id
+     */
+    public Optional<String> getTenantManagerClientId() {
+        return tenantManagerClientId;
+    }
+
+    /**
+     * @return the tenant manager auth client secret
+     */
+    public Optional<String> getTenantManagerClientSecret() {
+        return tenantManagerClientSecret;
+    }
 }

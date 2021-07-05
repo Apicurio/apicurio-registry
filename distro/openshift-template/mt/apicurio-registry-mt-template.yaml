@@ -18,6 +18,7 @@ objects:
     - port: 8080
       protocol: TCP
       targetPort: 8080
+      name: http
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
@@ -35,6 +36,7 @@ objects:
     - port: 9001
       protocol: TCP
       targetPort: 9001
+      name: api-envoy
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
@@ -45,13 +47,14 @@ objects:
     labels:
       app: apicurio-registry
       template: multitenant-apicurio-registry
-      component: apicurio-registry-envoy
+      component: apicurio-registry-envoy-metrics
     name: apicurio-registry-envoy-metrics
   spec:
     ports:
     - port: 9000
       protocol: TCP
       targetPort: 9000
+      name: metrics-envoy
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
@@ -69,6 +72,7 @@ objects:
     - port: 8585
       protocol: TCP
       targetPort: 8585
+      name: http
     selector:
       app: apicurio-registry
       template: multitenant-apicurio-registry
@@ -172,7 +176,7 @@ objects:
             timeoutSeconds: 5
           ports:
           - containerPort: 8080
-            name: web
+            name: http
             protocol: TCP
           readinessProbe:
             failureThreshold: 3
@@ -245,6 +249,7 @@ objects:
           ports:
           - containerPort: 8585
             protocol: TCP
+            name: http
           readinessProbe:
             failureThreshold: 5
             httpGet:

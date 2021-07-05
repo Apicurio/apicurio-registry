@@ -161,8 +161,24 @@ objects:
             value: ${KEYCLOAK_REALM}
           - name: KEYCLOAK_API_CLIENT_ID
             value: ${KEYCLOAK_API_CLIENT_ID}
-          - name: KEYCLOAK_UI_CLIENT_ID
-            value: ${KEYCLOAK_UI_CLIENT_ID}
+          - name: REGISTRY_AUTHZ_ENABLED
+            value: ${REGISTRY_AUTHZ_ENABLED}
+          - name: AUTHZ_ENABLED
+            value: ${AUTHZ_ENABLED}
+          - name: TENANT_MANAGER_AUTH_URL
+            value: ${KEYCLOAK_URL}
+          - name: TENANT_MANAGER_REALM
+            value: ${KEYCLOAK_REALM}
+          - name: TENANT_MANAGER_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
+                key: client-id
+          - name: TENANT_MANAGER_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
+                key: client-secret
 
           livenessProbe:
             failureThreshold: 3
@@ -236,6 +252,19 @@ objects:
             value: INFO
           - name: TENANT_MANAGER_LOG_LEVEL
             value: DEBUG
+
+          - name: AUTH_ENABLED
+            value: ${AUTH_ENABLED}
+          - name: KEYCLOAK_URL
+            value: ${KEYCLOAK_URL}
+          - name: KEYCLOAK_REALM
+            value: ${KEYCLOAK_REALM}
+          - name: KEYCLOAK_API_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
+                key: client-id
+
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -389,9 +418,15 @@ parameters:
 - name: KEYCLOAK_API_CLIENT_ID
   description: client id for Apicurio Registry API
   value: registry-api
-- name: KEYCLOAK_UI_CLIENT_ID
-  description: client id for Apicurio Registry UI
-  value: apicurio-registry
+- name: REGISTRY_AUTHZ_ENABLED
+  description: flag to enable/disable authorization in apicurio registry
+  value: "false"
+- name: AUTHZ_ENABLED
+  description: flag to enable/disable owner-only authorization in apicurio registry
+  value: "false"
+- name: TENANT_MANAGER_CLIENT_SECRET_NAME
+  description: k8s secret name with client-id and client-secret to access tenant-manager
+  required: true
 
 - name: ENVOY_IMAGE
   description: Envoy image.

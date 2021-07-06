@@ -22,3 +22,4 @@ export * from "./downloader";
 export * from "./groups";
 export * from "./logger";
 export * from "./services";
+export * from "./users";

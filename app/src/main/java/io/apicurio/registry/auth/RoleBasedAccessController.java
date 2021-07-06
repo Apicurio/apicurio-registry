@@ -45,16 +45,28 @@ public class RoleBasedAccessController implements IAccessController {
 
         switch (level) {
             case Admin:
-                return getRoleProvider().isAdmin();
+                return isAdmin();
             case None:
                 return true;
             case Read:
-                return getRoleProvider().isReadOnly() || getRoleProvider().isDeveloper() || getRoleProvider().isAdmin();
+                return isReadOnly() || isDeveloper() || isAdmin();
             case Write:
-                return getRoleProvider().isDeveloper() || getRoleProvider().isAdmin();
+                return isDeveloper() || isAdmin();
             default:
                 throw new RuntimeException("Unhandled case: " + level);
         }
+    }
+
+    public boolean isAdmin() {
+        return getRoleProvider().isAdmin();
+    }
+
+    public boolean isDeveloper() {
+        return getRoleProvider().isDeveloper();
+    }
+
+    public boolean isReadOnly() {
+        return getRoleProvider().isReadOnly();
     }
 
     private RoleProvider getRoleProvider() {

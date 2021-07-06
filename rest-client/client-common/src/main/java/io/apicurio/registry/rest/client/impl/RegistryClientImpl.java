@@ -16,17 +16,25 @@
 
 package io.apicurio.registry.rest.client.impl;
 
-import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
-import io.apicurio.registry.rest.client.request.Parameters;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.apicurio.registry.rest.Headers;
-import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
+import io.apicurio.registry.rest.client.request.Parameters;
 import io.apicurio.registry.rest.client.request.provider.AdminRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
+import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
+import io.apicurio.registry.rest.client.spi.RegistryHttpClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -39,18 +47,13 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
-
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -387,6 +390,11 @@ public class RegistryClientImpl implements RegistryClient {
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
+    }
+
+    @Override
+    public UserInfo getCurrentUserInfo() {
+        return registryHttpClient.sendRequest(UsersRequestsProvider.getCurrentUserInfo());
     }
 
     @Override

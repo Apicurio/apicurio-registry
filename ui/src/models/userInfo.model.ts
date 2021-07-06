@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./userInfo.model";
-export * from "./versionMetaData.model";
+// tslint:disable-next-line:interface-name
+export interface UserInfo {
+
+    username: string;
+    displayName: string;
+    admin: boolean;
+    developer: boolean;
+    viewer: boolean;
+
+}

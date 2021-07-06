@@ -32,6 +32,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -164,6 +165,8 @@ public interface RegistryClient {
     void updateRoleMapping(String principalId, RoleType role);
 
     void deleteRoleMapping(String principalId);
+
+    UserInfo getCurrentUserInfo();
 
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 

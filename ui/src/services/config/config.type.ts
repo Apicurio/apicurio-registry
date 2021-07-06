@@ -32,6 +32,8 @@ export interface UiConfig {
 
 export interface AuthConfig {
     type: string;
+    rbacEnabled: boolean;
+    obacEnabled: boolean;
 }
 
 // Used when `type=keycloakjs`

@@ -102,4 +102,16 @@ public class AuthConfig {
         return this.authenticationEnabled;
     }
 
+    public boolean isRbacEnabled() {
+        return this.roleBasedAuthorizationEnabled;
+    }
+
+    public boolean isObacEnabled() {
+        return this.ownerOnlyAuthorizationEnabled;
+    }
+
+    public boolean isAdminOverrideEnabled() {
+        return this.adminOverrideEnabled;
+    }
+
 }

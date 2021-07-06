@@ -29,7 +29,9 @@ const DEFAULT_CONFIG: ConfigType = {
             realm: 'registry',
             url: 'http://localhost:8090/auth'
         },
-        type: "keycloakjs"
+        type: "keycloakjs",
+        rbacEnabled: true,
+        obacEnabled: false
     },
     features: {
         readOnly: false,
@@ -118,6 +120,20 @@ export class ConfigService implements Service {
             return "";
         }
         return this.config.auth.type;
+    }
+
+    public authRbacEnabled(): boolean {
+        if (!this.config.auth || !this.config.auth.rbacEnabled) {
+            return false;
+        }
+        return this.config.auth.rbacEnabled;
+    }
+
+    public authObacEnabled(): boolean {
+        if (!this.config.auth || !this.config.auth.obacEnabled) {
+            return false;
+        }
+        return this.config.auth.obacEnabled;
     }
 
     public authOptions(): any {

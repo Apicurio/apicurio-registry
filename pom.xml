@@ -220,7 +220,7 @@
         <keycloak.testcontainers.version>1.6.1</keycloak.testcontainers.version>
         <keycloak-admin-client.version>12.0.3</keycloak-admin-client.version>
         <embedded-postgres.version>1.2.10</embedded-postgres.version>
-        <strimzi.version>0.23.0</strimzi.version>
+        <strimzi.version>0.24.0</strimzi.version>
     </properties>
 
     <dependencyManagement>

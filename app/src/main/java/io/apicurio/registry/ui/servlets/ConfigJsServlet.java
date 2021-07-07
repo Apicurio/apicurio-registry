@@ -79,6 +79,7 @@ public class ConfigJsServlet extends HttpServlet {
             config.ui.contextPath = uiConfig.getUiContextPath();
 
             config.features.readOnly = uiConfig.isFeatureReadOnly();
+            config.features.breadcrumbs = true;
 
             configureAuth(config);
 
@@ -101,6 +102,10 @@ public class ConfigJsServlet extends HttpServlet {
             config.auth.options = uiConfig.getKeycloakProperties();
             config.auth.rbacEnabled = authConfig.isRbacEnabled();
             config.auth.obacEnabled = authConfig.isObacEnabled();
+
+            if (authConfig.isRbacEnabled() && !"token".equals(authConfig.getRoleSource())) {
+                config.features.roleManagement = true;
+            }
         } else {
             config.auth.type = "none";
         }

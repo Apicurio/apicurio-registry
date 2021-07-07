@@ -19,6 +19,7 @@ export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
     multiTenant?: boolean;
+    roleManagement?: boolean;
 }
 
 export interface ArtifactsConfig {

@@ -16,7 +16,7 @@
  */
 
 import {BaseService} from "../baseService";
-import {Rule} from "../../models";
+import {RoleMapping, Rule} from "../../models";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global
@@ -65,6 +65,50 @@ export class AdminService extends BaseService {
 
         const endpoint: string = this.endpoint("/v2/admin/rules/:rule", {
             "rule": type
+        });
+        return this.httpDelete(endpoint);
+    }
+
+    public getRoleMappings(): Promise<RoleMapping[]> {
+        this.logger.info("[AdminService] Getting the list of role mappings.");
+        const endpoint: string = this.endpoint("/v2/admin/roleMappings");
+        return this.httpGet<RoleMapping[]>(endpoint);
+    }
+
+    public getRoleMapping(principalId: string): Promise<RoleMapping> {
+        const endpoint: string = this.endpoint("/v2/admin/roleMappings/:principalId", {
+            principalId
+        });
+        return this.httpGet<RoleMapping>(endpoint);
+    }
+
+    public createRoleMapping(principalId: string, role: string): Promise<RoleMapping> {
+        this.logger.info("[AdminService] Creating a role mapping:", principalId, role);
+
+        const endpoint: string = this.endpoint("/v2/admin/roleMappings");
+        const body: RoleMapping = { principalId, role };
+        return this.httpPost(endpoint, body).then(() => {
+            return body;
+        });
+    }
+
+    public updateRoleMapping(principalId: string, role: string): Promise<RoleMapping> {
+        this.logger.info("[AdminService] Updating role mapping:", principalId, role);
+
+        const endpoint: string = this.endpoint("/v2/admin/roleMappings/:principalId", {
+            principalId
+        });
+        const body: any = { role };
+        return this.httpPut<any>(endpoint, body).then(() => {
+            return { principalId, role };
+        });
+    }
+
+    public deleteRoleMapping(principalId: string): Promise<null> {
+        this.logger.info("[AdminService] Deleting role mapping for:", principalId);
+
+        const endpoint: string = this.endpoint("/v2/admin/roleMappings/:principalId", {
+            principalId
         });
         return this.httpDelete(endpoint);
     }

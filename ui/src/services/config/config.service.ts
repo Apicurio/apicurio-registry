@@ -35,7 +35,8 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     features: {
         readOnly: false,
-        breadcrumbs: true
+        breadcrumbs: true,
+        roleManagement: true
     },
     ui: {
         contextPath: "/",

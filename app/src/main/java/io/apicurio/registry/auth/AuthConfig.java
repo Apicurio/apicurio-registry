@@ -114,4 +114,8 @@ public class AuthConfig {
         return this.adminOverrideEnabled;
     }
 
+    public String getRoleSource() {
+        return this.roleSource;
+    }
+
 }

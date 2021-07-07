@@ -1,3 +1,5 @@
+import FederatedRolesPage from "./src/app/pages/roles/roles.federated";
+
 const path = require("path");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
@@ -48,7 +50,8 @@ module.exports = (mode) => {
           "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
           "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
           "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
-          "./FederatedRulesPage": "./src/app/pages/rules/rules.federated"
+          "./FederatedRulesPage": "./src/app/pages/rules/rules.federated",
+          "./FederatedRolesPage": "./src/app/pages/roles/roles.federated"
         },
         shared: {
           ...dependencies,

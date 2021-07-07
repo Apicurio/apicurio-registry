@@ -15,12 +15,18 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./roleMapping.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./userInfo.model";
-export * from "./versionMetaData.model";
+
+export class RoleTypes {
+    public static READ_ONLY: string = "READ_ONLY";
+    public static DEVELOPER: string = "DEVELOPER";
+    public static ADMIN: string = "ADMIN";
+}
+
+
+// tslint:disable-next-line:interface-name
+export interface RoleMapping {
+
+    principalId: string;
+    role: string;
+
+}

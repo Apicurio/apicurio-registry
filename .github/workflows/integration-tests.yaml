@@ -41,13 +41,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-integration-tests-
 
-      # - name: Set test profile to acceptance
-      #   if: github.ref != 'refs/heads/master'
-      #   run: |
-      #     echo "test_profile=acceptance" >> $GITHUB_ENV
+      - name: Set test profile to acceptance
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "test_profile=acceptance" >> $GITHUB_ENV
 
       - name: Set test profile to all
-        # if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master'
         run: |
           echo "test_profile=all" >> $GITHUB_ENV
 

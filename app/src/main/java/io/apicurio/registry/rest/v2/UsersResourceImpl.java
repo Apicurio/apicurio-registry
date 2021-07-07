@@ -75,8 +75,8 @@ public class UsersResourceImpl implements UsersResource {
             info.setDeveloper(false);
             info.setViewer(false);
         }
-        if (authConfig.isAdminOverrideEnabled()) {
-            info.setAdmin(adminOverride.isAdmin());
+        if (authConfig.isAdminOverrideEnabled() && adminOverride.isAdmin()) {
+            info.setAdmin(true);
         }
         return info;
     }

@@ -39,7 +39,6 @@ public class CustomMetricsConfiguration {
                 if(id.getName().startsWith(MetricsConstants.REST_REQUESTS)) {
                     return DistributionStatisticConfig.builder()
                         .percentiles(0.5, 0.95, 0.99)
-                        .percentilesHistogram(true)
                         .serviceLevelObjectives(0.1 * factor, 1.0 * factor, 2.0 * factor, 5.0 * factor, 10.0 * factor, 30.0 * factor)
                         .build()
                         .merge(config);

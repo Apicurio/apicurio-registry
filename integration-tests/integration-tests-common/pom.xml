@@ -106,8 +106,10 @@
             <version>${test-containers.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>strimzi-test-container</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+<!--             <groupId>io.strimzi</groupId> -->
+<!--             <artifactId>strimzi-test-container</artifactId> -->
             <scope>compile</scope>
        </dependency>
         

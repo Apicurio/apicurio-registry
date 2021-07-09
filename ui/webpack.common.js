@@ -1,5 +1,3 @@
-import FederatedRolesPage from "./src/app/pages/roles/roles.federated";
-
 const path = require("path");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");

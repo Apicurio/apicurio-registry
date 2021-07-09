@@ -44,7 +44,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build and Test All Variants
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -101,7 +101,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
 
       - name: Build All Variants
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Build Native executables
         env:

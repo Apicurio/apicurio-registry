@@ -19,11 +19,11 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.utils.RegistryUtils;
-import io.strimzi.StrimziKafkaContainer;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -34,7 +34,7 @@ import java.util.Properties;
 public class KafkaFacade implements RegistryTestProcess {
     static final Logger LOGGER = LoggerFactory.getLogger(KafkaFacade.class);
 
-    private StrimziKafkaContainer kafkaContainer;
+    private KafkaContainer kafkaContainer;
     private AdminClient client;
 
     private static KafkaFacade instance;
@@ -85,15 +85,15 @@ public class KafkaFacade implements RegistryTestProcess {
 
     public void start() {
         LOGGER.info("Starting kafka container");
-        kafkaContainer = new StrimziKafkaContainer();
+        kafkaContainer = new KafkaContainer();
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         kafkaContainer.start();
     }
 
-    public StrimziKafkaContainer startNewKafka() {
+    public KafkaContainer startNewKafka() {
         LOGGER.info("Starting new kafka container");
-        StrimziKafkaContainer c = new StrimziKafkaContainer();
+        KafkaContainer c = new KafkaContainer();
         c.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
         c.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
         c.start();

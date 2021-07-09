@@ -25,11 +25,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentById",
@@ -59,11 +59,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentByGlobalId",
@@ -93,11 +93,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentByHash",
@@ -1056,14 +1056,14 @@
                     "Versions"
                 ],
                 "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
                     }
                 },
                 "operationId": "getArtifactVersion",
@@ -2157,6 +2157,32 @@
                 "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
             }
         },
+        "/users/me": {
+            "summary": "Retrieves information about the current user",
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserInfo"
+                                }
+                            }
+                        },
+                        "description": "Response when the endpoint is successfully invoked."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getCurrentUserInfo",
+                "summary": "Get current user",
+                "description": "Returns information about the currently authenticated user."
+            }
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
@@ -2515,7 +2541,9 @@
                     "createdBy": "some text",
                     "globalId": 37,
                     "version": 85,
-                    "properties": {},
+                    "properties": {
+
+                    },
                     "contentId": 62
                 }
             },
@@ -2927,6 +2955,35 @@
                 "example": {
                     "role": "READ_ONLY"
                 }
+            },
+            "UserInfo": {
+                "title": "Root Type for UserInfo",
+                "description": "Information about a single user.",
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "displayName": {
+                        "type": "string"
+                    },
+                    "admin": {
+                        "type": "boolean"
+                    },
+                    "developer": {
+                        "type": "boolean"
+                    },
+                    "viewer": {
+                        "type": "boolean"
+                    }
+                },
+                "example": {
+                    "username": "dprince",
+                    "displayName": "Diana Prince",
+                    "admin": true,
+                    "developer": false,
+                    "viewer": false
+                }
             }
         },
         "responses": {
@@ -3078,6 +3135,10 @@
         {
             "name": "System",
             "description": "System level functionality, including versioning and status information."
+        },
+        {
+            "name": "Users",
+            "description": "Some operations related to users."
         }
     ],
     "x-codegen": {

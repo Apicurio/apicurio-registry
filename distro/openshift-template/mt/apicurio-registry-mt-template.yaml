@@ -119,9 +119,9 @@ objects:
           - name: REGISTRY_ENABLE_MULTITENANCY
             value: "true"
           - name: REGISTRY_LOG_LEVEL
-            value: DEBUG
+            value: ${REGISTRY_LOG_LEVEL}
           - name: LOG_LEVEL
-            value: INFO
+            value: ${REGISTRY_QUARKUS_LOG_LEVEL}
           - name: QUARKUS_PROFILE
             value: prod
 
@@ -249,9 +249,9 @@ objects:
           - name: QUARKUS_HTTP_PORT
             value: "8585"
           - name: LOG_LEVEL
-            value: INFO
+            value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
-            value: DEBUG
+            value: ${TENANT_MANAGER_LOG_LEVEL}
 
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
@@ -344,6 +344,18 @@ objects:
 
 
 parameters:
+
+- name: REGISTRY_LOG_LEVEL
+  value: DEBUG
+
+- name: REGISTRY_QUARKUS_LOG_LEVEL
+  value: INFO
+
+- name: TENANT_MANAGER_LOG_LEVEL
+  value: DEBUG
+
+- name: TENANT_MANAGER_QUARKUS_LOG_LEVEL
+  value: INFO
 
 - name: SERVICE_ACCOUNT_NAME
   displayName: Service Account to use for the deployment

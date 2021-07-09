@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.http;
 
+import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
@@ -110,6 +111,7 @@ public class RegistryExceptionMapperService {
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
+        map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

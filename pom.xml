@@ -836,12 +836,6 @@
             </properties>
         </profile>
         <profile>
-            <id>perftest</id>
-            <modules>
-                <module>perftest</module>
-            </modules>
-        </profile>
-        <profile>
             <id>integration-tests</id>
             <modules>
                 <module>integration-tests/integration-tests-common</module>

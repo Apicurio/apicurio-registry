@@ -280,7 +280,7 @@ export class GroupsService extends BaseService {
         try {
             const xmlParser: DOMParser = new DOMParser();
             const dom: Document = xmlParser.parseFromString(content, "application/xml");
-            const isParseError: boolean = dom.documentElement.nodeName === "parsererror";
+            const isParseError: boolean = dom.getElementsByTagName("parsererror").length !== 0;
             return !isParseError;
         } catch (e) {
             return false;

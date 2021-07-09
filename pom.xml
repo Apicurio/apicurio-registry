@@ -165,7 +165,7 @@
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.3</jackson-datatype-json-org.version>
+        <jackson-datatype-json-org.version>2.12.4</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.3</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->

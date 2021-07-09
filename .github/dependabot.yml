@@ -72,10 +72,8 @@ updates:
       - dependency-name: org.infinispan:infinispan-commons
         versions:
           - 12.1.0.Dev01
-          - 12.1.0.Dev01
       - dependency-name: org.infinispan:infinispan-core
         versions:
-          - 12.1.0.Dev01
           - 12.1.0.Dev01
       - dependency-name: org.apache.kafka:connect-json
         versions:

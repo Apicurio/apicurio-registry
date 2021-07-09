@@ -16,13 +16,14 @@
 
 package io.apicurio.registry.utils.tests;
 
-import dasniko.testcontainers.keycloak.KeycloakContainer;
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
+import dasniko.testcontainers.keycloak.KeycloakContainer;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 public class KeycloakTestResourceWithLocalRoles implements QuarkusTestResourceLifecycleManager {
 
@@ -45,7 +46,7 @@ public class KeycloakTestResourceWithLocalRoles implements QuarkusTestResourceLi
         props.put("registry.auth.enabled", "true");
         props.put("quarkus.oidc.client-secret", "test1");
         props.put("registry.auth.role-based-authorization", "true");
-        props.put("registry.auth.role-source", "database");
+        props.put("registry.auth.role-source", "application");
 
         return props;
     }

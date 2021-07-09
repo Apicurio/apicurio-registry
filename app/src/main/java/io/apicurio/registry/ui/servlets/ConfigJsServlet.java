@@ -102,10 +102,7 @@ public class ConfigJsServlet extends HttpServlet {
             config.auth.options = uiConfig.getKeycloakProperties();
             config.auth.rbacEnabled = authConfig.isRbacEnabled();
             config.auth.obacEnabled = authConfig.isObacEnabled();
-
-            if (authConfig.isRbacEnabled() && !"token".equals(authConfig.getRoleSource())) {
-                config.features.roleManagement = true;
-            }
+            config.features.roleManagement = authConfig.isApplicationRbacEnabled();
         } else {
             config.auth.type = "none";
         }

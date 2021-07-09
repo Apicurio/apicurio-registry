@@ -35,6 +35,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -691,6 +692,14 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void updateRoleMapping(String principalId, RoleType role) {
         getTarget().updateRoleMapping(principalId, role);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getCurrentUserInfo()
+     */
+    @Override
+    public UserInfo getCurrentUserInfo() {
+        return getTarget().getCurrentUserInfo();
     }
 
 }

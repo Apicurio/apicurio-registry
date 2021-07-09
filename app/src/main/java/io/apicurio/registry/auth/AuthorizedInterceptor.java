@@ -55,6 +55,15 @@ public class AuthorizedInterceptor {
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
+        // If the user is trying to invoke a role-mapping operation, deny it if
+        // database based RBAC is not enabled.
+        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
+        if (rbacOpAnnotation != null) {
+            if (!authConfig.isApplicationRbacEnabled()) {
+                throw new ForbiddenException("Application RBAC not enabled.");
+            }
+        }
+
         // If authentication is not enabled, just do it.
         if (!authConfig.authenticationEnabled) {
             return context.proceed();

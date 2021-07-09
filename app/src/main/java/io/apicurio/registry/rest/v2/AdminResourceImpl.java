@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -294,6 +295,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
         storage.createRoleMapping(data.getPrincipalId(), data.getRole().name());
     }
@@ -303,6 +305,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
     public List<RoleMapping> listRoleMappings() {
         List<RoleMappingDto> mappings = storage.getRoleMappings();
         return mappings.stream().map(dto -> {
@@ -318,6 +321,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
     public RoleMapping getRoleMapping(String principalId) {
         RoleMappingDto dto = storage.getRoleMapping(principalId);
         RoleMapping mapping = new RoleMapping();
@@ -331,6 +335,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
         storage.updateRoleMapping(principalId, data.getRole().name());
     }
@@ -340,6 +345,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
     }

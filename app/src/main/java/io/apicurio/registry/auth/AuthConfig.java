@@ -118,4 +118,8 @@ public class AuthConfig {
         return this.roleSource;
     }
 
+    public boolean isApplicationRbacEnabled() {
+        return this.roleBasedAuthorizationEnabled && "application".equals(getRoleSource());
+    }
+
 }

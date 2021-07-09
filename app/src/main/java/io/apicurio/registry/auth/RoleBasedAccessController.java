@@ -72,8 +72,10 @@ public class RoleBasedAccessController implements IAccessController {
     private RoleProvider getRoleProvider() {
         if ("token".equals(authConfig.roleSource)) {
             return tokenRoleProvider;
-        } else {
+        } else if ("application".equals(authConfig.roleSource)) {
             return storageRoleProvider;
+        } else {
+            throw new RuntimeException("Unsupported RBAC role source: " + authConfig.roleSource);
         }
     }
 

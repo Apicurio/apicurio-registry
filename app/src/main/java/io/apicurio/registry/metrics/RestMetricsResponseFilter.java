@@ -91,7 +91,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
         Timer timer = Timer
             .builder(REST_REQUESTS)
             .description(REST_REQUESTS_DESCRIPTION)
-            .tag(REST_REQUESTS_TAG_TENANT, this.tenantContext.getTenantIdOrElse(""))
+            .tag(REST_REQUESTS_TAG_TENANT, this.tenantContext.getTenantIdOrElse("")) //we may have to delete this tag
             .tag(REST_REQUESTS_TAG_PATH, this.getPath())
             .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
             .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))

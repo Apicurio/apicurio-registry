@@ -118,11 +118,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             this.explicitArtifactGroupId = groupIdOverride;
         }
         String artifactIdOverride = config.getExplicitArtifactId();
-        if (groupIdOverride != null) {
+        if (artifactIdOverride != null) {
             this.explicitArtifactId = artifactIdOverride;
         }
         String artifactVersionOverride = config.getExplicitArtifactVersion();
-        if (groupIdOverride != null) {
+        if (artifactVersionOverride != null) {
             this.explicitArtifactVersion = artifactVersionOverride;
         }
 

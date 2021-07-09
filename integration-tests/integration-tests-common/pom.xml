@@ -20,7 +20,7 @@
         <groups></groups>
         <skipTests>true</skipTests>
         
-        <junit.version>5.7.1</junit.version>
+        <junit.version>5.7.2</junit.version>
         <junit.platform-launcher.version>1.7.1</junit.platform-launcher.version>
         
         <logback.version>1.2.3</logback.version>
@@ -106,8 +106,10 @@
             <version>${test-containers.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>strimzi-test-container</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+<!--             <groupId>io.strimzi</groupId> -->
+<!--             <artifactId>strimzi-test-container</artifactId> -->
             <scope>compile</scope>
        </dependency>
         

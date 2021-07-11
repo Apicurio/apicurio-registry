@@ -151,7 +151,7 @@
         <picocli.version>4.6.1</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>6.1.1</confluent.version>
+        <confluent.version>6.2.0</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>

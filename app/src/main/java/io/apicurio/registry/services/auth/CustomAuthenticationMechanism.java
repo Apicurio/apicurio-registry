@@ -62,12 +62,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.keycloak.realm")
     String authRealm;
 
-    /**
-     * This is a custom property, not part of standard quarkus properties.
-     * Because of sharing the prefix with other standard quarkus properties it's ignored and gives issues when compiled to native.
-     * Making the property optional as a workaround.
-     */
-    @ConfigProperty(name = "quarkus.oidc.client-secret")
+    @ConfigProperty(name = "registry.auth.client-secret")
     Optional<String> clientSecret;
 
     @ConfigProperty(name = "quarkus.oidc.client-id")
@@ -81,7 +76,10 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
-            if (clientSecret.isPresent()) {
+            if (clientSecret.isEmpty()) {
+                //if no secret is present, try to authenticate with oidc provider
+                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+            } else {
                 //Extracts username, password pair from the header and request a token to keycloak
                 String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret.get()).getBearerToken();
 
@@ -89,12 +87,13 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
                     return identityProviderManager
                             .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+                } else {
+                    //If we cannot get a token, then try to authenticate using oidc provider as last resource
+                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
             }
-            return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else {
-            return Uni.createFrom().nullItem();
         }
+        return Uni.createFrom().nullItem();
     }
 
     @Override

@@ -29,6 +29,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.Error;
 
@@ -39,6 +42,8 @@ import io.apicurio.multitenant.api.datamodel.Error;
 @ApplicationScoped
 @Provider
 public class TenantManagerExceptionMapper implements ExceptionMapper<Throwable> {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
@@ -60,6 +65,10 @@ public class TenantManagerExceptionMapper implements ExceptionMapper<Throwable> 
         } else {
             code = CODE_MAP.getOrDefault(exception.getClass(), HTTP_INTERNAL_ERROR);
             builder = Response.status(code);
+        }
+
+        if (code == HTTP_INTERNAL_ERROR) {
+            log.error(exception.getMessage(), exception);
         }
 
         Error error = new Error();

@@ -137,13 +137,13 @@
         <quarkus.version>1.13.2.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.0.8</jandex.version>
+        <jandex.version>1.1.0</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.52</json-schema-validator.version>
+        <json-schema-validator.version>1.0.57</json-schema-validator.version>
         <wire-schema.version>3.7.0</wire-schema.version>
-        <protobuf.version>3.15.8</protobuf.version>
+        <protobuf.version>3.17.3</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
@@ -164,9 +164,9 @@
 
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
-        <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.12.3</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.12.4</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.12.3</jackson-dataformat-yaml.version>
+        <jackson-dataformat-yaml.version>2.12.4</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.20</lombok.version>
@@ -206,10 +206,10 @@
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.3</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.12.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.42</version.puppycrawl>
+        <version.puppycrawl>8.44</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

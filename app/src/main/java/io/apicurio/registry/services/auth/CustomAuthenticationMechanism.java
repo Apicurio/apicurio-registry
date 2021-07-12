@@ -81,7 +81,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
-            if (clientSecret.isPresent()) {
+            if (clientSecret.isEmpty()) {
+                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+            } else {
                 //Extracts username, password pair from the header and request a token to keycloak
                 String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret.get()).getBearerToken();
 
@@ -91,10 +93,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                             .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
                 }
             }
-            return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else {
-            return Uni.createFrom().nullItem();
         }
+        return Uni.createFrom().nullItem();
     }
 
     @Override

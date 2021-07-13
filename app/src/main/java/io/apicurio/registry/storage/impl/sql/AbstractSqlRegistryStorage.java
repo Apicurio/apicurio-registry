@@ -155,6 +155,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
     boolean initDB;
 
+    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
+    String jdbcUrl;
+
     /**
      * Constructor.
      */
@@ -164,7 +167,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @PostConstruct
     @Transactional
     protected void initialize() {
-        log.debug("SqlRegistryStorage constructed successfully.");
+        log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
 
         synchronized (dbMutex) {
             handles.withHandleNoException((handle) -> {

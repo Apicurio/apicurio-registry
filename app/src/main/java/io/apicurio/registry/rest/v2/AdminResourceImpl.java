@@ -309,10 +309,7 @@ public class AdminResourceImpl implements AdminResource {
     public List<RoleMapping> listRoleMappings() {
         List<RoleMappingDto> mappings = storage.getRoleMappings();
         return mappings.stream().map(dto -> {
-            RoleMapping mapping = new RoleMapping();
-            mapping.setPrincipalId(dto.getPrincipalId());
-            mapping.setRole(RoleType.valueOf(dto.getRole()));
-            return mapping;
+            return dtoToRoleMapping(dto);
         }).collect(Collectors.toList());
     }
 
@@ -324,10 +321,7 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public RoleMapping getRoleMapping(String principalId) {
         RoleMappingDto dto = storage.getRoleMapping(principalId);
-        RoleMapping mapping = new RoleMapping();
-        mapping.setPrincipalId(dto.getPrincipalId());
-        mapping.setRole(RoleType.valueOf(dto.getRole()));
-        return mapping;
+        return dtoToRoleMapping(dto);
     }
 
     /**
@@ -348,6 +342,13 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
+    }
+
+    private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId(dto.getPrincipalId());
+        mapping.setRole(RoleType.valueOf(dto.getRole()));
+        return mapping;
     }
 
 }

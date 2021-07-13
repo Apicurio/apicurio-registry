@@ -15,6 +15,7 @@
  */
 package io.apicurio.multitenant.metrics;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
         Timer timer = Timer
             .builder(REST_REQUESTS)
-            .description(REST_REQUESTS_DESCRIPTION)
+            .description(REST_REQUESTS_TIMER_DESCRIPTION)
             .tag(REST_REQUESTS_TAG_PATH, this.getPath())
             .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
             .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
@@ -88,6 +89,15 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
         Timer.Sample sample = (Timer.Sample) requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME);
         sample.stop(timer);
+
+        Counter.builder(REST_REQUESTS_COUNTER)
+            .description(REST_REQUESTS_COUNTER_DESCRIPTION)
+            .tag(REST_REQUESTS_TAG_PATH, this.getPath())
+            .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
+            .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
+            .register(registry)
+            .increment();
+
     }
 
     private String getStatusGroup(int statusCode) {

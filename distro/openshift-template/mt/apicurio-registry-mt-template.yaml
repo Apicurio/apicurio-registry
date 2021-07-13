@@ -477,13 +477,13 @@ parameters:
   value: "true"
 - name: REGISTRY_AUTH_ROLES_ADMIN
   description: property to set the name of the role that enables Admin access when using token based RBAC
-  value: ${REGISTRY_AUTH_ROLES_ADMIN}
+  value: "sr-admin"
 - name: REGISTRY_AUTH_ROLES_DEVELOPER
   description: property to set the name of the role that enables Developer access when using token based RBAC
-  value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+  value: "sr-developer"
 - name: REGISTRY_AUTH_ROLES_READONLY
   description: property to set the name of the role that enables ReadOnly access when using token based RBAC
-  value: ${REGISTRY_AUTH_ROLES_READONLY}
+  value: "sr-readonly"
 
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager

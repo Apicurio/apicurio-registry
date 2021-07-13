@@ -15,7 +15,10 @@ public interface MetricsConstants {
 
     String REST_PREFIX = "rest.";
     String REST_REQUESTS = REST_PREFIX + "requests";
-    String REST_REQUESTS_DESCRIPTION = "Timing and results of REST endpoints calls";
+    String REST_REQUESTS_TIMER_DESCRIPTION = "Timing and results of REST endpoints calls";
+
+    String REST_REQUESTS_COUNTER = REST_REQUESTS + ".count";
+    String REST_REQUESTS_COUNTER_DESCRIPTION = "Count and results of REST endpoints calls";
 
     // REST tags/labels
 

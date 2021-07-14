@@ -17,5 +17,15 @@ Install development/build dependencies
 Run a full build
 `yarn build`
 
+Initialize config.js
+`./init-dev.sh none`
+
+Note: the init-dev.sh script just copies an appropriate file from config/config-*.js to the right place.  You can either specify `none` or `keycloakjs` as the argument to the script.  The choice depends on how you are running the back-end component.
+
 Start the development server
 `yarn start`
+
+Note that you will need a registry back-end running for the UI to actually work.  The easiest way to do this is using 
+docker, but you could also run the registry from maven or any other way you choose.  Here is how you do it with Docker:
+
+`docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest`

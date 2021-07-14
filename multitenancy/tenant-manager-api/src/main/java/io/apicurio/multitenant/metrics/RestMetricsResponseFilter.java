@@ -18,8 +18,6 @@ package io.apicurio.multitenant.metrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
@@ -49,7 +47,8 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class RestMetricsResponseFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    @Inject
+    Logger log;
 
     @Inject
     MeterRegistry registry;

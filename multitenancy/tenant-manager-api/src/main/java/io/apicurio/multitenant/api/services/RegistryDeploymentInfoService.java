@@ -22,8 +22,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.multitenant.api.datamodel.RegistryDeploymentInfo;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -39,7 +37,8 @@ import io.fabric8.openshift.client.OpenShiftClient;
 @ApplicationScoped
 public class RegistryDeploymentInfoService {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     @ConfigProperty(name = "registry.namespace")
     Optional<String> registryNamespace;

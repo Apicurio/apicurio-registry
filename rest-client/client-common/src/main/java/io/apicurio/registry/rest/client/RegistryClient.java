@@ -17,24 +17,27 @@
 package io.apicurio.registry.rest.client;
 
 
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
-
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -43,61 +46,61 @@ import java.util.Map;
  */
 public interface RegistryClient {
 
-	InputStream getLatestArtifact(String groupId, String artifactId);
+    InputStream getLatestArtifact(String groupId, String artifactId);
 
-	ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data);
+    ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data);
 
-	void deleteArtifact(String groupId, String artifactId);
+    void deleteArtifact(String groupId, String artifactId);
 
-	ArtifactMetaData getArtifactMetaData(String groupId, String artifactId);
+    ArtifactMetaData getArtifactMetaData(String groupId, String artifactId);
 
-	void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
+    void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
 
-	VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
+    VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
 
-	default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
+    default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
         return getArtifactVersionMetaDataByContent(groupId, artifactId, null, data);
     }
 
-	List<RuleType> listArtifactRules(String groupId, String artifactId);
+    List<RuleType> listArtifactRules(String groupId, String artifactId);
 
-	void createArtifactRule(String groupId, String artifactId, Rule data);
+    void createArtifactRule(String groupId, String artifactId, Rule data);
 
-	void deleteArtifactRules(String groupId, String artifactId);
+    void deleteArtifactRules(String groupId, String artifactId);
 
-	Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule);
+    Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule);
 
-	Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data);
+    Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data);
 
-	void deleteArtifactRule(String groupId, String artifactId, RuleType rule);
+    void deleteArtifactRule(String groupId, String artifactId, RuleType rule);
 
-	void updateArtifactState(String groupId, String artifactId, UpdateState data);
+    void updateArtifactState(String groupId, String artifactId, UpdateState data);
 
-	void testUpdateArtifact(String groupId, String artifactId, InputStream data);
+    void testUpdateArtifact(String groupId, String artifactId, InputStream data);
 
-	InputStream getArtifactVersion(String groupId, String artifactId, String version);
+    InputStream getArtifactVersion(String groupId, String artifactId, String version);
 
-	VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version);
+    VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version);
 
-	void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
-	                                   EditableMetaData data);
+    void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+                                       EditableMetaData data);
 
-	void deleteArtifactVersionMetaData(String groupId, String artifactId, String version);
+    void deleteArtifactVersionMetaData(String groupId, String artifactId, String version);
 
-	void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data);
+    void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data);
 
-	VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
-	                                          Integer limit);
+    VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
+                                              Integer limit);
 
-	VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data);
+    VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data);
 
-	ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
+    ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
-	default ArtifactSearchResults listArtifactsInGroup(String groupId) {
+    default ArtifactSearchResults listArtifactsInGroup(String groupId) {
         return listArtifactsInGroup(groupId, null, null, null, null);
     }
 
-	ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data);
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data);
 
     default ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) {
         return createArtifact(groupId, artifactId, null, null, null, null, data);
@@ -112,11 +115,11 @@ public interface RegistryClient {
         return createArtifact(groupId, artifactId, null, artifactType, ifExists, null, data);
     }
 
-	void deleteArtifactsInGroup(String groupId);
+    void deleteArtifactsInGroup(String groupId);
 
-	InputStream getContentById(long contentId);
+    InputStream getContentById(long contentId);
 
-	InputStream getContentByGlobalId(long globalId);
+    InputStream getContentByGlobalId(long globalId);
 
     InputStream getContentByHash(String contentHash, Boolean canonical);
 
@@ -124,36 +127,48 @@ public interface RegistryClient {
         return getContentByHash(contentHash, null);
     };
 
-	ArtifactSearchResults searchArtifacts(String group, String name, String description, List<String> labels,
-	        List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
+    ArtifactSearchResults searchArtifacts(String group, String name, String description, List<String> labels,
+            List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
-	ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
+    ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
-	List<RuleType> listGlobalRules();
+    List<RuleType> listGlobalRules();
 
-	void createGlobalRule(Rule data);
+    void createGlobalRule(Rule data);
 
-	void deleteAllGlobalRules();
+    void deleteAllGlobalRules();
 
-	Rule getGlobalRuleConfig(RuleType rule);
+    Rule getGlobalRuleConfig(RuleType rule);
 
-	Rule updateGlobalRuleConfig(RuleType rule, Rule data);
+    Rule updateGlobalRuleConfig(RuleType rule, Rule data);
 
-	void deleteGlobalRule(RuleType rule);
+    void deleteGlobalRule(RuleType rule);
 
-	List<NamedLogConfiguration> listLogConfigurations();
+    List<NamedLogConfiguration> listLogConfigurations();
 
-	NamedLogConfiguration getLogConfiguration(String logger);
+    NamedLogConfiguration getLogConfiguration(String logger);
 
-	NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
+    NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
 
-	NamedLogConfiguration removeLogConfiguration(String logger);
+    NamedLogConfiguration removeLogConfiguration(String logger);
 
-	InputStream exportData();
+    InputStream exportData();
 
-	void importData(InputStream data);
+    void importData(InputStream data);
 
-	void setNextRequestHeaders(Map<String, String> requestHeaders);
+    List<RoleMapping> listRoleMappings();
 
-	Map<String, String> getHeaders();
+    void createRoleMapping(RoleMapping data);
+
+    RoleMapping getRoleMapping(String principalId);
+
+    void updateRoleMapping(String principalId, RoleType role);
+
+    void deleteRoleMapping(String principalId);
+
+    UserInfo getCurrentUserInfo();
+
+    void setNextRequestHeaders(Map<String, String> requestHeaders);
+
+    Map<String, String> getHeaders();
 }

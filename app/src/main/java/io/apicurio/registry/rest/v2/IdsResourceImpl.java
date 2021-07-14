@@ -16,6 +16,17 @@
 
 package io.apicurio.registry.rest.v2;
 
+import java.util.function.Supplier;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -29,13 +40,6 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.function.Supplier;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -57,6 +61,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(int)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentById(int contentId) {
         ContentHandle content = storage.getArtifactByContentId(contentId);
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -67,6 +72,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public Response getContentByGlobalId(int globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -93,6 +99,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getArtifactByContentHash(contentHash);
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);

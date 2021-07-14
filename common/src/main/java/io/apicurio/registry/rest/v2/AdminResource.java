@@ -2,7 +2,9 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
 import java.util.List;
@@ -158,4 +160,72 @@ public interface AdminResource {
   @POST
   @Consumes("application/zip")
   void importData(InputStream data);
+
+  /**
+   * Gets the details of a single role mapping (by principalId).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No role mapping for the principalId exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/roleMappings/{principalId}")
+  @GET
+  @Produces("application/json")
+  RoleMapping getRoleMapping(@PathParam("principalId") String principalId);
+
+  /**
+   * Updates a single role mapping for one user/principal.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No role mapping for the principalId exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/roleMappings/{principalId}")
+  @PUT
+  @Consumes("application/json")
+  void updateRoleMapping(@PathParam("principalId") String principalId, UpdateRole data);
+
+  /**
+   * Deletes a single role mapping, effectively denying access to a user/principal.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No role mapping for the principalId exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/roleMappings/{principalId}")
+  @DELETE
+  void deleteRoleMapping(@PathParam("principalId") String principalId);
+
+  /**
+   * Gets a list of all role mappings configured in the registry (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/roleMappings")
+  @GET
+  @Produces("application/json")
+  List<RoleMapping> listRoleMappings();
+
+  /**
+   * Creates a new mapping between a user/principal and a role.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   *
+   */
+  @Path("/roleMappings")
+  @POST
+  @Consumes("application/json")
+  void createRoleMapping(RoleMapping data);
 }

@@ -161,10 +161,30 @@ objects:
             value: ${KEYCLOAK_REALM}
           - name: KEYCLOAK_API_CLIENT_ID
             value: ${KEYCLOAK_API_CLIENT_ID}
-          - name: REGISTRY_AUTHZ_ENABLED
-            value: ${REGISTRY_AUTHZ_ENABLED}
-          - name: AUTHZ_ENABLED
-            value: ${AUTHZ_ENABLED}
+
+          - name: OWNER_ONLY_AUTHZ_ENABLED
+            value: ${OWNER_ONLY_AUTHZ_ENABLED}
+          - name: ROLE_BASED_AUTHZ_ENABLED
+            value: ${ROLE_BASED_AUTHZ_ENABLED}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_FROM}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM}
+          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE
+            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE}
+          - name: REGISTRY_AUTH_ROLES_ADMIN
+            value: ${REGISTRY_AUTH_ROLES_ADMIN}
+          - name: REGISTRY_AUTH_ROLES_DEVELOPER
+            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_ROLES_READONLY
+            value: ${REGISTRY_AUTH_ROLES_READONLY}
+
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}
           - name: TENANT_MANAGER_REALM
@@ -430,12 +450,41 @@ parameters:
 - name: KEYCLOAK_API_CLIENT_ID
   description: client id for Apicurio Registry API
   value: registry-api
-- name: REGISTRY_AUTHZ_ENABLED
-  description: flag to enable/disable authorization in apicurio registry
+
+- name: OWNER_ONLY_AUTHZ_ENABLED
+  description: flag to enable/disable owner-only authorization
   value: "false"
-- name: AUTHZ_ENABLED
-  description: flag to enable/disable owner-only authorization in apicurio registry
+- name: ROLE_BASED_AUTHZ_ENABLED
+  description: flag to enable/disable role based authorization
   value: "false"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
+  description: flag to enable/disable the admin-override auth feature
+  value: "false"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
+  description: property to set where to get admin-override meta-data from (e.g. token)
+  value: "token"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE
+  description: property to set the type of admin-override meta-data (e.g. role or claim)
+  value: "role"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE
+  description: property to set the role that activates admin-override (e.g. sr-admin)
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM
+  description: property to set the claim that potentially activates admin-override
+  value: "is_org_admin"
+- name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE
+  description: property to set the claim value that must match to activate admin-override
+  value: "true"
+- name: REGISTRY_AUTH_ROLES_ADMIN
+  description: property to set the name of the role that enables Admin access when using token based RBAC
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ROLES_DEVELOPER
+  description: property to set the name of the role that enables Developer access when using token based RBAC
+  value: "sr-developer"
+- name: REGISTRY_AUTH_ROLES_READONLY
+  description: property to set the name of the role that enables ReadOnly access when using token based RBAC
+  value: "sr-readonly"
+
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager
   required: true

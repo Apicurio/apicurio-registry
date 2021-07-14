@@ -1,0 +1,30 @@
+.role-list {
+}
+
+.role-list .role-list-item {
+    background-color: white;
+    margin-bottom: 2px;
+}
+
+.role-list .role-list-item .type-icon-cell {
+    flex: initial;
+}
+
+.role-list .role-list-item .content-cell {
+}
+
+.role-list .role-list-item .content-cell .role-txt {
+    margin-right: 5px;
+}
+
+.role-list .role-list-item .content-cell .role-principal {
+    font-weight: bold;
+}
+
+.role-list .role-list-item .content-cell .role-role {
+    text-decoration: underline;
+}
+
+.role-list .role-list-item .role-revoke-icon {
+    margin-right: 8px;
+}

@@ -19,6 +19,7 @@ export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
     multiTenant?: boolean;
+    roleManagement?: boolean;
 }
 
 export interface ArtifactsConfig {
@@ -32,6 +33,8 @@ export interface UiConfig {
 
 export interface AuthConfig {
     type: string;
+    rbacEnabled: boolean;
+    obacEnabled: boolean;
 }
 
 // Used when `type=keycloakjs`

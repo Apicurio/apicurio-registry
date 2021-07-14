@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
@@ -44,6 +45,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
@@ -982,6 +984,65 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public long countTotalArtifactVersions() throws RegistryStorageException {
         return sqlStore.countTotalArtifactVersions();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Create, role));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    public void deleteRoleMapping(String principalId) throws RegistryStorageException {
+        if (!sqlStore.isRoleMappingExists(principalId)) {
+            throw new RoleMappingNotFoundException();
+        }
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Delete));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
+     */
+    @Override
+    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
+        return sqlStore.getRoleMappings();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMapping(java.lang.String)
+     */
+    @Override
+    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
+        return sqlStore.getRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     */
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        return sqlStore.getRoleForPrincipal(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        if (!sqlStore.isRoleMappingExists(principalId)) {
+            throw new RoleMappingNotFoundException();
+        }
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Update, role));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

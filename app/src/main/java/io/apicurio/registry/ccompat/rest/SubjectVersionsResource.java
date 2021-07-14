@@ -117,7 +117,7 @@ public interface SubjectVersionsResource {
      *         Error code 50003 – Error while forwarding the request to the primary
      */
     @POST
-    @Authorized(AuthorizedStyle.ArtifactOnly)
+    @Authorized(style=AuthorizedStyle.ArtifactOnly)
     SchemaId register(
             @PathParam("subject") String subject,
             @NotNull SchemaInfo request) throws Exception;
@@ -188,7 +188,7 @@ public interface SubjectVersionsResource {
      */
     @DELETE
     @Path("/{version}")
-    @Authorized(AuthorizedStyle.ArtifactOnly)
+    @Authorized(style=AuthorizedStyle.ArtifactOnly)
     int deleteSchemaVersion(
             @PathParam("subject") String subject,
             @PathParam("version") String version) throws Exception;

@@ -17,6 +17,7 @@
 import React from "react";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 import {Services} from "../../../services";
+import {AuthService} from "../../../services/auth";
 
 /**
  * Properties
@@ -26,6 +27,7 @@ export interface IfAuthProps extends PureComponentProps {
     isAuthenticated?: boolean;
     isAdmin?: boolean;
     isDeveloper?: boolean;
+    owner?: string;
     children?: React.ReactNode;
 }
 
@@ -60,10 +62,10 @@ export class IfAuth extends PureComponent<IfAuthProps, IfAuthState> {
     }
 
     private accept(): boolean {
-        const auth: any = Services.getAuthService();
+        const auth: AuthService = Services.getAuthService();
         let rval: boolean = true;
         if (this.props.enabled !== undefined) {
-            rval = rval && (auth.isAuthEnabled() === this.props.enabled);
+            rval = rval && (auth.isAuthenticationEnabled() === this.props.enabled);
         }
         if (this.props.isAuthenticated !== undefined) {
             rval = rval && (auth.isAuthenticated() === this.props.isAuthenticated);
@@ -72,7 +74,7 @@ export class IfAuth extends PureComponent<IfAuthProps, IfAuthState> {
             rval = rval && (auth.isUserAdmin() === this.props.isAdmin);
         }
         if (this.props.isDeveloper !== undefined) {
-            rval = rval && (auth.isUserDeveloper() === this.props.isDeveloper);
+            rval = rval && (auth.isUserDeveloper(this.props.owner) === this.props.isDeveloper);
         }
         return rval;
     }

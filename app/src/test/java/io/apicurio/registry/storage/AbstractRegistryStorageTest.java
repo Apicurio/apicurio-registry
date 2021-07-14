@@ -91,8 +91,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
     }
 
     @AfterEach

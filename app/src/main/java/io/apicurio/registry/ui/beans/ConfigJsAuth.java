@@ -27,6 +27,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class ConfigJsAuth {
 
     public String type;
+    public Boolean rbacEnabled;
+    public Boolean obacEnabled;
     public Map<String, Object> options;
 
     /**

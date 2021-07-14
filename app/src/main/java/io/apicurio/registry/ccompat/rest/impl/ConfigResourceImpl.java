@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.rest.ConfigResource;
@@ -76,6 +79,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
         return getCompatibilityLevel(() ->
                 facade.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
@@ -83,6 +87,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(
             CompatibilityLevelDto request) {
 
@@ -94,6 +99,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,
             CompatibilityLevelDto request) {
@@ -104,6 +110,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
         return getCompatibilityLevel(() ->
                 facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());

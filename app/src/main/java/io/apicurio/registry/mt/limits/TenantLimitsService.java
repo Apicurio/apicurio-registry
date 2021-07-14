@@ -24,8 +24,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.metrics.StorageMetricsStore;
@@ -38,8 +36,6 @@ import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 @ApplicationScoped
 public class TenantLimitsService {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
-
     //FIXME improve error messages
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of uploaded schemas exceeded";
     private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded";
@@ -51,6 +47,9 @@ public class TenantLimitsService {
     private static final String MAX_PROPERTIES_EXCEEDED_MSG = "Maximum number of properties exceeded for this artifact";
     private static final String MAX_PROP_KEY_SIZE_EXCEEDED_MSG = "Maximum property key size exceeded";
     private static final String MAX_PROP_VALUE_SIZE_EXCEEDED_MSG = "Maximum property value size exceeded";
+
+    @Inject
+    Logger log;
 
     @Inject
     TenantContext tenantContext;

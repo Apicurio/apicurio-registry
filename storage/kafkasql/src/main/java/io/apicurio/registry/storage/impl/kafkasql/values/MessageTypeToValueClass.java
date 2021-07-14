@@ -61,6 +61,9 @@ public class MessageTypeToValueClass {
                 case ContentId:
                     index.put(type, ContentIdValue.class);
                     break;
+                case RoleMapping:
+                    index.put(type, RoleMappingValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

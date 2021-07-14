@@ -21,6 +21,7 @@ import {AdminService} from "./admin";
 import {Service} from "./baseService";
 import {DownloaderService} from "./downloader";
 import {AuthService} from "./auth";
+import {UsersService} from "./users";
 
 /**
  * Class that provides access to all of the services in the application.
@@ -53,8 +54,13 @@ export class Services {
         return Services.all.auth;
     }
 
+    public static getUsersService(): UsersService {
+        return Services.all.users;
+    }
+
     private static all: any = {
         groups: new GroupsService(),
+        users: new UsersService(),
         config: new ConfigService(),
         downloader: new DownloaderService(),
         admin: new AdminService(),

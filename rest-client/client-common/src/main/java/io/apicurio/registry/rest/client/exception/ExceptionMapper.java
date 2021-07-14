@@ -35,6 +35,10 @@ public class ExceptionMapper {
                 return new RuleNotFoundException(ex.getError());
             case "RuleAlreadyExistsException":
                 return new RuleAlreadyExistsException(ex.getError());
+            case "RoleMappingNotFoundException":
+                return new RoleMappingNotFoundException(ex.getError());
+            case "RoleMappingAlreadyExistsException":
+                return new RoleMappingAlreadyExistsException(ex.getError());
             case "VersionNotFoundException":
                 return new VersionNotFoundException(ex.getError());
             case "DefaultRuleDeletionException":

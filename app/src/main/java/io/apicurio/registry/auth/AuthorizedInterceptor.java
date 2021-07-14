@@ -16,129 +16,91 @@
 
 package io.apicurio.registry.auth;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.types.Current;
+
+import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@Interceptor
+@Authorized @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)
-@Authorized
 public class AuthorizedInterceptor {
 
     @Inject
     Logger log;
 
     @Inject
+    AuthConfig authConfig;
+
+    @Inject
     SecurityIdentity securityIdentity;
 
     @Inject
-    @Current
-    RegistryStorage storage;
+    AdminOverride adminOverride;
 
-    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
-    boolean authenticationEnabled;
+    @Inject
+    RoleBasedAccessController rbac;
 
-    @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean authorizationEnabled;
-
-    @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
-    String adminRole;
-
-    @PostConstruct
-    public void onConstruct(InvocationContext context) {
-        if (isAuthEnabled()) {
-            log.info("*** Owner-only authorization is enabled ***");
-        }
-    }
-
-    private boolean isAuthEnabled() {
-        return authenticationEnabled && authorizationEnabled;
-    }
+    @Inject
+    OwnerBasedAccessController obac;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
-        if (!isAuthEnabled() || isAllowed(context)) {
+        // If the user is trying to invoke a role-mapping operation, deny it if
+        // database based RBAC is not enabled.
+        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
+        if (rbacOpAnnotation != null) {
+            if (!authConfig.isApplicationRbacEnabled()) {
+                throw new ForbiddenException("Application RBAC not enabled.");
+            }
+        }
+
+        // If authentication is not enabled, just do it.
+        if (!authConfig.authenticationEnabled) {
             return context.proceed();
-        } else {
-            throw new UnauthorizedException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
-        }
-    }
-
-    /**
-     * Checks the invocation context for the groupId and artifactId of the artifact being
-     * changed.  Checks the createdBy field of the artifact against the principal of the
-     * currently authenticated user.  If they are the same, then the operation is allowed.
-     * @param context
-     */
-    private boolean isAllowed(InvocationContext context) {
-        if (isAdmin()) {
-            return true;
         }
 
-        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        AuthorizedStyle mode = annotation.value();
+        log.trace("Authentication enabled, protected resource: " + context.getMethod());
+        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
 
-        if (mode == AuthorizedStyle.GroupAndArtifact) {
-            String groupId = getStringParam(context, 0);
-            String artifactId = getStringParam(context, 1);
-            return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (mode == AuthorizedStyle.GroupOnly) {
-            String groupId = getStringParam(context, 0);
-            return verifyGroupCreatedBy(groupId);
-        } else if (mode == AuthorizedStyle.ArtifactOnly) {
-            String artifactId = getStringParam(context, 1);
-            return verifyArtifactCreatedBy(null, artifactId);
-        } else {
-            return true;
+        // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+            if (annotation.level() != AuthorizedLevel.None) {
+                log.trace("Authentication credentials missing and required for protected endpoint.");
+                throw new UnauthorizedException("User is not authenticated.");
+            }
         }
-    }
 
-    private boolean verifyGroupCreatedBy(String groupId) {
-        try {
-            GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the group is not found, then return true and let the operation proceed.
-            return true;
+        // If the user is an admin (via the admin-override check) then there's no need to
+        // check rbac or obac.
+        if (adminOverride.isAdmin()) {
+            log.trace("Admin override successful.");
+            return context.proceed();
         }
-    }
 
-    private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {
-        try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the artifact is not found, then return true and let the operation proceed
-            // as normal. The result of which will typically be a 404 response, but sometimes
-            // will be some other result (e.g. creating an artifact that doesn't exist)
-            return true;
+        // If RBAC is enabled, apply role based rules
+        if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
+            log.trace("RBAC enabled and required role missing.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
-    }
 
-    private boolean isAdmin() {
-        return securityIdentity.hasRole(adminRole);
-    }
+        // If Owner-only is enabled, apply ownership rules
+        if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
+            log.trace("OBAC enabled and operation not permitted due to wrong owner.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+        }
 
-    private static String getStringParam(InvocationContext context, int index) {
-        return (String) context.getParameters()[index];
+        return context.proceed();
     }
 
 }

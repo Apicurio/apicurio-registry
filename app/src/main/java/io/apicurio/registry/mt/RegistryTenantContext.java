@@ -26,10 +26,12 @@ import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 public class RegistryTenantContext {
 
     private final String tenantId;
+    private final String tenantOwner;
     private final TenantLimitsConfiguration limitsConfiguration;
 
-    public RegistryTenantContext(String tenantId, TenantLimitsConfiguration limitsConfiguration) {
+    public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration) {
         this.tenantId = tenantId;
+        this.tenantOwner = tenantOwner;
         this.limitsConfiguration = limitsConfiguration;
     }
 
@@ -45,6 +47,13 @@ public class RegistryTenantContext {
      */
     public TenantLimitsConfiguration getLimitsConfiguration() {
         return limitsConfiguration;
+    }
+
+    /**
+     * @return the tenantOwner
+     */
+    public String getTenantOwner() {
+        return tenantOwner;
     }
 
 }

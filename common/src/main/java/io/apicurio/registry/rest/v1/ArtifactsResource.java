@@ -303,8 +303,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions/{version}")
   @GET
   @Produces({"application/json", "application/x-protobuf", "application/x-protobuffer", "application/xml", "application/graphql"})
-  Response getArtifactVersion(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
+  Response getArtifactVersion(@PathParam("artifactId") String artifactId, @PathParam("version") Integer version);
 
   /**
    * Updates the state of a specific version of an artifact.  For example, you can use
@@ -348,8 +347,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/versions/{version}/meta")
   @GET
   @Produces("application/json")
-  VersionMetaData getArtifactVersionMetaData(@PathParam("version") Integer version,
-      @PathParam("artifactId") String artifactId);
+  VersionMetaData getArtifactVersionMetaData(@PathParam("artifactId") String artifactId, @PathParam("version") Integer version);
 
   /**
    * Updates the user-editable portion of the artifact version's metadata.  Only some of
@@ -441,8 +439,7 @@ public interface ArtifactsResource {
   @Path("/{artifactId}/rules/{rule}")
   @GET
   @Produces("application/json")
-  Rule getArtifactRuleConfig(@PathParam("rule") RuleType rule,
-      @PathParam("artifactId") String artifactId);
+  Rule getArtifactRuleConfig(@PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule);
 
   /**
    * Updates the configuration of a single rule for the artifact.  The configuration data

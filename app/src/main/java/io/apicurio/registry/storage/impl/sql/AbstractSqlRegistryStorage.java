@@ -53,6 +53,8 @@ import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
@@ -65,6 +67,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
@@ -88,6 +91,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LogConfigurationMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
@@ -114,7 +118,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 1;
+    private static int DB_VERSION = 2;
     private static final Object dbMutex = new Object();
 
     @Inject
@@ -151,6 +155,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
     boolean initDB;
 
+    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
+    String jdbcUrl;
+
     /**
      * Constructor.
      */
@@ -160,69 +167,66 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @PostConstruct
     @Transactional
     protected void initialize() {
-        log.debug("SqlRegistryStorage constructed successfully.");
+        log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
 
-        if (initDB) {
-            // TODO create the JDBI handle once and pass it in to all these DB related methods
-            synchronized (dbMutex) {
-                if (!isDatabaseInitialized()) {
-                    log.info("Database not initialized.");
-                    initializeDatabase();
+        synchronized (dbMutex) {
+            handles.withHandleNoException((handle) -> {
+                if (initDB) {
+                    if (!isDatabaseInitialized(handle)) {
+                        log.info("Database not initialized.");
+                        initializeDatabase(handle);
+                    } else {
+                        log.info("Database was already initialized, skipping.");
+                    }
+
+                    if (!isDatabaseCurrent(handle)) {
+                        log.info("Old database version detected, upgrading.");
+                        upgradeDatabase(handle);
+                    }
                 } else {
-                    log.info("Database was already initialized, skipping.");
-                }
+                    if (!isDatabaseInitialized(handle)) {
+                        log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
+                        throw new RuntimeException("Database not initialized.");
+                    }
 
-                if (!isDatabaseCurrent()) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabase();
+                    if (!isDatabaseCurrent(handle)) {
+                        log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
+                        throw new RuntimeException("Database not upgraded.");
+                    }
                 }
-            }
-        } else {
-            if (!isDatabaseInitialized()) {
-                log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
-                throw new RuntimeException("Database not initialized.");
-            }
-
-            if (!isDatabaseCurrent()) {
-                log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
-                throw new RuntimeException("Database not upgraded.");
-            }
+                return null;
+            });
         }
     }
 
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseInitialized() {
+    private boolean isDatabaseInitialized(Handle handle) {
         log.info("Checking to see if the DB is initialized.");
-        return handles.withHandleNoException(handle -> {
-            int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class).one();
-            return count > 0;
-        });
+        int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class).one();
+        return count > 0;
     }
 
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseCurrent() {
+    private boolean isDatabaseCurrent(Handle handle) {
         log.info("Checking to see if the DB is up-to-date.");
-        int version = this.getDatabaseVersion();
+        int version = this.getDatabaseVersion(handle);
         return version == DB_VERSION;
     }
 
-    private void initializeDatabase() {
+    private void initializeDatabase(Handle handle) {
         log.info("Initializing the Apicurio Registry database.");
         log.info("\tDatabase type: " + this.sqlStatements.dbType());
 
         final List<String> statements = this.sqlStatements.databaseInitialization();
         log.debug("---");
 
-        handles.withHandleNoException( handle -> {
-            statements.forEach( statement -> {
-                log.debug(statement);
-                handle.createUpdate(statement).execute();
-            });
-            return null;
+        statements.forEach( statement -> {
+            log.debug(statement);
+            handle.createUpdate(statement).execute();
         });
         log.debug("---");
     }
@@ -231,10 +235,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * Upgrades the database by executing a number of DDL statements found in DB-specific
      * DDL upgrade scripts.
      */
-    private void upgradeDatabase() {
+    private void upgradeDatabase(Handle handle) {
         log.info("Upgrading the Apicurio Hub API database.");
 
-        int fromVersion = this.getDatabaseVersion();
+        int fromVersion = this.getDatabaseVersion(handle);
         int toVersion = DB_VERSION;
 
         log.info("\tDatabase type: {}", this.sqlStatements.dbType());
@@ -243,18 +247,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         final List<String> statements = this.sqlStatements.databaseUpgrade(fromVersion, toVersion);
         log.debug("---");
-        handles.withHandleNoException( handle -> {
-            statements.forEach( statement -> {
-                log.debug(statement);
+        statements.forEach( statement -> {
+            log.debug(statement);
 
-                if (statement.startsWith("UPGRADER:")) {
-                    String cname = statement.substring(9).trim();
-                    applyUpgrader(handle, cname);
-                } else {
-                    handle.createUpdate(statement).execute();
-                }
-            });
-            return null;
+            if (statement.startsWith("UPGRADER:")) {
+                String cname = statement.substring(9).trim();
+                applyUpgrader(handle, cname);
+            } else {
+                handle.createUpdate(statement).execute();
+            }
         });
         log.debug("---");
     }
@@ -280,19 +281,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * Reuturns the current DB version by selecting the value in the 'apicurio' table.
      */
-    private int getDatabaseVersion() {
-        return handles.withHandleNoException(handle -> {
-            try {
-                int version = handle.createQuery(this.sqlStatements.getDatabaseVersion())
-                        .bind(0, "db_version")
-                        .mapTo(Integer.class)
-                        .one();
-                return version;
-            } catch (Exception e) {
-                log.error("Error getting DB version.", e);
-                return 0;
-            }
-        });
+    private int getDatabaseVersion(Handle handle) {
+        try {
+            int version = handle.createQuery(this.sqlStatements.getDatabaseVersion())
+                    .bind(0, "db_version")
+                    .mapTo(Integer.class)
+                    .one();
+            return version;
+        } catch (Exception e) {
+            log.error("Error getting DB version.", e);
+            return 0;
+        }
     }
 
     /**
@@ -2098,7 +2097,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.selectGroupByGroupId();
                 Optional<GroupMetaDataDto> res = handle.createQuery(sql)
                         .bind(0, tenantContext.tenantId())
-                        .bind(0, groupId)
+                        .bind(1, groupId)
                         .map(GroupMetaDataDtoMapper.instance)
                         .findOne();
                 return res.orElseThrow(() -> new GroupNotFoundException(groupId));
@@ -2297,6 +2296,140 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
             return count;
         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
+        log.debug("Inserting a role mapping row for: {}", principalId);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.insertRoleMapping();
+                handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, principalId)
+                      .bind(2, role)
+                      .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new RoleMappingAlreadyExistsException();
+            }
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    public void deleteRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Deleting a role mapping row for: {}", principalId);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.deleteRoleMapping();
+                int rowCount = handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, principalId)
+                      .execute();
+                if (rowCount == 0) {
+                    throw new RoleMappingNotFoundException();
+                }
+                return null;
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMapping(java.lang.String)
+     */
+    @Override
+    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Selecting a single role mapping for: {}", principalId);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectRoleMappingByPrincipalId();
+                Optional<RoleMappingDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, principalId)
+                        .map(RoleMappingDtoMapper.instance)
+                        .findOne();
+                return res.orElseThrow(() -> new RoleMappingNotFoundException());
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     */
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        log.debug("Selecting the role for: {}", principalId);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectRoleByPrincipalId();
+                Optional<String> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, principalId)
+                        .mapTo(String.class)
+                        .findOne();
+                return res.orElse(null);
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
+     */
+    @Override
+    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
+        log.debug("Getting a list of all role mappings.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectRoleMappings();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(RoleMappingDtoMapper.instance)
+                    .list();
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        log.debug("Updating a role mapping: {}::{}", principalId, role);
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.updateRoleMapping();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, role)
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, principalId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new RoleMappingNotFoundException();
+                }
+                return null;
+            });
+        } catch (RoleMappingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     protected void resetGlobalId(Handle handle) {

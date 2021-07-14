@@ -26,6 +26,7 @@ public class Routes {
     protected static final String IDS_BASE_PATH = "ids";
     protected static final String ADMIN_BASE_PATH = "admin";
     protected static final String SEARCH_BASE_PATH = "search";
+    protected static final String USERS_BASE_PATH = "users";
     protected static final String SEARCH_ARTIFACTS = SEARCH_BASE_PATH + "/artifacts";
 
     protected static final String ARTIFACT_RULES = ARTIFACT_BASE_PATH + "/rules";
@@ -47,8 +48,13 @@ public class Routes {
     protected static final String RULES_BASE_PATH = ADMIN_BASE_PATH + "/rules";
     protected static final String RULE_PATH = RULES_BASE_PATH + "/%s";
 
+    protected static final String ROLE_MAPPINGS_BASE_PATH = ADMIN_BASE_PATH + "/roleMappings";
+    protected static final String ROLE_MAPPING_PATH = ROLE_MAPPINGS_BASE_PATH + "/%s";
+
     protected static final String LOGS_BASE_PATH = ADMIN_BASE_PATH + "/loggers";
     protected static final String LOG_PATH = LOGS_BASE_PATH + "/%s";
+
+    protected static final String CURRENT_USER_PATH = USERS_BASE_PATH + "/me";
 
     protected static final String EXPORT_PATH = ADMIN_BASE_PATH + "/export";
     protected static final String IMPORT_PATH = ADMIN_BASE_PATH + "/import";

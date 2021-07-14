@@ -30,13 +30,16 @@ import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 
 /**
@@ -649,6 +652,54 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void importData(InputStream data) {
         getTarget().importData(data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
+     */
+    @Override
+    public void createRoleMapping(RoleMapping data) {
+        getTarget().createRoleMapping(data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    public void deleteRoleMapping(String principalId) {
+        getTarget().deleteRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getRoleMapping(java.lang.String)
+     */
+    @Override
+    public RoleMapping getRoleMapping(String principalId) {
+        return getTarget().getRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listRoleMappings()
+     */
+    @Override
+    public List<RoleMapping> listRoleMappings() {
+        return getTarget().listRoleMappings();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#updateRoleMapping(java.lang.String, io.apicurio.registry.types.RoleType)
+     */
+    @Override
+    public void updateRoleMapping(String principalId, RoleType role) {
+        getTarget().updateRoleMapping(principalId, role);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getCurrentUserInfo()
+     */
+    @Override
+    public UserInfo getCurrentUserInfo() {
+        return getTarget().getCurrentUserInfo();
     }
 
 }

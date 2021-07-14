@@ -66,7 +66,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
         DdlParser parser = new DdlParser();
 
         for (int version = fromVersion + 1; version <= toVersion; version++) {
-            try (InputStream input = getClass().getResourceAsStream("upgrades/" + version + "/" + dbType() + ".ddl")) {
+            try (InputStream input = getClass().getResourceAsStream("upgrades/" + version + "/" + dbType() + ".upgrade.ddl")) {
                 statements.addAll(parser.parse(input));
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -754,6 +754,62 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectGlobalIdExists() {
         return "SELECT COUNT(globalId) FROM versions WHERE globalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertRoleMapping()
+     */
+    @Override
+    public String insertRoleMapping() {
+        return "INSERT INTO acls (tenantId, principalId, role) VALUES (?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteRoleMapping()
+     */
+    @Override
+    public String deleteRoleMapping() {
+        return "DELETE FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleMappingByPrincipalId()
+     */
+    @Override
+    public String selectRoleMappingByPrincipalId() {
+        return "SELECT a.* FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleByPrincipalId()
+     */
+    @Override
+    public String selectRoleByPrincipalId() {
+        return "SELECT a.role FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleMappings()
+     */
+    @Override
+    public String selectRoleMappings() {
+        return "SELECT a.* FROM acls a WHERE a.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateRoleMapping()
+     */
+    @Override
+    public String updateRoleMapping() {
+        return "UPDATE acls SET role = ? WHERE tenantId = ? AND principalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectRoleMappingCountByPrincipal()
+     */
+    @Override
+    public String selectRoleMappingCountByPrincipal() {
+        return "SELECT COUNT(a.principalId) FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
     }
 
 }

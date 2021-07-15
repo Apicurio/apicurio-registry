@@ -25,7 +25,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buffer>>> {

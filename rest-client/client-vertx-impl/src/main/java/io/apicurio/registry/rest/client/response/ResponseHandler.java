@@ -63,7 +63,7 @@ public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buff
             } else {
                 resultHolder.completeExceptionally(event.cause());
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             resultHolder.completeExceptionally(e);
         }
     }

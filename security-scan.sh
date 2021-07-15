@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+ls -lrt
+
 # The API Token for SourceClear will be provided during pipeline runtime and you should make sure that following environment variables are available
 if [[ ! -z "${SRCCLR_API_TOKEN}" ]]; then
    echo "SRCCLR_API_TOKEN is set. Scanning can begin..."

@@ -109,7 +109,7 @@ export class AuthService implements Service {
             })
     };
 
-    public isAuthenticated = () => this.keycloak.authenticated;
+    public isAuthenticated = () => this.keycloak != null && this.keycloak.authenticated;
 
     public doLogin = () => this.keycloak.login;
 

@@ -349,12 +349,13 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final Integer globalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
 
         //Verify
-        Assertions.assertNull(given()
+        Assertions.assertEquals(given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get("/ccompat/v6/schemas/ids/{id}", globalId)
                 .then()
-                .extract().body().jsonPath().get("schemaType"));
+                .extract()
+                .body().jsonPath().get("schemaType"), "AVRO");
     }
 
     /**

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
 import io.apicurio.registry.logging.Logged;
@@ -49,8 +49,8 @@ import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
     @Override
-    public SchemaContent getSchema(int id) {
-        return facade.getSchemaContent(id);
+    public SchemaInfo getSchema(int id) {
+        return facade.getSchemaById(id);
     }
 
     @Override

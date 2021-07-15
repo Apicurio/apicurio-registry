@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -51,6 +52,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 
 /**
@@ -101,7 +103,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public SchemaContent getSchemaContent(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
+    public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
         if (cconfig.legacyIdModeEnabled) {
             long globalId = contentId;
             ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
@@ -109,9 +111,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new ArtifactNotFoundException(null, String.valueOf(globalId));
             }
             StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
-            return converter.convert(artifact.getContent());
+            return converter.convert(artifact.getContent(), ArtifactTypeUtil.discoverType(artifact.getContent(), null));
         } else {
-            return converter.convert(storage.getArtifactByContentId(contentId));
+            final ContentHandle artifactByContentId = storage.getArtifactByContentId(contentId);
+            return converter.convert(artifactByContentId, ArtifactTypeUtil.discoverType(artifactByContentId, null));
         }
     }
 

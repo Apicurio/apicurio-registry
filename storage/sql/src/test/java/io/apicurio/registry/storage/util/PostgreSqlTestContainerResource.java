@@ -16,40 +16,36 @@
 
 package io.apicurio.registry.storage.util;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.testcontainers.containers.PostgreSQLContainer;
+
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 /**
  * @author Fabian Martinez
  */
-public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
+public class PostgreSqlTestContainerResource implements QuarkusTestResourceLifecycleManager {
 
-    private EmbeddedPostgres database;
+    @SuppressWarnings("rawtypes")
+    private PostgreSQLContainer database;
 
     /**
      * @see io.quarkus.test.common.QuarkusTestResourceLifecycleManager#start()
      */
     @Override
     public Map<String, String> start() {
+        database = new PostgreSQLContainer<>("postgres:12-alpine");
+        database.start();
 
-        try {
-            database = EmbeddedPostgres.start();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-
-
-        String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
+        String datasourceUrl = "jdbc:postgresql://" + database.getContainerIpAddress() + ":" +
+                database.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + database.getDatabaseName();
 
         Map<String, String> props = new HashMap<>();
         props.put("quarkus.datasource.jdbc.url", datasourceUrl);
-        props.put("quarkus.datasource.username", "postgres");
-        props.put("quarkus.datasource.password", "postgres");
+        props.put("quarkus.datasource.username", database.getUsername());
+        props.put("quarkus.datasource.password", database.getPassword());
         return props;
     }
 
@@ -58,11 +54,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
      */
     @Override
     public void stop() {
-        try {
-            database.close();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        database.stop();
     }
 
 }

@@ -19,7 +19,7 @@ package io.apicurio.registry.ccompat.rest.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
 import io.apicurio.registry.logging.Logged;
@@ -41,8 +41,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public SchemaContent getSchema(int id) {
-        return facade.getSchemaContent(id);
+    public SchemaInfo getSchema(int id) {
+        return facade.getSchemaById(id);
     }
 
     @Override

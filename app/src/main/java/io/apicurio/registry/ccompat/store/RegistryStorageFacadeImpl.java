@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -48,6 +49,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 
 /**
@@ -89,8 +91,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public SchemaContent getSchemaContent(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        return FacadeConverter.convert(storage.getArtifactByContentId(globalId));
+    public SchemaInfo getSchemaById(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
+        final ContentHandle contentHandle = storage.getArtifactByContentId(globalId);
+        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.discoverType(contentHandle, null));
     }
 
     @Override

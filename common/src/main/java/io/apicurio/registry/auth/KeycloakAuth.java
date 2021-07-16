@@ -38,8 +38,6 @@ import org.slf4j.LoggerFactory;
 public class KeycloakAuth extends ClientCredentialsAuth {
 
     private final AuthzClient keycloak;
-    private final String clientId;
-    private final String clientSecret;
     private AccessTokenResponse accessToken;
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuth.class);
@@ -50,8 +48,6 @@ public class KeycloakAuth extends ClientCredentialsAuth {
         credentials.put("secret", clientSecret);
         final Configuration configuration = new Configuration(serverUrl, realm, clientId, credentials, null);
         this.keycloak = AuthzClient.create(configuration);
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
     }
 
     /**
@@ -61,14 +57,12 @@ public class KeycloakAuth extends ClientCredentialsAuth {
     public void apply(Map<String, String> requestHeaders) {
         if (isAccessTokenRequired()) {
             this.accessToken = this.keycloak.obtainAccessToken();
-        } else if (isTokenExpired(accessToken.getToken())) {
-            this.accessToken = refreshToken(accessToken.getRefreshToken());
         }
         requestHeaders.put("Authorization", BEARER + accessToken.getToken());
     }
 
     private boolean isAccessTokenRequired() {
-        return null == accessToken || accessToken.getRefreshToken() == null || isTokenExpired(accessToken.getRefreshToken());
+        return null == accessToken || isTokenExpired(accessToken.getToken());
     }
 
     private boolean isTokenExpired(String token) {
@@ -79,24 +73,6 @@ public class KeycloakAuth extends ClientCredentialsAuth {
             log.info("Error verifying access token: ", e);
         }
         return false;
-    }
-
-    public AccessTokenResponse refreshToken(String refreshToken) {
-        final String url = keycloak.getConfiguration().getAuthServerUrl() + "/realms/" + keycloak.getConfiguration().getRealm() + "/protocol/openid-connect/token";
-        final Http http = new Http(keycloak.getConfiguration(), (params, headers) -> {
-        });
-
-        return http.<AccessTokenResponse>post(url)
-                .authentication()
-                .client()
-                .form()
-                .param("grant_type", "refresh_token")
-                .param("refresh_token", refreshToken)
-                .param("client_id", this.clientId)
-                .param("client_secret", this.clientSecret)
-                .response()
-                .json(AccessTokenResponse.class)
-                .execute();
     }
 
     public static class Builder {

@@ -32,8 +32,6 @@ public class Auth {
 
     private final AuthzClient keycloak;
     private static final String BEARER = "Bearer ";
-    private final String clientId;
-    private final String clientSecret;
     private AccessTokenResponse accessToken;
 
 
@@ -42,43 +40,21 @@ public class Auth {
         credentials.put("secret", clientSecret);
         final Configuration configuration = new Configuration(serverUrl, realm, clientId, credentials, null);
         this.keycloak = AuthzClient.create(configuration);
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
     }
 
     public String obtainAuthorizationValue() throws VerificationException {
         if (isAccessTokenRequired()) {
             this.accessToken = this.keycloak.obtainAccessToken();
-        } else if (isTokenExpired(this.accessToken.getToken())) {
-            this.accessToken = refreshToken(accessToken.getRefreshToken());
         }
         return BEARER + accessToken.getToken();
     }
 
     private boolean isAccessTokenRequired() throws VerificationException {
-        return null == accessToken || accessToken.getRefreshToken() == null || isTokenExpired(accessToken.getRefreshToken());
+        return null == accessToken || isTokenExpired(this.accessToken.getToken());
     }
 
     private boolean isTokenExpired(String token) throws VerificationException {
         final AccessToken accessToken = TokenVerifier.create(token, AccessToken.class).getToken();
         return (accessToken.getExp() != null && accessToken.getExp() != 0L) && (long) Time.currentTime() > accessToken.getExp();
-    }
-
-    public AccessTokenResponse refreshToken(String refreshToken) {
-        final String url = keycloak.getConfiguration().getAuthServerUrl() + "/realms/" + keycloak.getConfiguration().getRealm() + "/protocol/openid-connect/token";
-        final Http http = new Http(keycloak.getConfiguration(), (params, headers) -> {
-        });
-
-        return http.<AccessTokenResponse>post(url)
-                .authentication()
-                .client()
-                .form()
-                .param("grant_type", "refresh_token")
-                .param("refresh_token", refreshToken)
-                .param("client_id", this.clientId)
-                .param("client_secret", this.clientSecret)
-                .response()
-                .json(AccessTokenResponse.class)
-                .execute();
     }
 }

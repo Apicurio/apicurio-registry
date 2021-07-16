@@ -56,6 +56,9 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.role-source", defaultValue = "token")
     String roleSource;
 
+    @ConfigProperty(name = "registry.auth.role-mapping-storage-source", defaultValue = "database")
+    String rolesMappingStorageSource;
+
     @ConfigProperty(name = "registry.auth.tenant-owner-is-admin.enabled", defaultValue = "true")
     boolean tenantOwnerIsAdminEnabled;
 
@@ -76,6 +79,18 @@ public class AuthConfig {
 
     @ConfigProperty(name = "registry.auth.admin-override.claim-value", defaultValue = "true")
     String adminOverrideClaimValue;
+
+    @ConfigProperty(name = "auth.admin.server-url")
+    String AdminAuthServerUrl;
+
+    @ConfigProperty(name = "auth.admin.realm")
+    String adminRealm;
+
+    @ConfigProperty(name = "auth.admin.client-id")
+    String adminClientId;
+
+    @ConfigProperty(name = "auth.admin.client-secret")
+    String adminClientSecret;
 
     @PostConstruct
     void onConstruct() {
@@ -119,7 +134,26 @@ public class AuthConfig {
     }
 
     public boolean isApplicationRbacEnabled() {
-        return this.roleBasedAuthorizationEnabled && "application".equals(getRoleSource());
+        return this.roleBasedAuthorizationEnabled && ("application".equals(getRoleSource()) || "keycloak".equals(rolesMappingStorageSource));
     }
 
+    public String getRolesMappingStorageSource() {
+        return this.rolesMappingStorageSource;
+    }
+
+    public String getAdminAuthServerUrl() {
+        return AdminAuthServerUrl;
+    }
+
+    public String getAdminRealm() {
+        return adminRealm;
+    }
+
+    public String getAdminClientId() {
+        return adminClientId;
+    }
+
+    public String getAdminClientSecret() {
+        return adminClientSecret;
+    }
 }

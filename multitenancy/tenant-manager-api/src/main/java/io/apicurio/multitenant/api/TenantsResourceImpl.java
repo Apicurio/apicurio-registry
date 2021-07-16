@@ -62,6 +62,7 @@ public class TenantsResourceImpl implements TenantsResource {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
         required(tenantRequest.getOrganizationId(), "OrganizationId is mandatory");
+        required(tenantRequest.getClientId(), "ClientId is mandatory");
 
         RegistryTenantDto tenant = new RegistryTenantDto();
 
@@ -71,6 +72,10 @@ public class TenantsResourceImpl implements TenantsResource {
         tenant.setDescription(tenantRequest.getDescription());
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(tenantRequest.getCreatedBy());
+        tenant.setAuthClientId(tenantRequest.getClientId());
+        if (tenantRequest.getAuthServerUrl() != null) {
+            tenant.setAuthServerUrl(tenantRequest.getAuthServerUrl());
+        }
 
         if (tenantRequest.getResources() != null) {
             //find duplicates, invalid config

@@ -48,13 +48,13 @@ public class ErrorHandler {
                 //authorization error
                 Error error = new Error();
                 error.setErrorCode(statusCode);
-                throw new NotAuthorizedException(error);
+                return new NotAuthorizedException(error);
             } else {
                 if (statusCode == FORBIDDEN_CODE) {
                     //forbidden error
                     Error error = new Error();
                     error.setErrorCode(statusCode);
-                    throw new ForbiddenException(error);
+                    return new ForbiddenException(error);
                 }
             }
             Error error = mapper.readValue(body, Error.class);

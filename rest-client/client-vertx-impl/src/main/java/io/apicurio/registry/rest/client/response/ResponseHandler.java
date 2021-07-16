@@ -25,7 +25,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buffer>>> {
@@ -42,10 +41,13 @@ public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buff
     @SuppressWarnings("unchecked")
     @Override
     public void handle(AsyncResult<HttpResponse<Buffer>> event) {
-
         try {
-            if (isFailure(event.result().statusCode())) {
-               resultHolder.completeExceptionally(ErrorHandler.handleErrorResponse(IoUtil.toStream(event.result().body().getBytes()), event.result().statusCode()));
+            if (event.result() != null && isFailure(event.result().statusCode())) {
+                if (event.result().body() != null) {
+                    resultHolder.completeExceptionally(ErrorHandler.handleErrorResponse(IoUtil.toStream(event.result().body().getBytes()), event.result().statusCode()));
+                } else {
+                    resultHolder.completeExceptionally(ErrorHandler.handleErrorResponse(null, event.result().statusCode()));
+                }
             } else if (event.succeeded()) {
                 final HttpResponse<Buffer> result = event.result();
                 final String typeName = targetType.getType().getTypeName();
@@ -60,7 +62,7 @@ public class ResponseHandler<T> implements Handler<AsyncResult<HttpResponse<Buff
             } else {
                 resultHolder.completeExceptionally(event.cause());
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             resultHolder.completeExceptionally(e);
         }
     }

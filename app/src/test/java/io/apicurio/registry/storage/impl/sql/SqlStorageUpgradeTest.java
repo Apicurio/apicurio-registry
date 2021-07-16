@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -32,7 +33,9 @@ import io.quarkus.test.junit.TestProfile;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
+//Disabled for now since this profile is initializing a h2 database even when building the sql profile which uses an embbeded postgres
 @TestProfile(SqlStorageUpgradeTestProfile.class)
+@Disabled
 public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
 
     @Test

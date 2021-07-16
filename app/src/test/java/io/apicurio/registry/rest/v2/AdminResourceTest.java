@@ -43,6 +43,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
+import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,7 @@ import io.vertx.core.json.JsonObject;
  * @author Fabian Martinez
  */
 @QuarkusTest
+@TestProfile(ApplicationRbacEnabledProfile.class)
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")

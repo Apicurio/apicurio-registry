@@ -59,7 +59,7 @@
             <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
             <scope>test</scope>
         </dependency>
-        
+
     </dependencies>
     
     <build>

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.ccompat.rest;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 
 import javax.ws.rs.Consumes;
@@ -66,7 +66,7 @@ public interface SchemasResource {
      */
     @GET
     @Path("/ids/{id}")
-    SchemaContent getSchema(@PathParam("id") int id);
+    SchemaInfo getSchema(@PathParam("id") int id);
 
     // ----- PATH: /schemas/ids/{int: id}/versions -----
 

@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -42,6 +43,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
+import io.apicurio.tests.common.auth.CustomJWTAuth;
 
 
 /**
@@ -112,6 +114,8 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryClient createTenant() {
 
+        String username = UUID.randomUUID().toString();
+
         String tenantId = UUID.randomUUID().toString();
         String tenantAppUrl = TestUtils.getRegistryBaseUrl() + "/t/" + tenantId;
 
@@ -119,10 +123,12 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         tenantReq.setOrganizationId("foo");
         tenantReq.setTenantId(tenantId);
 
-        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl());
+        var keycloak = registryFacade.getMTOnlyKeycloakMock();
+        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(),
+                new Auth(keycloak.authServerUrl, keycloak.realm, keycloak.clientId, keycloak.clientSecret));
         tenantManager.createTenant(tenantReq);
 
-        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), null);
+        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new CustomJWTAuth(username, tenantReq.getOrganizationId()));
     }
 
 }

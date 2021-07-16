@@ -19,14 +19,12 @@ package io.apicurio.multitenant.client;
 import org.keycloak.TokenVerifier;
 import org.keycloak.authorization.client.AuthzClient;
 import org.keycloak.authorization.client.Configuration;
-import org.keycloak.authorization.client.util.Http;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.Time;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public class Auth {
 

@@ -16,20 +16,18 @@
 
 package io.apicurio.registry.auth;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.keycloak.TokenVerifier;
 import org.keycloak.authorization.client.AuthzClient;
 import org.keycloak.authorization.client.Configuration;
-import org.keycloak.authorization.client.util.Http;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.Time;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.AccessTokenResponse;
-import org.keycloak.representations.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -71,8 +69,8 @@ public class KeycloakAuth extends ClientCredentialsAuth {
             return (accessToken.getExp() != null && accessToken.getExp() != 0L) && (long) Time.currentTime() > accessToken.getExp();
         } catch (VerificationException e) {
             log.info("Error verifying access token: ", e);
+            throw new IllegalStateException(e);
         }
-        return false;
     }
 
     public static class Builder {

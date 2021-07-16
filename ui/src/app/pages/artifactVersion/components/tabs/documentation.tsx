@@ -19,6 +19,8 @@ import React from "react";
 import "./documentation.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {RedocStandalone} from "redoc";
+import { ErrorTabContent } from "./errorTab";
+import { Services } from "src/services";
 
 
 /**
@@ -35,7 +37,8 @@ export interface DocumentationTabContentProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface DocumentationTabContentState extends PureComponentState {
-    parsedContent: any;
+    parsedContent: any | undefined;
+    error: any | undefined
 }
 
 
@@ -49,6 +52,10 @@ export class DocumentationTabContent extends PureComponent<DocumentationTabConte
     }
 
     public render(): React.ReactElement {
+        if (this.isError()){
+            return <ErrorTabContent error={{errorMessage: "Artifact isn't a valid OpenAPI structure", error: this.state.error}}/>
+        }
+
         let visualizer: React.ReactElement | null = null;
         if (this.props.artifactType === "OPENAPI") {
             visualizer = <RedocStandalone spec={this.state.parsedContent} />;
@@ -62,8 +69,27 @@ export class DocumentationTabContent extends PureComponent<DocumentationTabConte
     }
 
     protected initializeState(): DocumentationTabContentState {
-        return {
-            parsedContent: JSON.parse(this.props.artifactContent)
-        };
+        try {
+            return {
+                parsedContent: JSON.parse(this.props.artifactContent),
+                error: undefined
+            };
+        } catch(ex) {
+            Services.getLoggerService().warn("Failed to parse content:");
+            Services.getLoggerService().error(ex);
+            return {
+                parsedContent: undefined,
+                error: ex
+            };
+        }
+        
+    }
+
+    private isError() : boolean {
+        if(this.state.error){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

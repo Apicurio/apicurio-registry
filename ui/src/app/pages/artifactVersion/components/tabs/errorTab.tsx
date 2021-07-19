@@ -109,7 +109,7 @@ export class ErrorTabContent extends PureComponent<ErrorTabContentProps, ErrorTa
             return this.props.children;
         } else {
             return (
-                "Something went seriously wrong on the server.  We'll try to provide you with some more information about " +
+                "The content you are trying to visualize is not valid (we could not parse it).  If possible, we'll try to provide you with some more information about " +
                 "the problem (see below)."
             );
         }

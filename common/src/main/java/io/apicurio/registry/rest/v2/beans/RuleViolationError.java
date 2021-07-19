@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-public class RuleViolationError extends Error {
+public class RuleViolationError {
 
     /**
      * List of rule violation causes.

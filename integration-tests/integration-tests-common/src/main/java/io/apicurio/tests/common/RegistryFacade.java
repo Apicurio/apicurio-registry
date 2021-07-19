@@ -389,12 +389,12 @@ public class RegistryFacade {
 
         appEnv.put("AUTH_ENABLED", "true");
         appEnv.put("ROLE_BASED_AUTHZ_ENABLED", "true");
+        appEnv.put("ROLE_BASED_AUTHZ_SOURCE", "application");
 
         appEnv.put("KEYCLOAK_URL", keycloakMock.authServerUrl);
         appEnv.put("KEYCLOAK_REALM", keycloakMock.realm);
         appEnv.put("KEYCLOAK_API_CLIENT_ID", keycloakMock.clientId);
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
-
 
         appEnv.put("TENANT_MANAGER_AUTH_URL", keycloakMock.authServerUrl);
         appEnv.put("TENANT_MANAGER_REALM", keycloakMock.realm);

@@ -112,6 +112,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
         tenantReq.setOrganizationId(UUID.randomUUID().toString());
         tenantReq.setTenantId(UUID.randomUUID().toString());
+        tenantReq.setCreatedBy(username);
 
 //        props.put("registry.limits.config.max-total-schemas", "2");
 //        props.put("registry.limits.config.max-artifact-properties", "2");

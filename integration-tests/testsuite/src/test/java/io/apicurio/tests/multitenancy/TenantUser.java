@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.utils.tests;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import io.quarkus.test.junit.QuarkusTestProfile;
+package io.apicurio.tests.multitenancy;
 
 /**
- * @author Carles Arnal
+ * @author Fabian Martinez
  */
-public class AuthTestProfileWithLocalRoles implements QuarkusTestProfile {
+public class TenantUser {
 
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return Collections.emptyMap();
+    public String principalId;
+    public String organizationId;
+
+    public TenantUser(String principalId, String organizationId) {
+        this.principalId = principalId;
+        this.organizationId = organizationId;
     }
 
-    @Override
-    public List<TestResourceEntry> testResources() {
-        return Collections.singletonList(
-                new TestResourceEntry(KeycloakTestResourceWithLocalRoles.class));
-    }
 }

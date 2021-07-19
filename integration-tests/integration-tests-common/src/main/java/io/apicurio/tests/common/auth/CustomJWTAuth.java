@@ -39,17 +39,13 @@ public class CustomJWTAuth implements Auth {
      */
     @Override
     public void apply(Map<String, String> requestHeaders) {
-        requestHeaders.put("Authorization", "Bearer " +
-                Jwt.preferredUserName(username)
+        String token = Jwt.preferredUserName(username)
+                .claim("rh_org_id", organizationId)
+                .jws()
+                .keyId("1")
+                .sign();
 
-                    //TODO remove this and update multitenancy ITs to store roles in the DB
-                    .groups("sr-admin")
-
-                    .claim("rh_org_id", organizationId)
-                    .jws()
-                    .keyId("1")
-                    .sign());
-//                    .sign("privateKey.jwk"));
+        requestHeaders.put("Authorization", "Bearer " + token);
     }
 
 }

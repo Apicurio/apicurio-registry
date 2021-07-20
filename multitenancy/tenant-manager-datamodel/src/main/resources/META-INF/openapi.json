@@ -126,7 +126,7 @@
                 },
                 "operationId": "deleteTenant",
                 "summary": "Delete a Tenant",
-                "description": "Deletes an existing `Tenant`."
+                "description": "Marks an existing `Tenant` to be deleted."
             },
             "parameters": [
                 {
@@ -144,27 +144,70 @@
             "summary": "Path used to manage the list of tenants.",
             "description": "The REST endpoint/path used to list and create zero or more `Tenant` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
             "get": {
+                "parameters": [
+                    {
+                        "name": "status",
+                        "description": "Filter by tenant status.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of entries to skip before starting to collect the result set.  Defaults to 0.",
+                        "schema": {
+                            "default": 0,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of entries to return.  Defaults to 20.",
+                        "schema": {
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortOrder"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "orderby",
+                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n* `tenantId`\n",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortBy"
+                        },
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RegistryTenant"
-                                    }
+                                    "$ref": "#/components/schemas/RegistryTenantList"
                                 }
                             }
                         },
-                        "description": "Successful response - returns an array of `Tenant` entities."
+                        "description": "Successful response - returns an object containing a slice of `Tenant` entities."
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getTenants",
-                "summary": "List All Tenants",
-                "description": "Gets a list of all `Tenant` entities."
+                "summary": "List Tenants",
+                "description": "Gets a list of `RegistryTenant` entities according to the query parameters set."
             },
             "post": {
                 "requestBody": {
@@ -266,6 +309,10 @@
                     "description": {
                         "description": "An optional description for the tenant.",
                         "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "User who created the tenant",
+                        "type": "string"
                     }
                 },
                 "example": {
@@ -277,7 +324,8 @@
                             "type": "MAX_TOTAL_SCHEMAS",
                             "limit": 1000
                         }
-                    ]
+                    ],
+                    "createdBy": "foo-user"
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
@@ -340,6 +388,9 @@
                     "description": {
                         "description": "The description of the tenant.",
                         "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TenantStatusValue"
                     }
                 },
                 "example": {
@@ -354,7 +405,8 @@
                             "type": "MAX_TOTAL_SCHEMAS",
                             "limit": 1000
                         }
-                    ]
+                    ],
+                    "status": "READY"
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
@@ -448,6 +500,9 @@
                     "description": {
                         "description": "An optional description for the tenant.",
                         "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TenantStatusValue"
                     }
                 },
                 "example": {
@@ -458,9 +513,57 @@
                             "type": "MAX_TOTAL_SCHEMAS",
                             "limit": 1000
                         }
-                    ]
+                    ],
+                    "status": "TO_BE_DELETED"
                 },
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "TenantStatusValue": {
+                "description": "\"READY\": Tenant status when ready for use.\n\n\"TO_BE_DELETED\": Tenant status when marked to be deleted with all it's data.\n\n\"DELETED\": Tenant status after data deletion is finished.\n",
+                "enum": [
+                    "READY",
+                    "TO_BE_DELETED",
+                    "DELETED"
+                ],
+                "type": "string"
+            },
+            "RegistryTenantList": {
+                "description": "Describes the response received when searching for tenants.",
+                "required": [
+                    "count",
+                    "items"
+                ],
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "description": "The RegistryTenants returned in the result set.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RegistryTenant"
+                        }
+                    },
+                    "count": {
+                        "description": "The total number of items that matched the query that produced the result set (may be \nmore than the number of items in the result set).",
+                        "type": "integer"
+                    }
+                }
+            },
+            "SortOrder": {
+                "description": "",
+                "enum": [
+                    "asc",
+                    "desc"
+                ],
+                "type": "string"
+            },
+            "SortBy": {
+                "description": "",
+                "enum": [
+                    "name",
+                    "createdOn",
+                    "tenantId"
+                ],
+                "type": "string"
             }
         },
         "responses": {

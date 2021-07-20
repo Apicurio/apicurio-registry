@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.hamcrest.Matchers;
+import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -295,6 +297,87 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("id", equalTo("testCreateArtifact/EmptyAPI-customVersion"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
+        // Create OpenAPI artifact - provide a custom name
+        String customName = "CUSTOM NAME";
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customName")
+                .header("X-Registry-Name", customName)
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("name", equalTo(customName))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customName"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create OpenAPI artifact - provide a custom No-ASCII name
+        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char č";
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customNameEncoded")
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("name", equalTo(customNoASCIIName))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customNameEncoded"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create OpenAPI artifact - provide a custom description
+        String customDescription = "CUSTOM DESCRIPTION";
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customDescription")
+                .header("X-Registry-Description", customDescription)
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("description", equalTo(customDescription))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customDescription"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create OpenAPI artifact - provide a custom No-ASCII description
+        String customNoASCIIDescription = "CUSTOM DESCRIPTION with NO-ASCII char č";
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customDescriptionEncoded")
+                .header("X-Registry-Description-Encoded", Base64.encode(customNoASCIIDescription.getBytes(StandardCharsets.UTF_8)))
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("description", equalTo(customNoASCIIDescription))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customDescriptionEncoded"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Create OpenAPI artifact - provide a custom name and encoded custom name (conflict - should fail)
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customNameConflict")
+                .header("X-Registry-Name", customName)
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(409);
+
     }
 
     @Test
@@ -383,6 +466,104 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
             .then()
                 .statusCode(400);
+
+        // Update OpenAPI artifact with a custom version
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Version", "3.0.0.Final")
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("version", equalTo("3.0.0.Final"))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Update OpenAPI artifact with a custom name
+        String customName = "CUSTOM NAME";
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Name", customName)
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customName))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Update OpenAPI artifact with a custom no-ascii name
+        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char ě";
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customNoASCIIName))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Update OpenAPI artifact with a custom description
+        String customDescription = "CUSTOM DESCRIPTION";
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Description", customDescription)
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("description", equalTo(customDescription))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Update OpenAPI artifact with a custom no-ascii description
+        String customNoASCIIDescription = "CUSTOM DESCRIPTION with NO-ASCII char ě";
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Description-Encoded", Base64.encode(customNoASCIIDescription.getBytes(StandardCharsets.UTF_8)))
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("description", equalTo(customNoASCIIDescription))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+        // Try to Update artifact with a custom name and encoded name (conflict - should fail)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Name", customName)
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(409);
     }
 
     @Test
@@ -637,6 +818,78 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("version", equalTo("3.0.0.Final"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
+        // Create another new version of the artifact with a custom name
+        String customName = "CUSTOM NAME";
+
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-Name", customName)
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customName));
+
+        // Create another new version of the artifact with a custom description
+        String customDescription = "CUSTOM DESCRIPTION";
+
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-Description", customDescription)
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("description", equalTo(customDescription));
+
+        // Create another new version of the artifact with a custom No-ASCII name and description
+        String customNameNoASCII = "CUSTOM NAME WITH NO-ASCII CHAR ě";
+        String customDescriptionNoASCII = "CUSTOM DESCRIPTION WITH NO-ASCII CHAR ě";
+
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-Name-Encoded", Base64.encode(customNameNoASCII.getBytes(StandardCharsets.UTF_8)))
+                .header("X-Registry-Description-Encoded", Base64.encode(customDescriptionNoASCII.getBytes(StandardCharsets.UTF_8)))
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customNameNoASCII))
+                .body("description", equalTo(customDescriptionNoASCII));
+
+        // Get artifact metadata (should has the custom name and description)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customNameNoASCII))
+                .body("description", equalTo(customDescriptionNoASCII));
+
+        // Try to create new version of the artifact with a custom name and encoded name (conflict)
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-Name-Encoded", Base64.encode(customNameNoASCII.getBytes(StandardCharsets.UTF_8)))
+                .header("X-Registry-Name", customName)
+                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .body(updatedArtifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(409);
     }
 
     @Test

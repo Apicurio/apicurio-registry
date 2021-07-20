@@ -19,6 +19,7 @@ package io.apicurio.registry.rest.v2;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -49,6 +50,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.PartlyFilledArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
@@ -63,6 +65,7 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+import org.jose4j.base64url.Base64;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -136,19 +139,27 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifact(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifact(String, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion, InputStream data) {
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
+                                           String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
+                                           String xRegistryDescriptionEncoded, InputStream data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+
+        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
+        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+
+        String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
+        String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
 
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, content, getContentType());
+        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType());
     }
 
     /**
@@ -469,14 +480,22 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, InputStream)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId,
-            ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion,
-            IfExists ifExists, Boolean canonical, InputStream data) {
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+                                           String xRegistryVersion, IfExists ifExists, Boolean canonical,
+                                           String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                           String xRegistryName, String xRegistryNameEncoded, InputStream data) {
         requireParameter("groupId", groupId);
+
+        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
+        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+
+        String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
+        String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
+
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
             throw new InvalidGroupIdException(ArtifactIdValidator.GROUP_ID_ERROR_MESSAGE);
         }
@@ -505,7 +524,8 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            ArtifactMetaDataDto amd = storage.createArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content);
+            PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(artifactName, artifactDescription, null, null);
+            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
@@ -533,16 +553,24 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersion(String, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId,
-            String xRegistryVersion, InputStream data) {
+                                                 String xRegistryVersion, String xRegistryName,
+                                                 String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                                 String xRegistryNameEncoded, InputStream data) {
         // TODO do something with the user-provided version info
 
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+
+        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
+        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+
+        String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
+        String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
 
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
@@ -555,12 +583,14 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto amd = storage.updateArtifact(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content);
+        PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(artifactName, artifactDescription, null, null);
+        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
 
     /**
      * Check to see if the artifact version is deprecated.
+     *
      * @param stateSupplier
      * @param groupId
      * @param artifactId
@@ -592,6 +622,23 @@ public class GroupsResourceImpl implements GroupsResource {
         if (parameterValue == null) {
             throw new MissingRequiredParameterException(parameterName);
         }
+    }
+
+    private static void maxOneOf(String parameterOneName, Object parameterOneValue, String parameterTwoName, Object parameterTwoValue) {
+        if (parameterOneValue != null && parameterTwoValue != null) {
+            throw new ConflictException("Both " + parameterOneName + " and " + parameterTwoName + " are present.");
+        }
+    }
+
+    private static <T> T getOneOf(T parameterOneValue, T parameterTwoValue) {
+        return parameterOneValue != null ? parameterOneValue : parameterTwoValue;
+    }
+
+    private static String decode(String encoded) {
+        if (encoded == null) {
+            return null;
+        }
+        return new String(Base64.decode(encoded));
     }
 
     /**
@@ -678,7 +725,13 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-            ContentHandle content, String contentType) {
+                                                    ContentHandle content, String contentType) {
+        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType);
+    }
+
+    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
+                                                    String name, String description,
+                                                    ContentHandle content, String contentType) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
@@ -686,7 +739,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto dto = storage.updateArtifact(gidOrNull(groupId), artifactId, version, artifactType, content);
+        PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(name, description, null, null);
+        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
     }
 

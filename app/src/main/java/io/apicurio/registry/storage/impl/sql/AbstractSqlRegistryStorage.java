@@ -35,6 +35,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.storage.dto.PartlyFilledArtifactMetaDataDto;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -633,8 +634,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         // If the metaData provided is null, try to figure it out from the content.
         EditableArtifactMetaDataDto md = metaData;
-        if (md == null) {
-            md = extractMetaData(artifactType, content);
+        if (md == null || md instanceof PartlyFilledArtifactMetaDataDto) {
+            md = extractMetaData(artifactType, content, md);
         }
 
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
@@ -872,8 +873,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
 
         // Extract meta-data from the content if no metadata is provided
-        if (metaData == null) {
-            metaData = extractMetaData(artifactType, content);
+        if (metaData == null || metaData instanceof PartlyFilledArtifactMetaDataDto) {
+            metaData = extractMetaData(artifactType, content, metaData);
         }
 
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
@@ -2719,15 +2720,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    protected EditableArtifactMetaDataDto extractMetaData(ArtifactType artifactType, ContentHandle content) {
+    protected EditableArtifactMetaDataDto extractMetaData(ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) {
+        if (metaData == null) {
+            metaData = new EditableArtifactMetaDataDto();
+        }
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
         ContentExtractor extractor = provider.getContentExtractor();
         ExtractedMetaData emd = extractor.extract(content);
-        EditableArtifactMetaDataDto metaData;
         if (emd != null) {
-            metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), emd.getLabels(), emd.getProperties());
-        } else {
-            metaData = new EditableArtifactMetaDataDto();
+            if (metaData.getName() == null) metaData.setName(emd.getName());
+            if (metaData.getDescription() == null) metaData.setDescription(emd.getDescription());
+            if (metaData.getLabels() == null) metaData.setLabels(emd.getLabels());
+            if (metaData.getProperties() == null) metaData.setProperties(emd.getProperties());
         }
         return metaData;
     }

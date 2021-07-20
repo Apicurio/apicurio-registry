@@ -24,7 +24,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "name",
     "description",
     "createdBy"
-
 })
 @Generated("jsonschema2pojo")
 public class NewRegistryTenantRequest {
@@ -66,10 +65,9 @@ public class NewRegistryTenantRequest {
     @JsonProperty("description")
     @JsonPropertyDescription("An optional description for the tenant.")
     private String description;
-
     /**
-     * User who requested the tenant.
-     *
+     * User who created the tenant
+     * 
      */
     @JsonProperty("createdBy")
     @JsonPropertyDescription("User who created the tenant")
@@ -170,8 +168,8 @@ public class NewRegistryTenantRequest {
     }
 
     /**
-     * User who requested the tenant.
-     *
+     * User who created the tenant
+     * 
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -179,11 +177,12 @@ public class NewRegistryTenantRequest {
     }
 
     /**
-     * User who requested the tenant.
-     *
+     * User who created the tenant
+     * 
      */
     @JsonProperty("createdBy")
     public void setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
     }
+
 }

@@ -249,6 +249,12 @@
             <properties>
                 <quarkus.package.type>native</quarkus.package.type>
             </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-keycloak-authorization</artifactId>
+                </dependency>
+            </dependencies>
         </profile>
     </profiles>
 </project>

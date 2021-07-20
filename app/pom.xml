@@ -104,13 +104,6 @@
             <artifactId>quarkus-smallrye-context-propagation</artifactId>
         </dependency>
 
-        <!-- Required for native image -->
-        <!-- https://quarkus.io/guides/logging#logging-adapters -->
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>commons-logging-jboss-logging</artifactId>
-        </dependency>
-
         <!-- Persistence -->
         <dependency>
             <groupId>io.quarkus</groupId>

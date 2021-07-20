@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 
 
 /**
@@ -20,7 +21,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "resources",
     "name",
-    "description"
+    "description",
+    "status"
 })
 @Generated("jsonschema2pojo")
 public class UpdateRegistryTenantRequest {
@@ -46,6 +48,18 @@ public class UpdateRegistryTenantRequest {
     @JsonProperty("description")
     @JsonPropertyDescription("An optional description for the tenant.")
     private String description;
+    /**
+     * "READY": Tenant status when ready for use.
+     * 
+     * "TO_BE_DELETED": Tenant status when marked to be deleted with all it's data.
+     * 
+     * "DELETED": Tenant status after data deletion is finished.
+     * 
+     * 
+     */
+    @JsonProperty("status")
+    @JsonPropertyDescription("\"READY\": Tenant status when ready for use.\n\n\"TO_BE_DELETED\": Tenant status when marked to be deleted with all it's data.\n\n\"DELETED\": Tenant status after data deletion is finished.\n")
+    private TenantStatusValue status;
 
     /**
      * The list of resources that this tenant will have at max. available
@@ -99,6 +113,34 @@ public class UpdateRegistryTenantRequest {
     @JsonProperty("description")
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * "READY": Tenant status when ready for use.
+     * 
+     * "TO_BE_DELETED": Tenant status when marked to be deleted with all it's data.
+     * 
+     * "DELETED": Tenant status after data deletion is finished.
+     * 
+     * 
+     */
+    @JsonProperty("status")
+    public TenantStatusValue getStatus() {
+        return status;
+    }
+
+    /**
+     * "READY": Tenant status when ready for use.
+     * 
+     * "TO_BE_DELETED": Tenant status when marked to be deleted with all it's data.
+     * 
+     * "DELETED": Tenant status after data deletion is finished.
+     * 
+     * 
+     */
+    @JsonProperty("status")
+    public void setStatus(TenantStatusValue status) {
+        this.status = status;
     }
 
 }

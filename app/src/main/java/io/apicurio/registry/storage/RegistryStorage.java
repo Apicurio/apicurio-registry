@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
@@ -587,4 +588,42 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public long countTotalArtifactVersions() throws RegistryStorageException;
+
+    /**
+     * Creates a role mapping for a user.
+     * @param principalId
+     * @param role
+     */
+    public void createRoleMapping(String principalId, String role) throws RegistryStorageException;
+
+    /**
+     * Gets the list of all the role mappings in the registry.
+     */
+    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException;
+
+    /**
+     * Gets the details of a single role mapping.
+     * @param principalId
+     */
+    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Gets the role for a single user.  This returns null if there is no role mapped for
+     * the given principal.
+     * @param principalId
+     */
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException;
+
+    /**
+     * Updates a single role mapping.
+     * @param principalId
+     * @param role
+     */
+    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException;
+
+    /**
+     * Deletes a single role mapping.
+     * @param principalId
+     */
+    public void deleteRoleMapping(String principalId) throws RegistryStorageException;
 }

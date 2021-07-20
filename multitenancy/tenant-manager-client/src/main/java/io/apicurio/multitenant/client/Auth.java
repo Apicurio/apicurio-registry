@@ -16,8 +16,13 @@
 
 package io.apicurio.multitenant.client;
 
+import org.keycloak.TokenVerifier;
 import org.keycloak.authorization.client.AuthzClient;
 import org.keycloak.authorization.client.Configuration;
+import org.keycloak.common.VerificationException;
+import org.keycloak.common.util.Time;
+import org.keycloak.representations.AccessToken;
+import org.keycloak.representations.AccessTokenResponse;
 
 import java.util.HashMap;
 
@@ -25,6 +30,8 @@ public class Auth {
 
     private final AuthzClient keycloak;
     private static final String BEARER = "Bearer ";
+    private AccessTokenResponse accessToken;
+
 
     public Auth(String serverUrl, String realm, String clientId, String clientSecret) {
         final HashMap<String, Object> credentials = new HashMap<>();
@@ -33,7 +40,19 @@ public class Auth {
         this.keycloak = AuthzClient.create(configuration);
     }
 
-    public String obtainAuthorizationValue() {
-        return BEARER + this.keycloak.obtainAccessToken().getToken();
+    public String obtainAuthorizationValue() throws VerificationException {
+        if (isAccessTokenRequired()) {
+            this.accessToken = this.keycloak.obtainAccessToken();
+        }
+        return BEARER + accessToken.getToken();
+    }
+
+    private boolean isAccessTokenRequired() throws VerificationException {
+        return null == accessToken || isTokenExpired(this.accessToken.getToken());
+    }
+
+    private boolean isTokenExpired(String token) throws VerificationException {
+        final AccessToken accessToken = TokenVerifier.create(token, AccessToken.class).getToken();
+        return (accessToken.getExp() != null && accessToken.getExp() != 0L) && (long) Time.currentTime() > accessToken.getExp();
     }
 }

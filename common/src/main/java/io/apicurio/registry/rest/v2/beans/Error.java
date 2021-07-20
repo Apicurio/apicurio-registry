@@ -1,6 +1,7 @@
 
 package io.apicurio.registry.rest.v2.beans;
 
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "detail",
     "name"
 })
+@Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
 public class Error {
 

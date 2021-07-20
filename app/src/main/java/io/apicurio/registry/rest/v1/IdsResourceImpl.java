@@ -16,6 +16,19 @@
 
 package io.apicurio.registry.rest.v1;
 
+import java.util.function.Supplier;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -30,15 +43,6 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.function.Supplier;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -64,6 +68,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
      * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactByGlobalId(long)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public Response getArtifactByGlobalId(long globalId) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -86,6 +91,7 @@ public class IdsResourceImpl implements IdsResource, Headers {
      * @see io.apicurio.registry.rest.v1.IdsResource#getArtifactMetaDataByGlobalId(long)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaDataByGlobalId(long globalId) {
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
         return V1ApiUtil.dtoToMetaData(dto.getId(), dto.getType(), dto);

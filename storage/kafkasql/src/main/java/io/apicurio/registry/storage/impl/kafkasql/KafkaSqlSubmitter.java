@@ -44,6 +44,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
@@ -55,6 +56,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -180,6 +182,19 @@ public class KafkaSqlSubmitter {
     }
     public CompletableFuture<UUID> submitGlobalRule(String tenantId, RuleType rule, ActionType action) {
         return submitGlobalRule(tenantId, rule, action, null);
+    }
+
+
+    /* ******************************************************************************************
+     * Role Mappings
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role) {
+        RoleMappingKey key = RoleMappingKey.create(tenantId, principalId);
+        RoleMappingValue value = RoleMappingValue.create(action, role);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action) {
+        return submitRoleMapping(tenantId, principalId, action, null);
     }
 
 

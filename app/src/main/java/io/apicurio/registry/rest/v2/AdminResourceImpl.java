@@ -16,33 +16,6 @@
 
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rules.DefaultRuleDeletionException;
-import io.apicurio.registry.rules.RulesProperties;
-import io.apicurio.registry.services.LogConfigurationService;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.EntityReader;
-import io.apicurio.registry.utils.impexp.EntityWriter;
-import org.slf4j.Logger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -53,6 +26,43 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+
+import org.slf4j.Logger;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
+import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rules.RulesProperties;
+import io.apicurio.registry.services.LogConfigurationService;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.RoleType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityReader;
+import io.apicurio.registry.utils.impexp.EntityWriter;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -79,6 +89,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
         List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
@@ -91,6 +102,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -101,6 +113,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteAllGlobalRules()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
     }
@@ -109,6 +122,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule getGlobalRuleConfig(RuleType rule) {
         RuleConfigurationDto dto;
         try {
@@ -130,6 +144,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -154,6 +169,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
             storage.deleteGlobalRule(rule);
@@ -173,6 +189,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getLogConfiguration(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration getLogConfiguration(String logger) {
         return logConfigService.getLogConfiguration(logger);
     }
@@ -181,6 +198,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#listLogConfigurations()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<NamedLogConfiguration> listLogConfigurations() {
         return logConfigService.listLogConfigurations();
     }
@@ -189,6 +207,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration removeLogConfiguration(String logger) {
         return logConfigService.removeLogLevelConfiguration(logger);
     }
@@ -197,6 +216,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
         if (data.getLevel() == null) {
             throw new MissingRequiredParameterException("logLevel");
@@ -208,6 +228,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#importData(java.io.InputStream)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void importData(InputStream data) {
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
         final EntityReader reader = new EntityReader(zip);
@@ -234,6 +255,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#exportData()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData() {
         StreamingOutput stream = new StreamingOutput() {
             @Override
@@ -266,6 +288,67 @@ public class AdminResourceImpl implements AdminResource {
         };
 
         return Response.ok(stream).type("application/zip").build();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public void createRoleMapping(RoleMapping data) {
+        storage.createRoleMapping(data.getPrincipalId(), data.getRole().name());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listRoleMappings()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public List<RoleMapping> listRoleMappings() {
+        List<RoleMappingDto> mappings = storage.getRoleMappings();
+        return mappings.stream().map(dto -> {
+            return dtoToRoleMapping(dto);
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#getRoleMapping(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public RoleMapping getRoleMapping(String principalId) {
+        RoleMappingDto dto = storage.getRoleMapping(principalId);
+        return dtoToRoleMapping(dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateRoleMapping(java.lang.String, io.apicurio.registry.rest.v2.beans.Role)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public void updateRoleMapping(String principalId, UpdateRole data) {
+        storage.updateRoleMapping(principalId, data.getRole().name());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteRoleMapping(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public void deleteRoleMapping(String principalId) {
+        storage.deleteRoleMapping(principalId);
+    }
+
+    private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId(dto.getPrincipalId());
+        mapping.setRole(RoleType.valueOf(dto.getRole()));
+        return mapping;
     }
 
 }

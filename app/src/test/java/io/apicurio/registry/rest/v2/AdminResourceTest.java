@@ -43,6 +43,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
+import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -51,10 +53,13 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -68,6 +73,7 @@ import io.vertx.core.json.JsonObject;
  * @author Fabian Martinez
  */
 @QuarkusTest
+@TestProfile(ApplicationRbacEnabledProfile.class)
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")
@@ -601,5 +607,178 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         var meta = clientV2.createArtifact(null, "newartifact", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         assertEquals(1006, meta.getGlobalId().intValue());
     }
+
+
+    @Test
+    public void testRoleMappings() throws Exception {
+        // Start with no role mappings
+        given()
+            .when()
+                .get("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
+
+        // Add
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId("TestUser");
+        mapping.setRole(RoleType.DEVELOPER);
+        given()
+            .when()
+                .contentType(CT_JSON).body(mapping)
+                .post("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the mapping was added.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("principalId", equalTo("TestUser"))
+                    .body("role", equalTo("DEVELOPER"));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", equalTo("TestUser"))
+                    .body("[0].role", equalTo("DEVELOPER"));
+        });
+
+        // Try to add the rule again - should get a 409
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON).body(mapping)
+                    .post("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(409)
+                    .body("error_code", equalTo(409))
+                    .body("message", equalTo("A role mapping for this principal already exists."));
+        });
+
+        // Add another mapping
+        mapping.setPrincipalId("TestUser2");
+        mapping.setRole(RoleType.ADMIN);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(mapping)
+                .post("/registry/v2/admin/roleMappings")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the list of mappings (should be 2 of them)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                    .body("[1].principalId", anyOf(equalTo("TestUser"), equalTo("TestUser2")))
+                    .body("[2]", nullValue());
+        });
+
+        // Get a single mapping by principal
+        given()
+            .when()
+                .get("/registry/v2/admin/roleMappings/TestUser2")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("principalId", equalTo("TestUser2"))
+                .body("role", equalTo("ADMIN"));
+
+        // Update a mapping
+        UpdateRole update = new UpdateRole();
+        update.setRole(RoleType.READ_ONLY);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(update)
+                .put("/registry/v2/admin/roleMappings/TestUser")
+            .then()
+                .statusCode(204);
+
+        // Get a single (updated) mapping
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("principalId", equalTo("TestUser"))
+                    .body("role", equalTo("READ_ONLY"));
+        });
+
+        // Try to update a role mapping that doesn't exist
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .body(update)
+                .put("/registry/v2/admin/roleMappings/UnknownPrincipal")
+            .then()
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("Role mapping not found for principal."));
+
+        // Delete a role mapping
+        given()
+            .when()
+                .delete("/registry/v2/admin/roleMappings/TestUser2")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Get the (deleted) mapping by name (should fail with a 404)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings/TestUser2")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404))
+                    .body("message", equalTo("Role mapping not found for principal."));
+        });
+
+        // Get the list of mappings (should be 1 of them)
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/roleMappings")
+                .then()
+                .log().all()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].principalId", equalTo("TestUser"))
+                    .body("[1]", nullValue());
+        });
+
+        // Clean up
+        given()
+            .when()
+                .delete("/registry/v2/admin/roleMappings/TestUser")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+
+    }
+
 
 }

@@ -16,6 +16,16 @@
 
 package io.apicurio.registry.rest.v1;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -31,12 +41,6 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.Current;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Implements the {@link SearchResource} interface.
@@ -57,6 +61,7 @@ public class SearchResourceImpl implements SearchResource {
      * @see io.apicurio.registry.rest.v1.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v1.beans.SearchOver, io.apicurio.registry.rest.v1.beans.SortOrder)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String search, Integer offset, Integer limit, SearchOver searchOver, SortOrder sortOrder) {
         if (offset == null) {
             offset = 0;
@@ -93,6 +98,7 @@ public class SearchResourceImpl implements SearchResource {
     }
 
 	@Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
 	public VersionSearchResults searchVersions(String artifactId, Integer offset, Integer limit) {
         if (offset == null) {
             offset = 0;

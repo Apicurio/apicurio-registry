@@ -16,21 +16,6 @@
 
 package io.apicurio.registry.rest.client.request.provider;
 
-import io.apicurio.registry.rest.client.request.Request;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.IoUtil;
-
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static io.apicurio.registry.rest.client.request.provider.Operation.DELETE;
 import static io.apicurio.registry.rest.client.request.provider.Operation.GET;
 import static io.apicurio.registry.rest.client.request.provider.Operation.POST;
@@ -39,8 +24,29 @@ import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PA
 import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOG_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.ROLE_MAPPINGS_BASE_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.ROLE_MAPPING_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULES_BASE_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.RULE_PATH;
+
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.registry.rest.client.request.Request;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.types.RoleType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 
 
 /**
@@ -167,4 +173,55 @@ public class AdminRequestsProvider {
                 .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip")))
                 .build();
     }
+
+    public static Request<Void> createRoleMapping(RoleMapping data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(ROLE_MAPPINGS_BASE_PATH)
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {})
+                .build();
+    }
+
+    public static Request<List<RoleMapping>> listRoleMappings() {
+        return new Request.RequestBuilder<List<RoleMapping>>()
+                .operation(GET)
+                .path(ROLE_MAPPINGS_BASE_PATH)
+                .responseType(new TypeReference<List<RoleMapping>>() {})
+                .build();
+    }
+
+    public static Request<Void> updateRoleMapping(String principalId, RoleType role) throws JsonProcessingException {
+        UpdateRole update = new UpdateRole();
+        update.setRole(role);
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(ROLE_MAPPING_PATH)
+                .pathParams(List.of(principalId))
+                .responseType(new TypeReference<Void>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(update)))
+                .build();
+    }
+
+    public static Request<Void> deleteRoleMapping(String principalId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(ROLE_MAPPING_PATH)
+                .pathParams(List.of(principalId))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<RoleMapping> getRoleMapping(String principalId) {
+        return new Request.RequestBuilder<RoleMapping>()
+                .operation(GET)
+                .path(ROLE_MAPPING_PATH)
+                .pathParams(List.of(principalId))
+                .responseType(new TypeReference<RoleMapping>() {
+                })
+                .build();
+    }
+
 }

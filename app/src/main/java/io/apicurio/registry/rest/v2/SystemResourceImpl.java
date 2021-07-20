@@ -26,6 +26,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -41,6 +45,7 @@ public class SystemResourceImpl implements SystemResource {
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
     public SystemInfo getSystemInfo() {
         SystemInfo info = new SystemInfo();
         info.setName(system.getName());

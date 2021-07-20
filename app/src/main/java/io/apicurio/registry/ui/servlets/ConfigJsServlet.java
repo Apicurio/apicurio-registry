@@ -33,6 +33,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.ui.beans.ConfigJs;
 import io.apicurio.registry.ui.config.UiConfigProperties;
 import io.apicurio.registry.utils.StringUtil;
@@ -51,6 +52,9 @@ public class ConfigJsServlet extends HttpServlet {
 
     @Inject
     SecurityIdentity identity;
+
+    @Inject
+    AuthConfig authConfig;
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -75,6 +79,7 @@ public class ConfigJsServlet extends HttpServlet {
             config.ui.contextPath = uiConfig.getUiContextPath();
 
             config.features.readOnly = uiConfig.isFeatureReadOnly();
+            config.features.breadcrumbs = true;
 
             configureAuth(config);
 
@@ -95,6 +100,9 @@ public class ConfigJsServlet extends HttpServlet {
         if (uiConfig.isKeycloakAuthEnabled()) {
             config.auth.type = "keycloakjs";
             config.auth.options = uiConfig.getKeycloakProperties();
+            config.auth.rbacEnabled = authConfig.isRbacEnabled();
+            config.auth.obacEnabled = authConfig.isObacEnabled();
+            config.features.roleManagement = authConfig.isApplicationRbacEnabled();
         } else {
             config.auth.type = "none";
         }

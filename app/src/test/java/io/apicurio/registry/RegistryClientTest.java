@@ -18,12 +18,15 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -34,10 +37,13 @@ import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.LogLevel;
+import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
@@ -69,6 +75,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Carles Arnal 'carnalca@redhat.com'
  */
 @QuarkusTest
+@TestProfile(ApplicationRbacEnabledProfile.class)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);
@@ -969,6 +976,92 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         testConcurrentClientCalls(groupId, clientV2, firstRequestHeaders, secondRequestHeaders);
         testNonConcurrentClientCalls(groupId, clientV2, firstRequestHeaders, secondRequestHeaders);
     }
+
+    @Test
+    public void testRoleMappings() throws Exception {
+        // Start with no role mappings
+        List<RoleMapping> roleMappings = clientV2.listRoleMappings();
+        Assertions.assertTrue(roleMappings.isEmpty());
+
+        // Add
+        RoleMapping mapping = new RoleMapping();
+        mapping.setPrincipalId("TestUser");
+        mapping.setRole(RoleType.DEVELOPER);
+        clientV2.createRoleMapping(mapping);
+
+        // Verify the mapping was added.
+        TestUtils.retry(() -> {
+            RoleMapping roleMapping = clientV2.getRoleMapping("TestUser");
+            Assertions.assertEquals("TestUser", roleMapping.getPrincipalId());
+            Assertions.assertEquals(RoleType.DEVELOPER, roleMapping.getRole());
+        });
+        TestUtils.retry(() -> {
+            List<RoleMapping> mappings = clientV2.listRoleMappings();
+            Assertions.assertEquals(1, mappings.size());
+            Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
+            Assertions.assertEquals(RoleType.DEVELOPER, mappings.get(0).getRole());
+        });
+
+        // Try to add the rule again - should get a 409
+        TestUtils.retry(() -> {
+            Assertions.assertThrows(RoleMappingAlreadyExistsException.class, () -> {
+                clientV2.createRoleMapping(mapping);
+            });
+        });
+
+        // Add another mapping
+        mapping.setPrincipalId("TestUser2");
+        mapping.setRole(RoleType.ADMIN);
+        clientV2.createRoleMapping(mapping);
+
+        // Get the list of mappings (should be 2 of them)
+        TestUtils.retry(() -> {
+            List<RoleMapping> mappings = clientV2.listRoleMappings();
+            Assertions.assertEquals(2, mappings.size());
+        });
+
+        // Get a single mapping by principal
+        RoleMapping tu2Mapping = clientV2.getRoleMapping("TestUser2");
+        Assertions.assertEquals("TestUser2", tu2Mapping.getPrincipalId());
+        Assertions.assertEquals(RoleType.ADMIN, tu2Mapping.getRole());
+
+        // Update a mapping
+        clientV2.updateRoleMapping("TestUser", RoleType.READ_ONLY);
+
+        // Get a single (updated) mapping
+        TestUtils.retry(() -> {
+            RoleMapping tum = clientV2.getRoleMapping("TestUser");
+            Assertions.assertEquals("TestUser", tum.getPrincipalId());
+            Assertions.assertEquals(RoleType.READ_ONLY, tum.getRole());
+        });
+
+        // Try to update a role mapping that doesn't exist
+        Assertions.assertThrows(RoleMappingNotFoundException.class, () -> {
+            clientV2.updateRoleMapping("UnknownPrincipal", RoleType.ADMIN);
+        });
+
+        // Delete a role mapping
+        clientV2.deleteRoleMapping("TestUser2");
+
+        // Get the (deleted) mapping by name (should fail with a 404)
+        TestUtils.retry(() -> {
+            Assertions.assertThrows(RoleMappingNotFoundException.class, () -> {
+                clientV2.getRoleMapping("TestUser2");
+            });
+        });
+
+        // Get the list of mappings (should be 1 of them)
+        TestUtils.retry(() -> {
+            List<RoleMapping> mappings = clientV2.listRoleMappings();
+            Assertions.assertEquals(1, mappings.size());
+            Assertions.assertEquals("TestUser", mappings.get(0).getPrincipalId());
+        });
+
+        // Clean up
+        clientV2.deleteRoleMapping("TestUser");
+
+    }
+
 
     private void testNonConcurrentClientCalls(String groupId, RegistryClient client, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
 

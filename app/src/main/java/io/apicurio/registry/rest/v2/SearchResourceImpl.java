@@ -16,6 +16,24 @@
 
 package io.apicurio.registry.rest.v2;
 
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.Context;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.logging.Logged;
@@ -36,19 +54,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.Context;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -78,6 +83,7 @@ public class SearchResourceImpl implements SearchResource {
      * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
             SortBy orderby, List<String> labels, List<String> properties, String description,
             String group) {
@@ -120,6 +126,7 @@ public class SearchResourceImpl implements SearchResource {
      * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Boolean, io.apicurio.registry.types.ArtifactType, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.io.InputStream)
      */
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, ArtifactType artifactType, Integer offset, Integer limit,
             SortOrder order, SortBy orderby, InputStream data) {
 

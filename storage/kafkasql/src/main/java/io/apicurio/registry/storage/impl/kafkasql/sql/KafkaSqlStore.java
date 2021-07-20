@@ -93,6 +93,19 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         });
     }
 
+
+    public boolean isRoleMappingExists(String principalId) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectRoleMappingCountByPrincipal();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, principalId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
+
     @Transactional
     public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content) throws RegistryStorageException {
         handles.withHandleNoException( handle -> {

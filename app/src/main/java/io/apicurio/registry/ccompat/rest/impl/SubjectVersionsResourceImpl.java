@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
@@ -40,11 +43,13 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Integer> listVersions(String subject) throws Exception {
         return facade.getVersions(subject);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
         Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
         int sid = FacadeConverter.convertUnsigned(id);
@@ -52,6 +57,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public Schema getSchemaByVersion(
             String subject,
             String version) throws Exception {
@@ -60,6 +66,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public int deleteSchemaVersion(
             String subject,
             String version) throws Exception {
@@ -72,6 +79,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public String getSchemaOnly(
             String subject,
             String version) throws Exception {
@@ -80,6 +88,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Integer> getSchemasReferencedBy(String subject, Integer version) throws Exception {
         return facade.getVersions(subject);
     }

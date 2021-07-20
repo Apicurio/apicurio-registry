@@ -21,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -37,10 +35,13 @@ import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -99,7 +100,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
         Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
             Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
@@ -108,6 +109,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
         assertNotNull(client.getLatestArtifact(groupId, artifactId));
+
+        UserInfo userInfo = client.getCurrentUserInfo();
+        assertNotNull(userInfo);
+        Assertions.assertEquals("service-account-registry-api-readonly", userInfo.getUsername());
+        Assertions.assertFalse(userInfo.getAdmin());
+        Assertions.assertFalse(userInfo.getDeveloper());
+        Assertions.assertTrue(userInfo.getViewer());
     }
 
     @Test
@@ -131,6 +139,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             Assertions.assertThrows(ForbiddenException.class, () -> {
                 client.createGlobalRule(ruleConfig);
             });
+
+            UserInfo userInfo = client.getCurrentUserInfo();
+            assertNotNull(userInfo);
+            Assertions.assertEquals("service-account-registry-api-dev", userInfo.getUsername());
+            Assertions.assertFalse(userInfo.getAdmin());
+            Assertions.assertTrue(userInfo.getDeveloper());
+            Assertions.assertFalse(userInfo.getViewer());
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }
@@ -152,6 +167,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.createArtifactRule(groupId, artifactId, ruleConfig);
 
             client.createGlobalRule(ruleConfig);
+
+            UserInfo userInfo = client.getCurrentUserInfo();
+            assertNotNull(userInfo);
+            Assertions.assertEquals("service-account-registry-api", userInfo.getUsername());
+            Assertions.assertTrue(userInfo.getAdmin());
+            Assertions.assertFalse(userInfo.getDeveloper());
+            Assertions.assertFalse(userInfo.getViewer());
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }
@@ -196,7 +218,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         EditableMetaData updatedMetaData = new EditableMetaData();
         updatedMetaData.setName("Updated Name");
         // Dev user cannot edit the same artifact because Dev user is not the owner
-        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+        Assertions.assertThrows(ForbiddenException.class, () -> {
             clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
         });
 

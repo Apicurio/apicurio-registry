@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 1);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 2);
 
 CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
 CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;
@@ -55,3 +55,6 @@ ALTER TABLE logconfiguration ADD PRIMARY KEY (logger);
 
 CREATE TABLE groups (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, description VARCHAR(1024), artifactsType VARCHAR(32), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, properties TEXT);
 ALTER TABLE groups ADD PRIMARY KEY (tenantId, groupId);
+
+CREATE TABLE acls (tenantId VARCHAR(128) NOT NULL, principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL);
+ALTER TABLE acls ADD PRIMARY KEY (tenantId, principalId);

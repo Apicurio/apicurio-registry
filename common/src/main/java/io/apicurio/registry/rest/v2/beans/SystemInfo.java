@@ -2,6 +2,7 @@
 package io.apicurio.registry.rest.v2.beans;
 
 import java.util.Date;
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "version",
     "builtOn"
 })
+@Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
 public class SystemInfo {
 

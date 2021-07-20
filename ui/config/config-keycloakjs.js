@@ -8,6 +8,8 @@ var ApicurioRegistryConfig = {
     },
     auth: {
         type: "keycloakjs",
+        rbacEnabled: true,
+        obacEnabled: false,
         options: {
             url: "https://studio-auth.apicur.io/auth",
             realm: "apicurio-local",
@@ -17,6 +19,7 @@ var ApicurioRegistryConfig = {
     },
     features: {
         readOnly: false,
-        breadcrumbs: true
+        breadcrumbs: true,
+        roleManagement: false
     }
 };

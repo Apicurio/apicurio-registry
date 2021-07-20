@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.CompatibilityResource;
@@ -37,6 +40,7 @@ import javax.interceptor.Interceptors;
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(
             String subject,
             String versionString,

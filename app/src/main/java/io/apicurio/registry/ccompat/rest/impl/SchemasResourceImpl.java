@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
 import io.apicurio.registry.logging.Logged;
@@ -37,16 +40,19 @@ import java.util.List;
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
     @Override
-    public SchemaContent getSchema(int id) {
-        return facade.getSchemaContent(id);
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
+    public SchemaInfo getSchema(int id) {
+        return facade.getSchemaById(id);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
     public List<SubjectVersion> getSubjectVersions(int id) {
         return facade.getSubjectVersions(id);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> getRegisteredTypes() {
         return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
     }

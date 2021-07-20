@@ -91,8 +91,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null);
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
     }
 
     @AfterEach
@@ -852,7 +852,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testSearchArtifacts() throws Exception {
         String artifactIdPrefix = "testSearchArtifacts-";
         for (int idx = 1; idx <= 50; idx++) {
-            String artifactId = artifactIdPrefix + idx;
+            String idxs = (idx < 10 ? "0" : "") + idx;
+            String artifactId = artifactIdPrefix + idxs;
             ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
             List<String> labels = Collections.singletonList("label-" + idx);
             Map<String, String> properties = Collections.singletonMap("key", "value-" + idx);
@@ -905,8 +906,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getArtifacts());
         Assertions.assertEquals(50, results.getArtifacts().size());
-        Assertions.assertEquals("testSearchArtifacts-1-name", results.getArtifacts().get(0).getName());
-        Assertions.assertEquals("testSearchArtifacts-10-name", results.getArtifacts().get(1).getName());
+        Assertions.assertEquals("testSearchArtifacts-01-name", results.getArtifacts().get(0).getName());
+        Assertions.assertEquals("testSearchArtifacts-02-name", results.getArtifacts().get(1).getName());
 
 
         filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "label-17"));

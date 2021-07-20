@@ -19,7 +19,9 @@ package io.apicurio.registry;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.VertxHttpClientProvider;
+import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
 
 import javax.enterprise.inject.Typed;
@@ -30,6 +32,7 @@ import javax.enterprise.inject.Typed;
  */
 @QuarkusTest
 @Typed(VertxClientTest.class)
+@TestProfile(ApplicationRbacEnabledProfile.class)
 public class VertxClientTest extends RegistryClientTest {
 
     @Override

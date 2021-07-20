@@ -22,6 +22,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import javax.enterprise.util.Nonbinding;
 import javax.interceptor.InterceptorBinding;
 
 /**
@@ -33,6 +34,10 @@ import javax.interceptor.InterceptorBinding;
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface Authorized {
 
-    AuthorizedStyle value() default AuthorizedStyle.GroupAndArtifact;
+    @Nonbinding
+    AuthorizedStyle style() default AuthorizedStyle.GroupAndArtifact;
+
+    @Nonbinding
+    AuthorizedLevel level() default AuthorizedLevel.Read;
 
 }

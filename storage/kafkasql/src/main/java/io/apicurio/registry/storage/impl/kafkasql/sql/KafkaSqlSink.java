@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
@@ -43,6 +44,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.LogConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.RoleMappingValue;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
@@ -131,7 +133,7 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            tenantContext.setContext(new RegistryTenantContext(tenantId, null));
+            tenantContext.setContext(new RegistryTenantContext(tenantId, null, null));
         }
         try {
             MessageType messageType = key.getType();
@@ -154,6 +156,8 @@ public class KafkaSqlSink {
                     return processContentId((ContentIdKey) key, (ContentIdValue) value);
                 case LogConfig:
                     return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
+                case RoleMapping:
+                    return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
                 default:
                     log.warn("Unrecognized message type: %s", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -385,6 +389,36 @@ public class KafkaSqlSink {
             default:
                 log.warn("Unsupported global rule message action: %s", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "role mapping".  This includes creating, updating, and deleting
+     * role mappings.
+     *
+     * @param key
+     * @param value
+     */
+    private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
+        switch (value.getAction()) {
+            case Create:
+                sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole());
+                return null;
+            case Update:
+                sqlStore.updateRoleMapping(key.getPrincipalId(), value.getRole());
+                return null;
+            case Delete:
+                sqlStore.deleteRoleMapping(key.getPrincipalId());
+                return null;
+            case Import:
+//                GlobalRuleEntity entity = new GlobalRuleEntity();
+//                entity.ruleType = key.getRuleType();
+//                entity.configuration = value.getConfig().getConfiguration();
+//                sqlStore.importGlobalRule(entity);
+//                return null;
+            default:
+                log.warn("Unsupported role mapping message action: %s", key.getType().name());
+                throw new RegistryStorageException("Unsupported role-mapping message action: " + value.getAction());
         }
     }
 

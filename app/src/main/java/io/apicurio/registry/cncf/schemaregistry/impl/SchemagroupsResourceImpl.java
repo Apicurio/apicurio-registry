@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.cncf.schemaregistry.impl;
 
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.cncf.schemaregistry.SchemagroupsResource;
@@ -91,17 +94,20 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     SecurityIdentity securityIdentity;
 
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<String> getGroups() {
         return storage.getGroupIds(GET_GROUPS_LIMIT);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public SchemaGroup getGroup(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return dtoToSchemaGroup(group);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
     public void createGroup(String groupId, SchemaGroup data) {
         //createdOn and modifiedOn are set by the storage
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
@@ -130,11 +136,13 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public void deleteGroup(String groupId) {
         storage.deleteGroup(groupId);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Read)
     public List<String> getSchemasByGroup(String groupId) {
         verifyGroupExists(groupId);
         Set<SearchFilter> filters = new HashSet<>();
@@ -149,12 +157,14 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public void deleteSchemasByGroup(String groupId) {
         verifyGroupExists(groupId);
         storage.deleteArtifacts(groupId);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public Response getLatestSchema(String groupId, String schemaId) {
         verifyGroupExists(groupId);
         StoredArtifactDto artifact = storage.getArtifact(groupId, schemaId);
@@ -167,6 +177,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
 
     //TODO spec says: If schema with identical content already exists, existing schema's ID is returned. Our storage API does not allow to know if some content belongs to any other artifactId
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public SchemaId createSchema(String groupId, String schemaId, InputStream data) {
 
         ContentHandle content = ContentHandle.create(data);
@@ -227,12 +238,14 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteSchema(String groupId, String schemaId) {
         verifyGroupExists(groupId);
         storage.deleteArtifact(groupId, schemaId);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public List<Integer> getSchemaVersions(String groupId, String schemaId) {
         verifyGroupExists(groupId);
         return storage.getArtifactVersions(groupId, schemaId).stream()
@@ -241,6 +254,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public Response getSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
         StoredArtifactDto artifact = storage.getArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));
@@ -252,6 +266,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteSchemaVersion(String groupId, String schemaId, Integer versionNumber) {
         verifyGroupExists(groupId);
         storage.deleteArtifactVersion(groupId, schemaId, VersionUtil.toString(versionNumber));

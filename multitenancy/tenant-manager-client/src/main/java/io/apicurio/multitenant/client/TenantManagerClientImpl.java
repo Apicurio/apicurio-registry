@@ -35,6 +35,7 @@ import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+import org.keycloak.common.VerificationException;
 
 /**
  * @author Fabian Martinez
@@ -65,19 +66,21 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public List<RegistryTenant> listTenants() {
-        final Map<String, String> headers = prepareRequestHeaders();
-        HttpRequest.Builder req = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
-                .GET();
-
-        headers.forEach(req::header);
         try {
+            final Map<String, String> headers = prepareRequestHeaders();
+            HttpRequest.Builder req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
+                    .GET();
+
+            headers.forEach(req::header);
+
             HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
-                return this.mapper.readValue(res.body(), new TypeReference<List<RegistryTenant>>(){});
+                return this.mapper.readValue(res.body(), new TypeReference<List<RegistryTenant>>() {
+                });
             }
             throw new TenantManagerClientException(res.toString());
-        } catch ( IOException | InterruptedException e ) {
+        } catch (IOException | InterruptedException | VerificationException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -97,7 +100,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
             }
             throw new TenantManagerClientException(res.toString());
-        } catch ( IOException | InterruptedException e ) {
+        } catch (IOException | InterruptedException | VerificationException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -117,19 +120,20 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 return;
             }
             throw new TenantManagerClientException(res.toString());
-        } catch ( IOException | InterruptedException e ) {
+        } catch (IOException | InterruptedException | VerificationException e) {
             throw new TenantManagerClientException(e);
         }
     }
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
-        final Map<String, String> headers = prepareRequestHeaders();
-        HttpRequest.Builder req = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                .GET();
-        headers.forEach(req::header);
         try {
+            final Map<String, String> headers = prepareRequestHeaders();
+            HttpRequest.Builder req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
+                    .GET();
+            headers.forEach(req::header);
+
             HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
@@ -137,29 +141,30 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 throw new RegistryTenantNotFoundException(res.toString());
             }
             throw new TenantManagerClientException(res.toString());
-        } catch ( IOException | InterruptedException e ) {
+        } catch (IOException | InterruptedException | VerificationException e) {
             throw new TenantManagerClientException(e);
         }
     }
 
     @Override
     public void deleteTenant(String tenantId) {
-        final Map<String, String> headers = prepareRequestHeaders();
-        HttpRequest.Builder req = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                .DELETE();
-        headers.forEach(req::header);
         try {
+            final Map<String, String> headers = prepareRequestHeaders();
+            HttpRequest.Builder req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
+                    .DELETE();
+            headers.forEach(req::header);
+
             HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() != 204) {
                 throw new TenantManagerClientException(res.toString());
             }
-        } catch ( IOException | InterruptedException e ) {
+        } catch (IOException | InterruptedException | VerificationException e) {
             throw new TenantManagerClientException(e);
         }
     }
 
-    private Map<String, String> prepareRequestHeaders() {
+    private Map<String, String> prepareRequestHeaders() throws VerificationException {
         final Map<String, String> headers = new HashMap<>();
         if (null != auth) {
             headers.put("Authorization", auth.obtainAuthorizationValue());

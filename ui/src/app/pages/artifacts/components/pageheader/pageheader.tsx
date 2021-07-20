@@ -58,6 +58,10 @@ export class ArtifactsPageHeader extends PureComponent<ArtifactsPageHeaderProps,
                 <FlexItem align={{default:"alignRight"}}>
 
                     <IfAuth isAdmin={true}>
+                        <IfFeature feature="roleManagement" is={true}>
+                            <Link className="btn-header-roles pf-c-button pf-m-secondary"
+                                  data-testid="btn-header-roles" to={this.linkTo(`/roles`)}>Manage access</Link>
+                        </IfFeature>
                         <Link className="btn-header-global-rules pf-c-button pf-m-secondary"
                               data-testid="btn-header-global-rules" to={this.linkTo(`/rules`)}>Manage global rules</Link>
                     </IfAuth>

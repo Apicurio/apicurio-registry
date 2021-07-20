@@ -3,6 +3,7 @@ import {ConfigService} from "../config";
 import {Service} from "../baseService";
 import {AxiosRequestConfig} from "axios";
 import {LoggerService} from "../logger";
+import {UsersService} from "../users";
 
 const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId"];
 const KC_INIT_OPTIONS: string[] = [
@@ -25,7 +26,6 @@ export interface AuthenticatedUser {
     username: string;
     displayName: string;
     fullName: string;
-    roles: string[];
 }
 
 /**
@@ -35,6 +35,9 @@ export interface AuthenticatedUser {
  */
 
 export class AuthService implements Service {
+
+    // @ts-ignore
+    protected users: UsersService = null;
 
     private enabled: boolean = false;
     // @ts-ignore
@@ -57,10 +60,6 @@ export class AuthService implements Service {
         this.keycloak = Keycloak(configOptions);
 
         const addRoles: ((user: AuthenticatedUser) => void) = (user) => {
-            if (this.keycloak.realmAccess && this.keycloak.realmAccess.roles) {
-                user.roles = user.roles.concat(this.keycloak.realmAccess.roles);
-            }
-
             if (this.keycloak.resourceAccess) {
                 Object.keys(this.keycloak.resourceAccess)
                     // @ts-ignore
@@ -110,7 +109,7 @@ export class AuthService implements Service {
             })
     };
 
-    public isAuthenticated = () => this.keycloak.authenticated;
+    public isAuthenticated = () => this.keycloak != null && this.keycloak.authenticated;
 
     public doLogin = () => this.keycloak.login;
 
@@ -118,34 +117,45 @@ export class AuthService implements Service {
 
     public getToken = () => this.keycloak.token;
 
-    public isAuthEnabled(): boolean {
+    public isAuthenticationEnabled(): boolean {
         return this.enabled;
     }
 
-    public isUserAdmin(): boolean {
-        if (!this.isAuthEnabled()) {
-            return true;
-        }
-        let rval: boolean = false;
-        this.user.roles.forEach(role => {
-            if (role === "sr-admin") {
-                rval = true;
-            }
-        });
-        return rval;
+    public isRbacEnabled(): boolean {
+        return this.config.authRbacEnabled();
     }
 
-    public isUserDeveloper(): boolean {
-        if (!this.isAuthEnabled()) {
+    public isObacEnabled(): boolean {
+        return this.config.authObacEnabled();
+    }
+
+    public isUserAdmin(): boolean {
+        if (!this.isAuthenticationEnabled()) {
             return true;
         }
-        let rval: boolean = false;
-        this.user.roles.forEach(role => {
-            if (role === "sr-admin" || role === "sr-developer") {
-                rval = true;
-            }
-        });
-        return rval;
+        if (!this.isRbacEnabled() && !this.isObacEnabled()) {
+            return true;
+        }
+        return this.users.currentUser().admin;
+    }
+
+    public isUserDeveloper(resourceOwner?: string): boolean {
+        if (!this.isAuthenticationEnabled()) {
+            return true;
+        }
+        if (!this.isRbacEnabled() && !this.isObacEnabled()) {
+            return true;
+        }
+        if (this.isUserAdmin()) {
+            return true;
+        }
+        if (this.isRbacEnabled() && !this.users.currentUser().developer) {
+            return false;
+        }
+        if (this.isObacEnabled() && resourceOwner && this.users.currentUser().username !== resourceOwner) {
+            return false;
+        }
+        return true;
     }
 
     public authenticateAndRender(render: () => void): void {

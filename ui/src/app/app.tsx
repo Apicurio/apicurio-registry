@@ -26,6 +26,7 @@ import {ArtifactVersionPage} from "./pages/artifactVersion";
 import {RootRedirectPage} from "./pages/root";
 import {NotFoundPage} from "./pages/404";
 import {Services} from "../services";
+import {RolesPage} from "./pages";
 
 
 /**
@@ -61,6 +62,7 @@ export default class App extends React.PureComponent<{}, {}> {
                     <Switch>
                         <Route path='/' exact={true} component={RootRedirectPage}/>
                         <Route path='/rules' exact={true} component={RulesPage}/>
+                        <Route path='/roles' exact={true} component={RolesPage}/>
                         <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
                         <Route path='/artifacts/:groupId/:artifactId' exact={true} component={ArtifactRedirectPage}/>
                         <Route path='/artifacts/:groupId/:artifactId/versions/:version' exact={true} component={artifactVersionPage} />

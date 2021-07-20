@@ -24,8 +24,6 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -48,7 +46,8 @@ import lombok.EqualsAndHashCode;
 @ApplicationScoped
 public class StorageMetricsStore {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    @Inject
+    Logger log;
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")

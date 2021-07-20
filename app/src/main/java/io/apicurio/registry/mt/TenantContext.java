@@ -30,6 +30,8 @@ public interface TenantContext {
      */
     String tenantId();
 
+    String tenantOwner();
+
     default String getTenantIdOrElse(String alternative) {
         return isLoaded() ? tenantId() : alternative;
     }

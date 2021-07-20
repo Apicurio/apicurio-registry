@@ -22,7 +22,6 @@ import org.keycloak.authorization.client.Configuration;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.Time;
 import org.keycloak.representations.AccessToken;
-import org.keycloak.representations.AccessTokenResponse;
 
 import java.util.HashMap;
 
@@ -30,7 +29,8 @@ public class Auth {
 
     private final AuthzClient keycloak;
     private static final String BEARER = "Bearer ";
-    private AccessTokenResponse accessToken;
+    private AccessToken accessTokenParsed;
+    private String accessToken;
 
 
     public Auth(String serverUrl, String realm, String clientId, String clientSecret) {
@@ -42,17 +42,18 @@ public class Auth {
 
     public String obtainAuthorizationValue() throws VerificationException {
         if (isAccessTokenRequired()) {
-            this.accessToken = this.keycloak.obtainAccessToken();
+            this.accessToken = this.keycloak.obtainAccessToken().getToken();
+            this.accessTokenParsed = TokenVerifier.create(this.accessToken, AccessToken.class).getToken();
         }
-        return BEARER + accessToken.getToken();
+        return BEARER + accessToken;
+
     }
 
-    private boolean isAccessTokenRequired() throws VerificationException {
-        return null == accessToken || isTokenExpired(this.accessToken.getToken());
+    private boolean isAccessTokenRequired() {
+        return null == accessToken || isTokenExpired();
     }
 
-    private boolean isTokenExpired(String token) throws VerificationException {
-        final AccessToken accessToken = TokenVerifier.create(token, AccessToken.class).getToken();
-        return (accessToken.getExp() != null && accessToken.getExp() != 0L) && (long) Time.currentTime() > accessToken.getExp();
+    private boolean isTokenExpired() {
+        return (accessTokenParsed.getExp() != null && accessTokenParsed.getExp() != 0L) && (long) Time.currentTime() > accessTokenParsed.getExp();
     }
 }

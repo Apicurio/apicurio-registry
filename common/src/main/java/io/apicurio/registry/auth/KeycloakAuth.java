@@ -22,7 +22,6 @@ import org.keycloak.authorization.client.Configuration;
 import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.Time;
 import org.keycloak.representations.AccessToken;
-import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,8 @@ import java.util.Map;
 public class KeycloakAuth extends ClientCredentialsAuth {
 
     private final AuthzClient keycloak;
-    private AccessTokenResponse accessToken;
+    private AccessToken accessTokenParsed;
+    private String accessToken;
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakAuth.class);
 
@@ -53,24 +53,24 @@ public class KeycloakAuth extends ClientCredentialsAuth {
      */
     @Override
     public void apply(Map<String, String> requestHeaders) {
-        if (isAccessTokenRequired()) {
-            this.accessToken = this.keycloak.obtainAccessToken();
-        }
-        requestHeaders.put("Authorization", BEARER + accessToken.getToken());
-    }
-
-    private boolean isAccessTokenRequired() {
-        return null == accessToken || isTokenExpired(accessToken.getToken());
-    }
-
-    private boolean isTokenExpired(String token) {
         try {
-            final AccessToken accessToken = TokenVerifier.create(token, AccessToken.class).getToken();
-            return (accessToken.getExp() != null && accessToken.getExp() != 0L) && (long) Time.currentTime() > accessToken.getExp();
+            if (isAccessTokenRequired()) {
+                this.accessToken = this.keycloak.obtainAccessToken().getToken();
+                this.accessTokenParsed = TokenVerifier.create(this.accessToken, AccessToken.class).getToken();
+            }
+            requestHeaders.put("Authorization", BEARER + accessToken);
         } catch (VerificationException e) {
             log.info("Error verifying access token: ", e);
             throw new IllegalStateException(e);
         }
+    }
+
+    private boolean isAccessTokenRequired() {
+        return null == accessTokenParsed || isTokenExpired();
+    }
+
+    private boolean isTokenExpired() {
+        return (accessTokenParsed.getExp() != null && accessTokenParsed.getExp() != 0L) && (long) Time.currentTime() > accessTokenParsed.getExp();
     }
 
     public static class Builder {

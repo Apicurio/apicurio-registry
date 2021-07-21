@@ -58,6 +58,12 @@ public class RegistryTenantDto {
     @Column(name = "description", length = 2048)
     private String description;
 
+    @Column(name = "authServerUrl")
+    private String authServerUrl;
+
+    @Column(name = "authClientId")
+    private String authClientId;
+
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RegistryTenantResourceLimitDto> resources = new ArrayList<>();
 
@@ -119,6 +125,22 @@ public class RegistryTenantDto {
         this.description = description;
     }
 
+    public String getAuthServerUrl() {
+        return authServerUrl;
+    }
+
+    public void setAuthServerUrl(String authServerUrl) {
+        this.authServerUrl = authServerUrl;
+    }
+
+    public String getAuthClientId() {
+        return authClientId;
+    }
+
+    public void setAuthClientId(String authClientId) {
+        this.authClientId = authClientId;
+    }
+
     public List<RegistryTenantResourceLimitDto> getResources() {
         return resources;
     }
@@ -145,6 +167,8 @@ public class RegistryTenantDto {
         t.setOrganizationId(this.organizationId);
         t.setName(this.getName());
         t.setDescription(this.getDescription());
+        t.setAuthClientId(this.authClientId);
+        t.setAuthServerUrl(this.authServerUrl);
         t.setResources(
                 Optional.ofNullable(this.resources)
                     .map(Collection::stream)

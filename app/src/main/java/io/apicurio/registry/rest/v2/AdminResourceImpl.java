@@ -34,6 +34,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import io.apicurio.registry.auth.RolesSource;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.auth.Authorized;
@@ -84,6 +85,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     LogConfigurationService logConfigService;
+
+    @Inject
+    RolesSource rolesSource;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -297,7 +301,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
-        storage.createRoleMapping(data.getPrincipalId(), data.getRole().name());
+        rolesSource.createRoleMapping(data.getPrincipalId(), data.getRole().name());
     }
 
     /**
@@ -307,7 +311,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public List<RoleMapping> listRoleMappings() {
-        List<RoleMappingDto> mappings = storage.getRoleMappings();
+        List<RoleMappingDto> mappings = rolesSource.getRoleMappings();
         return mappings.stream().map(dto -> {
             return dtoToRoleMapping(dto);
         }).collect(Collectors.toList());
@@ -320,7 +324,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public RoleMapping getRoleMapping(String principalId) {
-        RoleMappingDto dto = storage.getRoleMapping(principalId);
+        RoleMappingDto dto = rolesSource.getRoleMapping(principalId);
         return dtoToRoleMapping(dto);
     }
 
@@ -331,7 +335,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
-        storage.updateRoleMapping(principalId, data.getRole().name());
+        rolesSource.updateRoleMapping(principalId, data.getRole().name());
     }
 
     /**
@@ -341,7 +345,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
-        storage.deleteRoleMapping(principalId);
+        rolesSource.deleteRoleMapping(principalId);
     }
 
     private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {

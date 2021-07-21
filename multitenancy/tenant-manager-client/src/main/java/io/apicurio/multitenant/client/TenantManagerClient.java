@@ -16,6 +16,11 @@
 package io.apicurio.multitenant.client;
 
 import java.util.List;
+
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
@@ -25,7 +30,10 @@ import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
  */
 public interface TenantManagerClient {
 
+    @Deprecated
     public List<RegistryTenant> listTenants();
+
+    public RegistryTenantList listTenants(TenantStatusValue status, Integer offset, Integer limit, SortOrder order, SortBy orderby);
 
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest);
 

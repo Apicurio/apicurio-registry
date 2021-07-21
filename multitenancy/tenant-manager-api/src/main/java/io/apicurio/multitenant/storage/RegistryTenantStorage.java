@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
+import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 
 /**
  * @author Fabian Martinez
@@ -29,7 +31,9 @@ public interface RegistryTenantStorage {
 
     Optional<RegistryTenantDto> findByTenantId(String tenantId);
 
-    List<RegistryTenantDto> listAll();
+    List<RegistryTenantDto> queryTenants(String query, Sort sort, Parameters parameters, Integer offset, Integer limit);
+
+    long count(String query, Parameters parameters);
 
     void delete(String tenantId);
 

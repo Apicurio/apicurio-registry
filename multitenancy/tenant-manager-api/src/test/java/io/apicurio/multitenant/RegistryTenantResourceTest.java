@@ -15,6 +15,8 @@
  */
 package io.apicurio.multitenant;
 
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
@@ -37,7 +39,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
 
 /**
  * @author Fabian Martinez
@@ -53,11 +54,15 @@ public class RegistryTenantResourceTest {
         List<RegistryTenant> list = client.listTenants();
         list.forEach(t -> client.deleteTenant(t.getTenantId()));
 
-        given()
-          .when().get(TENANTS_PATH)
-          .then()
-             .statusCode(200)
-             .body(is("[]"));
+        Response res = given()
+          .when().params("status", "READY").get(TENANTS_PATH)
+          .thenReturn();
+
+        assertEquals(200, res.statusCode());
+
+        var search = res.as(RegistryTenantList.class);
+        assertEquals(0, search.getItems().size());
+        assertEquals(0, search.getCount());
     }
 
     @Test
@@ -164,7 +169,12 @@ public class RegistryTenantResourceTest {
             .then()
                .statusCode(204);
 
-        testTenantNotFound(tenantId);
+        Response res = given()
+                .when().get(TENANTS_PATH + "/" + tenantId)
+                .thenReturn();
+        assertEquals(200, res.statusCode());
+        RegistryTenant tenant = res.as(RegistryTenant.class);
+        assertEquals(TenantStatusValue.TO_BE_DELETED, tenant.getStatus());
     }
 
     private void testTenantNotFound(String tenantId) {

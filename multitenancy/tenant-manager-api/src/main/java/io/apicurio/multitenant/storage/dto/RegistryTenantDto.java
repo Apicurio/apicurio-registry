@@ -30,6 +30,7 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 
 /**
@@ -57,6 +58,9 @@ public class RegistryTenantDto {
 
     @Column(name = "description", length = 2048)
     private String description;
+
+    @Column(name = "status")
+    private String status;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RegistryTenantResourceLimitDto> resources = new ArrayList<>();
@@ -119,6 +123,14 @@ public class RegistryTenantDto {
         this.description = description;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public List<RegistryTenantResourceLimitDto> getResources() {
         return resources;
     }
@@ -151,6 +163,7 @@ public class RegistryTenantDto {
                     .orElseGet(Stream::empty)
                     .map(RegistryTenantResourceLimitDto::toDatamodel)
                     .collect(Collectors.toList()));
+        t.setStatus(TenantStatusValue.fromValue(this.getStatus()));
         return t;
     }
 

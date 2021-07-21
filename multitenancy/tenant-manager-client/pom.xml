@@ -27,6 +27,16 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-authz-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+        </dependency>
+        <!-- Required for native image -->
+        <!-- https://quarkus.io/guides/logging#logging-adapters -->
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>commons-logging-jboss-logging</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

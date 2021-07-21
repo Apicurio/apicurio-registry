@@ -19,13 +19,13 @@ package io.apicurio.registry.rest.v2;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -50,7 +50,6 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.PartlyFilledArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
@@ -149,8 +148,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
-        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded", xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
         String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
@@ -490,8 +489,8 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryName, String xRegistryNameEncoded, InputStream data) {
         requireParameter("groupId", groupId);
 
-        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
-        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded", xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
         String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
@@ -524,7 +523,7 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(artifactName, artifactDescription, null, null);
+            EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
             ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
@@ -566,8 +565,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
-        maxOneOf("xRegistryName", xRegistryName, "xRegistryNameEncoded", xRegistryNameEncoded);
-        maxOneOf("xRegistryDescription", xRegistryDescription, "xRegistryDescriptionEncoded", xRegistryDescriptionEncoded);
+        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded", xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
         String artifactDescription = getOneOf(xRegistryDescription, decode(xRegistryDescriptionEncoded));
@@ -583,7 +582,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(artifactName, artifactDescription, null, null);
+        EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
@@ -626,7 +625,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
     private static void maxOneOf(String parameterOneName, Object parameterOneValue, String parameterTwoName, Object parameterTwoValue) {
         if (parameterOneValue != null && parameterTwoValue != null) {
-            throw new ConflictException("Both " + parameterOneName + " and " + parameterTwoName + " are present.");
+            throw new ParametersConflictException(parameterOneName, parameterTwoName);
         }
     }
 
@@ -739,9 +738,16 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        PartlyFilledArtifactMetaDataDto metaData = new PartlyFilledArtifactMetaDataDto(name, description, null, null);
+        EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
+    }
+
+    private EditableArtifactMetaDataDto getEditableMetaData(String name, String description) {
+        if (name != null || description != null) {
+            return new EditableArtifactMetaDataDto(name, description, null, null);
+        }
+        return null;
     }
 
     private String gidOrNull(String groupId) {

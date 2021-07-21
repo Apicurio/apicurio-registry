@@ -22,6 +22,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 import io.apicurio.multitenant.storage.hibernate.RegistryTenantPanacheRepository;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 
 /**
  * @author Fabian Martinez
@@ -43,15 +46,28 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
     }
 
     @Override
-    public List<RegistryTenantDto> listAll() {
-        return repo.listAll();
-    }
-
-    @Override
     public void delete(String tenantId) {
         RegistryTenantDto dto = findByTenantId(tenantId)
             .orElseThrow(() -> TenantNotFoundException.create(tenantId));
         repo.delete(dto);
+    }
+
+    @Override
+    public List<RegistryTenantDto> queryTenants(String query, Sort sort, Parameters parameters,
+            Integer offset, Integer returnLimit) {
+        PanacheQuery<RegistryTenantDto> pq = null;
+        if (query == null || query.isEmpty()) {
+            pq = repo.findAll(sort);
+        } else {
+            pq = repo.find(query, sort, parameters);
+        }
+        return pq.range(offset, offset + (returnLimit - 1))
+                .list();
+    }
+
+    @Override
+    public long count(String query, Parameters parameters) {
+        return repo.count(query, parameters);
     }
 
 }

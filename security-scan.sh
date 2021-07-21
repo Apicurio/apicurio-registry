@@ -18,4 +18,4 @@ docker run -v $(pwd):/opt/srs-service-registry:z \
 	  -e JAVA_OPTS="-Duser.home=/tmp" \
 	  -w /opt/srs-service-registry \
 	  -u $(id -u) \
-	  quay.io/app-sre/mk-ci-tools:latest /bin/bash -c "mkdir -p logs/ && srcclr.sh | tee logs/scan_result.txt"
+	  quay.io/app-sre/mk-ci-tools:latest /bin/bash -c "mkdir -p logs/ && DEBUG=1 srcclr.sh | tee logs/scan_result.txt"

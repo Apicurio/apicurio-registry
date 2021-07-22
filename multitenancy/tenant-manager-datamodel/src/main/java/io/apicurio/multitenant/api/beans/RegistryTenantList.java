@@ -39,7 +39,7 @@ public class RegistryTenantList {
      */
     @JsonProperty("count")
     @JsonPropertyDescription("The total number of items that matched the query that produced the result set (may be \nmore than the number of items in the result set).")
-    private Long count;
+    private Integer count;
 
     /**
      * The RegistryTenants returned in the result set.
@@ -68,7 +68,7 @@ public class RegistryTenantList {
      * 
      */
     @JsonProperty("count")
-    public Long getCount() {
+    public Integer getCount() {
         return count;
     }
 
@@ -79,7 +79,7 @@ public class RegistryTenantList {
      * 
      */
     @JsonProperty("count")
-    public void setCount(Long count) {
+    public void setCount(Integer count) {
         this.count = count;
     }
 

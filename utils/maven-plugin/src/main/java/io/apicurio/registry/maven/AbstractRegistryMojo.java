@@ -17,9 +17,9 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.BasicAuth;
-import io.apicurio.registry.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.KeycloakAuth;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;

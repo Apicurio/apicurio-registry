@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.auth;
 
+import io.apicurio.rest.client.auth.KeycloakAuth;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
@@ -30,8 +31,7 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.keycloak.authorization.client.AuthzClient;
-import org.keycloak.authorization.client.Configuration;
+
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
@@ -41,7 +41,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -121,16 +120,13 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         private final String LOWERCASE_BASIC_PREFIX = BASIC_PREFIX.toLowerCase(Locale.ENGLISH);
         private final int PREFIX_LENGTH = BASIC_PREFIX.length();
         private final Charset charset;
-        private final AuthzClient keycloakClient;
         private final RoutingContext context;
+        private final KeycloakAuth keycloakAuth;
 
         public BearerTokenExtractor(RoutingContext context, final String authServerUrl, String realmName, String clientId, String clientSecret) {
             this.context = context;
             this.charset = StandardCharsets.UTF_8;
-            final HashMap<String, Object> credentials = new HashMap<>();
-            credentials.put("secret", clientSecret);
-            final Configuration keycloakConfiguration = new Configuration(authServerUrl, realmName, clientId, credentials, null);
-            this.keycloakClient = AuthzClient.create(keycloakConfiguration);
+            this.keycloakAuth = new KeycloakAuth(authServerUrl, realmName, clientId,  clientSecret);
         }
 
         protected String getBearerToken() {
@@ -160,8 +156,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         }
 
         private String authenticateRequest(String username, String password) {
-
-            return keycloakClient.obtainAccessToken(username, password).getToken();
+            return keycloakAuth.obtainAccessTokenWithBasicCredentials(username, password);
         }
     }
 }

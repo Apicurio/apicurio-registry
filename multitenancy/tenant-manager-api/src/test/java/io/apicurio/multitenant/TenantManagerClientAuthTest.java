@@ -16,18 +16,18 @@
 
 package io.apicurio.multitenant;
 
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
+import io.apicurio.rest.client.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.keycloak.authorization.client.util.HttpResponseException;
 
 import javax.enterprise.inject.Typed;
 
@@ -46,20 +46,20 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
 
     String clientId = "registry-api";
 
-    private TenantManagerClient createClient(Auth auth) {
+    private TenantManagerClient createClient(KeycloakAuth auth) {
         return new TenantManagerClientImpl("http://localhost:8081/", auth);
     }
 
     @Override
     protected TenantManagerClient createRestClient() {
-        Auth auth = new Auth(authServerUrl, realm, clientId, "test1");
+        KeycloakAuth auth = new KeycloakAuth(authServerUrl, realm, clientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new Auth(authServerUrl, realm, clientId, "wrongsecret");
+        KeycloakAuth auth = new KeycloakAuth(authServerUrl, realm, clientId, "wrongsecret");
         TenantManagerClient client = createClient(auth);
-        Assertions.assertThrows(HttpResponseException.class, client::listTenants);
+        Assertions.assertThrows(NotAuthorizedException.class, client::listTenants);
     }
 }

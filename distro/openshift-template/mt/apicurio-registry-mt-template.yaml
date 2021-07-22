@@ -166,6 +166,8 @@ objects:
             value: ${OWNER_ONLY_AUTHZ_ENABLED}
           - name: ROLE_BASED_AUTHZ_ENABLED
             value: ${ROLE_BASED_AUTHZ_ENABLED}
+          - name: ROLE_BASED_AUTHZ_SOURCE
+            value: ${ROLE_BASED_AUTHZ_SOURCE}
           - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
             value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED}
           - name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
@@ -457,6 +459,9 @@ parameters:
 - name: ROLE_BASED_AUTHZ_ENABLED
   description: flag to enable/disable role based authorization
   value: "false"
+- name: ROLE_BASED_AUTHZ_SOURCE
+  description: property to set the source of auth roles when checking authorization (e.g. token or application)
+  value: "token"
 - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
   description: flag to enable/disable the admin-override auth feature
   value: "false"

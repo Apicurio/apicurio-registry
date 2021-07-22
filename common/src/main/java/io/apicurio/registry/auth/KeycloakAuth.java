@@ -70,7 +70,7 @@ public class KeycloakAuth extends ClientCredentialsAuth {
     }
 
     private boolean isTokenExpired() {
-        return (accessTokenParsed.getExp() != null && accessTokenParsed.getExp() != 0L) && (long) Time.currentTime() > accessTokenParsed.getExp();
+        return (accessTokenParsed.getExp() != null && accessTokenParsed.getExp() != 0L) && Time.currentTime() > accessTokenParsed.getExp();
     }
 
     public static class Builder {

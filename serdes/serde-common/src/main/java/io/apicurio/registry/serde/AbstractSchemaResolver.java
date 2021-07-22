@@ -21,11 +21,11 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.KeycloakAuth;
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.BasicAuth;
-import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;

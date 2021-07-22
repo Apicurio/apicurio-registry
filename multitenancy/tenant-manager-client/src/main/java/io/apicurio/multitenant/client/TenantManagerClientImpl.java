@@ -48,10 +48,8 @@ import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.message.BasicNameValuePair;
-import org.keycloak.common.VerificationException;
+
+import io.apicurio.rest.client.auth.KeycloakAuth;
 
 /**
  * @author Fabian Martinez
@@ -63,14 +61,14 @@ public class TenantManagerClientImpl implements TenantManagerClient {
     private final HttpClient client;
     private final ObjectMapper mapper;
     private final String endpoint;
-    private final Auth auth;
+    private final KeycloakAuth auth;
 
     public TenantManagerClientImpl(String endpoint) {
         this(endpoint, null);
 
     }
 
-    public TenantManagerClientImpl(String endpoint, Auth auth) {
+    public TenantManagerClientImpl(String endpoint, KeycloakAuth auth) {
         if (!endpoint.endsWith("/")) {
             endpoint += "/";
         }
@@ -119,7 +117,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 });
             }
             throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException | URISyntaxException e) {
+        } catch (IOException | InterruptedException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -139,7 +137,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 return this.mapper.readValue(res.body(), RegistryTenant.class);
             }
             throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
+        } catch (IOException | InterruptedException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -159,7 +157,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 return;
             }
             throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
+        } catch (IOException | InterruptedException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -180,7 +178,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
                 throw new RegistryTenantNotFoundException(res.toString());
             }
             throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
+        } catch (IOException | InterruptedException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -198,15 +196,15 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             if (res.statusCode() != 204) {
                 throw new TenantManagerClientException(res.toString());
             }
-        } catch (IOException | InterruptedException | VerificationException e) {
+        } catch (IOException | InterruptedException e) {
             throw new TenantManagerClientException(e);
         }
     }
 
-    private Map<String, String> prepareRequestHeaders() throws VerificationException {
+    private Map<String, String> prepareRequestHeaders() {
         final Map<String, String> headers = new HashMap<>();
         if (null != auth) {
-            headers.put("Authorization", auth.obtainAuthorizationValue());
+            auth.apply(headers);
         }
         return headers;
     }

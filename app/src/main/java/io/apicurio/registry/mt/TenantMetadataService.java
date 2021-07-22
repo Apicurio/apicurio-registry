@@ -22,12 +22,12 @@ import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
+import io.apicurio.rest.client.auth.KeycloakAuth;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.configuration.ProfileManager;
 
@@ -65,7 +65,7 @@ public class TenantMetadataService {
 
         if (mtProperties.isMultitenancyEnabled()) {
             if (mtProperties.isAuthEnabled()) {
-                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), new Auth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
+                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), new KeycloakAuth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
             } else {
                 this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
             }

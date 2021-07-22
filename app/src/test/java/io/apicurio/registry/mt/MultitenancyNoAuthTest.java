@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.registry.rest.client.RegistryClient;
 
 import org.junit.jupiter.api.Assertions;
@@ -118,12 +119,14 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId(tenantId1);
         tenant1.setOrganizationId("aaa");
+        tenant1.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant1);
 
         String tenantId2 = UUID.randomUUID().toString();
         var tenant2 = new RegistryTenant();
         tenant2.setTenantId(tenantId2);
         tenant2.setOrganizationId("bbb");
+        tenant2.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant2);
 
         String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;

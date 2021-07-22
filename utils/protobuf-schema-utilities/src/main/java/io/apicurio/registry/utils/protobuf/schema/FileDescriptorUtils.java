@@ -471,8 +471,7 @@ public class FileDescriptorUtils {
             case LABEL_REQUIRED:
                 return isProto3 ? null : Field.Label.REQUIRED;
             case LABEL_OPTIONAL:
-                //Fields are optional by default in Proto3.
-                return Field.Label.OPTIONAL;
+                return isProto3 ? null : Field.Label.OPTIONAL;
             case LABEL_REPEATED:
                 return Field.Label.REPEATED;
             default:

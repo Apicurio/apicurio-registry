@@ -17,6 +17,8 @@
 package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
+
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.slf4j.MDC;
 
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
@@ -28,7 +30,7 @@ import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 public class TenantContextImpl implements TenantContext {
 
     private static final String TENANT_ID_KEY = "tenantId";
-    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null);
+    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null, null);
 
     private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> EMPTY_CONTEXT);
 
@@ -91,4 +93,7 @@ public class TenantContextImpl implements TenantContext {
         return !tenantId().equals(DEFAULT_TENANT_ID);
     }
 
+    public TenantStatusValue getTenantStatus() {
+        return CURRENT.get().getStatus();
+    }
 }

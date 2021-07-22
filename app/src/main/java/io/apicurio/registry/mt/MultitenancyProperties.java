@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.mt;
 
-import java.util.Optional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * @author Fabian Martinez
@@ -40,6 +40,10 @@ public class MultitenancyProperties {
     @Inject
     @ConfigProperty(name = "registry.multitenancy.base.path")
     String nameMultitenancyBasePath;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.reaper.period-minutes")
+    Optional<Integer> reaperPeriodMinutes;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
@@ -73,6 +77,11 @@ public class MultitenancyProperties {
      */
     public String getNameMultitenancyBasePath() {
         return nameMultitenancyBasePath;
+    }
+
+    public Duration getReaperPeriod() {
+        final int DEFAULT = 3 * 60; // 3 hours
+        return Duration.ofSeconds(reaperPeriodMinutes.orElse(DEFAULT) * 60L);
     }
 
     /**

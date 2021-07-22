@@ -27,7 +27,17 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public enum ActionType {
 
-    Create(1), Update(2), Delete(3), Clear(4), Import(5), Reset(6);
+    Create(1),
+    Update(2),
+    Delete(3),
+    Clear(4),
+    Import(5),
+    Reset(6),
+    /**
+     * Delete all data (per tenant) of the given resource type.
+     * TODO What is the difference between this and clear?
+     */
+    DELETE_ALL(7);
 
     private final byte ord;
 

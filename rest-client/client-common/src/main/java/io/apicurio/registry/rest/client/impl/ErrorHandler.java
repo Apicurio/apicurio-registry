@@ -68,7 +68,7 @@ public class ErrorHandler {
                 Error error = new Error();
                 error.setMessage(cause.getMessage());
                 error.setErrorCode(0);
-                logger.log(Level.SEVERE, "Unkown client exception", cause);
+                logger.log(Level.SEVERE, "Unknown client exception", cause);
                 return new RestClientException(error);
             }
         }

@@ -69,7 +69,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     * @see RegistryStorage#storageName()
      */
     @Override
     public String storageName() {
@@ -77,7 +77,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     * @see RegistryStorage#supportsMultiTenancy()
      */
     @Override
     public boolean supportsMultiTenancy() {
@@ -85,7 +85,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#isReady()
+     * @see RegistryStorage#isReady()
      */
     @Override
     public boolean isReady() {
@@ -93,7 +93,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#isAlive()
+     * @see RegistryStorage#isAlive()
      */
     @Override
     public boolean isAlive() {
@@ -106,7 +106,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param state
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
+     * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state)
@@ -122,7 +122,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
+     * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
@@ -139,7 +139,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactAlreadyExistsException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
@@ -158,7 +158,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactAlreadyExistsException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId,
@@ -175,7 +175,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
     public List<String> deleteArtifact(String groupId, String artifactId)
@@ -186,11 +186,20 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param groupId
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifacts(java.lang.String)
+     * @see RegistryStorage#deleteArtifacts(java.lang.String)
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
         delegate.deleteArtifacts(groupId);
+    }
+
+    /**
+     * @throws RegistryStorageException
+     * @See RegistryStorage#deleteAllArtifacts
+     */
+    @Override
+    public void deleteAllArtifacts() throws RegistryStorageException {
+        delegate.deleteAllArtifacts();
     }
 
     /**
@@ -199,7 +208,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
     @Override
     public StoredArtifactDto getArtifact(String groupId, String artifactId)
@@ -212,7 +221,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
+     * @see RegistryStorage#getArtifactByContentId(long)
      */
     @Override
     public ContentHandle getArtifactByContentId(long contentId)
@@ -225,7 +234,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
+     * @see RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash)
@@ -236,7 +245,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param contentId
      * @return
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionsByContentId(long)
+     * @see RegistryStorage#getArtifactVersionsByContentId(long)
      */
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
@@ -252,7 +261,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId,
@@ -271,7 +280,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId,
@@ -284,7 +293,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param limit
      * @return
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds(java.lang.Integer)
+     * @see RegistryStorage#getArtifactIds(java.lang.Integer)
      */
     @Override
     public Set<String> getArtifactIds(Integer limit) {
@@ -298,7 +307,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param offset
      * @param limit
      * @return
-     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(java.util.Set, io.apicurio.registry.storage.dto.OrderBy, io.apicurio.registry.storage.dto.OrderDirection, int, int)
+     * @see RegistryStorage#searchArtifacts(java.util.Set, io.apicurio.registry.storage.dto.OrderBy, io.apicurio.registry.storage.dto.OrderDirection, int, int)
      */
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
@@ -312,7 +321,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
@@ -328,7 +337,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
@@ -342,7 +351,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(long)
+     * @see RegistryStorage#getArtifactMetaData(long)
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
@@ -356,7 +365,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param metaData
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
@@ -370,7 +379,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
@@ -386,7 +395,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
@@ -400,7 +409,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param artifactId
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactRules(String groupId, String artifactId)
@@ -416,7 +425,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
@@ -432,7 +441,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
@@ -448,7 +457,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
@@ -462,7 +471,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
@@ -478,7 +487,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)
+     * @see RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)
      */
     @Override
     public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit)
@@ -491,7 +500,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(long)
+     * @see RegistryStorage#getArtifactVersion(long)
      */
     @Override
     public StoredArtifactDto getArtifactVersion(long globalId)
@@ -507,7 +516,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
@@ -522,7 +531,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
@@ -538,7 +547,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
@@ -555,7 +564,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
@@ -571,7 +580,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @throws ArtifactNotFoundException
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
@@ -582,7 +591,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRules()
+     * @see RegistryStorage#getGlobalRules()
      */
     @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
@@ -594,7 +603,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param config
      * @throws RuleAlreadyExistsException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -604,7 +613,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
 
     /**
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRules()
+     * @see RegistryStorage#deleteGlobalRules()
      */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
@@ -616,7 +625,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule)
@@ -629,7 +638,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param config
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -641,7 +650,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param rule
      * @throws RuleNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
@@ -653,7 +662,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws RegistryStorageException
      * @throws LogConfigurationNotFoundException
-     * @see io.apicurio.registry.storage.RegistryStorage#getLogConfiguration(java.lang.String)
+     * @see RegistryStorage#getLogConfiguration(java.lang.String)
      */
     @Override
     public LogConfigurationDto getLogConfiguration(String logger)
@@ -664,7 +673,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param logConfiguration
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
+     * @see RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
      */
     @Override
     public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
@@ -675,7 +684,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param logger
      * @throws RegistryStorageException
      * @throws LogConfigurationNotFoundException
-     * @see io.apicurio.registry.storage.RegistryStorage#removeLogConfiguration(java.lang.String)
+     * @see RegistryStorage#removeLogConfiguration(java.lang.String)
      */
     @Override
     public void removeLogConfiguration(String logger)
@@ -686,7 +695,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#listLogConfigurations()
+     * @see RegistryStorage#listLogConfigurations()
      */
     @Override
     public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
@@ -697,7 +706,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param group
      * @throws GroupAlreadyExistsException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void createGroup(GroupMetaDataDto group)
@@ -709,7 +718,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param group
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group)
@@ -721,18 +730,23 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param groupId
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     * @see RegistryStorage#deleteGroup(java.lang.String)
      */
     @Override
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
         delegate.deleteGroup(groupId);
     }
 
+    @Override
+    public void deleteAllGroups() throws RegistryStorageException {
+        delegate.deleteAllGroups();
+    }
+
     /**
      * @param limit
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     * @see RegistryStorage#getGroupIds(java.lang.Integer)
      */
     @Override
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
@@ -744,7 +758,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @return
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
+     * @see RegistryStorage#getGroupMetaData(java.lang.String)
      */
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId)
@@ -755,7 +769,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param handler
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.Function)
+     * @see RegistryStorage#exportData(java.util.function.Function)
      */
     @Override
     public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
@@ -765,7 +779,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param entities
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
      */
     @Override
     public void importData(EntityInputStream entities) throws RegistryStorageException {
@@ -775,7 +789,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     * @see RegistryStorage#countArtifacts()
      */
     @Override
     public long countArtifacts() throws RegistryStorageException {
@@ -787,7 +801,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @param artifactId
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     * @see RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override
     public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
@@ -797,7 +811,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @return
      * @throws RegistryStorageException
-     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     * @see RegistryStorage#countTotalArtifactVersions()
      */
     @Override
     public long countTotalArtifactVersions() throws RegistryStorageException {
@@ -805,7 +819,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
      */
     @Override
     public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
@@ -813,7 +827,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteRoleMapping(java.lang.String)
+     * @see RegistryStorage#deleteRoleMapping(java.lang.String)
      */
     @Override
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
@@ -821,7 +835,15 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMapping(java.lang.String)
+     * @see RegistryStorage#deleteAllRoleMappings()
+     */
+    @Override
+    public void deleteAllRoleMappings() throws RegistryStorageException {
+        delegate.deleteAllRoleMappings();
+    }
+
+    /**
+     * @see RegistryStorage#getRoleMapping(java.lang.String)
      */
     @Override
     public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
@@ -829,7 +851,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     * @see RegistryStorage#getRoleForPrincipal(java.lang.String)
      */
     @Override
     public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
@@ -837,7 +859,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
+     * @see RegistryStorage#getRoleMappings()
      */
     @Override
     public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
@@ -845,7 +867,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
+     * @see RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
      */
     @Override
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {

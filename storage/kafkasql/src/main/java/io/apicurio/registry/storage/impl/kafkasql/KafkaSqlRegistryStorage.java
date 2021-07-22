@@ -419,6 +419,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         // TODO could possibly add tombstone messages for *all* artifacts that were deleted (version meta-data and artifact rules)
     }
 
+    @Override
+    public void deleteAllArtifacts() throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(tenantContext.tenantId(), null, null, ActionType.DELETE_ALL));
+        coordinator.waitForResponse(reqId);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
@@ -740,6 +746,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
+        // TODO Should this be rule specific, instead of "DELETE FROM"?
         submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.COMPATIBILITY, ActionType.Delete);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.VALIDITY, ActionType.Delete));
@@ -901,6 +908,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         coordinator.waitForResponse(reqId);
     }
 
+    @Override
+    public void deleteAllGroups() throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), null, ActionType.DELETE_ALL, false));
+        coordinator.waitForResponse(reqId);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
      */
@@ -1005,6 +1018,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
 
         UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Delete));
+        coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public void deleteAllRoleMappings() throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), null, ActionType.DELETE_ALL));
         coordinator.waitForResponse(reqId);
     }
 

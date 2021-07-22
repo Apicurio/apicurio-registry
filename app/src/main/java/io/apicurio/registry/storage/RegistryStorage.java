@@ -157,6 +157,13 @@ public interface RegistryStorage {
     public void deleteArtifacts(String groupId) throws RegistryStorageException;
 
     /**
+     * Deletes ALL artifacts from ALL groups, together with their associated content. DOES NOT delete the groups.
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteAllArtifacts() throws RegistryStorageException;
+
+    /**
      * Gets the most recent version of the value of the artifact with the given group and ID.
      * @param groupId (optional)
      * @param artifactId
@@ -539,6 +546,15 @@ public interface RegistryStorage {
      */
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException;
 
+
+    /**
+     * Deletes ALL groups and ALL resources associated with the groups
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteAllGroups() throws RegistryStorageException;
+
+
     /**
      * Get all groupIds
      * @param limit
@@ -626,4 +642,9 @@ public interface RegistryStorage {
      * @param principalId
      */
     public void deleteRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Deletes ALL role mappings.
+     */
+    public void deleteAllRoleMappings() throws RegistryStorageException;
 }

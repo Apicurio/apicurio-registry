@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -70,12 +71,14 @@ public class MultitenancyLimitsTest {
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId(tenantId1);
         tenant1.setOrganizationId("aaa");
+        tenant1.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant1);
 
         String tenantId2 = UUID.randomUUID().toString();
         var tenant2 = new RegistryTenant();
         tenant2.setTenantId(tenantId2);
         tenant2.setOrganizationId("bbb");
+        tenant2.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant2);
 
         //TODO add testcase configuring limits via metadata service

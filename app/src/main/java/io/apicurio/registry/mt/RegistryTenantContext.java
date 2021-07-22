@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 /**
@@ -28,11 +29,13 @@ public class RegistryTenantContext {
     private final String tenantId;
     private final String tenantOwner;
     private final TenantLimitsConfiguration limitsConfiguration;
+    private final TenantStatusValue status;
 
-    public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration) {
+    public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration, TenantStatusValue status) {
         this.tenantId = tenantId;
         this.tenantOwner = tenantOwner;
         this.limitsConfiguration = limitsConfiguration;
+        this.status = status;
     }
 
     /**
@@ -56,4 +59,7 @@ public class RegistryTenantContext {
         return tenantOwner;
     }
 
+    public TenantStatusValue getStatus() {
+        return status;
+    }
 }

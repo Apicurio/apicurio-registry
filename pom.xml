@@ -144,7 +144,7 @@
         <json-schema-validator.version>1.0.57</json-schema-validator.version>
         <wire-schema.version>3.7.0</wire-schema.version>
         <protobuf.version>3.17.3</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <xmlsec.version>2.2.2</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Picocli -->

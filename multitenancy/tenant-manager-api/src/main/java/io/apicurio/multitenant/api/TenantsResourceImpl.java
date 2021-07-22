@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -58,7 +60,7 @@ public class TenantsResourceImpl implements TenantsResource {
 
     @Override
     public RegistryTenantList getTenants(@QueryParam("status") String status,
-            @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit,
+            @QueryParam("offset") @Min(0) Integer offset, @QueryParam("limit") @Min(1) @Max(500) Integer limit,
             @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby) {
 
         offset = (offset != null) ? offset : 0;
@@ -76,11 +78,11 @@ public class TenantsResourceImpl implements TenantsResource {
         }
 
         List<RegistryTenantDto> items = tenantsRepository.queryTenants(query, sort, parameters, offset, limit);
-        long total = tenantsRepository.count(query, parameters);
+        Long total = tenantsRepository.count(query, parameters);
 
         RegistryTenantList list = new RegistryTenantList();
         list.setItems(items.stream().map(RegistryTenantDto::toDatamodel).collect(Collectors.toList()));
-        list.setCount(total);
+        list.setCount(total.intValue());
         return list;
     }
 

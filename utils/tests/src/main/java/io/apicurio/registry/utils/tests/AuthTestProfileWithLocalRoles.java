@@ -20,10 +20,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.quarkus.test.junit.QuarkusTestProfile;
+
 /**
  * @author Carles Arnal
  */
-public class AuthTestProfileWithLocalRoles extends AuthTestProfile {
+public class AuthTestProfileWithLocalRoles implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {

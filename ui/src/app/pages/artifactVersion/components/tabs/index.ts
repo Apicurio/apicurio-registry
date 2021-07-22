@@ -18,3 +18,4 @@
 export * from "./content";
 export * from "./documentation";
 export * from "./info";
+export * from "./errorTab"

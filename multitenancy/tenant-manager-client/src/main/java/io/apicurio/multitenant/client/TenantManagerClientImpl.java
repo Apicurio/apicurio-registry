@@ -17,12 +17,20 @@ package io.apicurio.multitenant.client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +40,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.message.BasicNameValuePair;
 import org.keycloak.common.VerificationException;
 
 /**
@@ -66,21 +82,44 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public List<RegistryTenant> listTenants() {
+        return listTenants(null, 0, 50, null, null).getItems();
+    }
+
+    @Override
+    public RegistryTenantList listTenants(TenantStatusValue status, Integer offset, Integer limit, SortOrder order, SortBy orderby) {
         try {
             final Map<String, String> headers = prepareRequestHeaders();
+
+            Map<String, List<String>> queryParams = new HashMap<>();
+            if (status != null) {
+                queryParams.put("status", Arrays.asList(status.value()));
+            }
+            if (offset != null) {
+                queryParams.put("offset", Arrays.asList(String.valueOf(offset)));
+            }
+            if (limit != null) {
+                queryParams.put("limit", Arrays.asList(String.valueOf(limit)));
+            }
+            if (order != null) {
+                queryParams.put("order", Arrays.asList(order.value()));
+            }
+            if (orderby != null) {
+                queryParams.put("orderby", Arrays.asList(orderby.value()));
+            }
+
             HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
+                    .uri(buildURI(endpoint + TENANTS_API_BASE_PATH, queryParams, Collections.emptyList()))
                     .GET();
 
             headers.forEach(req::header);
 
             HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
             if (res.statusCode() == 200) {
-                return this.mapper.readValue(res.body(), new TypeReference<List<RegistryTenant>>() {
+                return this.mapper.readValue(res.body(), new TypeReference<RegistryTenantList>() {
                 });
             }
             throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
+        } catch (IOException | InterruptedException | VerificationException | URISyntaxException e) {
             throw new TenantManagerClientException(e);
         }
     }
@@ -170,5 +209,27 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             headers.put("Authorization", auth.obtainAuthorizationValue());
         }
         return headers;
+    }
+
+    private URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
+        Object[] encodedPathParams = pathParams
+                .stream()
+                .map(this::encodeURIComponent)
+                .toArray();
+        final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
+        final List<NameValuePair> queryParamsExpanded = new ArrayList<>();
+        //Iterate over query params list so we can add multiple query params with the same key
+        queryParams.forEach((key, paramList) -> paramList
+                .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
+        uriBuilder.setParameters(queryParamsExpanded);
+        return uriBuilder.build();
+    }
+
+    private String encodeURIComponent(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

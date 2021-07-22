@@ -26,7 +26,7 @@ import java.util.Map;
 
 public class KeycloakTestResourceWithoutRoles implements QuarkusTestResourceLifecycleManager {
 
-    private static final Logger log = LoggerFactory.getLogger(KeycloakTestResource.class);
+    private static final Logger log = LoggerFactory.getLogger(KeycloakTestResourceWithoutRoles.class);
 
     private KeycloakContainer container;
 

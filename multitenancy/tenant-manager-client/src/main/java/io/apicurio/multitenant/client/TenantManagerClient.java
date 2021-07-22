@@ -16,6 +16,11 @@
 package io.apicurio.multitenant.client;
 
 import java.util.List;
+
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
@@ -25,14 +30,34 @@ import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
  */
 public interface TenantManagerClient {
 
+    @Deprecated
     public List<RegistryTenant> listTenants();
 
+    /**
+     * List tenants using the provided search parameters.
+     * All parameters can be null, the server will use default values
+     */
+    public RegistryTenantList listTenants(TenantStatusValue status, Integer offset, Integer limit, SortOrder order, SortBy orderby);
+
+    /**
+     * Creates a new tenant
+     */
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest);
 
+    /**
+     * Updates some tenant fields.
+     * If some field is not provided it won't be updated.
+     */
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest);
 
+    /**
+     * Retrieves the tenant information by tenantId
+     */
     public RegistryTenant getTenant(String tenantId);
 
+    /**
+     * Updates the tenant status to {@link TenantStatusValue#TO_BE_DELETED}
+     */
     public void deleteTenant(String tenantId);
 
 }

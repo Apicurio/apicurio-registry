@@ -25,11 +25,18 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
@@ -38,6 +45,9 @@ import io.apicurio.multitenant.api.dto.DtoMappers;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
+import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
+import io.quarkus.panache.common.Sort.Direction;
 
 /**
  * @author Fabian Martinez
@@ -49,11 +59,31 @@ public class TenantsResourceImpl implements TenantsResource {
     RegistryTenantStorage tenantsRepository;
 
     @Override
-    public List<RegistryTenant> getTenants() {
-        return tenantsRepository.listAll()
-                .stream()
-                .map(RegistryTenantDto::toDatamodel)
-                .collect(Collectors.toList());
+    public RegistryTenantList getTenants(@QueryParam("status") String status,
+            @QueryParam("offset") @Min(0) Integer offset, @QueryParam("limit") @Min(1) @Max(500) Integer limit,
+            @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby) {
+
+        offset = (offset != null) ? offset : 0;
+        limit = (limit != null) ? limit : 20;
+        order = (order != null) ? order : SortOrder.asc;
+        orderby = (orderby != null) ? orderby : SortBy.tenantId;
+
+        Sort sort = Sort.by(orderby.value()).direction(order == SortOrder.asc ? Direction.Ascending : Direction.Descending);
+
+        String query = "";
+        Parameters parameters = new Parameters();
+        if (status != null) {
+            query += "status = :status";
+            parameters = parameters.and("status", status);
+        }
+
+        List<RegistryTenantDto> items = tenantsRepository.queryTenants(query, sort, parameters, offset, limit);
+        Long total = tenantsRepository.count(query, parameters);
+
+        RegistryTenantList list = new RegistryTenantList();
+        list.setItems(items.stream().map(RegistryTenantDto::toDatamodel).collect(Collectors.toList()));
+        list.setCount(total.intValue());
+        return list;
     }
 
     @Override
@@ -71,6 +101,7 @@ public class TenantsResourceImpl implements TenantsResource {
         tenant.setDescription(tenantRequest.getDescription());
         tenant.setCreatedOn(new Date());
         tenant.setCreatedBy(tenantRequest.getCreatedBy());
+        tenant.setStatus(TenantStatusValue.READY.value());
 
         if (tenantRequest.getResources() != null) {
             //find duplicates, invalid config
@@ -136,14 +167,19 @@ public class TenantsResourceImpl implements TenantsResource {
                 .forEach(dto -> tenant.addResource(dto));
         }
 
+        if (tenantRequest.getStatus() != null) {
+            tenant.setStatus(tenantRequest.getStatus().value());
+        }
+
         tenantsRepository.save(tenant);
     }
 
     @Override
     @Transactional
     public void deleteTenant(@PathParam("tenantId") String tenantId) {
-
-        tenantsRepository.delete(tenantId);
+        RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
+        tenant.setStatus(TenantStatusValue.TO_BE_DELETED.value());
+        tenantsRepository.save(tenant);
     }
 
     private void required(String parameter, String message) {

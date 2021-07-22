@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 import java.util.UUID;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +29,10 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
+import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
@@ -60,8 +63,10 @@ public class TenantManagerClientTest {
     public void cleanup() {
         List<RegistryTenant> list = client.listTenants();
         list.forEach(t -> client.deleteTenant(t.getTenantId()));
-        list = client.listTenants();
+        var search = client.listTenants(TenantStatusValue.READY, null, null, null, null);
+        list = search.getItems();
         assertEquals(0, list.size());
+        assertEquals(0, search.getCount());
     }
 
     @Test
@@ -87,6 +92,41 @@ public class TenantManagerClientTest {
         testUpdateTenant(tenant.getTenantId());
 
         testDelete(tenant.getTenantId());
+    }
+
+    @Test
+    public void testPagination() {
+        int totalItems = 15;
+        for (int i = 0; i<totalItems ; i++ ) {
+            NewRegistryTenantRequest req = new NewRegistryTenantRequest();
+            req.setTenantId(UUID.randomUUID().toString());
+            req.setOrganizationId(UUID.randomUUID().toString());
+            client.createTenant(req);
+        }
+
+        var search = client.listTenants(TenantStatusValue.READY, 0, 5, SortOrder.asc, SortBy.tenantId);
+        assertEquals(5, search.getItems().size());
+        assertEquals(totalItems, search.getCount());
+
+        search = client.listTenants(TenantStatusValue.READY, 5, 5, SortOrder.asc, SortBy.tenantId);
+        assertEquals(5, search.getItems().size());
+        assertEquals(totalItems, search.getCount());
+
+        search = client.listTenants(TenantStatusValue.READY, 10, 5, SortOrder.asc, SortBy.tenantId);
+        assertEquals(5, search.getItems().size());
+        assertEquals(totalItems, search.getCount());
+
+        search = client.listTenants(TenantStatusValue.READY, 15, 5, SortOrder.asc, SortBy.tenantId);
+        assertEquals(0, search.getItems().size());
+        assertEquals(totalItems, search.getCount());
+    }
+
+    @Test
+    public void testApiValidation() {
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, -1, 5000000, SortOrder.asc, SortBy.name));
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, 0, -5, SortOrder.asc, SortBy.name));
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, 0, 585685, SortOrder.asc, SortBy.name));
+        client.listTenants(null, null, null, null, null);
     }
 
     @Test
@@ -131,7 +171,8 @@ public class TenantManagerClientTest {
 
     public void testDelete(String tenantId) {
         client.deleteTenant(tenantId);
-        testTenantNotFound(tenantId);
+        RegistryTenant tenant = client.getTenant(tenantId);
+        assertEquals(TenantStatusValue.TO_BE_DELETED, tenant.getStatus());
     }
 
     private void testTenantNotFound(String tenantId) {

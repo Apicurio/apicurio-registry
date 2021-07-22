@@ -6,6 +6,9 @@ import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -51,7 +54,7 @@ public interface TenantsResource {
   @GET
   @Produces("application/json")
   RegistryTenantList getTenants(@QueryParam("status") String status,
-      @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit,
+      @QueryParam("offset") @Min(0) Integer offset, @QueryParam("limit") @Min(1) @Max(500) Integer limit,
       @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby);
 
   /**

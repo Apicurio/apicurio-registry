@@ -27,7 +27,7 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 public class KeycloakTestResourceWithLocalRoles implements QuarkusTestResourceLifecycleManager {
 
-    private static final Logger log = LoggerFactory.getLogger(KeycloakTestResource.class);
+    private static final Logger log = LoggerFactory.getLogger(KeycloakTestResourceWithLocalRoles.class);
 
     private KeycloakContainer container;
 

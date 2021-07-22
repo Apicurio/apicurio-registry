@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
+import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.multitenant.api.beans.SortBy;
 import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.beans.TenantStatusValue;
@@ -118,6 +119,14 @@ public class TenantManagerClientTest {
         search = client.listTenants(TenantStatusValue.READY, 15, 5, SortOrder.asc, SortBy.tenantId);
         assertEquals(0, search.getItems().size());
         assertEquals(totalItems, search.getCount());
+    }
+
+    @Test
+    public void testApiValidation() {
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, -1, 5000000, SortOrder.asc, SortBy.name));
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, 0, -5, SortOrder.asc, SortBy.name));
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.listTenants(TenantStatusValue.READY, 0, 585685, SortOrder.asc, SortBy.name));
+        client.listTenants(null, null, null, null, null);
     }
 
     @Test

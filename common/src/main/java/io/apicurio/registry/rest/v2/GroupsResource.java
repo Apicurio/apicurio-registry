@@ -392,7 +392,10 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,
       @QueryParam("ifExists") IfExists ifExists, @QueryParam("canonical") Boolean canonical,
-      InputStream data);
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
 
   /**
    * Deletes all of the artifacts that exist in a given group.
@@ -441,7 +444,12 @@ public interface GroupsResource {
   @Consumes("*/*")
   ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion, InputStream data);
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      InputStream data);
 
   /**
    * Deletes an artifact completely, resulting in all versions of the artifact also being
@@ -494,5 +502,9 @@ public interface GroupsResource {
   @Consumes("*/*")
   VersionMetaData createArtifactVersion(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion, InputStream data);
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
 }

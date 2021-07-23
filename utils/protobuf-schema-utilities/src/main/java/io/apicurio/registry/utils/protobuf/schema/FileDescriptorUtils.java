@@ -78,6 +78,8 @@ public class FileDescriptorUtils {
     private static final String KEY_FIELD = "key";
     private static final String VALUE_FIELD = "value";
     private static final String MAP_ENTRY_SUFFIX = "Entry";
+    private static final String DEPRECATED_OPTION = "deprecated";
+    private static final String OPTIONAL = "optional";
 
     public static FileDescriptor[] baseDependencies() {
         return new FileDescriptor[] {
@@ -86,13 +88,18 @@ public class FileDescriptorUtils {
                 };
     }
 
-    public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element) throws DescriptorValidationException {
-        return FileDescriptor.buildFrom(toFileDescriptorProto(element), baseDependencies());
+    public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)
+        throws DescriptorValidationException {
+        return protoFileToFileDescriptor(element, "default");
     }
 
-    private static FileDescriptorProto toFileDescriptorProto(ProtoFileElement element) {
+    public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element, String protoFileName) throws DescriptorValidationException {
+        return FileDescriptor.buildFrom(toFileDescriptorProto(element, protoFileName), baseDependencies());
+    }
+
+    private static FileDescriptorProto toFileDescriptorProto(ProtoFileElement element, String protoFileName) {
         FileDescriptorProto.Builder schema = FileDescriptorProto.newBuilder();
-        schema.setName("default");
+        schema.setName(protoFileName);
 
         Syntax syntax = element.getSyntax();
         if (syntax != null) {
@@ -177,6 +184,7 @@ public class FileDescriptorUtils {
 
             for (FieldElement field : oneof.getFields()) {
                 String jsonName = findOptionString(JSON_NAME_OPTION, field.getOptions());
+                Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
 
                 message.addFieldDescriptorProto(
                         FieldDescriptorProto.Label.LABEL_OPTIONAL,
@@ -185,6 +193,7 @@ public class FileDescriptorUtils {
                         field.getTag(),
                         field.getDefaultValue(),
                         jsonName,
+                        isDeprecated,
                         null,
                         message.protoBuilder().getOneofDeclCount() - 1);
 
@@ -198,7 +207,9 @@ public class FileDescriptorUtils {
                 continue;
             }
             Field.Label fieldLabel = field.getLabel();
-            String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : null;
+            //Fields are optional by default in Proto3.
+            String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : OPTIONAL;
+
             String fieldType = field.getType();
 
             ProtoType protoType = ProtoType.get(fieldType);
@@ -216,15 +227,16 @@ public class FileDescriptorUtils {
                                 .setMapEntry(true)
                                 .build());
 
-                protobufMapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null);
-                protobufMapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null);
+                protobufMapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null, null);
+                protobufMapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null, null);
                 message.protoBuilder().addNestedType(mapMessage.build());
             }
 
-            String jsonName = findOptionString(JSON_NAME_OPTION, field.getOptions());
+            String jsonName = field.getJsonName();
+            Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
             Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
 
-            message.addField(label, fieldType, field.getName(), field.getTag(), field.getDefaultValue(), jsonName, isPacked, null);
+            message.addField(label, fieldType, field.getName(), field.getTag(), field.getDefaultValue(), jsonName, isDeprecated, isPacked, null);
         }
 
         for (ReservedElement reserved : messageElem.getReserveds()) {
@@ -425,8 +437,9 @@ public class FileDescriptorUtils {
 
     private static FieldElement toField(FileDescriptorProto file, FieldDescriptorProto fd, boolean inOneof) {
         String name = fd.getName();
+        DescriptorProtos.FieldOptions fieldDescriptorOptions = fd.getOptions();
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();
-        if (fd.getOptions().hasPacked()) {
+        if (fieldDescriptorOptions.hasPacked()) {
             OptionElement.Kind kind = OptionElement.Kind.BOOLEAN;
             OptionElement option = new OptionElement(PACKED_OPTION, kind, fd.getOptions().getPacked(), false);
             options.add(option);
@@ -436,6 +449,13 @@ public class FileDescriptorUtils {
             OptionElement option = new OptionElement(JSON_NAME_OPTION, kind, fd.getJsonName(), false);
             options.add(option);
         }
+        if (fieldDescriptorOptions.hasDeprecated()) {
+            OptionElement.Kind kind = OptionElement.Kind.BOOLEAN;
+            OptionElement option = new OptionElement(DEPRECATED_OPTION, kind, fieldDescriptorOptions.getDeprecated(),
+                false);
+            options.add(option);
+        }
+
         //Implicitly jsonName to null as Options is already setting it. Setting it here results in duplicate json_name
         //option in inferred schema.
         String jsonName = null;

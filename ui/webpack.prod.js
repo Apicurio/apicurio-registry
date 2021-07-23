@@ -11,6 +11,14 @@ module.exports = merge(common("production"), {
     new MiniCssExtractPlugin({
       filename: "[name].css",
       chunkFilename: "[id].css",
+      insert: (linkTag) => {
+        const preloadLinkTag = document.createElement('link')
+        preloadLinkTag.rel = 'preload'
+        preloadLinkTag.as = 'style'
+        preloadLinkTag.href = linkTag.href
+        document.head.appendChild(preloadLinkTag)
+        document.head.appendChild(linkTag)
+      }
     }),
   ],
   module: {

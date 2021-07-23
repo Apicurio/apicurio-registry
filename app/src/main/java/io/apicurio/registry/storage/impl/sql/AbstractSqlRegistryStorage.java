@@ -35,6 +35,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.storage.RegistryStorage;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -112,7 +113,7 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
- * A SQL implementation of the {@link io.apicurio.registry.storage.RegistryStorage} interface.  This impl does not
+ * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
  * use any ORM technology - it simply uses native SQL for all operations.
  * @author eric.wittmann@gmail.com
  */
@@ -295,7 +296,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#storageName()
+     * @see RegistryStorage#storageName()
      */
     @Override
     public String storageName() {
@@ -303,7 +304,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#supportsMultiTenancy()
+     * @see RegistryStorage#supportsMultiTenancy()
      */
     @Override
     public boolean supportsMultiTenancy() {
@@ -311,7 +312,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
+     * @see RegistryStorage#getArtifactByContentId(long)
      */
     @Override
     public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
@@ -327,7 +328,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
+     * @see RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
     public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
@@ -343,7 +344,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
+     * @see RegistryStorage#getArtifactByContentId(long)
      */
     @Override
     public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
@@ -363,7 +364,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
+     * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override @Transactional
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
@@ -389,7 +390,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
+     * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
     @Override
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
@@ -418,7 +419,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
@@ -610,7 +611,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -679,7 +680,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public List<String> deleteArtifact(String groupId, String artifactId)
@@ -752,7 +753,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifacts(java.lang.String)
+     * @see RegistryStorage#deleteArtifacts(java.lang.String)
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
@@ -783,7 +784,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(1, normalizeGroupId(groupId))
                     .execute();
 
-                // TODO reap orphaned rows in the "content" table?
+                sql = sqlStatements.deleteAllOrphanedContent();
+                handle.createUpdate(sql)
+                    .execute();
 
                 // Delete artifact rules
                 sql = sqlStatements.deleteArtifactRulesByGroupId();
@@ -811,7 +814,59 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String, java.lang.String)
+     * @throws RegistryStorageException
+     * @see RegistryStorage#deleteAllArtifacts()
+     */
+    @Override
+    public void deleteAllArtifacts() throws RegistryStorageException {
+        log.debug("Deleting all artifacts");
+        try {
+            this.handles.withHandle( handle -> {
+
+                // Delete labels
+                String sql = sqlStatements.deleteAllLabels();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+                // Delete properties
+                sql = sqlStatements.deleteAllProperties();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+                // Delete versions
+                sql = sqlStatements.deleteAllVersions();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+                // Delete orphaned content
+                sql = sqlStatements.deleteAllOrphanedContent();
+                handle.createUpdate(sql)
+                    .execute();
+
+                // Delete artifact rules
+                sql = sqlStatements.deleteAllArtifactRules();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+                // Delete artifact row (should be just one)
+                sql = sqlStatements.deleteAllArtifacts();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see RegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public StoredArtifactDto getArtifact(String groupId, String artifactId)
@@ -836,7 +891,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
@@ -850,7 +905,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -925,7 +980,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactIds(java.lang.Integer)
+     * @see RegistryStorage#getArtifactIds(java.lang.Integer)
      */
     @Override @Transactional
     public Set<String> getArtifactIds(Integer limit) {
@@ -942,7 +997,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchArtifacts(java.util.Set, io.apicurio.registry.storage.dto.OrderBy, io.apicurio.registry.storage.dto.OrderDirection, int, int)
+     * @see RegistryStorage#searchArtifacts(java.util.Set, io.apicurio.registry.storage.dto.OrderBy, io.apicurio.registry.storage.dto.OrderDirection, int, int)
      */
     @Override @Transactional
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection,
@@ -1108,7 +1163,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
@@ -1142,7 +1197,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
@@ -1179,7 +1234,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(long)
+     * @see RegistryStorage#getArtifactMetaData(long)
      */
     @Override @Transactional
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
@@ -1203,7 +1258,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData)
@@ -1216,7 +1271,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
@@ -1251,7 +1306,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override @Transactional
     public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
@@ -1282,7 +1337,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public void deleteArtifactRules(String groupId, String artifactId)
@@ -1311,7 +1366,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override @Transactional
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
@@ -1344,7 +1399,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override @Transactional
     public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
@@ -1376,7 +1431,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override @Transactional
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
@@ -1407,7 +1462,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public List<String> getArtifactVersions(String groupId, String artifactId)
@@ -1435,7 +1490,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)
+     * @see RegistryStorage#searchVersions(java.lang.String, java.lang.String, int, int)
      */
     @Override @Transactional
     public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit) {
@@ -1472,7 +1527,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(long)
+     * @see RegistryStorage#getArtifactVersion(long)
      */
     @Override @Transactional
     public StoredArtifactDto getArtifactVersion(long globalId)
@@ -1496,7 +1551,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
@@ -1522,7 +1577,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
@@ -1619,7 +1674,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
@@ -1649,7 +1704,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData)
@@ -1735,7 +1790,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
+     * @see RegistryStorage#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override @Transactional
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
@@ -1787,7 +1842,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRules()
+     * @see RegistryStorage#getGlobalRules()
      */
     @Override @Transactional
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
@@ -1806,7 +1861,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override @Transactional
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -1831,7 +1886,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRules()
+     * @see RegistryStorage#deleteGlobalRules()
      */
     @Override @Transactional
     public void deleteGlobalRules() throws RegistryStorageException {
@@ -1846,7 +1901,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override @Transactional
     public RuleConfigurationDto getGlobalRule(RuleType rule)
@@ -1870,7 +1925,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override @Transactional
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -1897,7 +1952,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
+     * @see RegistryStorage#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override @Transactional
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
@@ -1922,7 +1977,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getLogConfiguration(java.lang.String)
+     * @see RegistryStorage#getLogConfiguration(java.lang.String)
      */
     @Override
     public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
@@ -1944,7 +1999,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
+     * @see RegistryStorage#setLogConfiguration(io.apicurio.registry.storage.dto.LogConfigurationDto)
      */
     @Override @Transactional
     public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
@@ -1965,7 +2020,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#removeLogConfiguration(java.lang.String)
+     * @see RegistryStorage#removeLogConfiguration(java.lang.String)
      */
     @Override @Transactional
     public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
@@ -1983,7 +2038,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#listLogConfigurations()
+     * @see RegistryStorage#listLogConfigurations()
      */
     @Override
     public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
@@ -1996,7 +2051,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
@@ -2025,7 +2080,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     * @see RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
@@ -2048,7 +2103,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     * @see RegistryStorage#deleteGroup(java.lang.String)
      */
     @Override
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
@@ -2067,7 +2122,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupIds(java.lang.Integer)
+     * @see RegistryStorage#deleteAllGroups()
+     */
+    @Override
+    public void deleteAllGroups() throws RegistryStorageException {
+        handles.withHandleNoException(handle -> {
+            final String sql = sqlStatements.deleteAllGroups();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+            deleteAllArtifacts();
+            return null;
+        });
+    }
+
+    /**
+     * @see RegistryStorage#getGroupIds(java.lang.Integer)
      */
     @Override
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
@@ -2088,7 +2158,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGroupMetaData(java.lang.String)
+     * @see RegistryStorage#getGroupMetaData(java.lang.String)
      */
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
@@ -2110,7 +2180,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.Function)
+     * @see RegistryStorage#exportData(java.util.function.Function)
      */
     @Override
     @Transactional
@@ -2224,7 +2294,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
      */
     @Override
     @Transactional
@@ -2248,7 +2318,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#countArtifacts()
+     * @see RegistryStorage#countArtifacts()
      */
     @Override
     public long countArtifacts() throws RegistryStorageException {
@@ -2263,7 +2333,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
+     * @see RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
      */
     @Override
     public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
@@ -2284,7 +2354,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#countTotalArtifactVersions()
+     * @see RegistryStorage#countTotalArtifactVersions()
      */
     @Override
     public long countTotalArtifactVersions() throws RegistryStorageException {
@@ -2299,7 +2369,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
      */
     @Override
     public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
@@ -2323,7 +2393,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteRoleMapping(java.lang.String)
+     * @see RegistryStorage#deleteRoleMapping(java.lang.String)
      */
     @Override
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
@@ -2348,7 +2418,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMapping(java.lang.String)
+     * @see RegistryStorage#deleteAllRoleMappings()
+     */
+    @Override
+    public void deleteAllRoleMappings() throws RegistryStorageException {
+        log.debug("Deleting all role mappings for tenant {}", tenantContext.tenantId());
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.deleteAllRoleMappings();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see RegistryStorage#getRoleMapping(java.lang.String)
      */
     @Override
     public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
@@ -2371,7 +2460,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleForPrincipal(java.lang.String)
+     * @see RegistryStorage#getRoleForPrincipal(java.lang.String)
      */
     @Override
     public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
@@ -2392,7 +2481,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getRoleMappings()
+     * @see RegistryStorage#getRoleMappings()
      */
     @Override
     public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
@@ -2407,7 +2496,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
+     * @see RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
      */
     @Override
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {

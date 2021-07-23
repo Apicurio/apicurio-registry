@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
@@ -50,6 +51,7 @@ public class MultitenancyAndDisabledApisTest {
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId("abc");
         tenant1.setOrganizationId("aaa");
+        tenant1.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant1);
 
         //this should return http 404, it's disabled

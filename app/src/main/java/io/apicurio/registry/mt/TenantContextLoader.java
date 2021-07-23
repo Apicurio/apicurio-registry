@@ -82,16 +82,20 @@ public class TenantContextLoader {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
             checkTenantAuthorization(tenantMetadata);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration);
+            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus());
         });
         return context;
     }
 
     public RegistryTenantContext defaultTenantContext() {
         if (defaultTenantContext == null) {
-            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant());
+            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant(), null);
         }
         return defaultTenantContext;
+    }
+
+    public void invalidateTenantInCache(String tenantId) {
+        contextsCache.remove(tenantId);
     }
 
     private void checkTenantAuthorization(final RegistryTenant tenant) {

@@ -91,7 +91,7 @@ public class KafkaSqlSink {
      */
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
         UUID requestId = extractUuid(record);
-        log.debug("Processing Kafka message with UUID: {}", requestId.toString());
+        log.debug("Processing Kafka message with UUID: {}", requestId);
 
         try {
             Object result = doProcessMessage(record);
@@ -133,7 +133,7 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            tenantContext.setContext(new RegistryTenantContext(tenantId, null, null));
+            tenantContext.setContext(new RegistryTenantContext(tenantId, null, null, null));
         }
         try {
             MessageType messageType = key.getType();
@@ -159,7 +159,7 @@ public class KafkaSqlSink {
                 case RoleMapping:
                     return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
                 default:
-                    log.warn("Unrecognized message type: %s", record.key());
+                    log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
             }
         } finally {
@@ -200,6 +200,9 @@ public class KafkaSqlSink {
                     sqlStore.deleteGroup(key.getGroupId());
                 }
                 return null;
+            case DELETE_ALL:
+                sqlStore.deleteAllArtifacts();
+                return null;
             case Import:
                 GroupEntity entity = new GroupEntity();
                 entity.artifactsType = value.getArtifactsType();
@@ -211,8 +214,9 @@ public class KafkaSqlSink {
                 entity.modifiedOn = value.getModifiedOn();
                 entity.properties = value.getProperties();
                 sqlStore.importGroup(entity);
+                return null;
             default:
-                log.warn("Unsupported group message action: %s", key.getType().name());
+                log.warn("Unsupported group message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported group message action: " + value.getAction());
         }
     }
@@ -241,6 +245,9 @@ public class KafkaSqlSink {
                             value.getMetaData(), globalIdGenerator);
                 case Delete:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
+                case DELETE_ALL:
+                    sqlStore.deleteAllArtifacts();
+                    return null;
                 case Import:
                     ArtifactVersionEntity entity = new ArtifactVersionEntity();
                     entity.globalId = value.getGlobalId();
@@ -261,7 +268,7 @@ public class KafkaSqlSink {
                     sqlStore.importArtifactVersion(entity);
                     return null;
                 default:
-                    log.warn("Unsupported artifact message action: %s", key.getType().name());
+                    log.warn("Unsupported artifact message action: {}", key.getType().name());
                     throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
             }
         } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
@@ -387,7 +394,7 @@ public class KafkaSqlSink {
                 sqlStore.importGlobalRule(entity);
                 return null;
             default:
-                log.warn("Unsupported global rule message action: %s", key.getType().name());
+                log.warn("Unsupported global rule message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
         }
     }
@@ -410,6 +417,9 @@ public class KafkaSqlSink {
             case Delete:
                 sqlStore.deleteRoleMapping(key.getPrincipalId());
                 return null;
+            case DELETE_ALL:
+                sqlStore.deleteAllRoleMappings();
+                return null;
             case Import:
 //                GlobalRuleEntity entity = new GlobalRuleEntity();
 //                entity.ruleType = key.getRuleType();
@@ -417,7 +427,7 @@ public class KafkaSqlSink {
 //                sqlStore.importGlobalRule(entity);
 //                return null;
             default:
-                log.warn("Unsupported role mapping message action: %s", key.getType().name());
+                log.warn("Unsupported role mapping message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported role-mapping message action: " + value.getAction());
         }
     }
@@ -436,7 +446,7 @@ public class KafkaSqlSink {
                 sqlStore.resetGlobalId();
                 return null;
             default:
-                log.warn("Unsupported global id message action: %s", key.getType().name());
+                log.warn("Unsupported global id message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported global-id message action: " + value.getAction());
         }
     }
@@ -455,7 +465,7 @@ public class KafkaSqlSink {
                 sqlStore.resetContentId();
                 return null;
             default:
-                log.warn("Unsupported content id message action: %s", key.getType().name());
+                log.warn("Unsupported content id message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported content-id message action: " + value.getAction());
         }
     }
@@ -475,7 +485,7 @@ public class KafkaSqlSink {
                 sqlStore.removeLogConfiguration(value.getConfig().getLogger());
                 return null;
             default:
-                log.warn("Unsupported log config message action: %s", key.getType().name());
+                log.warn("Unsupported log config message action: {}", key.getType().name());
                 throw new RegistryStorageException("Unsupported log config message action: " + value.getAction());
         }
     }

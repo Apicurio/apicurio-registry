@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax3;
+
+message Address {
+  string street = 1 [json_name = "Address_Street"];
+
+  int32 zip = 2 [deprecated = true];
+
+  string city = 3;
+
+  repeated int32 samples = 6 [packed=true];
+}
+
+message Customer {
+  string name = 1;
+}

@@ -15,16 +15,12 @@
  */
 package io.apicurio.multitenant.api.services;
 
-import java.util.Optional;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import io.apicurio.multitenant.api.datamodel.RegistryDeploymentInfo;
-import io.fabric8.openshift.api.model.Route;
-import io.fabric8.openshift.client.OpenShiftClient;
 
 /**
  * This service provides information about the registry deployment paired with this tenant manager.
@@ -40,46 +36,17 @@ public class RegistryDeploymentInfoService {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.namespace")
-    Optional<String> registryNamespace;
-
-    @ConfigProperty(name = "registry.route.name")
-    Optional<String> registryRouteName;
-
     @ConfigProperty(name = "registry.route.url")
-    Optional<String> registryRouteUrl;
-
-    @Inject
-    OpenShiftClient openshiftClient;
+    String registryRouteUrl;
 
     private RegistryDeploymentInfo deploymentInfo;
 
     public RegistryDeploymentInfo getRegistryDeploymentInfo() {
         if (deploymentInfo == null) {
             RegistryDeploymentInfo info = new RegistryDeploymentInfo();
-
-            if (registryRouteUrl.isPresent()) {
-                info.setUrl(registryRouteUrl.get());
-                info.setName(info.getUrl());
-            } else if (registryRouteName.isPresent()) {
-                var routes = openshiftClient.routes();
-
-                if (registryNamespace.isEmpty()) {
-                    log.info("registry.namespace not present, using default OpenshiftClient namespace from context");
-                } else {
-                    routes.inNamespace(registryNamespace.get());
-                }
-
-                Route route = routes.withName(registryRouteName.get()).get();
-
-                if (route != null) {
-                    info.setUrl((route.getSpec().getTls() == null ? "http://" : "https://") + route.getSpec().getHost());
-                    info.setName(route.getMetadata().getName());
-                }
-            }
-            if (info.getUrl() != null) {
-                deploymentInfo = info;
-            }
+            info.setUrl(registryRouteUrl);
+            info.setName(info.getUrl());
+            deploymentInfo = info;
         }
         return deploymentInfo;
     }

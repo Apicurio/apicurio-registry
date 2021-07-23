@@ -24,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
@@ -230,7 +232,14 @@ public class KafkaSqlSubmitter {
         return send(key, value);
     }
 
-
+    /* ******************************************************************************************
+     * Empty
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitGlobalAction(String tenantId, ActionType action) {
+        GlobalActionKey key = GlobalActionKey.create(tenantId);
+        GlobalActionValue value = GlobalActionValue.create(action);
+        return send(key, value);
+    }
 
     /* ******************************************************************************************
      * Tombstones

@@ -687,15 +687,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting an artifact: {} {}", groupId, artifactId);
         try {
-            return this.handles.withHandle( handle -> {
+            List<String> res = this.handles.withHandle(handle -> {
                 // Get the list of versions of the artifact (will be deleted)
                 String sql = sqlStatements.selectArtifactVersions();
                 List<String> versions = handle.createQuery(sql)
-                        .bind(0, tenantContext.tenantId())
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .mapTo(String.class)
-                        .list();
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(String.class)
+                    .list();
 
                 // TODO use CASCADE when deleting rows from the "versions" table
 
@@ -723,8 +723,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, artifactId)
                     .execute();
 
-                // TODO reap orphaned rows in the "content" table?
-
                 // Delete artifact rules
                 sql = sqlStatements.deleteArtifactRules();
                 handle.createUpdate(sql)
@@ -745,6 +743,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 }
                 return versions;
             });
+            deleteAllOrphanedContent();
+            return res;
         } catch (ArtifactNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -784,10 +784,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(1, normalizeGroupId(groupId))
                     .execute();
 
-                sql = sqlStatements.deleteAllOrphanedContent();
-                handle.createUpdate(sql)
-                    .execute();
-
                 // Delete artifact rules
                 sql = sqlStatements.deleteArtifactRulesByGroupId();
                 handle.createUpdate(sql)
@@ -806,60 +802,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 }
                 return null;
             });
+            deleteAllOrphanedContent();
         } catch (ArtifactNotFoundException e) {
             throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-    /**
-     * @throws RegistryStorageException
-     * @see RegistryStorage#deleteAllArtifacts()
-     */
-    @Override
-    public void deleteAllArtifacts() throws RegistryStorageException {
-        log.debug("Deleting all artifacts");
-        try {
-            this.handles.withHandle( handle -> {
-
-                // Delete labels
-                String sql = sqlStatements.deleteAllLabels();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-
-                // Delete properties
-                sql = sqlStatements.deleteAllProperties();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-
-                // Delete versions
-                sql = sqlStatements.deleteAllVersions();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-
-                // Delete orphaned content
-                sql = sqlStatements.deleteAllOrphanedContent();
-                handle.createUpdate(sql)
-                    .execute();
-
-                // Delete artifact rules
-                sql = sqlStatements.deleteAllArtifactRules();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-
-                // Delete artifact row (should be just one)
-                sql = sqlStatements.deleteAllArtifacts();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-
-                return null;
-            });
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
@@ -1640,8 +1585,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(3, version)
                     .execute();
 
-                // TODO reap orphaned rows in the "content" table?
-
                 // If the row was deleted, update the "latest" column to the globalId of the highest remaining version
                 if (rows == 1) {
                     versions.remove(version);
@@ -1666,6 +1609,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
                 return null;
             });
+            deleteAllOrphanedContent();
         } catch (VersionNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -1886,16 +1830,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#deleteGlobalRules()
-     */
+      * @see RegistryStorage#deleteGlobalRules()
+      */
     @Override @Transactional
     public void deleteGlobalRules() throws RegistryStorageException {
         log.debug("Deleting all Global Rules");
         handles.withHandleNoException( handle -> {
             String sql = sqlStatements.deleteGlobalRules();
             handle.createUpdate(sql)
-                  .bind(0, tenantContext.tenantId())
-                  .execute();
+                .bind(0, tenantContext.tenantId())
+                .execute();
             return null;
         });
     }
@@ -2117,21 +2061,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 throw new GroupNotFoundException(groupId);
             }
             deleteArtifacts(groupId);
-            return null;
-        });
-    }
-
-    /**
-     * @see RegistryStorage#deleteAllGroups()
-     */
-    @Override
-    public void deleteAllGroups() throws RegistryStorageException {
-        handles.withHandleNoException(handle -> {
-            final String sql = sqlStatements.deleteAllGroups();
-            handle.createUpdate(sql)
-                .bind(0, tenantContext.tenantId())
-                .execute();
-            deleteAllArtifacts();
             return null;
         });
     }
@@ -2418,25 +2347,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#deleteAllRoleMappings()
-     */
-    @Override
-    public void deleteAllRoleMappings() throws RegistryStorageException {
-        log.debug("Deleting all role mappings for tenant {}", tenantContext.tenantId());
-        try {
-            this.handles.withHandle( handle -> {
-                String sql = sqlStatements.deleteAllRoleMappings();
-                handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .execute();
-                return null;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-    /**
      * @see RegistryStorage#getRoleMapping(java.lang.String)
      */
     @Override
@@ -2519,6 +2429,75 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+    @Override
+    public void deleteAllUserData() {
+        log.debug("Deleting all user data");
+
+        deleteGlobalRules();
+
+        handles.withHandleNoException( handle -> {
+            final String tenantId = tenantContext.tenantId();
+
+            // Delete all artifacts and related data
+
+            String sql = sqlStatements.deleteAllLabels();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            sql = sqlStatements.deleteAllProperties();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            sql = sqlStatements.deleteAllVersions();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            sql = sqlStatements.deleteAllArtifactRules();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            sql = sqlStatements.deleteAllArtifacts();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            // Delete all groups
+
+            sql = sqlStatements.deleteAllGroups();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            // Delete all role mappings
+
+            sql = sqlStatements.deleteAllRoleMappings();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
+            return null;
+        });
+
+        deleteAllOrphanedContent();
+    }
+
+    protected void deleteAllOrphanedContent() {
+        log.debug("Deleting all orphaned content");
+        handles.withHandleNoException( handle -> {
+
+            // Delete orphaned content
+            String sql = sqlStatements.deleteAllOrphanedContent();
+            handle.createUpdate(sql)
+                .execute();
+
+            return null;
+        });
     }
 
     protected void resetGlobalId(Handle handle) {

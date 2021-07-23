@@ -43,7 +43,7 @@ public class GroupValue extends AbstractMessageValue {
      * Creator method.
      * @param action
      */
-    public static final GroupValue create(ActionType action, boolean onlyArtifacts /* <-- TODO What is this? */) {
+    public static final GroupValue create(ActionType action, boolean onlyArtifacts) {
         GroupValue value = new GroupValue();
         value.setAction(action);
         value.setOnlyArtifacts(onlyArtifacts);

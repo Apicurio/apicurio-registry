@@ -25,6 +25,7 @@ import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import io.apicurio.registry.mt.TenantNotFoundException;
 import io.apicurio.registry.mt.limits.LimitExceededException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
@@ -116,6 +117,7 @@ public class RegistryExceptionMapperService {
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
+        map.put(ParametersConflictException.class, HTTP_CONFLICT);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

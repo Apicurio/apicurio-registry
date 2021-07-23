@@ -37,7 +37,7 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
 
     @Override
     public void save(RegistryTenantDto dto) {
-        repo.persist(dto);
+        repo.persistAndFlush(dto);
     }
 
     @Override

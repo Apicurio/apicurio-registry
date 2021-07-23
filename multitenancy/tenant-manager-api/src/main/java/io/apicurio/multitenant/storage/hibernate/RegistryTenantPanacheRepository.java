@@ -18,12 +18,12 @@ package io.apicurio.multitenant.storage.hibernate;
 import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 
 /**
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class RegistryTenantPanacheRepository implements PanacheRepository<RegistryTenantDto> {
+public class RegistryTenantPanacheRepository implements PanacheRepositoryBase<RegistryTenantDto, String> {
 
 }

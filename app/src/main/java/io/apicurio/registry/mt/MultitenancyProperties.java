@@ -42,8 +42,8 @@ public class MultitenancyProperties {
     String nameMultitenancyBasePath;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.reaper.period-minutes")
-    Optional<Integer> reaperPeriodMinutes;
+    @ConfigProperty(name = "registry.multitenancy.reaper.period-minutes", defaultValue = "180")
+    Long reaperPeriodMinutes;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
@@ -80,8 +80,7 @@ public class MultitenancyProperties {
     }
 
     public Duration getReaperPeriod() {
-        final int DEFAULT = 3 * 60; // 3 hours
-        return Duration.ofSeconds(reaperPeriodMinutes.orElse(DEFAULT) * 60L);
+        return Duration.ofSeconds(reaperPeriodMinutes * 60);
     }
 
     /**

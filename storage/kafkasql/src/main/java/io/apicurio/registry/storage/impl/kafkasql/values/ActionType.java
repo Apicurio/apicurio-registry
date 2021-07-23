@@ -34,10 +34,9 @@ public enum ActionType {
     Import(5),
     Reset(6),
     /**
-     * Delete all data (per tenant) of the given resource type.
-     * TODO What is the difference between this and clear?
+     * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
-    DELETE_ALL(7);
+    DELETE_ALL_USER_DATA(7);
 
     private final byte ord;
 
@@ -60,7 +59,7 @@ public enum ActionType {
             }
             ordIndex.put(at.getOrd(), at);
         }
-    }
+    } // TODO test storage - abstract class, #2 integration tests - multitenancy mode
     public static final ActionType fromOrd(byte ord) {
         return ordIndex.get(ord);
     }

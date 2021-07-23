@@ -21,7 +21,7 @@ import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.Maybe;
+import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.runtime.configuration.ProfileManager;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -45,7 +45,7 @@ public class TenantManagerClientProducer {
 
     @Produces
     @ApplicationScoped
-    Maybe<TenantManagerClient> produce() {
+    OptionalBean<TenantManagerClient> produce() {
 
         if (properties.isMultitenancyEnabled()) {
 
@@ -72,7 +72,7 @@ public class TenantManagerClientProducer {
                         "but the no auth properties aren't properly configured");
                 }
 
-                return Maybe.of(new TenantManagerClientImpl(
+                return OptionalBean.of(new TenantManagerClientImpl(
                     properties.getTenantManagerUrl().get(),
                     new Auth(properties.getTenantManagerAuthUrl().get(),
                         properties.getTenantManagerAuthRealm().get(),
@@ -82,12 +82,12 @@ public class TenantManagerClientProducer {
                 ));
 
             } else {
-                return Maybe.of(new TenantManagerClientImpl(
+                return OptionalBean.of(new TenantManagerClientImpl(
                     properties.getTenantManagerUrl().get())
                 );
             }
         }
 
-        return Maybe.empty();
+        return OptionalBean.empty();
     }
 }

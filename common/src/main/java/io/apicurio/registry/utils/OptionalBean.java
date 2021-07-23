@@ -12,34 +12,34 @@ import java.util.stream.Stream;
  *
  * @author Jakub Senko <jsenko@redhat.com>
  */
-public class Maybe<T> {
-    private static final Maybe<?> EMPTY = new Maybe<>();
+public class OptionalBean<T> {
+    private static final OptionalBean<?> EMPTY = new OptionalBean<>();
     private final T value;
 
     @SuppressWarnings("unchecked")
-    public static <T> Maybe<T> empty() {
-        return (Maybe<T>) EMPTY;
+    public static <T> OptionalBean<T> empty() {
+        return (OptionalBean<T>) EMPTY;
     }
 
-    public static <T> Maybe<T> of(T value) {
-        return new Maybe<>(value);
+    public static <T> OptionalBean<T> of(T value) {
+        return new OptionalBean<>(value);
     }
 
-    public static <T> Maybe<T> ofNullable(T value) {
+    public static <T> OptionalBean<T> ofNullable(T value) {
         return value == null ? empty() : of(value);
     }
 
     /**
      * This constructor is public to avoid an error in Quarkus and should not be called directly.
      */
-    public Maybe() {
+    public OptionalBean() {
         this.value = null;
     }
 
     /**
      * This constructor is public to avoid an error in Quarkus and should not be called directly.
      */
-    public Maybe(T value) {
+    public OptionalBean(T value) {
         this.value = Objects.requireNonNull(value);
     }
 
@@ -59,7 +59,7 @@ public class Maybe<T> {
         return this.value == null;
     }
 
-    public <U> Maybe<U> map(Function<? super T, ? extends U> mapper) {
+    public <U> OptionalBean<U> map(Function<? super T, ? extends U> mapper) {
         Objects.requireNonNull(mapper);
         return !this.isPresent() ? empty() : ofNullable(mapper.apply(this.value));
     }
@@ -79,10 +79,10 @@ public class Maybe<T> {
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        } else if (!(obj instanceof Maybe)) {
+        } else if (!(obj instanceof OptionalBean)) {
             return false;
         } else {
-            Maybe<?> other = (Maybe<?>) obj;
+            OptionalBean<?> other = (OptionalBean<?>) obj;
             return Objects.equals(this.value, other.value);
         }
     }
@@ -92,6 +92,6 @@ public class Maybe<T> {
     }
 
     public String toString() {
-        return this.value != null ? String.format("Maybe[%s]", this.value) : "Maybe.empty";
+        return this.value != null ? String.format("OptionalBean[%s]", this.value) : "OptionalBean.empty";
     }
 }

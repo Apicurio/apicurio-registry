@@ -16,20 +16,15 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.api.beans.RegistryTenantList;
-import io.apicurio.multitenant.api.beans.SortBy;
-import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
-import io.apicurio.registry.utils.Maybe;
+import io.apicurio.registry.utils.OptionalBean;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Fabian Martinez
@@ -39,7 +34,7 @@ import java.util.List;
 public class TenantMetadataService {
 
     @Inject
-    Maybe<TenantManagerClient> tenantManagerClient;
+    OptionalBean<TenantManagerClient> tenantManagerClient;
 
     //TODO create a TenantConfiguration object and only allow the access to it via the tenant context
     //TODO load the TenantConfiguration into the tenant context in the TenantIdResolver(maybe rename that class)
@@ -53,24 +48,6 @@ public class TenantMetadataService {
         } catch (RegistryTenantNotFoundException e) {
             throw new TenantNotFoundException(e.getMessage());
         }
-    }
-
-    public List<RegistryTenant> getTenantsForDeletion() {
-        if (tenantManagerClient.isEmpty()) {
-            throw new UnsupportedOperationException("Multitenancy is not enabled");
-        }
-        final List<RegistryTenant> res = new ArrayList();
-        final int limit = 50;
-        int offset = 0;
-        RegistryTenantList tenants = null;
-        do {
-            tenants = tenantManagerClient.get().listTenants(
-                TenantStatusValue.TO_BE_DELETED,
-                offset, limit, SortOrder.asc, SortBy.tenantId);
-            res.addAll(tenants.getItems());
-            offset += limit;
-        } while (tenants.getItems().size() == limit);
-        return res;
     }
 
     public void markTenantAsDeleted(String tenantId) {

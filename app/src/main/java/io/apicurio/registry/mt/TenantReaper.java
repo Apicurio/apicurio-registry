@@ -16,10 +16,15 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.multitenant.api.beans.RegistryTenantList;
+import io.apicurio.multitenant.api.beans.SortBy;
+import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
 import org.slf4j.Logger;
 
@@ -28,6 +33,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -57,12 +63,16 @@ public class TenantReaper {
     @Inject
     TenantContext tctx;
 
+    @Inject
+    OptionalBean<TenantManagerClient> tenantManagerClient;
+
     Instant next;
 
     @PostConstruct
     void init() {
-        if (!properties.isMultitenancyEnabled())
+        if (!properties.isMultitenancyEnabled()) {
             return;
+        }
         // Start with a random stagger, 1-15 minutes, inclusive.
         int stagger = new Random().nextInt(15) + 1;
         log.debug("Staggering tenant reaper job by {} minutes", stagger);
@@ -74,8 +84,9 @@ public class TenantReaper {
      */
     @Scheduled(every = "60s")
     void run() {
-        if (!properties.isMultitenancyEnabled())
+        if (!properties.isMultitenancyEnabled()) {
             return;
+        }
         final Instant now = Instant.now();
         if (now.isAfter(next)) {
             try {
@@ -89,24 +100,28 @@ public class TenantReaper {
     }
 
     void reap() {
-        for (RegistryTenant tenant : tenantService.getTenantsForDeletion()) {
-            final String tenantId = tenant.getTenantId();
-            try {
-                log.debug("Deleting tenant '{}' data", tenantId);
-                tcl.invalidateTenantInCache(tenantId);
-                tcl.loadContext(tenantId);
-                // Safety check
-                if (tenant.getStatus() != TenantStatusValue.TO_BE_DELETED || !tenantId.equals(tctx.tenantId()))
-                    throw new IllegalStateException("Safety check failed when attempting to delete tenant data.");
-                storage.deleteGlobalRules();
-                storage.deleteAllGroups();
-                storage.deleteAllArtifacts();
-                storage.deleteAllRoleMappings();
-                tenantService.markTenantAsDeleted(tenantId);
-            } catch (Exception ex) {
-                log.warn("Exception thrown when reaping tenant '" + tenantId + "'", ex);
-                // Just ignore, will retry on next cycle
+        List<RegistryTenant> page;
+        do {
+            RegistryTenantList tenants = tenantManagerClient.get().listTenants(
+                TenantStatusValue.TO_BE_DELETED,
+                0, 50, SortOrder.asc, SortBy.tenantId);
+            page = tenants.getItems();
+            for (RegistryTenant tenant : page) {
+                final String tenantId = tenant.getTenantId();
+                try {
+                    log.debug("Deleting tenant '{}' data", tenantId);
+                    tcl.invalidateTenantInCache(tenantId);
+                    tcl.loadContext(tenantId);
+                    // Safety check
+                    if (tenant.getStatus() != TenantStatusValue.TO_BE_DELETED || !tenantId.equals(tctx.tenantId()))
+                        throw new IllegalStateException("Safety check failed when attempting to delete tenant data.");
+                    storage.deleteAllUserData();
+                    tenantService.markTenantAsDeleted(tenantId);
+                } catch (Exception ex) {
+                    log.warn("Exception thrown when reaping tenant '" + tenantId + "'", ex);
+                    // Just ignore, will retry on next cycle
+                }
             }
-        }
+        } while (!page.isEmpty());
     }
 }

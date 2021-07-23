@@ -19,6 +19,8 @@ package io.apicurio.registry.mt;
 import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Simple POJO class to hold the tenant specific configuration
  *
@@ -32,6 +34,7 @@ public class RegistryTenantContext {
     private final TenantStatusValue status;
 
     public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration, TenantStatusValue status) {
+        requireNonNull(status);
         this.tenantId = tenantId;
         this.tenantOwner = tenantOwner;
         this.limitsConfiguration = limitsConfiguration;

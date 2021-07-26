@@ -27,7 +27,7 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -46,11 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.DOCKER)
 public class AuthTestNoRoles extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
+    @ConfigProperty(name = "registry.auth.url.configured")
+    String authServerUrlConfigured;
 
     String noRoleClientId = "registry-api-no-role";
 
@@ -65,13 +62,13 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -81,7 +78,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {

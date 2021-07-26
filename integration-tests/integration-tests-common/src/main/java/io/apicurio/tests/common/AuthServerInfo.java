@@ -36,7 +36,7 @@ public class AuthServerInfo {
      * @return the authServerUrl
      */
     public String getAuthServerUrl() {
-        return authServerUrl;
+        return authServerUrl + "realms/" + realm;
     }
     /**
      * @param authServerUrl the authServerUrl to set

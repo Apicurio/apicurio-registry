@@ -48,9 +48,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.keycloak.url")
     String authServerUrl;
 
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String authRealm;
-
     @ConfigProperty(name = "registry.auth.client-secret")
     Optional<String> clientSecret;
 

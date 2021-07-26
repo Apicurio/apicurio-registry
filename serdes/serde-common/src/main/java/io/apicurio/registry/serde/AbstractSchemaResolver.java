@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -227,7 +227,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
+        Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret);
 
         return RegistryClientFactory.create(registryUrl, config.originals(), auth);
     }

@@ -22,7 +22,7 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
-import io.apicurio.rest.client.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.configuration.ProfileManager;
 
@@ -68,7 +68,7 @@ public class TenantMetadataService {
             if (mtProperties.isAuthEnabled()) {
                 //TODO get vertx instance and use a tenant manager client with an underlying vertx http client
                 this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), Collections.emptyMap(),
-                        new KeycloakAuth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
+                        new OidcAuth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
             } else {
                 this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
             }

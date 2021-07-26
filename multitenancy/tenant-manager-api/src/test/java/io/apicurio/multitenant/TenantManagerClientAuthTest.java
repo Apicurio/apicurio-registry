@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.enterprise.inject.Typed;
+import java.util.Collections;
 
 
 @QuarkusTest
@@ -47,7 +48,7 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
     String clientId = "registry-api";
 
     private TenantManagerClient createClient(KeycloakAuth auth) {
-        return new TenantManagerClientImpl("http://localhost:8081/", auth);
+        return new TenantManagerClientImpl("http://localhost:8081/", Collections.emptyMap(), auth);
     }
 
     @Override

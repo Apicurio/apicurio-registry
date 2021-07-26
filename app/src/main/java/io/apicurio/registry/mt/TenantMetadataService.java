@@ -16,11 +16,6 @@
 
 package io.apicurio.registry.mt;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Inject;
-
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
@@ -30,6 +25,12 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.rest.client.auth.KeycloakAuth;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.configuration.ProfileManager;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.enterprise.inject.spi.DeploymentException;
+import javax.inject.Inject;
+import java.util.Collections;
 
 /**
  * @author Fabian Martinez
@@ -65,7 +66,9 @@ public class TenantMetadataService {
 
         if (mtProperties.isMultitenancyEnabled()) {
             if (mtProperties.isAuthEnabled()) {
-                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), new KeycloakAuth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
+                //TODO get vertx instance and use a tenant manager client with an underlying vertx http client
+                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), Collections.emptyMap(),
+                        new KeycloakAuth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
             } else {
                 this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
             }

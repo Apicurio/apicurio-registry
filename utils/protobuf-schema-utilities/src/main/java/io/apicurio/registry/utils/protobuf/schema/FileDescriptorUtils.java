@@ -247,13 +247,13 @@ public class FileDescriptorUtils {
                     int tag = (Integer) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange.newBuilder()
                             .setStart(tag)
-                            .setEnd(tag);
+                            .setEnd(tag + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
                 } else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange.newBuilder()
                             .setStart(range.getStart())
-                            .setEnd(range.getEndInclusive());
+                            .setEnd(range.getEndInclusive() + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
                 } else {
                     throw new IllegalStateException(
@@ -398,6 +398,14 @@ public class FileDescriptorUtils {
         for (String reservedName : descriptor.getReservedNameList()) {
             ReservedElement reservedElem = new ReservedElement(DEFAULT_LOCATION, "",
                     Collections.singletonList(reservedName));
+            reserved.add(reservedElem);
+        }
+        for (DescriptorProto.ReservedRange reservedRange : descriptor.getReservedRangeList()) {
+            List<Object> values = new ArrayList<>();
+            int start = reservedRange.getStart();
+            int end = reservedRange.getEnd() - 1;
+            values.add(new IntRange(start, end));
+            ReservedElement reservedElem = new ReservedElement(DEFAULT_LOCATION, "", values);
             reserved.add(reservedElem);
         }
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();

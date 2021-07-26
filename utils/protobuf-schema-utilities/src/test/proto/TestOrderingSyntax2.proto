@@ -12,4 +12,6 @@ message Address {
 
 message Customer {
   required string name = 1;
+
+  reserved 2, 15, 10 to 11;
 }

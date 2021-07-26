@@ -5,6 +5,7 @@ import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
+import io.apicurio.registry.utils.protobuf.schema.syntax2.specified.TestOrderingSyntax2Specified;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestOrderingSyntax3;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,6 +23,7 @@ public class FileDescriptorUtilsTest {
         return
             Stream.of(
             TestOrderingSyntax2.getDescriptor(),
+            TestOrderingSyntax2Specified.getDescriptor(),
             TestOrderingSyntax3.getDescriptor()
         )
         .map(Descriptors.FileDescriptor::getFile)

@@ -59,6 +59,20 @@ public class ExceptionMapper {
                 return new TenantNotFoundException(ex.getError());
             case "TenantNotAuthorizedException":
                 return new TenantNotAuthorizedException(ex.getError());
+            case "ContentNotFoundException":
+                return new ContentNotFoundException(ex.getError());
+            case "InvalidGroupIdException":
+                return new InvalidGroupIdException(ex.getError());
+            case "MissingRequiredParameterException":
+                return new MissingRequiredParameterException(ex.getError());
+            case "LogConfigurationNotFoundException":
+                return new LogConfigurationNotFoundException(ex.getError());
+            case "GroupNotFoundException":
+                return new GroupNotFoundException(ex.getError());
+            case "TenantManagerClientException":
+                return new TenantManagerClientException(ex.getError());
+            case "ParametersConflictException":
+                return new ParametersConflictException(ex.getError());
             default:
                 return ex;
         }

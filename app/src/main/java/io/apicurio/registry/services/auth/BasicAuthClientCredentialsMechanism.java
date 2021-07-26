@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.services.auth;
 
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.oidc.AccessTokenCredential;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -28,21 +31,19 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.keycloak.authorization.client.AuthzClient;
-import org.keycloak.authorization.client.Configuration;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Set;
 
 @Alternative
 @Priority(1)
 @ApplicationScoped
-public class FakeBasicAuthClientCredentialsMechanism implements HttpAuthenticationMechanism {
+public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     CustomAuthenticationMechanism customAuthenticationMechanism;
@@ -50,7 +51,7 @@ public class FakeBasicAuthClientCredentialsMechanism implements HttpAuthenticati
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
-    @ConfigProperty(name = "registry.auth.fake-basic-auth-client-credentials.enabled")
+    @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
     boolean fakeBasicAuthEnabled;
 
     @ConfigProperty(name = "registry.keycloak.url")
@@ -59,13 +60,25 @@ public class FakeBasicAuthClientCredentialsMechanism implements HttpAuthenticati
     @ConfigProperty(name = "registry.keycloak.realm")
     String authRealm;
 
+    private String authServerUrlWithRealm;
+
+    @PostConstruct
+    public void init() {
+        this.authServerUrlWithRealm = authServerUrl + "/realms/" + authRealm;
+    }
+
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
             if (fakeBasicAuthEnabled) {
-                final Pair<String, String> clientCredentials = BearerTokenExtractor.extractCredentialsFromContext(context);
+                final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
                 if (null != clientCredentials) {
-                    return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
+                    try {
+                        return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
+                    } catch (NotAuthorizedException ex) {
+                        //Ignore exception, wrong credentials passed
+                        throw new AuthenticationFailedException();
+                    }
                 } else {
                     return customAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
@@ -93,13 +106,7 @@ public class FakeBasicAuthClientCredentialsMechanism implements HttpAuthenticati
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        final HashMap<String, Object> credentials = new HashMap<>();
-        credentials.put("secret", clientCredentials.getRight());
-        final Configuration keycloakConfiguration = new Configuration(authServerUrl, authRealm, clientCredentials.getLeft(), credentials, null);
-        final AuthzClient authzClient = AuthzClient.create(keycloakConfiguration);
-        final String jwtToken = authzClient.obtainAccessToken().getToken();
-
-        //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        final String jwtToken = new OidcAuth(authServerUrlWithRealm, clientCredentials.getLeft(), clientCredentials.getRight()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

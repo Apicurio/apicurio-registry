@@ -52,6 +52,11 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-rest-client-auth</artifactId>
+        </dependency>
+
 	<dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>

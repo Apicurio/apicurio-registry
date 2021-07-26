@@ -20,45 +20,23 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.keycloak.authorization.client.AuthzClient;
-import org.keycloak.authorization.client.Configuration;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-//Extracts username, password pair from header if exists and request an access token to keycloak using those credentials
-//Once Quarkus support both basic and bearer working at the same time against Keycloak, we can remove this
-public class BearerTokenExtractor {
+/**
+ *  Extracts credentials pair from header encoded as base 64 if exists return null otherwise.
+ */
+public class CredentialsHelper {
 
     private static final String BASIC = "basic";
     private static final String BASIC_PREFIX = BASIC + " ";
     private static final String LOWERCASE_BASIC_PREFIX = BASIC_PREFIX.toLowerCase(Locale.ENGLISH);
     private static final int PREFIX_LENGTH = BASIC_PREFIX.length();
     private static final Charset charset = StandardCharsets.UTF_8;
-    private final AuthzClient keycloakClient;
-    private final RoutingContext context;
-
-    public BearerTokenExtractor(RoutingContext context, final String authServerUrl, String realmName, String clientId, String clientSecret) {
-        this.context = context;
-        final HashMap<String, Object> credentials = new HashMap<>();
-        credentials.put("secret", clientSecret);
-        final Configuration keycloakConfiguration = new Configuration(authServerUrl, realmName, clientId, credentials, null);
-        this.keycloakClient = AuthzClient.create(keycloakConfiguration);
-    }
-
-    protected String getBearerToken() {
-        final Pair<String, String> credentials = extractCredentialsFromContext(this.context);
-        if (credentials != null) {
-            return authenticateRequest(credentials.getLeft(), credentials.getRight());
-        } else {
-            //XX Intended null return
-            return null;
-        }
-    }
 
     public static Pair<String, String> extractCredentialsFromContext(RoutingContext context) {
         List<String> authHeaders = context.request().headers().getAll(HttpHeaderNames.AUTHORIZATION);
@@ -82,10 +60,5 @@ public class BearerTokenExtractor {
         }
         //XX Intended null return
         return null;
-    }
-
-    private String authenticateRequest(String username, String password) {
-
-        return keycloakClient.obtainAccessToken(username, password).getToken();
     }
 }

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.auth;
 
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
@@ -28,8 +29,10 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
@@ -59,6 +62,13 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
 
     private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();
 
+    private String authServerUrlWithRealm;
+
+    @PostConstruct
+    public void init() {
+        this.authServerUrlWithRealm = authServerUrl + "/realms/" + authRealm;
+    }
+
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
@@ -66,13 +76,15 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                 //if no secret is present, try to authenticate with oidc provider
                 return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
             } else {
-                //Extracts username, password pair from the header and request a token to keycloak
-                String jwtToken = new BearerTokenExtractor(context, authServerUrl, authRealm, clientId, clientSecret.get()).getBearerToken();
+                final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
+                if (credentialsFromContext != null) {
+                    String jwtToken = new OidcAuth(authServerUrlWithRealm, clientId, clientSecret.get()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
 
-                if (jwtToken != null) {
-                    //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-                    return identityProviderManager
-                            .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+                    if (jwtToken != null) {
+                        //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+                        return identityProviderManager
+                                .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+                    }
                 } else {
                     //If we cannot get a token, then try to authenticate using oidc provider as last resource
                     return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);

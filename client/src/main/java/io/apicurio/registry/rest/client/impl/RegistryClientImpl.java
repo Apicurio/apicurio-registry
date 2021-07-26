@@ -17,10 +17,8 @@
 package io.apicurio.registry.rest.client.impl;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.nio.charset.StandardCharsets;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -73,8 +71,9 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, data));
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, data));
     }
 
     @Override
@@ -195,8 +194,8 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data) {
-        final Map<String, String> headers = version != null ? Map.of(Headers.VERSION, version) : Collections.emptyMap();
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
     }
 
@@ -208,19 +207,16 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
-        final Map<String, String> headers = new HashMap<>();
+        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
         if (artifactId != null) {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
-        }
-        if (version != null) {
-            headers.put(Headers.VERSION, version);
         }
 
         final Map<String, List<String>> queryParams = new HashMap<>();
@@ -425,6 +421,24 @@ public class RegistryClientImpl implements RegistryClient {
 
     private String normalizeGid(String groupId) {
         return groupId == null ? "default" : groupId;
+    }
+
+    private String encodeToBase64(String toEncode) {
+        return Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription) {
+        final Map<String, String> headers = new HashMap<>();
+        if (version != null) {
+            headers.put(Headers.VERSION, version);
+        }
+        if (artifactName != null) {
+            headers.put(Headers.NAME_ENCODED, encodeToBase64(artifactName));
+        }
+        if (artifactDescription != null) {
+            headers.put(Headers.DESCRIPTION_ENCODED, encodeToBase64(artifactDescription));
+        }
+        return headers;
     }
 
     private static RestClientException parseSerializationError(JsonProcessingException ex) {

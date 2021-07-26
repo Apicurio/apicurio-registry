@@ -27,13 +27,12 @@ import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.exception.TenantManagerClientErrorHandler;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.rest.client.JdkHttpClient;
 import io.apicurio.rest.client.VertxHttpClient;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientProvider;
-import io.apicurio.rest.client.spi.ApicurioHttpClientServiceLoader;
 import io.apicurio.rest.client.util.IoUtil;
 import io.vertx.core.Vertx;
 
@@ -43,7 +42,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.rest.client.request.Operation.DELETE;
 import static io.apicurio.rest.client.request.Operation.GET;
@@ -55,11 +53,8 @@ import static io.apicurio.rest.client.request.Operation.PUT;
  */
 public class TenantManagerClientImpl implements TenantManagerClient {
 
-    private static final AtomicReference<ApicurioHttpClientProvider> providerReference = new AtomicReference<>();
-    private static final ApicurioHttpClientServiceLoader serviceLoader = new ApicurioHttpClientServiceLoader();
     private static final String TENANTS_API_BASE_PATH = "api/v1/tenants";
     private static final String TENANTS_API_BASE_PATH_TENANT_PARAM = "api/v1/tenants/%s";
-
 
     private final ApicurioHttpClient client;
     private final ObjectMapper mapper;
@@ -69,18 +64,12 @@ public class TenantManagerClientImpl implements TenantManagerClient {
     }
 
     public TenantManagerClientImpl(String baseUrl, Map<String, Object> configs, Auth auth) {
-        ApicurioHttpClientProvider p = providerReference.get();
-        if (p == null) {
-            providerReference.compareAndSet(null, resolveProviderInstance());
-            p = providerReference.get();
-        }
-
         if (!baseUrl.endsWith("/")) {
             baseUrl += "/";
         }
         final String endpoint = baseUrl;
         this.mapper = new ObjectMapper();
-        this.client = p.create(endpoint, configs, auth, new TenantManagerClientErrorHandler());
+        this.client = new JdkHttpClient(endpoint, configs, auth, new TenantManagerClientErrorHandler());
     }
 
     public TenantManagerClientImpl(Vertx vertx, String baseUrl, Map<String, Object> configs, Auth auth) {
@@ -90,15 +79,6 @@ public class TenantManagerClientImpl implements TenantManagerClient {
         final String endpoint = baseUrl;
         this.mapper = new ObjectMapper();
         this.client = new VertxHttpClient(vertx, endpoint, configs, auth, new AuthErrorHandler());
-    }
-
-    public static boolean setProvider(ApicurioHttpClientProvider provider) {
-        return providerReference.compareAndSet(null, provider);
-    }
-
-    private static ApicurioHttpClientProvider resolveProviderInstance() {
-        return serviceLoader.providers(true)
-                .next();
     }
 
     @Override

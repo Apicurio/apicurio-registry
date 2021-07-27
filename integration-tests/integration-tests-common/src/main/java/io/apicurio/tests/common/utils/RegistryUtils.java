@@ -18,6 +18,8 @@ package io.apicurio.tests.common.utils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
+
+import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryStorageType;
 
 public class RegistryUtils {
@@ -25,11 +27,11 @@ public class RegistryUtils {
     public static final RegistryStorageType REGISTRY_STORAGE =
             Optional.ofNullable(System.getProperty("test.storage"))
                 .map(RegistryStorageType::valueOf)
-                .orElse(null);
+                .orElse(RegistryStorageType.inmemory);
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))
-                .orElse("");
+                .orElse(Constants.AUTH);
 
     public static final String DEPLOY_NATIVE_IMAGES =
             Optional.ofNullable(System.getProperty("testNative"))

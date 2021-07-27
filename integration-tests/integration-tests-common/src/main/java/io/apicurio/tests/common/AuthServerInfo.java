@@ -36,7 +36,14 @@ public class AuthServerInfo {
      * @return the authServerUrl
      */
     public String getAuthServerUrl() {
-        return authServerUrl + "realms/" + realm;
+        return authServerUrl;
+    }
+
+    /**
+     * @return the authServerUrl configured with the realm
+     */
+    public String getAuthServerUrlConfigured() {
+        return authServerUrl + "/realms/" + realm;
     }
     /**
      * @param authServerUrl the authServerUrl to set

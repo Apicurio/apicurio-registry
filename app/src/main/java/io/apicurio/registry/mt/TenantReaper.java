@@ -92,7 +92,7 @@ public class TenantReaper {
             try {
                 log.debug("Running tenant reaper job at {}", now);
                 reap();
-            }catch (Exception ex) {
+            } catch (Exception ex) {
                 log.error("Exception thrown when running tenant reaper job", ex);
             } finally {
                 next = now.plus(properties.getReaperPeriod());
@@ -123,6 +123,7 @@ public class TenantReaper {
                     }
                     storage.deleteAllUserData();
                     tenantService.markTenantAsDeleted(tenantId);
+                    tcl.invalidateTenantInCache(tenantId);
                 } catch (Exception ex) {
                     log.warn("Exception thrown when reaping tenant '" + tenantId + "'", ex);
                     // Just ignore, will retry on next cycle

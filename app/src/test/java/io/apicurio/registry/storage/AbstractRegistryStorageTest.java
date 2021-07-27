@@ -1013,7 +1013,9 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
-    public void testDeleteAllUserData() throws Exception {
+    public void testDeleteAllUserData() {
+        // Delete first to cleanup after other tests
+        storage().deleteAllUserData();
         createSomeUserData();
         Assertions.assertEquals(7, countStorageEntities());
         // Delete all

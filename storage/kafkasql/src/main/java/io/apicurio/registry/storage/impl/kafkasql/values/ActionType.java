@@ -59,9 +59,9 @@ public enum ActionType {
             }
             ordIndex.put(at.getOrd(), at);
         }
-    } // TODO test storage - abstract class, #2 integration tests - multitenancy mode
+    }
+
     public static final ActionType fromOrd(byte ord) {
         return ordIndex.get(ord);
     }
-
 }

@@ -1609,6 +1609,39 @@
                             "type": "boolean"
                         },
                         "in": "query"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the description of artifact being added. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header",
+                        "required": false
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the description of artifact being added. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the name of artifact being added. Name must be ASCII-only string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the name of artifact being added. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -1760,7 +1793,39 @@
                         "name": "X-Registry-Version",
                         "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  If not provided, the server will assign a version number\nautomatically.",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
                         },
                         "in": "header"
                     }
@@ -1964,6 +2029,38 @@
                         "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  It must be unique within the artifact.  If this is not\nprovided, the server will generate a new, unique version number for this new updated content.",
                         "schema": {
                             "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
                         },
                         "in": "header"
                     }
@@ -2984,6 +3081,30 @@
                     "developer": false,
                     "viewer": false
                 }
+            },
+            "EncodedArtifactName": {
+                "description": "Base64 encoded name of the artifact.",
+                "type": "string",
+                "example": "\"QXJ0aWZhY3QgbmFtZQo=\"",
+                "x-codegen-inline": true
+            },
+            "EncodedArtifactDescription": {
+                "description": "Base64 encoded description of the artifact.",
+                "type": "string",
+                "example": "\"QXJ0aWZhY3QgZGVzY3JpcHRpb24K\"",
+                "x-codegen-inline": true
+            },
+            "ArtifactName": {
+                "description": "Name of the artifact.",
+                "type": "string",
+                "example": "\"Artifact name\"",
+                "x-codegen-inline": true
+            },
+            "ArtifactDescription": {
+                "description": "Description of the artifact.",
+                "type": "string",
+                "example": "\"Artifact description\"",
+                "x-codegen-inline": true
             }
         },
         "responses": {

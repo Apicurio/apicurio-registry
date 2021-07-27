@@ -207,20 +207,20 @@ public class KafkaSqlSink {
                     .build();
         };
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createGroup(buildGroup.get());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateGroupMetaData(buildGroup.get());
                 return null;
-            case Delete:
+            case DELETE:
                 if (value.isOnlyArtifacts()) {
                     sqlStore.deleteArtifacts(key.getGroupId());
                 } else {
                     sqlStore.deleteGroup(key.getGroupId());
                 }
                 return null;
-            case Import:
+            case IMPORT:
                 GroupEntity entity = new GroupEntity();
                 entity.artifactsType = value.getArtifactsType();
                 entity.createdBy = value.getCreatedBy();
@@ -251,17 +251,17 @@ public class KafkaSqlSink {
                 }
             };
             switch (value.getAction()) {
-                case Create:
+                case CREATE:
                     return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
-                case Update:
+                case UPDATE:
                     return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
-                case Delete:
+                case DELETE:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
-                case Import:
+                case IMPORT:
                     ArtifactVersionEntity entity = new ArtifactVersionEntity();
                     entity.globalId = value.getGlobalId();
                     entity.groupId = key.getGroupId();
@@ -299,18 +299,18 @@ public class KafkaSqlSink {
      */
     private Object processArtifactRuleMessage(ArtifactRuleKey key, ArtifactRuleValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
                 sqlStore.createArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType());
                 return null;
-            case Import:
+            case IMPORT:
                 ArtifactRuleEntity entity = new ArtifactRuleEntity();
                 entity.groupId = key.getGroupId();
                 entity.artifactId = key.getArtifactId();
@@ -334,16 +334,16 @@ public class KafkaSqlSink {
      */
     private Object processArtifactVersion(ArtifactVersionKey key, ArtifactVersionValue value) {
         switch (value.getAction()) {
-            case Update:
+            case UPDATE:
                 sqlStore.updateArtifactVersionMetaDataAndState(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData(), value.getState());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteArtifactVersion(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
-            case Clear:
+            case CLEAR:
                 sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
-            case Create:
+            case CREATE:
             default:
                 return unsupported(key, value);
         }
@@ -357,12 +357,12 @@ public class KafkaSqlSink {
      */
     private Object processContent(ContentKey key, ContentValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
                     sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent());
                 }
                 break;
-            case Import:
+            case IMPORT:
                 if (!sqlStore.isContentExists(key.getContentId())) {
                     ContentEntity entity = new ContentEntity();
                     entity.contentId = key.getContentId();
@@ -387,16 +387,16 @@ public class KafkaSqlSink {
      */
     private Object processGlobalRule(GlobalRuleKey key, GlobalRuleValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createGlobalRule(key.getRuleType(), value.getConfig());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateGlobalRule(key.getRuleType(), value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteGlobalRule(key.getRuleType());
                 return null;
-            case Import:
+            case IMPORT:
                 GlobalRuleEntity entity = new GlobalRuleEntity();
                 entity.ruleType = key.getRuleType();
                 entity.configuration = value.getConfig().getConfiguration();
@@ -416,16 +416,16 @@ public class KafkaSqlSink {
      */
     private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateRoleMapping(key.getPrincipalId(), value.getRole());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteRoleMapping(key.getPrincipalId());
                 return null;
-            case Import:
+            case IMPORT:
 //                GlobalRuleEntity entity = new GlobalRuleEntity();
 //                entity.ruleType = key.getRuleType();
 //                entity.configuration = value.getConfig().getConfiguration();
@@ -444,9 +444,9 @@ public class KafkaSqlSink {
      */
     private Object processGlobalId(GlobalIdKey key, GlobalIdValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 return sqlStore.nextGlobalId();
-            case Reset:
+            case RESET:
                 sqlStore.resetGlobalId();
                 return null;
             default:
@@ -462,9 +462,9 @@ public class KafkaSqlSink {
      */
     private Object processContentId(ContentIdKey key, ContentIdValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 return sqlStore.nextContentId();
-            case Reset:
+            case RESET:
                 sqlStore.resetContentId();
                 return null;
             default:
@@ -480,10 +480,10 @@ public class KafkaSqlSink {
      */
     private Object processLogConfig(LogConfigKey key, LogConfigValue value) {
         switch (value.getAction()) {
-            case Update:
+            case UPDATE:
                 sqlStore.setLogConfiguration(value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.removeLogConfiguration(value.getConfig().getLogger());
                 return null;
             default:

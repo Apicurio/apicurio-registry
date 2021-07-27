@@ -23,6 +23,7 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
@@ -89,7 +90,7 @@ public class TenantContextLoader {
 
     public RegistryTenantContext defaultTenantContext() {
         if (defaultTenantContext == null) {
-            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant(), null);
+            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant(), TenantStatusValue.READY);
         }
         return defaultTenantContext;
     }
@@ -117,5 +118,9 @@ public class TenantContextLoader {
 
     private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
         return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
+
+    public void invalidateTenantCache() {
+        contextsCache.clear();
     }
 }

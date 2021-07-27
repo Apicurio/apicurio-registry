@@ -605,7 +605,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
-        return "DELETE FROM content c WHERE EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
+        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
     }
 
     /**

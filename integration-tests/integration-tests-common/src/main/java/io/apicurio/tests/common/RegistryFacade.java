@@ -208,6 +208,7 @@ public class RegistryFacade {
             } else {
                 if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
+                    appEnv.put("REGISTRY_MULTITENANCY_REAPER_TEST_MODE", "true");
                     //TODO when auth is enabled in staging run tests with auth enabled
 //                    runKeycloak(appEnv);
                     runTenantManager(appEnv);

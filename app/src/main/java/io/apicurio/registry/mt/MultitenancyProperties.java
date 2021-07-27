@@ -42,6 +42,10 @@ public class MultitenancyProperties {
     String nameMultitenancyBasePath;
 
     @Inject
+    @ConfigProperty(name = "registry.multitenancy.reaper.test-mode", defaultValue = "false")
+    boolean reaperTestMode;
+
+    @Inject
     @ConfigProperty(name = "registry.multitenancy.reaper.period-minutes", defaultValue = "180")
     Long reaperPeriodMinutes;
 
@@ -81,6 +85,10 @@ public class MultitenancyProperties {
 
     public Duration getReaperPeriod() {
         return Duration.ofSeconds(reaperPeriodMinutes * 60);
+    }
+
+    public boolean isReaperTestMode() {
+        return reaperTestMode;
     }
 
     /**

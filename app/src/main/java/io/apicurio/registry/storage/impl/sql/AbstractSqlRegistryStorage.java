@@ -2008,9 +2008,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                       .bind(2, group.getDescription())
                       .bind(3, group.getArtifactsType() == null ? null : group.getArtifactsType().value())
                       .bind(4, group.getCreatedBy())
-                      .bind(5, group.getCreatedOn())
+                      // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
+                      .bind(5, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
                       .bind(6, group.getModifiedBy())
-                      .bind(7, group.getModifiedOn())
+                      .bind(7, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
                       .bind(8, SqlUtil.serializeProperties(group.getProperties()))
                       .execute();
                 return null;

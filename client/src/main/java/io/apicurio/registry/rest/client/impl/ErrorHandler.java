@@ -83,20 +83,6 @@ public class ErrorHandler implements RestClientErrorHandler {
     }
 
     public RestClientException parseError(Exception ex) {
-        //FIXME fix auth errors properly
-        /*if (ex instanceof HttpResponseException) {
-            //authorization error since something went wrong in the auth provider
-            HttpResponseException hre = (HttpResponseException) ex;
-            Error error = new Error();
-            error.setErrorCode(hre.getStatusCode());
-            error.setMessage(hre.getMessage());
-            error.setDetail(hre.getReasonPhrase());
-            if (hre.getStatusCode() == UNAUTHORIZED_CODE) {
-                return new NotAuthorizedException(error);
-            } else {
-                return new RestClientException(error);
-            }
-        }*/
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());

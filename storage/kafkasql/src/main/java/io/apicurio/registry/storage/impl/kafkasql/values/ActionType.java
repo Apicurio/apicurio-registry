@@ -27,12 +27,12 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public enum ActionType {
 
-    Create(1),
-    Update(2),
-    Delete(3),
-    Clear(4),
-    Import(5),
-    Reset(6),
+    CREATE(1),
+    UPDATE(2),
+    DELETE(3),
+    CLEAR(4),
+    IMPORT(5),
+    RESET(6),
     /**
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */

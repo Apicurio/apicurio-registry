@@ -16,21 +16,7 @@
 
 package io.apicurio.registry.storage;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
+import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.RegistryTenantContext;
@@ -39,6 +25,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -49,7 +36,23 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -84,6 +87,9 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             "}";
 
     @Inject
+    Logger log;
+
+    @Inject
     TenantContext tenantCtx;
 
     RegistryTenantContext tenantId1;
@@ -91,8 +97,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, null);
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, null);
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
     }
 
     @AfterEach
@@ -964,6 +970,76 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    private void createSomeUserData() {
+        final String group1 = "testGroup-1";
+        final String group2 = "testGroup-2";
+        final String artifactId1 = "testArtifact-1";
+        final String artifactId2 = "testArtifact-2";
+        final String principal = "testPrincipal";
+        final String role = "testRole";
+
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        storage().createGroup(GroupMetaDataDto.builder().groupId(group1).build());
+        ArtifactMetaDataDto artifactDto1 = storage().createArtifact(group1, artifactId1, null, ArtifactType.OPENAPI, content);
+        storage().createArtifactRule(group1, artifactId1, RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        ArtifactMetaDataDto artifactDto2 = storage().createArtifactWithMetadata(
+            group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build());
+        storage().createGlobalRule(RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        storage().createRoleMapping(principal, role);
+
+        // Verify data exists
+
+        Assertions.assertNotNull(storage().getArtifactVersion(group1, artifactId1, artifactDto1.getVersion()));
+        Assertions.assertEquals(1, storage().getArtifactRules(group1, artifactId1).size());
+        Assertions.assertNotNull(storage().getArtifactVersion(group2, artifactId2, artifactDto2.getVersion()));
+        Assertions.assertEquals(1, storage().getGlobalRules().size());
+        Assertions.assertEquals(role, storage().getRoleForPrincipal(principal));
+    }
+
+    private int countStorageEntities() {
+        // We don't need thread safety, but it's simpler to use this when effectively final counter is needed
+        final AtomicInteger count = new AtomicInteger(0);
+        storage().exportData(e -> {
+            if(e.getEntityType() != EntityType.Manifest) {
+                log.debug("Counting from export: {}", e);
+                count.incrementAndGet();
+            }
+            return null;
+        });
+        int res = count.get();
+        // Count data that is not exported
+        res += storage().getRoleMappings().size();
+        return res;
+    }
+
+    @Test
+    public void testDeleteAllUserData() throws Exception {
+        createSomeUserData();
+        Assertions.assertEquals(7, countStorageEntities());
+        // Delete all
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+    }
+
+    @Test
+    public void testMultiTenant_DeleteAllUserData() throws Exception {
+        tenantCtx.setContext(tenantId1);
+        createSomeUserData();
+        Assertions.assertEquals(7, countStorageEntities());
+        tenantCtx.setContext(tenantId2);
+        createSomeUserData();
+        Assertions.assertEquals(7, countStorageEntities());
+        // Delete t1
+        tenantCtx.setContext(tenantId1);
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+        // NOT deleted t2
+        tenantCtx.setContext(tenantId2);
+        Assertions.assertEquals(7, countStorageEntities());
+        // Delete t2
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+    }
 
     @Test
     public void testMultiTenant_CreateArtifact() throws Exception {

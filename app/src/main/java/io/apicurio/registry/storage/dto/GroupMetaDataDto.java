@@ -16,14 +16,14 @@
 
 package io.apicurio.registry.storage.dto;
 
-import java.io.Serializable;
-import java.util.Map;
-
 import io.apicurio.registry.types.ArtifactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.io.Serializable;
+import java.util.Map;
 
 /**
  * @author Fabian Martinez

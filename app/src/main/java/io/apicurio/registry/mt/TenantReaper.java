@@ -91,7 +91,9 @@ public class TenantReaper {
         if (now.isAfter(next)) {
             try {
                 log.debug("Running tenant reaper job at {}", now);
-                reap(); // TODO Test if an exception here will stop the scheduler
+                reap();
+            }catch (Exception ex) {
+                log.error("Exception thrown when running tenant reaper job", ex);
             } finally {
                 next = now.plus(properties.getReaperPeriod());
                 log.debug("Running next tenant reaper job at around {}", next);
@@ -111,10 +113,14 @@ public class TenantReaper {
                 try {
                     log.debug("Deleting tenant '{}' data", tenantId);
                     tcl.invalidateTenantInCache(tenantId);
-                    tcl.loadContext(tenantId);
+                    // TODO Refactor, document and improve context handling.
+                    tctx.setContext(tcl.loadContext(tenantId));
                     // Safety check
-                    if (tenant.getStatus() != TenantStatusValue.TO_BE_DELETED || !tenantId.equals(tctx.tenantId()))
+                    if (tenant.getStatus() != TenantStatusValue.TO_BE_DELETED || !tenantId.equals(tctx.tenantId())) {
+                        log.debug("Safety: tenant.getStatus() = {}, tenantId = {}, ctx.tenantId() = {}",
+                            tenant.getStatus(), tenantId, tctx.tenantId());
                         throw new IllegalStateException("Safety check failed when attempting to delete tenant data.");
+                    }
                     storage.deleteAllUserData();
                     tenantService.markTenantAsDeleted(tenantId);
                 } catch (Exception ex) {
@@ -123,5 +129,9 @@ public class TenantReaper {
                 }
             }
         } while (!page.isEmpty());
+    }
+
+    void setNext(Instant next) {
+        this.next = next;
     }
 }

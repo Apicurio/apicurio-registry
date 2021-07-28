@@ -10,9 +10,6 @@ IMAGE_REGISTRY="quay.io"
 IMAGE_ORG="rhoas"
 IMAGE_TAG="${VERSION}"
 
-SKIP_TESTS=false
-MVN_BUILD_COMMAND="mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests=${SKIP_TESTS}"
-
 SERVICE_REGISTRY_IMAGE_NAME="srs-service-registry"
 SERVICE_REGISTRY_DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.sql.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${SERVICE_REGISTRY_IMAGE_NAME}:${IMAGE_TAG} ./distro/docker/target/docker"
 
@@ -60,7 +57,6 @@ EOT
 build_project() {
     echo "#######################################################################################################"
     echo " Building Project '${PROJECT_NAME}'..."
-    echo " Build Command: ${MVN_BUILD_COMMAND}"
     echo "#######################################################################################################"
     # AppSRE environments doesn't has maven, jdk11, node and yarn which are required depencies for building this project
     # Installing these dependencies is a tedious task and also since it's a shared instance, installing the required versions of these dependencies is not possible sometimes
@@ -69,7 +65,11 @@ build_project() {
     
     #TODO confirm we are ok with this, using this ci-tools image is the recomended way, but using this we don't control the java nor maven version...
     docker pull quay.io/app-sre/mk-ci-tools:latest
-    docker run -v $(pwd):/opt/srs -w /opt/srs -e HOME=/tmp -u $(id -u) quay.io/app-sre/mk-ci-tools:latest ${MVN_BUILD_COMMAND}
+    docker run -v $(pwd):/opt/srs -w /opt/srs -e HOME=/tmp -u $(id -u) \
+        -e LANG=en_US.UTF-8 \
+        -e LANGUAGE=en_US:en \
+        -e LC_ALL=en_US.UTF-8 \
+        quay.io/app-sre/mk-ci-tools:latest make build-project
 }
 
 

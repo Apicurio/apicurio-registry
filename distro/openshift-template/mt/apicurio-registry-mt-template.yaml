@@ -161,11 +161,15 @@ objects:
             value: ${KEYCLOAK_REALM}
           - name: KEYCLOAK_API_CLIENT_ID
             value: ${KEYCLOAK_API_CLIENT_ID}
+          - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
+            value: ${CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED}
 
           - name: OWNER_ONLY_AUTHZ_ENABLED
             value: ${OWNER_ONLY_AUTHZ_ENABLED}
           - name: ROLE_BASED_AUTHZ_ENABLED
             value: ${ROLE_BASED_AUTHZ_ENABLED}
+          - name: ROLE_BASED_AUTHZ_SOURCE
+            value: ${ROLE_BASED_AUTHZ_SOURCE}
           - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
             value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED}
           - name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
@@ -450,6 +454,9 @@ parameters:
 - name: KEYCLOAK_API_CLIENT_ID
   description: client id for Apicurio Registry API
   value: registry-api
+- name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
+  description: flag to enable/disable feature to allow basic authentication using service-account clientId and client secret as credentials
+  value: "true"
 
 - name: OWNER_ONLY_AUTHZ_ENABLED
   description: flag to enable/disable owner-only authorization
@@ -457,6 +464,9 @@ parameters:
 - name: ROLE_BASED_AUTHZ_ENABLED
   description: flag to enable/disable role based authorization
   value: "false"
+- name: ROLE_BASED_AUTHZ_SOURCE
+  description: property to set the source of auth roles when checking authorization (e.g. token or application)
+  value: "token"
 - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
   description: flag to enable/disable the admin-override auth feature
   value: "false"

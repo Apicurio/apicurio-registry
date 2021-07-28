@@ -18,6 +18,7 @@ package io.apicurio.registry.mt;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.time.Duration;
@@ -42,12 +43,12 @@ public class MultitenancyProperties {
     String nameMultitenancyBasePath;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.reaper.test-mode", defaultValue = "false")
-    boolean reaperTestMode;
+    @ConfigProperty(name = "registry.multitenancy.reaper.every")
+    Optional<String> reaperEvery;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.reaper.period-minutes", defaultValue = "180")
-    Long reaperPeriodMinutes;
+    @ConfigProperty(name = "registry.multitenancy.reaper.period-seconds", defaultValue = "10800")
+    Long reaperPeriodSeconds;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
@@ -69,6 +70,11 @@ public class MultitenancyProperties {
     @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
     Optional<String> tenantManagerClientSecret;
 
+    @PostConstruct
+    void init() {
+        this.reaperEvery.orElseThrow(() -> new IllegalArgumentException("Missing required configuration property 'registry.multitenancy.reaper.every'"));
+    }
+
     /**
      * @return the multitenancyEnabled
      */
@@ -84,11 +90,7 @@ public class MultitenancyProperties {
     }
 
     public Duration getReaperPeriod() {
-        return Duration.ofSeconds(reaperPeriodMinutes * 60);
-    }
-
-    public boolean isReaperTestMode() {
-        return reaperTestMode;
+        return Duration.ofSeconds(reaperPeriodSeconds);
     }
 
     /**

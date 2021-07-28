@@ -36,6 +36,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 
+import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
+
 /**
  * Periodically cleanup data of tenants marked as deleted.
  *
@@ -73,16 +75,20 @@ public class TenantReaper {
         if (!properties.isMultitenancyEnabled()) {
             return;
         }
-        // Start with a random stagger, 1-15 minutes, inclusive.
-        int stagger = new Random().nextInt(15) + 1;
-        log.debug("Staggering tenant reaper job by {} minutes", stagger);
+        int stagger = 0;
+        // Only stagger if the reaper period is at least 1 minute (testing support).
+        if (properties.getReaperPeriod().compareTo(Duration.ofSeconds(60)) >= 0) {
+            // Start with a random stagger, 1-30 minutes, inclusive.
+            stagger = new Random().nextInt(30) + 1;
+            log.debug("Staggering tenant reaper job by {} minutes", stagger);
+        }
         next = Instant.now().plus(Duration.ofSeconds(stagger * 60L));
     }
 
     /**
      * Minimal granularity is 1 minute.
      */
-    @Scheduled(every = "60s")
+    @Scheduled(concurrentExecution = SKIP, every = "{registry.multitenancy.reaper.every}")
     void run() {
         if (!properties.isMultitenancyEnabled()) {
             return;
@@ -92,6 +98,10 @@ public class TenantReaper {
             try {
                 log.debug("Running tenant reaper job at {}", now);
                 reap();
+                // Only force cache invalidation if the reaper period is less than 1 minute (testing support).
+                if (properties.getReaperPeriod().compareTo(Duration.ofSeconds(60)) < 0) {
+                    tcl.invalidateTenantCache();
+                }
             } catch (Exception ex) {
                 log.error("Exception thrown when running tenant reaper job", ex);
             } finally {

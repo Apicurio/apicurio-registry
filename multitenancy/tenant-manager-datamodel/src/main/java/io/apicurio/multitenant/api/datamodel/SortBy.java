@@ -1,25 +1,26 @@
 
-package io.apicurio.multitenant.api.beans;
+package io.apicurio.multitenant.api.datamodel;
 
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum SortOrder {
+public enum SortBy {
 
-    asc("asc"),
-    desc("desc");
+    name("name"),
+    createdOn("createdOn"),
+    tenantId("tenantId");
     private final String value;
-    private final static Map<String, SortOrder> CONSTANTS = new HashMap<String, SortOrder>();
+    private final static Map<String, SortBy> CONSTANTS = new HashMap<String, SortBy>();
 
     static {
-        for (SortOrder c: values()) {
+        for (SortBy c: values()) {
             CONSTANTS.put(c.value, c);
         }
     }
 
-    private SortOrder(String value) {
+    private SortBy(String value) {
         this.value = value;
     }
 
@@ -34,8 +35,8 @@ public enum SortOrder {
     }
 
     @JsonCreator
-    public static SortOrder fromValue(String value) {
-        SortOrder constant = CONSTANTS.get(value);
+    public static SortBy fromValue(String value) {
+        SortBy constant = CONSTANTS.get(value);
         if (constant == null) {
             throw new IllegalArgumentException(value);
         } else {

@@ -36,16 +36,17 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
-import io.apicurio.multitenant.api.beans.RegistryTenantList;
-import io.apicurio.multitenant.api.beans.SortBy;
-import io.apicurio.multitenant.api.beans.SortOrder;
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
+import io.apicurio.multitenant.api.datamodel.SortBy;
+import io.apicurio.multitenant.api.datamodel.SortOrder;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 
 import org.apache.http.NameValuePair;
@@ -76,7 +77,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
         }
         this.endpoint = endpoint;
         this.client = HttpClient.newHttpClient();
-        this.mapper = new ObjectMapper();
+        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.auth = auth;
     }
 

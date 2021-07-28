@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.storage;
 
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.MockTenantMetadataService;

@@ -18,9 +18,9 @@ package io.apicurio.registry.mt;
 
 import javax.enterprise.context.ApplicationScoped;
 
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.slf4j.MDC;
 
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 /**
@@ -93,6 +93,7 @@ public class TenantContextImpl implements TenantContext {
         return !tenantId().equals(DEFAULT_TENANT_ID);
     }
 
+    @Override
     public TenantStatusValue getTenantStatus() {
         return CURRENT.get().getStatus();
     }

@@ -18,7 +18,8 @@ package io.apicurio.registry.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
+
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;

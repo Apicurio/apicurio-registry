@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 import static java.util.Objects.requireNonNull;

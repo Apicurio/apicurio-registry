@@ -1048,7 +1048,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void deleteAllUserData() throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 

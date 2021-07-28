@@ -46,6 +46,8 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @ApplicationScoped
 public class TenantReaper {
 
+    private static final int MAX_TENANTS_PROCESSED = 100;
+
     @Inject
     Logger log;
 
@@ -111,12 +113,23 @@ public class TenantReaper {
         }
     }
 
+    /**
+     * Query the tenant manager for the list of tenants in the "to-be-deleted" state.  Those tenants
+     * must be "reaped", which simply means we must delete all of their user data (artifacts, global
+     * rule configuration, etc).  This method is invoked by the scheduler and works by making an API
+     * call to the tenant manager and iterating through the results.
+     *
+     * Note that a single invocation of reap() will reap a maximum of MAX_TENANTS_PROCESSED.  If there
+     * are more tenants that need reaping, they will be processed the next time the schedule warrants it.
+     * This is a defensive approach to ensure that the while loop is always bounded.
+     */
     void reap() {
         List<RegistryTenant> page;
+        int tenantsProcessed = 0;
         do {
             RegistryTenantList tenants = tenantManagerClient.get().listTenants(
                 TenantStatusValue.TO_BE_DELETED,
-                0, 50, SortOrder.asc, SortBy.tenantId);
+                0, 10, SortOrder.asc, SortBy.tenantId);
             page = tenants.getItems();
             for (RegistryTenant tenant : page) {
                 final String tenantId = tenant.getTenantId();
@@ -139,7 +152,8 @@ public class TenantReaper {
                     // Just ignore, will retry on next cycle
                 }
             }
-        } while (!page.isEmpty());
+            tenantsProcessed += tenants.getItems().size();
+        } while (!page.isEmpty() && tenantsProcessed < MAX_TENANTS_PROCESSED);
     }
 
     void setNext(Instant next) {

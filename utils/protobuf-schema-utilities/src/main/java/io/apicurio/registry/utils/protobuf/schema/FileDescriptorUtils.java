@@ -401,7 +401,7 @@ public class FileDescriptorUtils {
             reserved.add(reservedElem);
         }
         for (DescriptorProto.ReservedRange reservedRange : descriptor.getReservedRangeList()) {
-            List<Object> values = new ArrayList<>();
+            List<IntRange> values = new ArrayList<>();
             int start = reservedRange.getStart();
             int end = reservedRange.getEnd() - 1;
             values.add(new IntRange(start, end));

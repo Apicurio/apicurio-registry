@@ -1,10 +1,10 @@
 package io.apicurio.multitenant.api;
 
-import io.apicurio.multitenant.api.beans.RegistryTenantList;
-import io.apicurio.multitenant.api.beans.SortBy;
-import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
+import io.apicurio.multitenant.api.datamodel.SortBy;
+import io.apicurio.multitenant.api.datamodel.SortOrder;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 
 import javax.validation.constraints.Max;

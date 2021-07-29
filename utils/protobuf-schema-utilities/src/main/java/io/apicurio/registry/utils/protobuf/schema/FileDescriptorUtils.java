@@ -102,7 +102,7 @@ public class FileDescriptorUtils {
         schema.setName(protoFileName);
 
         Syntax syntax = element.getSyntax();
-        if (syntax != null) {
+        if (Syntax.PROTO_3.equals(syntax)) {
             schema.setSyntax(syntax.toString());
         }
         if (element.getPackageName() != null) {

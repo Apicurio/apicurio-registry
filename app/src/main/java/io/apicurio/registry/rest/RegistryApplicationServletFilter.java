@@ -16,7 +16,18 @@
 
 package io.apicurio.registry.rest;
 
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantIdResolver;
+import io.apicurio.registry.services.DisabledApisMatcherService;
+import io.apicurio.registry.services.http.ErrorHttpResponse;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import org.slf4j.Logger;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -28,17 +39,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
-import org.slf4j.Logger;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.mt.MultitenancyProperties;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.mt.TenantIdResolver;
-import io.apicurio.registry.services.DisabledApisMatcherService;
-import io.apicurio.registry.services.http.ErrorHttpResponse;
-import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import java.io.IOException;
 
 /**
  *
@@ -124,9 +125,9 @@ public class RegistryApplicationServletFilter implements Filter {
             }
 
             if (mtProperties.isMultitenancyEnabled()
-                    && !tenantResolved
-                    && disabledApisMatcherService.isApiRequest(evaluatedURI)) {
-                log.warn("Request {} is rejected because no tenant info found, direct access to apis is disabled when multitenancy is enabled", requestURI);
+                    && disabledApisMatcherService.isApiRequest(evaluatedURI)
+                    && (!tenantResolved || tenantContext.getTenantStatus() != TenantStatusValue.READY)) {
+                log.warn("Request {} is rejected because the tenant could not be found, and direct access to apis is disabled in a multitenant deployment", requestURI);
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

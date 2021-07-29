@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 /**
@@ -43,4 +44,6 @@ public interface TenantContext {
     void clearContext();
 
     boolean isLoaded();
+
+    TenantStatusValue getTenantStatus();
 }

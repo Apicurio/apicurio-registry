@@ -16,23 +16,11 @@
 
 package io.apicurio.registry.storage;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -49,7 +37,23 @@ import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -84,15 +88,30 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             "}";
 
     @Inject
+    Logger log;
+
+    @Inject
     TenantContext tenantCtx;
+
+    @Inject
+    MockTenantMetadataService tms;
 
     RegistryTenantContext tenantId1;
     RegistryTenantContext tenantId2;
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null);
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
+        RegistryTenant rt1 = new RegistryTenant();
+        rt1.setTenantId(tenantId1.getTenantId());
+        rt1.setStatus(tenantId1.getStatus());
+        tms.createTenant(rt1);
+
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
+        RegistryTenant rt2 = new RegistryTenant();
+        rt2.setTenantId(tenantId2.getTenantId());
+        rt2.setStatus(tenantId2.getStatus());
+        tms.createTenant(rt2);
     }
 
     @AfterEach
@@ -964,6 +983,83 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    private void createSomeUserData() {
+        final String group1 = "testGroup-1";
+        final String group2 = "testGroup-2";
+        final String artifactId1 = "testArtifact-1";
+        final String artifactId2 = "testArtifact-2";
+        final String principal = "testPrincipal";
+        final String role = "testRole";
+
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        // storage().createGroup(GroupMetaDataDto.builder().groupId(group1).build());
+        // ^ TODO Uncomment after https://github.com/Apicurio/apicurio-registry/issues/1721
+        ArtifactMetaDataDto artifactDto1 = storage().createArtifact(group1, artifactId1, null, ArtifactType.OPENAPI, content);
+        storage().createArtifactRule(group1, artifactId1, RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        ArtifactMetaDataDto artifactDto2 = storage().createArtifactWithMetadata(
+            group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build());
+        storage().createGlobalRule(RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
+        storage().createRoleMapping(principal, role);
+
+        // Verify data exists
+
+        Assertions.assertNotNull(storage().getArtifactVersion(group1, artifactId1, artifactDto1.getVersion()));
+        Assertions.assertEquals(1, storage().getArtifactRules(group1, artifactId1).size());
+        Assertions.assertNotNull(storage().getArtifactVersion(group2, artifactId2, artifactDto2.getVersion()));
+        Assertions.assertEquals(1, storage().getGlobalRules().size());
+        Assertions.assertEquals(role, storage().getRoleForPrincipal(principal));
+    }
+
+    private int countStorageEntities() {
+        // We don't need thread safety, but it's simpler to use this when effectively final counter is needed
+        final AtomicInteger count = new AtomicInteger(0);
+        storage().exportData(e -> {
+            if(e.getEntityType() != EntityType.Manifest) {
+                log.debug("Counting from export: {}", e);
+                count.incrementAndGet();
+            }
+            return null;
+        });
+        int res = count.get();
+        // Count data that is not exported
+        res += storage().getRoleMappings().size();
+        return res;
+    }
+
+    @Test
+    public void testDeleteAllUserData() {
+        // Delete first to cleanup after other tests
+        storage().deleteAllUserData();
+        createSomeUserData();
+        Assertions.assertEquals(6, countStorageEntities());
+        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        // Delete all
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+    }
+
+    @Test
+    public void testMultiTenant_DeleteAllUserData() throws Exception {
+        tenantCtx.setContext(tenantId1);
+        createSomeUserData();
+        Assertions.assertEquals(6, countStorageEntities());
+        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        tenantCtx.setContext(tenantId2);
+        createSomeUserData();
+        Assertions.assertEquals(6, countStorageEntities());
+        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        // Delete t1
+        tenantCtx.setContext(tenantId1);
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+        // NOT deleted t2
+        tenantCtx.setContext(tenantId2);
+        Assertions.assertEquals(6, countStorageEntities());
+        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        // Delete t2
+        storage().deleteAllUserData();
+        Assertions.assertEquals(0, countStorageEntities());
+    }
 
     @Test
     public void testMultiTenant_CreateArtifact() throws Exception {

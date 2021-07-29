@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -70,12 +71,14 @@ public class MultitenancyLimitsTest {
         var tenant1 = new RegistryTenant();
         tenant1.setTenantId(tenantId1);
         tenant1.setOrganizationId("aaa");
+        tenant1.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant1);
 
         String tenantId2 = UUID.randomUUID().toString();
         var tenant2 = new RegistryTenant();
         tenant2.setTenantId(tenantId2);
         tenant2.setOrganizationId("bbb");
+        tenant2.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant2);
 
         //TODO add testcase configuring limits via metadata service

@@ -17,9 +17,9 @@
 package io.apicurio.registry.services.auth;
 
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.oidc.AccessTokenCredential;
-import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
-import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -33,34 +33,32 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 
+@Alternative
+@Priority(1)
 @ApplicationScoped
-public class CustomAuthenticationMechanism implements HttpAuthenticationMechanism {
+public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMechanism {
 
     @Inject
-    OidcAuthenticationMechanism oidcAuthenticationMechanism;
+    CustomAuthenticationMechanism customAuthenticationMechanism;
+
+    @ConfigProperty(name = "registry.auth.enabled")
+    boolean authEnabled;
+
+    @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
+    boolean fakeBasicAuthEnabled;
 
     @ConfigProperty(name = "registry.keycloak.url")
     String authServerUrl;
 
     @ConfigProperty(name = "registry.keycloak.realm")
     String authRealm;
-
-    @ConfigProperty(name = "registry.auth.client-secret")
-    Optional<String> clientSecret;
-
-    @ConfigProperty(name = "quarkus.oidc.client-id")
-    String clientId;
-
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
-
-    private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();
 
     private String authServerUrlWithRealm;
 
@@ -72,31 +70,29 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
-            if (clientSecret.isEmpty()) {
-                //if no secret is present, try to authenticate with oidc provider
-                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-            } else {
-                final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
-                if (credentialsFromContext != null) {
-                    String jwtToken = new OidcAuth(authServerUrlWithRealm, clientId, clientSecret.get()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
-
-                    if (jwtToken != null) {
-                        //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-                        return identityProviderManager
-                                .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+            if (fakeBasicAuthEnabled) {
+                final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
+                if (null != clientCredentials) {
+                    try {
+                        return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
+                    } catch (NotAuthorizedException ex) {
+                        //Ignore exception, wrong credentials passed
+                        throw new AuthenticationFailedException();
                     }
                 } else {
-                    //If we cannot get a token, then try to authenticate using oidc provider as last resource
-                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+                    return customAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
+            } else {
+                return customAuthenticationMechanism.authenticate(context, identityProviderManager);
             }
+        } else {
+            return Uni.createFrom().nullItem();
         }
-        return Uni.createFrom().nullItem();
     }
 
     @Override
     public Uni<ChallengeData> getChallenge(RoutingContext context) {
-        return bearerAuth.getChallenge(context);
+        return customAuthenticationMechanism.getChallenge(context);
     }
 
     @Override
@@ -107,5 +103,11 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Override
     public HttpCredentialTransport getCredentialTransport() {
         return new HttpCredentialTransport(HttpCredentialTransport.Type.AUTHORIZATION, "bearer");
+    }
+
+    private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
+        final String jwtToken = new OidcAuth(authServerUrlWithRealm, clientCredentials.getLeft(), clientCredentials.getRight()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        return identityProviderManager
+                .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }
 }

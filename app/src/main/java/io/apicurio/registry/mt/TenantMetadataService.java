@@ -16,75 +16,46 @@
 
 package io.apicurio.registry.mt;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Inject;
-
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.client.Auth;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
-import io.quarkus.runtime.StartupEvent;
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.apicurio.registry.utils.OptionalBean;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 @ApplicationScoped
 public class TenantMetadataService {
 
     @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Inject
-    MultitenancyProperties mtProperties;
-
-    private TenantManagerClient tenantManagerClient;
-
-    public void init(@Observes StartupEvent ev) {
-        //we check if profile is prod, because some tests will fail to start quarkus app.
-        //Those tests checks if multitenancy is supported and abort the test if needed
-        if ("prod".equals(ProfileManager.getActiveProfile()) && mtProperties.isMultitenancyEnabled() && !storage.supportsMultiTenancy()) {
-            throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled "
-                    + "but the storage implementation being used (" + storage.storageName() + ") does not support multitenancy");
-        }
-        if (mtProperties.isMultitenancyEnabled() && mtProperties.getTenantManagerUrl().isEmpty()) {
-            throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled "
-                    + "but the no \"registry.tenant.manager.url\" is provided");
-        }
-
-        if (mtProperties.isMultitenancyEnabled() && mtProperties.isAuthEnabled() && (mtProperties.getTenantManagerAuthUrl().isEmpty() || mtProperties.getTenantManagerAuthUrl().isEmpty() || mtProperties.getTenantManagerClientId().isEmpty() || mtProperties.getTenantManagerClientSecret().isEmpty())) {
-            throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " + "\"registry.enable.auth\" is enabled "
-                    + "but the no auth properties aren't properly configured");
-        }
-
-        if (mtProperties.isMultitenancyEnabled()) {
-            if (mtProperties.isAuthEnabled()) {
-                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get(), new Auth(mtProperties.getTenantManagerAuthUrl().get(), mtProperties.getTenantManagerAuthRealm().get(), mtProperties.getTenantManagerClientId().get(), mtProperties.getTenantManagerClientSecret().get()));
-            } else {
-                this.tenantManagerClient = new TenantManagerClientImpl(mtProperties.getTenantManagerUrl().get());
-            }
-        }
-    }
+    OptionalBean<TenantManagerClient> tenantManagerClient;
 
     //TODO create a TenantConfiguration object and only allow the access to it via the tenant context
     //TODO load the TenantConfiguration into the tenant context in the TenantIdResolver(maybe rename that class)
     //TODO cache the TenantConfiguration in TenantIdResolver
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
-        if (!mtProperties.isMultitenancyEnabled()) {
+        if (tenantManagerClient.isEmpty()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");
         }
-
         try {
-            return tenantManagerClient.getTenant(tenantId);
+            return tenantManagerClient.get().getTenant(tenantId);
         } catch (RegistryTenantNotFoundException e) {
             throw new TenantNotFoundException(e.getMessage());
         }
     }
 
+    public void markTenantAsDeleted(String tenantId) {
+        if (tenantManagerClient.isEmpty()) { // TODO Maybe unnecessary
+            throw new UnsupportedOperationException("Multitenancy is not enabled");
+        }
+        UpdateRegistryTenantRequest ureq = new UpdateRegistryTenantRequest();
+        ureq.setStatus(TenantStatusValue.DELETED);
+        tenantManagerClient.get().updateTenant(tenantId, ureq);
+    }
 }

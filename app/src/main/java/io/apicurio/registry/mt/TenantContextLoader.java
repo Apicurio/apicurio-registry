@@ -106,7 +106,7 @@ public class TenantContextLoader {
             }
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
-            if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+            if (accessedOrganizationId.isEmpty() || !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
                 throw new TenantNotAuthorizedException("Tenant not authorized");
             }
         }

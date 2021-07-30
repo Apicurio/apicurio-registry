@@ -48,7 +48,6 @@ jobs:
 
       # Run all tests always: serdes, acceptance and smoke. Things like UI , multitenancy or auth , are tested in it's own run.
       - name: Set test profile to ci
-        if: github.ref == 'refs/heads/master'
         run: |
           echo "test_profile=ci" >> $GITHUB_ENV
 

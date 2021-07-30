@@ -86,7 +86,6 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
 //    }
 
     @Test
-    @Tag(ACCEPTANCE)
     void testProtobuf() throws Exception {
         doTest(registryClient, "protobuf/tutorial_v1.proto", ArtifactType.PROTOBUF, null, false);
     }

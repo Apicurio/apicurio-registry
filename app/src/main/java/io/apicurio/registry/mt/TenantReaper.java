@@ -26,6 +26,8 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -45,8 +47,6 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
  */
 @ApplicationScoped
 public class TenantReaper {
-
-    private static final int MAX_TENANTS_PROCESSED = 100;
 
     @Inject
     Logger log;
@@ -71,6 +71,9 @@ public class TenantReaper {
     OptionalBean<TenantManagerClient> tenantManagerClient;
 
     Instant next;
+
+    @ConfigProperty(name = "registry.multitenancy.reaper.max-tenants-reaped", defaultValue = "100")
+    int maxTenantsReaped;
 
     @PostConstruct
     void init() {
@@ -152,11 +155,7 @@ public class TenantReaper {
                     // Just ignore, will retry on next cycle
                 }
             }
-            tenantsProcessed += tenants.getItems().size();
-        } while (!page.isEmpty() && tenantsProcessed < MAX_TENANTS_PROCESSED);
-    }
-
-    void setNext(Instant next) {
-        this.next = next;
+            tenantsProcessed += page.size();
+        } while (!page.isEmpty() && tenantsProcessed < maxTenantsReaped);
     }
 }

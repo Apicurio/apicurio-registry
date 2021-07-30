@@ -180,7 +180,7 @@ public class KafkaSqlSink {
 
     private Object processGlobalAction(GlobalActionKey key, GlobalActionValue value) {
         switch (value.getAction()) {
-            case DELETE:
+            case DELETE_ALL_USER_DATA:
                 sqlStore.deleteAllUserData();
                 return null;
             default:

@@ -387,11 +387,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         // Reset the client cache so that the next line actually does what we want.
         client.reset();
 
-        // this is a bug
-        Assertions.assertThrows(RestClientException.class, () -> client.getSchemaById(id1));
-
-        // this is how this should work once bug is fixed
-//        TestUtils.retry(() -> client.getSchemaById(id1));
+        TestUtils.retry(() -> client.getSchemaById(id1));
 
         ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
         int id2 = client.register(subject, schema2);

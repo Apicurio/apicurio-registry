@@ -62,12 +62,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         Schema s = new Schema.Parser().parse(content.content());
         assertEquals(Type.STRING, s.getType());
 
-        //this is a bug
-        Assertions.assertThrows(InvalidArtifactTypeException.class, () -> ArtifactTypeUtil.determineArtifactType(content, null, null));
-
-        //this is how it should behave
-//        ArtifactType type = ArtifactTypeUtil.determineArtifactType(content, null, null);
-//        Assertions.assertEquals(ArtifactType.AVRO, type);
+        ArtifactType type = ArtifactTypeUtil.determineArtifactType(content, null, null);
+        Assertions.assertEquals(ArtifactType.AVRO, type);
     }
 
     /**

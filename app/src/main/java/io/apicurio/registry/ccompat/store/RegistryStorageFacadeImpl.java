@@ -49,7 +49,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 
 /**
@@ -91,9 +90,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public SchemaInfo getSchemaById(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        final ContentHandle contentHandle = storage.getArtifactByContentId(globalId);
-        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.discoverType(contentHandle, null));
+    public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
+        final ContentHandle contentHandle = storage.getArtifactByContentId(contentId);
+        List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
+        if (artifacts == null || artifacts.isEmpty()) {
+            //the contentId points to an orphaned content
+            throw new ArtifactNotFoundException("ContentId: " + contentId);
+        }
+        //get the artifact type for the first artifact version associated with it
+        //this can be an issue if the user uploads the same content with different artifact types
+        //that's possible because user can upload xml and say it's avro...
+        return FacadeConverter.convert(contentHandle, artifacts.get(0).getType());
     }
 
     @Override

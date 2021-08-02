@@ -18,6 +18,10 @@ package io.apicurio.registry.util;
 
 import java.io.InputStream;
 
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.MediaType;
+
+import org.apache.avro.Schema;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -45,17 +49,69 @@ public final class ArtifactTypeUtil {
     }
 
     /**
+     * Figures out the artifact type in the following order of precedent:
+     * <p>
+     * 1) The provided X-Registry-ArtifactType header
+     * 2) A hint provided in the Content-Type header
+     * 3) Determined from the content itself
+     *
+     * @param content       the content
+     * @param xArtifactType the artifact type
+     * @param ct            content type from request API
+     */
+    public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {
+        ArtifactType artifactType = xArtifactType;
+        if (artifactType == null) {
+            artifactType = getArtifactTypeFromContentType(contentType);
+            if (artifactType == null) {
+                artifactType = ArtifactTypeUtil.discoverType(content, contentType);
+            }
+        }
+        return artifactType;
+    }
+
+    /**
+     * Tries to figure out the artifact type by analyzing the content-type.
+     *
+     * @param contentType the content type header
+     */
+    private static ArtifactType getArtifactTypeFromContentType(String contentType) {
+        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
+            String[] split = contentType.split(";");
+            if (split.length > 1) {
+                for (String s : split) {
+                    if (s.contains("artifactType=")) {
+                        String at = s.split("=")[1];
+                        try {
+                            return ArtifactType.valueOf(at);
+                        } catch (IllegalArgumentException e) {
+                            throw new BadRequestException("Unsupported artifact type: " + at);
+                        }
+                    }
+                }
+            }
+        }
+        if (contentType != null && contentType.contains("x-proto")) {
+            return ArtifactType.PROTOBUF;
+        }
+        if (contentType != null && contentType.contains("graphql")) {
+            return ArtifactType.GRAPHQL;
+        }
+        return null;
+    }
+
+    /**
      * Method that discovers the artifact type from the raw content of an artifact. This will attempt to parse
      * the content (with the optional provided Content Type as a hint) and figure out what type of artifact it
      * is. Examples include Avro, Protobuf, OpenAPI, etc. Most of the supported artifact types are JSON
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
      * fails.
-     * 
+     *
      * @param content
      * @param contentType
      */
-    public static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
+    private static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
@@ -85,14 +141,18 @@ public final class ArtifactTypeUtil {
             }
             // Kafka Connect??
             // TODO detect Kafka Connect schemas
-            // Avro
-            if (tree.has("type")) {
-                return ArtifactType.AVRO;
-            }
-            
+
             throw new InvalidArtifactTypeException("Failed to discover artifact type from JSON content.");
         } catch (Exception e) {
             // Apparently it's not JSON.
+        }
+
+        try {
+            // Avro
+            new Schema.Parser().parse(content.content());
+            return ArtifactType.AVRO;
+        } catch (Exception e) {
+            //ignored
         }
 
         // Try protobuf (only if we haven't already)

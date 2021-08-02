@@ -98,7 +98,7 @@ class MetadataIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        VersionMetaData versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "2");
+        VersionMetaData versionMetaData = TestUtils.retry(() -> registryClient.getArtifactVersionMetaData(groupId, artifactId, "2"));
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 

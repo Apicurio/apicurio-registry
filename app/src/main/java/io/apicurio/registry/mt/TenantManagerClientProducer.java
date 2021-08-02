@@ -16,18 +16,19 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.runtime.configuration.ProfileManager;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
+import java.util.Collections;
 
 /**
  * @author Fabian Martinez
@@ -53,37 +54,35 @@ public class TenantManagerClientProducer {
             //Those tests checks if multitenancy is supported and abort the test if needed
             if ("prod".equals(ProfileManager.getActiveProfile()) && !storage.supportsMultiTenancy()) {
                 throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " +
-                    "but the storage implementation being used (" + storage.storageName() + ") does not support multitenancy");
+                        "but the storage implementation being used (" + storage.storageName() + ") does not support multitenancy");
             }
 
             if (properties.getTenantManagerUrl().isEmpty()) {
                 throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " +
-                    "but the no \"registry.tenant.manager.url\" is provided");
+                        "but the no \"registry.tenant.manager.url\" is provided");
             }
 
             if (properties.isAuthEnabled()) {
 
                 if (properties.getTenantManagerAuthUrl().isEmpty() ||
-                    properties.getTenantManagerAuthRealm().isEmpty() ||
-                    properties.getTenantManagerClientId().isEmpty() ||
-                    properties.getTenantManagerClientSecret().isEmpty()) {
+                        properties.getTenantManagerClientId().isEmpty() ||
+                        properties.getTenantManagerClientSecret().isEmpty()) {
                     throw new DeploymentException("Unsupported configuration, \"registry.enable.multitenancy\" is enabled " +
-                        "\"registry.enable.auth\" is enabled " +
-                        "but the no auth properties aren't properly configured");
+                            "\"registry.enable.auth\" is enabled " +
+                            "but the no auth properties aren't properly configured");
                 }
 
                 return OptionalBean.of(new TenantManagerClientImpl(
-                    properties.getTenantManagerUrl().get(),
-                    new Auth(properties.getTenantManagerAuthUrl().get(),
-                        properties.getTenantManagerAuthRealm().get(),
-                        properties.getTenantManagerClientId().get(),
-                        properties.getTenantManagerClientSecret().get()
-                    )
+                        properties.getTenantManagerUrl().get(), Collections.emptyMap(),
+                        new OidcAuth(properties.getTenantManagerAuthUrl().get(),
+                                properties.getTenantManagerClientId().get(),
+                                properties.getTenantManagerClientSecret().get()
+                        )
                 ));
 
             } else {
                 return OptionalBean.of(new TenantManagerClientImpl(
-                    properties.getTenantManagerUrl().get())
+                        properties.getTenantManagerUrl().get())
                 );
             }
         }

@@ -626,4 +626,9 @@ public interface RegistryStorage {
      * @param principalId
      */
     public void deleteRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
+     */
+    void deleteAllUserData();
 }

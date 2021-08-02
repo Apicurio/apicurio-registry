@@ -28,6 +28,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
@@ -82,16 +83,20 @@ public class TenantContextLoader {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
             checkTenantAuthorization(tenantMetadata);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration);
+            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus());
         });
         return context;
     }
 
     public RegistryTenantContext defaultTenantContext() {
         if (defaultTenantContext == null) {
-            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant());
+            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant(), TenantStatusValue.READY);
         }
         return defaultTenantContext;
+    }
+
+    public void invalidateTenantInCache(String tenantId) {
+        contextsCache.remove(tenantId);
     }
 
     private void checkTenantAuthorization(final RegistryTenant tenant) {
@@ -113,5 +118,9 @@ public class TenantContextLoader {
 
     private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
         return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
+
+    public void invalidateTenantCache() {
+        contextsCache.clear();
     }
 }

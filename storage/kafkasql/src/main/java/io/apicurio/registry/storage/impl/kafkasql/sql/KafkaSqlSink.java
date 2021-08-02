@@ -7,6 +7,10 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.apicurio.registry.mt.TenantContextLoader;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -78,6 +82,9 @@ public class KafkaSqlSink {
     @Inject
     TenantContext tenantContext;
 
+    @Inject
+    TenantContextLoader tcl;
+
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
@@ -91,7 +98,7 @@ public class KafkaSqlSink {
      */
     public void processMessage(ConsumerRecord<MessageKey, MessageValue> record) {
         UUID requestId = extractUuid(record);
-        log.debug("Processing Kafka message with UUID: {}", requestId.toString());
+        log.debug("Processing Kafka message with UUID: {}", requestId);
 
         try {
             Object result = doProcessMessage(record);
@@ -133,7 +140,8 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            tenantContext.setContext(new RegistryTenantContext(tenantId, null, null));
+            RegistryTenantContext tctx = tcl.loadContext(tenantId);
+            tenantContext.setContext(tctx);
         }
         try {
             MessageType messageType = key.getType();
@@ -158,13 +166,25 @@ public class KafkaSqlSink {
                     return processLogConfig((LogConfigKey) key, (LogConfigValue) value);
                 case RoleMapping:
                     return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
+                case GlobalAction:
+                    return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
                 default:
-                    log.warn("Unrecognized message type: %s", record.key());
+                    log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
             }
         } finally {
             log.debug("Clearing tenant id after message processed");
             tenantContext.clearContext();
+        }
+    }
+
+    private Object processGlobalAction(GlobalActionKey key, GlobalActionValue value) {
+        switch (value.getAction()) {
+            case DELETE_ALL_USER_DATA:
+                sqlStore.deleteAllUserData();
+                return null;
+            default:
+                return unsupported(key, value);
         }
     }
 
@@ -187,20 +207,20 @@ public class KafkaSqlSink {
                     .build();
         };
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createGroup(buildGroup.get());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateGroupMetaData(buildGroup.get());
                 return null;
-            case Delete:
+            case DELETE:
                 if (value.isOnlyArtifacts()) {
                     sqlStore.deleteArtifacts(key.getGroupId());
                 } else {
                     sqlStore.deleteGroup(key.getGroupId());
                 }
                 return null;
-            case Import:
+            case IMPORT:
                 GroupEntity entity = new GroupEntity();
                 entity.artifactsType = value.getArtifactsType();
                 entity.createdBy = value.getCreatedBy();
@@ -211,9 +231,9 @@ public class KafkaSqlSink {
                 entity.modifiedOn = value.getModifiedOn();
                 entity.properties = value.getProperties();
                 sqlStore.importGroup(entity);
+                return null;
             default:
-                log.warn("Unsupported group message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported group message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -231,17 +251,17 @@ public class KafkaSqlSink {
                 }
             };
             switch (value.getAction()) {
-                case Create:
+                case CREATE:
                     return sqlStore.createArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
-                case Update:
+                case UPDATE:
                     return sqlStore.updateArtifactWithMetadata(key.getGroupId(), key.getArtifactId(), value.getVersion(), value.getArtifactType(),
                             value.getContentHash(), value.getCreatedBy(), value.getCreatedOn(),
                             value.getMetaData(), globalIdGenerator);
-                case Delete:
+                case DELETE:
                     return sqlStore.deleteArtifact(key.getGroupId(), key.getArtifactId());
-                case Import:
+                case IMPORT:
                     ArtifactVersionEntity entity = new ArtifactVersionEntity();
                     entity.globalId = value.getGlobalId();
                     entity.groupId = key.getGroupId();
@@ -261,8 +281,7 @@ public class KafkaSqlSink {
                     sqlStore.importArtifactVersion(entity);
                     return null;
                 default:
-                    log.warn("Unsupported artifact message action: %s", key.getType().name());
-                    throw new RegistryStorageException("Unsupported artifact message action: " + value.getAction());
+                    return unsupported(key, value);
             }
         } catch (ArtifactNotFoundException | ArtifactAlreadyExistsException e) {
             // Send a tombstone message to clean up the unique Kafka message that caused this failure.  We may be
@@ -280,18 +299,18 @@ public class KafkaSqlSink {
      */
     private Object processArtifactRuleMessage(ArtifactRuleKey key, ArtifactRuleValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 // Note: createArtifactRuleAsync() must be called instead of createArtifactRule() because that's what
                 // KafkaSqlRegistryStorage::createArtifactRuleAsync() expects (a return value)
                 sqlStore.createArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType(), value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteArtifactRule(key.getGroupId(), key.getArtifactId(), key.getRuleType());
                 return null;
-            case Import:
+            case IMPORT:
                 ArtifactRuleEntity entity = new ArtifactRuleEntity();
                 entity.groupId = key.getGroupId();
                 entity.artifactId = key.getArtifactId();
@@ -299,8 +318,7 @@ public class KafkaSqlSink {
                 entity.configuration = value.getConfig().getConfiguration();
                 sqlStore.importArtifactRule(entity);
             default:
-                log.warn("Unsupported artifact rule message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported artifact-rule message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -316,19 +334,18 @@ public class KafkaSqlSink {
      */
     private Object processArtifactVersion(ArtifactVersionKey key, ArtifactVersionValue value) {
         switch (value.getAction()) {
-            case Update:
+            case UPDATE:
                 sqlStore.updateArtifactVersionMetaDataAndState(key.getGroupId(), key.getArtifactId(), key.getVersion(), value.getMetaData(), value.getState());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteArtifactVersion(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
-            case Clear:
+            case CLEAR:
                 sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
-            case Create:
+            case CREATE:
             default:
-                log.warn("Unsupported artifact version message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported artifact-version message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -340,12 +357,12 @@ public class KafkaSqlSink {
      */
     private Object processContent(ContentKey key, ContentValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
                     sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent());
                 }
                 break;
-            case Import:
+            case IMPORT:
                 if (!sqlStore.isContentExists(key.getContentId())) {
                     ContentEntity entity = new ContentEntity();
                     entity.contentId = key.getContentId();
@@ -356,8 +373,7 @@ public class KafkaSqlSink {
                 }
                 break;
             default:
-                log.warn("Unsupported content message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported content message action: " + value.getAction());
+                return unsupported(key, value);
         }
         return null;
     }
@@ -371,24 +387,23 @@ public class KafkaSqlSink {
      */
     private Object processGlobalRule(GlobalRuleKey key, GlobalRuleValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createGlobalRule(key.getRuleType(), value.getConfig());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateGlobalRule(key.getRuleType(), value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteGlobalRule(key.getRuleType());
                 return null;
-            case Import:
+            case IMPORT:
                 GlobalRuleEntity entity = new GlobalRuleEntity();
                 entity.ruleType = key.getRuleType();
                 entity.configuration = value.getConfig().getConfiguration();
                 sqlStore.importGlobalRule(entity);
                 return null;
             default:
-                log.warn("Unsupported global rule message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported global-rule message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -401,24 +416,23 @@ public class KafkaSqlSink {
      */
     private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole());
                 return null;
-            case Update:
+            case UPDATE:
                 sqlStore.updateRoleMapping(key.getPrincipalId(), value.getRole());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.deleteRoleMapping(key.getPrincipalId());
                 return null;
-            case Import:
+            case IMPORT:
 //                GlobalRuleEntity entity = new GlobalRuleEntity();
 //                entity.ruleType = key.getRuleType();
 //                entity.configuration = value.getConfig().getConfiguration();
 //                sqlStore.importGlobalRule(entity);
 //                return null;
             default:
-                log.warn("Unsupported role mapping message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported role-mapping message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -430,14 +444,13 @@ public class KafkaSqlSink {
      */
     private Object processGlobalId(GlobalIdKey key, GlobalIdValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 return sqlStore.nextGlobalId();
-            case Reset:
+            case RESET:
                 sqlStore.resetGlobalId();
                 return null;
             default:
-                log.warn("Unsupported global id message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported global-id message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -449,14 +462,13 @@ public class KafkaSqlSink {
      */
     private Object processContentId(ContentIdKey key, ContentIdValue value) {
         switch (value.getAction()) {
-            case Create:
+            case CREATE:
                 return sqlStore.nextContentId();
-            case Reset:
+            case RESET:
                 sqlStore.resetContentId();
                 return null;
             default:
-                log.warn("Unsupported content id message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported content-id message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
@@ -468,16 +480,20 @@ public class KafkaSqlSink {
      */
     private Object processLogConfig(LogConfigKey key, LogConfigValue value) {
         switch (value.getAction()) {
-            case Update:
+            case UPDATE:
                 sqlStore.setLogConfiguration(value.getConfig());
                 return null;
-            case Delete:
+            case DELETE:
                 sqlStore.removeLogConfiguration(value.getConfig().getLogger());
                 return null;
             default:
-                log.warn("Unsupported log config message action: %s", key.getType().name());
-                throw new RegistryStorageException("Unsupported log config message action: " + value.getAction());
+                return unsupported(key, value);
         }
     }
 
+    private Object unsupported(MessageKey key, AbstractMessageValue value) {
+        final String m = String.format("Unsupported action '%s' for message type '%s'", value.getAction(), key.getType().name());
+        log.warn(m);
+        throw new RegistryStorageException(m);
+    }
 }

@@ -17,13 +17,21 @@ package io.apicurio.multitenant.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.multitenant.api.beans.RegistryTenantList;
 import io.apicurio.multitenant.api.beans.SortBy;
 import io.apicurio.multitenant.api.beans.SortOrder;
 import io.apicurio.multitenant.api.beans.TenantStatusValue;
+
+import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
+import io.apicurio.multitenant.api.datamodel.SortBy;
+import io.apicurio.multitenant.api.datamodel.SortOrder;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.exception.TenantManagerClientErrorHandler;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
@@ -68,7 +76,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             baseUrl += "/";
         }
         final String endpoint = baseUrl;
-        this.mapper = new ObjectMapper();
+        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.client = new JdkHttpClient(endpoint, configs, auth, new TenantManagerClientErrorHandler());
     }
 

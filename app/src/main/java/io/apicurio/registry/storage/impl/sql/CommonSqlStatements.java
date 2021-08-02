@@ -334,6 +334,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM rules WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
     }
 
+    /**
+     * @see SqlStatements#deleteAllArtifactRules()
+     */
+    @Override
+    public String deleteAllArtifactRules() {
+        return "DELETE FROM rules WHERE tenantId = ?";
+    }
+
     @Override
     public String deleteArtifactRulesByGroupId() {
         return "DELETE FROM rules WHERE tenantId = ? AND groupId = ?";
@@ -368,6 +376,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
+    @Override
+    public String deleteAllLabels() {
+        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteProperties()
      */
@@ -389,6 +402,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
+    @Override
+    public String deleteAllProperties() {
+        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersions()
      */
@@ -402,6 +420,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM versions WHERE tenantId = ? AND groupId = ?";
     }
 
+    @Override
+    public String deleteAllVersions() {
+        return "DELETE FROM versions WHERE tenantId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifact()
      */
@@ -413,6 +436,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteArtifactsByGroupId() {
         return "DELETE FROM artifacts WHERE tenantId = ? AND groupId = ?";
+    }
+
+    @Override
+    public String deleteAllArtifacts() {
+        return "DELETE FROM artifacts WHERE tenantId = ?";
     }
 
     /**
@@ -574,6 +602,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.tenantId = ? AND c.contentHash = ?";
     }
 
+    @Override
+    public String deleteAllOrphanedContent() {
+        // TODO This may be too slow
+        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLogConfigurationByLogger()
      */
@@ -620,6 +654,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteGroup() {
         return "DELETE FROM groups g WHERE g.tenantId = ? AND g.groupId = ?";
+    }
+
+    /**
+     * @see SqlStatements#deleteAllGroups()
+     */
+    @Override
+    public String deleteAllGroups() {
+        return "DELETE FROM groups g WHERE g.tenantId = ?";
     }
 
     /**
@@ -770,6 +812,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteRoleMapping() {
         return "DELETE FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
+     * @see SqlStatements#deleteAllRoleMappings()
+     */
+    @Override
+    public String deleteAllRoleMappings() {
+        return "DELETE FROM acls a WHERE a.tenantId = ?";
     }
 
     /**

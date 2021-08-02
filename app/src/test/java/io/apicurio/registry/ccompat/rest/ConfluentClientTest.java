@@ -374,4 +374,28 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Struct ir = (Struct) sav.value();
         Assertions.assertEquals("somebar", ir.get("bar").toString());
     }
+
+    @Test
+    public void testSimpleAvroSchema() throws Exception {
+        SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+
+        ParsedSchema schema1 = new AvroSchema("\"string\"");
+        int id1 = client.register(subject, schema1);
+
+        // Reset the client cache so that the next line actually does what we want.
+        client.reset();
+
+        // this is a bug
+        Assertions.assertThrows(RestClientException.class, () -> client.getSchemaById(id1));
+
+        // this is how this should work once bug is fixed
+//        TestUtils.retry(() -> client.getSchemaById(id1));
+
+        ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
+        int id2 = client.register(subject, schema2);
+
+        TestUtils.retry(() -> client.getSchemaById(id2));
+    }
 }

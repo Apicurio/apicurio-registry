@@ -21,6 +21,10 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +51,23 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("avro.json");
         ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
         Assertions.assertEquals(ArtifactType.AVRO, type);
+    }
+
+    /**
+     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     */
+    @Test
+    void testDiscoverType_Avro_Simple() {
+        ContentHandle content = resourceToContentHandle("avro-simple.avsc");
+        Schema s = new Schema.Parser().parse(content.content());
+        assertEquals(Type.STRING, s.getType());
+
+        //this is a bug
+        Assertions.assertThrows(InvalidArtifactTypeException.class, () -> ArtifactTypeUtil.discoverType(content, null));
+
+        //this is how it should behave
+//        ArtifactType type = ArtifactTypeUtil.discoverType(content, null);
+//        Assertions.assertEquals(ArtifactType.AVRO, type);
     }
 
     /**

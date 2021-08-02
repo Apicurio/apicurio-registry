@@ -57,7 +57,7 @@ import io.quarkus.test.junit.TestProfile;
 @Tag(ApicurioTestTags.DOCKER)
 public class SimpleAuthTest extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
     String adminClientId = "registry-api";

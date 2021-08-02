@@ -53,7 +53,7 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
     boolean fakeBasicAuthEnabled;
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
     @Override

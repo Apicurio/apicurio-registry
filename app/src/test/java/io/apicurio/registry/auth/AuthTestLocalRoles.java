@@ -58,11 +58,9 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
             "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
             "} ";
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
 
     String noRoleClientId = "registry-api-no-role";
     String noRolePrincipalId = "service-account-registry-api-no-role";

@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.DOCKER)
 public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
     String noRoleClientId = "registry-api-no-role";

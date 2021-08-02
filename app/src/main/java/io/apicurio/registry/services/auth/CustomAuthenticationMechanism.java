@@ -44,7 +44,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
     @ConfigProperty(name = "registry.auth.client-secret")

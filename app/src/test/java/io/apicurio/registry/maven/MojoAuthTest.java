@@ -39,7 +39,7 @@ import java.util.Collections;
 @Tag(ApicurioTestTags.DOCKER)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
-    @ConfigProperty(name = "registry.auth.url.configured")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")

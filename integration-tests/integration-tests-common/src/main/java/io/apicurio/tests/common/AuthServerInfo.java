@@ -43,7 +43,7 @@ public class AuthServerInfo {
      * @return the authServerUrl configured with the realm
      */
     public String getAuthServerUrlConfigured() {
-        return authServerUrl + "/realms/" + realm;
+        return authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
     }
     /**
      * @param authServerUrl the authServerUrl to set

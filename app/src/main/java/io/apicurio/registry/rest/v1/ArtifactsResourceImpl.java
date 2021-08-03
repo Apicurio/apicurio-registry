@@ -109,58 +109,6 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         return request.getContentType();
     }
 
-    /**
-     * Figures out the artifact type in the following order of precedent:
-     * <p>
-     * 1) The provided X-Registry-ArtifactType header
-     * 2) A hint provided in the Content-Type header
-     * 3) Determined from the content itself
-     *
-     * @param content       the content
-     * @param xArtifactType the artifact type
-     * @param ct            content type from request API
-     */
-    private static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String ct) {
-        ArtifactType artifactType = xArtifactType;
-        if (artifactType == null) {
-            artifactType = getArtifactTypeFromContentType(ct);
-            if (artifactType == null) {
-                artifactType = ArtifactTypeUtil.discoverType(content, ct);
-            }
-        }
-        return artifactType;
-    }
-
-    /**
-     * Tries to figure out the artifact type by analyzing the content-type.
-     *
-     * @param contentType the content type header
-     */
-    private static ArtifactType getArtifactTypeFromContentType(String contentType) {
-        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
-            String[] split = contentType.split(";");
-            if (split.length > 1) {
-                for (String s : split) {
-                    if (s.contains("artifactType=")) {
-                        String at = s.split("=")[1];
-                        try {
-                            return ArtifactType.valueOf(at);
-                        } catch (IllegalArgumentException e) {
-                            throw new BadRequestException("Unsupported artifact type: " + at);
-                        }
-                    }
-                }
-            }
-        }
-        if (contentType != null && contentType.contains("x-proto")) {
-            return ArtifactType.PROTOBUF;
-        }
-        if (contentType != null && contentType.contains("graphql")) {
-            return ArtifactType.GRAPHQL;
-        }
-        return null;
-    }
-
     private ArtifactMetaData handleIfExists(
             ArtifactType artifactType,
             String artifactId,
@@ -253,7 +201,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
+        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
@@ -283,7 +231,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
-            ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
+            ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
             ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content);
@@ -329,7 +277,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
+        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
         ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
@@ -383,7 +331,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        ArtifactType artifactType = determineArtifactType(content, xRegistryArtifactType, ct);
+        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
         ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);

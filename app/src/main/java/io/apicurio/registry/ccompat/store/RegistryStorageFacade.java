@@ -53,12 +53,12 @@ public interface RegistryStorageFacade {
     /**
      * Create a new schema in the given subject.
      *
-     * @return globalId as a future
+     * @return contentId
      */
     CompletionStage<Long> createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
-    SchemaInfo getSchemaById(int globalId) throws RegistryStorageException;
+    SchemaInfo getSchemaById(int contentId) throws RegistryStorageException;
 
 
     Schema getSchema(String subject, String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;

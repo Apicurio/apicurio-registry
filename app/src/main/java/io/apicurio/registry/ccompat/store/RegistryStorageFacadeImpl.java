@@ -52,7 +52,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 
 /**
@@ -69,7 +68,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Inject
     RulesService rulesService;
 
-    @Inject FacadeConverter converter;
+    @Inject
+    FacadeConverter converter;
 
     @Inject
     CCompatConfig cconfig;
@@ -104,18 +104,16 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
-        if (cconfig.legacyIdModeEnabled) {
-            long globalId = contentId;
-            ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
-            if (ArtifactState.DISABLED.equals(metaData.getState())) {
-                throw new ArtifactNotFoundException(null, String.valueOf(globalId));
-            }
-            StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
-            return converter.convert(artifact.getContent(), ArtifactTypeUtil.discoverType(artifact.getContent(), null));
-        } else {
-            final ContentHandle artifactByContentId = storage.getArtifactByContentId(contentId);
-            return converter.convert(artifactByContentId, ArtifactTypeUtil.discoverType(artifactByContentId, null));
+        final ContentHandle contentHandle = storage.getArtifactByContentId(contentId);
+        List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
+        if (artifacts == null || artifacts.isEmpty()) {
+            //the contentId points to an orphaned content
+            throw new ArtifactNotFoundException("ContentId: " + contentId);
         }
+        //get the artifact type for the first artifact version associated with it
+        //this can be an issue if the user uploads the same content with different artifact types
+        //that's possible because user can upload xml and say it's avro...
+        return FacadeConverter.convert(contentHandle, artifacts.get(0).getType());
     }
 
     @Override

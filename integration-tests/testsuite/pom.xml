@@ -239,6 +239,14 @@
         </profile>
 
         <profile>
+            <id>ci</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>( smoke | serdes | acceptance ) &amp; !multitenancy</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>smoke</id>
             <properties>
                 <skipTests>false</skipTests>

@@ -41,15 +41,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-integration-tests-
 
-      - name: Set test profile to acceptance
-        if: github.ref != 'refs/heads/master'
-        run: |
-          echo "test_profile=acceptance" >> $GITHUB_ENV
+      # - name: Set test profile to acceptance
+      #   if: github.ref != 'refs/heads/master'
+      #   run: |
+      #     echo "test_profile=acceptance" >> $GITHUB_ENV
 
-      - name: Set test profile to all
-        if: github.ref == 'refs/heads/master'
+      # Run all tests always: serdes, acceptance and smoke. Things like UI , multitenancy or auth , are tested in it's own run.
+      - name: Set test profile to ci
         run: |
-          echo "test_profile=all" >> $GITHUB_ENV
+          echo "test_profile=ci" >> $GITHUB_ENV
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
@@ -60,8 +60,7 @@ jobs:
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
 
-      - name: Run UI tests - only PRs
-        if: github.ref != 'refs/heads/master'
+      - name: Run UI tests
         run: ./mvnw verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       
       - name: Run Integration Tests - sql

@@ -26,6 +26,8 @@ import io.smallrye.jwt.build.Jwt;
  */
 public class CustomJWTAuth implements Auth {
 
+    public static final String RH_ORG_ID_CLAIM = "rh-org-id";
+
     private String username;
     private String organizationId;
 
@@ -40,7 +42,7 @@ public class CustomJWTAuth implements Auth {
     @Override
     public void apply(Map<String, String> requestHeaders) {
         String token = Jwt.preferredUserName(username)
-                .claim("rh_org_id", organizationId)
+                .claim(RH_ORG_ID_CLAIM, organizationId)
                 .jws()
                 .keyId("1")
                 .sign();

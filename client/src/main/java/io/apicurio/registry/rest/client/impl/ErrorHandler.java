@@ -42,6 +42,7 @@ public class ErrorHandler implements RestClientErrorHandler {
     public static final int UNAUTHORIZED_CODE = 401;
     public static final int FORBIDDEN_CODE = 403;
 
+    @Override
     public RestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
             if (statusCode == UNAUTHORIZED_CODE) {
@@ -74,6 +75,7 @@ public class ErrorHandler implements RestClientErrorHandler {
         }
     }
 
+    @Override
     public RestClientException parseInputSerializingError(JsonProcessingException ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
@@ -82,6 +84,7 @@ public class ErrorHandler implements RestClientErrorHandler {
         return new RestClientException(new Error());
     }
 
+    @Override
     public RestClientException parseError(Exception ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());

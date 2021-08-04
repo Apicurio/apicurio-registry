@@ -30,9 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -47,10 +44,8 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.RegistryFacade;
 import io.apicurio.tests.common.auth.CustomJWTAuth;
 import io.smallrye.jwt.build.Jwt;
 
@@ -66,13 +61,14 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MultitenantAuthIT.class);
 
-    private RegistryFacade registryFacade = RegistryFacade.getInstance();
-
     @Test
     public void testSecuredMultitenantRegistry() throws Exception {
-        RegistryClient clientTenant1 = createTenant();
 
-        RegistryClient clientTenant2 = createTenant();
+        MultitenancySupport mt = new MultitenancySupport();
+
+        RegistryClient clientTenant1 = mt.createTenant().client;
+
+        RegistryClient clientTenant2 = mt.createTenant().client;
 
         try {
             performTenantAdminOperations(clientTenant1);
@@ -86,21 +82,25 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         }
     }
 
+    /**
+     * Tests two users in the same organization accessing the same tenant
+     */
     @Test
     public void testPermissions() throws Exception {
+        MultitenancySupport mt = new MultitenancySupport();
 
-        var user1 = new TenantUser("eric", "cool-org");
-        var user2 = new TenantUser("carles", "cool-org");
+        String tenantId = UUID.randomUUID().toString();
+        var user1 = new TenantUser(tenantId, "eric", "cool-org");
+        var user2 = new TenantUser(tenantId, "carles", "cool-org");
 
         //user1 is the owner of the tenant
-        var tenantUrl = createTenant(user1);
+        TenantUserClient tenantOwner = mt.createTenant(user1);
 
-        var user1Client = createUserClient(user1, tenantUrl);
-        var user2Client = createUserClient(user2, tenantUrl);
+        RegistryClient user2Client = mt.createUserClient(user2, tenantOwner.tenantAppUrl);
 
         try {
             //user1 can access and automatically have admin permissions
-            performTenantAdminOperations(user1Client);
+            performTenantAdminOperations(tenantOwner.client);
 
             //user2 does not have access
             Assertions.assertThrows(ForbiddenException.class, () -> user2Client.listArtifactsInGroup(null));
@@ -114,15 +114,15 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
             RoleMapping mapping = new RoleMapping();
             mapping.setPrincipalId(user2.principalId);
             mapping.setRole(RoleType.READ_ONLY);
-            user1Client.createRoleMapping(mapping);
+            tenantOwner.client.createRoleMapping(mapping);
 
             //verify read only permissions
             Assertions.assertThrows(ForbiddenException.class, () -> user2Client.createRoleMapping(mapping));
             Assertions.assertThrows(ForbiddenException.class, () -> user2Client.updateRoleMapping(user2.principalId, RoleType.ADMIN));
-            performTenantReadOnlyOperations(user2Client, user1Client);
+            performTenantReadOnlyOperations(user2Client, tenantOwner.client);
 
             //add developer role to user2
-            user1Client.updateRoleMapping(user2.principalId, RoleType.DEVELOPER);
+            tenantOwner.client.updateRoleMapping(user2.principalId, RoleType.DEVELOPER);
 
             //verify developer role permissions
             Assertions.assertThrows(ForbiddenException.class, () -> user2Client.createRoleMapping(mapping));
@@ -130,7 +130,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
             performTenantDevRoleOperations(user2Client);
 
             //add admin role to user2
-            user1Client.updateRoleMapping(user2.principalId, RoleType.ADMIN);
+            tenantOwner.client.updateRoleMapping(user2.principalId, RoleType.ADMIN);
 
             //verify admin role permissions
             user2Client.createRoleMapping(fooMapping);
@@ -138,33 +138,37 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
             performTenantAdminOperations(user2Client);
 
         } finally {
-            cleanTenantArtifacts(user1Client);
+            cleanTenantArtifacts(tenantOwner.client);
         }
     }
 
+    /**
+     * Tests two users, each one in it's own organization, users should be able to access only tenants in it's own organization
+     * @throws Exception
+     */
     @Test
     public void testTenantAccess() throws Exception {
 
-        var user1 = new TenantUser("eric", "org1");
-        var tenant1Url = createTenant(user1);
-        var tenant1User1Client = createUserClient(user1, tenant1Url);
-        tenant1User1Client.listArtifactsInGroup(null);
+        MultitenancySupport mt = new MultitenancySupport();
 
-        var user2 = new TenantUser("carles", "org2");
-        var tenant2Url = createTenant(user2);
-        var tenant2User2Client = createUserClient(user2, tenant2Url);
-        tenant2User2Client.listArtifactsInGroup(null);
+        var user1 = new TenantUser(UUID.randomUUID().toString(), "eric", "org1");
+        TenantUserClient tenant1User1Client = mt.createTenant(user1);
+        tenant1User1Client.client.listArtifactsInGroup(null);
+
+        var user2 = new TenantUser(UUID.randomUUID().toString(), "carles", "org2");
+        TenantUserClient tenant2User2Client = mt.createTenant(user2);
+        tenant2User2Client.client.listArtifactsInGroup(null);
 
         //user2 cannot access user1 tenant, and viceversa
-        Assertions.assertThrows(ForbiddenException.class, () -> createUserClient(user2, tenant1Url).listArtifactsInGroup(null));
-        Assertions.assertThrows(ForbiddenException.class, () -> createUserClient(user1, tenant2Url).listArtifactsInGroup(null));
+        Assertions.assertThrows(ForbiddenException.class, () -> mt.createUserClient(user2, tenant1User1Client.tenantAppUrl).listArtifactsInGroup(null));
+        Assertions.assertThrows(ForbiddenException.class, () -> mt.createUserClient(user1, tenant2User2Client.tenantAppUrl).listArtifactsInGroup(null));
 
         //test invalid jwt
-        var invalidClient = RegistryClientFactory.create(tenant1Url, Collections.emptyMap(), new Auth() {
+        var invalidClient = RegistryClientFactory.create(tenant1User1Client.tenantAppUrl, Collections.emptyMap(), new Auth() {
             @Override
             public void apply(Map<String, String> requestHeaders) {
                 var builder = Jwt.preferredUserName("foo")
-                        .claim("rh_org_id", "my-org");
+                        .claim(CustomJWTAuth.RH_ORG_ID_CLAIM, "my-org");
 
                 String token = builder
                         .jws()
@@ -266,38 +270,6 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
             }
         }
         TestUtils.retry(() -> assertTrue(client.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount().intValue() == 0));
-    }
-
-    private RegistryClient createTenant() {
-        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-        String tenantAppUrl = createTenant(user);
-        return createUserClient(user, tenantAppUrl);
-    }
-
-    private String createTenant(TenantUser user) {
-
-        String tenantId = UUID.randomUUID().toString();
-        String tenantAppUrl = TestUtils.getRegistryBaseUrl() + "/t/" + tenantId;
-
-        NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
-        tenantReq.setOrganizationId(user.organizationId);
-        tenantReq.setTenantId(tenantId);
-        tenantReq.setCreatedBy(user.principalId);
-
-        TenantManagerClient tenantManager = createTenantManagerClient();
-        tenantManager.createTenant(tenantReq);
-
-        return tenantAppUrl;
-    }
-
-    private RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
-        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new CustomJWTAuth(user.principalId, user.organizationId));
-    }
-
-    private TenantManagerClient createTenantManagerClient() {
-        var keycloak = registryFacade.getMTOnlyKeycloakMock();
-        return new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
     }
 
 }

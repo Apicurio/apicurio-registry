@@ -15,22 +15,16 @@
  */
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.common.RegistryFacade;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -39,10 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -54,78 +45,84 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantReaperIT.class);
 
-    private static RegistryFacade registryFacade = RegistryFacade.getInstance();
-
     private static String groupId = "testGroup";
 
     @Test
     public void testTenantReaper() throws Exception {
-        List<RegistryTenant> tenants = new ArrayList<>(55);
+        try {
+            MultitenancySupport mt = new MultitenancySupport();
 
-        TenantManagerClient tenantManager = createTenantManagerClient();
+            List<TenantUserClient> tenants = new ArrayList<>(55);
 
-        // Create 55 tenants to force use of pagination (currently 50), and some data
-        for (int i = 0; i < 55; i++) {
-            RegistryTenant tenant = createTenant(tenantManager);
-            tenants.add(tenant);
-            RegistryClient client = createClientForTenant(tenant.getTenantId());
-            createSomeArtifact(client);
-            createSomeArtifact(client);
-            Assertions.assertEquals(2, client.listArtifactsInGroup(groupId).getCount());
-        }
+            TenantManagerClient tenantManager = mt.getTenantManagerClient();
 
-        // Mark 53 tenants for deletion
-        for (int i = 0; i < 53; i++) {
-            updateTenantStatus(tenantManager, tenants.get(i), TenantStatusValue.TO_BE_DELETED);
-        }
+            // Create 55 tenants to force use of pagination (currently 50), and some data
+            for (int i = 0; i < 55; i++) {
+                TenantUserClient tenant = mt.createTenant();
+                tenants.add(tenant);
+                createSomeArtifact(tenant.client);
+                createSomeArtifact(tenant.client);
+                Assertions.assertEquals(2, tenant.client.listArtifactsInGroup(groupId).getCount());
+            }
 
-        // Wait for the reaper
-        TestUtils.waitFor("tenant reaper", 3000, 6 * 3000, () -> {
+            // Mark 53 tenants for deletion
             for (int i = 0; i < 53; i++) {
-                if (tenantManager.getTenant(tenants.get(i).getTenantId()).getStatus() != TenantStatusValue.DELETED) {
-                    return false;
+                updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.TO_BE_DELETED);
+            }
+
+            // Wait for the reaper
+            TestUtils.waitFor("tenant reaper", 3000, 6 * 3000, () -> {
+                for (int i = 0; i < 53; i++) {
+                    if (tenantManager.getTenant(tenants.get(i).user.tenantId).getStatus() != TenantStatusValue.DELETED) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            // Ensure that the APIs are disabled
+            for (int i = 0; i < 53; i++) {
+                RegistryClient client = tenants.get(i).client;
+                try {
+                    client.listArtifactsInGroup(groupId);
+                    Assertions.fail("This request should not succeed");
+                } catch (RestClientException ex) {
+                    // OK
+                    Assertions.assertEquals(404, ex.getError().getErrorCode());
                 }
             }
-            return true;
-        });
 
-        // Ensure that the APIs are disabled
-        for (int i = 0; i < 53; i++) {
-            RegistryClient client = createClientForTenant(tenants.get(i).getTenantId());
-            try {
-                client.listArtifactsInGroup(groupId);
-                Assertions.fail("This request should not succeed");
-            } catch (RestClientException ex) {
-                // OK
-                Assertions.assertEquals(404, ex.getError().getErrorCode());
+            // To test that the data was removed, we will change the tenant status back to ready
+            // TODO Make sure this is safe to do in the future
+            for (int i = 0; i < 53; i++) {
+                updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.READY);
             }
-        }
 
-        // To test that the data was removed, we will change the tenant status back to ready
-        // TODO Make sure this is safe to do in the future
-        for (int i = 0; i < 53; i++) {
-            updateTenantStatus(tenantManager, tenants.get(i), TenantStatusValue.READY);
-        }
+            // Wait for the reaper again, because it also purges the tenant loader cache
+            TestUtils.waitFor("tenant reaper 2", 3000, 6 * 3000, () -> {
+                RegistryClient client = tenants.get(0).client;
+                try {
+                    client.listArtifactsInGroup(groupId);
+                    return true; // The API is available again
+                } catch (RestClientException ex) {
+                    return false;
+                }
+            });
 
-        // Wait for the reaper again, because it also purges the tenant loader cache
-        TestUtils.waitFor("tenant reaper 2", 3000, 6 * 3000, () -> {
-            RegistryClient client = createClientForTenant(tenants.get(0).getTenantId());
-            try {
+            // First 53 tenants should be "empty" and the last 2 should keep their content
+            for (int i = 0; i < 53; i++) {
+                RegistryClient client = tenants.get(i).client;
                 client.listArtifactsInGroup(groupId);
-                return true; // The API is available again
-            } catch (RestClientException ex) {
-                return false;
+                Assertions.assertEquals(0, client.listArtifactsInGroup(groupId).getCount());
             }
-        });
-
-        // First 53 tenants should be "empty" and the last 2 should keep their content
-        for (int i = 0; i < 53; i++) {
-            RegistryClient client = createClientForTenant(tenants.get(i).getTenantId());
-            client.listArtifactsInGroup(groupId);
-            Assertions.assertEquals(0, client.listArtifactsInGroup(groupId).getCount());
+            Assertions.assertEquals(2, tenants.get(53).client.listArtifactsInGroup(groupId).getCount());
+            Assertions.assertEquals(2, tenants.get(54).client.listArtifactsInGroup(groupId).getCount());
+        } catch (RestClientException restClientException) {
+            LOGGER.warn("Unexpected rest client exception", restClientException);
+            LOGGER.warn("Error code {} message {}", restClientException.getError().getErrorCode(), restClientException.getError().getMessage());
+            throw restClientException;
         }
-        Assertions.assertEquals(2, createClientForTenant(tenants.get(53).getTenantId()).listArtifactsInGroup(groupId).getCount());
-        Assertions.assertEquals(2, createClientForTenant(tenants.get(54).getTenantId()).listArtifactsInGroup(groupId).getCount());
+
     }
 
     private void createSomeArtifact(RegistryClient client) throws Exception {
@@ -135,33 +132,11 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
     }
 
-    private RegistryClient createClientForTenant(String tenantId) {
-        String tenantAppUrl = TestUtils.getRegistryBaseUrl() + "/t/" + tenantId;
-        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), null);
-    }
-
-    private RegistryTenant createTenant(TenantManagerClient tenantManager) throws Exception {
-        String tenantId = UUID.randomUUID().toString();
-
-        NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
-        tenantReq.setOrganizationId("foo");
-        tenantReq.setTenantId(tenantId);
-
-        tenantManager.createTenant(tenantReq);
-        TestUtils.retry(() -> Assertions.assertNotNull(tenantManager.getTenant(tenantId)));
-        return tenantManager.getTenant(tenantId);
-    }
-
-    private void updateTenantStatus(TenantManagerClient tenantManager, RegistryTenant tenant, TenantStatusValue status) throws Exception {
+    private void updateTenantStatus(TenantManagerClient tenantManager, String tenantId, TenantStatusValue status) throws Exception {
         UpdateRegistryTenantRequest request = new UpdateRegistryTenantRequest();
         request.setStatus(status);
-        tenantManager.updateTenant(tenant.getTenantId(), request);
-        TestUtils.retry(() -> Assertions.assertEquals(status, tenantManager.getTenant(tenant.getTenantId()).getStatus()));
+        tenantManager.updateTenant(tenantId, request);
+        TestUtils.retry(() -> Assertions.assertEquals(status, tenantManager.getTenant(tenantId).getStatus()));
     }
 
-    private TenantManagerClient createTenantManagerClient() {
-        var keycloak = registryFacade.getMTOnlyKeycloakMock();
-        return new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
-    }
 }

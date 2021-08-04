@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
-
 import io.smallrye.jwt.build.Jwt;
 
 /**
@@ -79,11 +78,16 @@ public class JWKSMockServer {
                                         "  ]\n" +
                                         "}")));
 
-        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token")
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
 //                .withQueryParam("grant_type", equalTo("client_credentials"))
-                .withBasicAuth(clientId, clientSecret)
+
+//                .withBasicAuth(clientId, clientSecret)
+
 //                .withRequestBody(containing(clientId))
 //                .withRequestBody(containing(clientSecret))
+                .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+                .withRequestBody(WireMock.containing("client_id=" + clientId))
+                .withRequestBody(WireMock.containing("client_secret=" + clientSecret))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\n" +

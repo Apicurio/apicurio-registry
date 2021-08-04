@@ -16,19 +16,22 @@
 
 package io.apicurio.tests.multitenancy;
 
+import io.apicurio.registry.rest.client.RegistryClient;
+
 /**
  * @author Fabian Martinez
  */
-public class TenantUser {
+public class TenantUserClient {
 
-    public final String tenantId;
-    public final String principalId;
-    public final String organizationId;
+    final TenantUser user;
+    final String tenantAppUrl;
+    final RegistryClient client;
 
-    public TenantUser(String tenantId, String principalId, String organizationId) {
-        this.tenantId = tenantId;
-        this.principalId = principalId;
-        this.organizationId = organizationId;
+    public TenantUserClient(TenantUser user, String tenantAppUrl, RegistryClient client) {
+        super();
+        this.user = user;
+        this.tenantAppUrl = tenantAppUrl;
+        this.client = client;
     }
 
 }

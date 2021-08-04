@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -30,8 +35,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -54,11 +57,8 @@ import io.quarkus.test.junit.TestProfile;
 @Tag(ApicurioTestTags.DOCKER)
 public class SimpleAuthTest extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
+    @ConfigProperty(name = "registry.auth.token.endpoint")
+    String authServerUrlConfigured;
 
     String adminClientId = "registry-api";
     String developerClientId = "registry-api-dev";
@@ -78,13 +78,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -93,7 +93,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         client.listArtifactsInGroup(groupId);
@@ -103,7 +103,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
+            Auth devAuth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -120,7 +120,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -153,7 +153,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -205,10 +205,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        Auth authDev = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
+        Auth authDev = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
         RegistryClient clientDev = createClient(authDev);
 
-        Auth authAdmin = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
         RegistryClient clientAdmin = createClient(authAdmin);
 
         // Admin user will create an artifact

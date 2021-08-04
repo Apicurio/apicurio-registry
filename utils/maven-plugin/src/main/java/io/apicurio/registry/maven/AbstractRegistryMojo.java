@@ -17,9 +17,9 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.BasicAuth;
-import io.apicurio.registry.auth.KeycloakAuth;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -49,9 +49,6 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     String authServerUrl;
 
     @Parameter
-    String realm;
-
-    @Parameter
     String clientId;
 
     @Parameter
@@ -67,8 +64,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     protected RegistryClient getClient() {
         if (client == null) {
-            if (authServerUrl != null && realm != null && clientId != null && clientSecret != null) {
-                Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
+            if (authServerUrl != null && clientId != null && clientSecret != null) {
+                Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret);
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);

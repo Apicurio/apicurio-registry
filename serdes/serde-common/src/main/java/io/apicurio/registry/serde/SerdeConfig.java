@@ -101,6 +101,11 @@ public class SerdeConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
+     * The URL of the Token Endpoint. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry and AUTH_SERVICE_URL is not specified.
+     */
+    public static final String AUTH_TOKEN_ENDPOINT = "apicurio.auth.service.token.endpoint";
+
+    /**
      * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry.
      */
     public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";

@@ -111,9 +111,7 @@
         <module>storage</module>
         <module>distro</module>
         <module>docs</module>
-        <module>rest-client/client</module>
-        <module>rest-client/client-vertx-impl</module>
-        <module>rest-client/client-common</module>
+        <module>client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
     </modules>
@@ -174,13 +172,12 @@
         <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <keycloak.version>11.0.3</keycloak.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.0.2.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.0.4.Final</apicurio-common-rest-client.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
-        
+
         <!-- Specifications -->
         <annotation-api.version>1.3.2</annotation-api.version>
         <cdi-api.version>2.0</cdi-api.version>
@@ -250,11 +247,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client-vertx</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -357,6 +349,26 @@
                 <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-auth</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-util</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-vertx</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-jdk</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
 
             <!-- Quarkus Dependencies -->
             <dependency>
@@ -432,11 +444,6 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-auth</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
             </dependency>
 
             <!-- Picocli -->

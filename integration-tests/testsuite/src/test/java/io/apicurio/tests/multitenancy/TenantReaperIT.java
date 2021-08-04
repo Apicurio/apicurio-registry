@@ -27,6 +27,7 @@ import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
@@ -49,13 +50,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * @author Jakub Senko <jsenko@redhat.com>
  */
 @Tag(Constants.MULTITENANCY)
-public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
+public class TenantReaperIT extends ApicurioRegistryBaseIT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MultitenantNoAuthIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantReaperIT.class);
 
     private static RegistryFacade registryFacade = RegistryFacade.getInstance();
-
-    private static TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl());
 
     private static String groupId = "testGroup";
 
@@ -63,9 +62,11 @@ public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
     public void testTenantReaper() throws Exception {
         List<RegistryTenant> tenants = new ArrayList<>(55);
 
+        TenantManagerClient tenantManager = createTenantManagerClient();
+
         // Create 55 tenants to force use of pagination (currently 50), and some data
         for (int i = 0; i < 55; i++) {
-            RegistryTenant tenant = createTenant();
+            RegistryTenant tenant = createTenant(tenantManager);
             tenants.add(tenant);
             RegistryClient client = createClientForTenant(tenant.getTenantId());
             createSomeArtifact(client);
@@ -75,7 +76,7 @@ public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
 
         // Mark 53 tenants for deletion
         for (int i = 0; i < 53; i++) {
-            updateTenantStatus(tenants.get(i), TenantStatusValue.TO_BE_DELETED);
+            updateTenantStatus(tenantManager, tenants.get(i), TenantStatusValue.TO_BE_DELETED);
         }
 
         // Wait for the reaper
@@ -103,7 +104,7 @@ public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
         // To test that the data was removed, we will change the tenant status back to ready
         // TODO Make sure this is safe to do in the future
         for (int i = 0; i < 53; i++) {
-            updateTenantStatus(tenants.get(i), TenantStatusValue.READY);
+            updateTenantStatus(tenantManager, tenants.get(i), TenantStatusValue.READY);
         }
 
         // Wait for the reaper again, because it also purges the tenant loader cache
@@ -139,7 +140,7 @@ public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
         return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), null);
     }
 
-    private RegistryTenant createTenant() throws Exception {
+    private RegistryTenant createTenant(TenantManagerClient tenantManager) throws Exception {
         String tenantId = UUID.randomUUID().toString();
 
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
@@ -151,10 +152,16 @@ public class MultitenantNoAuthIT extends ApicurioRegistryBaseIT {
         return tenantManager.getTenant(tenantId);
     }
 
-    private void updateTenantStatus(RegistryTenant tenant, TenantStatusValue status) throws Exception {
+    private void updateTenantStatus(TenantManagerClient tenantManager, RegistryTenant tenant, TenantStatusValue status) throws Exception {
         UpdateRegistryTenantRequest request = new UpdateRegistryTenantRequest();
         request.setStatus(status);
         tenantManager.updateTenant(tenant.getTenantId(), request);
         TestUtils.retry(() -> Assertions.assertEquals(status, tenantManager.getTenant(tenant.getTenantId()).getStatus()));
+    }
+
+    private TenantManagerClient createTenantManagerClient() {
+        var keycloak = registryFacade.getMTOnlyKeycloakMock();
+        return new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
+                new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
     }
 }

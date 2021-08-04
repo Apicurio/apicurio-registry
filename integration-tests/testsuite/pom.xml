@@ -58,6 +58,11 @@
 
         </dependency>
 
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-rest-client-vertx</artifactId>
+        </dependency>
+
         <!-- Third Party Libraries -->
         <dependency>
             <groupId>io.apicurio</groupId>

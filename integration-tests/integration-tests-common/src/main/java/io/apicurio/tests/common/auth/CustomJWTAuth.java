@@ -18,7 +18,7 @@ package io.apicurio.tests.common.auth;
 
 import java.util.Map;
 
-import io.apicurio.registry.auth.Auth;
+import io.apicurio.rest.client.auth.Auth;
 import io.smallrye.jwt.build.Jwt;
 
 /**

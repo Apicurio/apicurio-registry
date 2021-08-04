@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -42,6 +41,7 @@ import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
@@ -165,8 +165,9 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         //TODO add limits for more resources
 
         var keycloak = registryFacade.getMTOnlyKeycloakMock();
-        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(),
-                new Auth(keycloak.authServerUrl, keycloak.realm, keycloak.clientId, keycloak.clientSecret));
+
+        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
+                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
 
         tenantManager.createTenant(tenantReq);
 

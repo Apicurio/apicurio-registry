@@ -44,6 +44,8 @@ public class JWKSMockServer {
 
     public String authServerUrl;
     public String realm = "test";
+    public String tokenEndpoint;
+
     public String clientId = UUID.randomUUID().toString();
     public String clientSecret = UUID.randomUUID().toString();
 
@@ -93,6 +95,7 @@ public class JWKSMockServer {
 
         this.authServerUrl = server.baseUrl() + "/auth";
         LOGGER.info("Keycloak started in mock mode: {}", authServerUrl);
+        this.tokenEndpoint = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
     }
 
 

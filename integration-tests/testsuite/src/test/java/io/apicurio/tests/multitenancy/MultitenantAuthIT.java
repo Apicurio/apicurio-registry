@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -47,6 +46,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
@@ -159,7 +160,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         Assertions.assertThrows(ForbiddenException.class, () -> createUserClient(user1, tenant2Url).listArtifactsInGroup(null));
 
         //test invalid jwt
-        var invalidClient = RegistryClientFactory.create(tenant1Url, Collections.emptyMap(), new io.apicurio.registry.auth.Auth() {
+        var invalidClient = RegistryClientFactory.create(tenant1Url, Collections.emptyMap(), new Auth() {
             @Override
             public void apply(Map<String, String> requestHeaders) {
                 var builder = Jwt.preferredUserName("foo")
@@ -295,8 +296,8 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
 
     private TenantManagerClient createTenantManagerClient() {
         var keycloak = registryFacade.getMTOnlyKeycloakMock();
-        return new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(),
-                new Auth(keycloak.authServerUrl, keycloak.realm, keycloak.clientId, keycloak.clientSecret));
+        return new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
+                new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
     }
 
 }

@@ -124,7 +124,7 @@ public class TenantReaper {
                     log.debug("Deleting tenant '{}' data", tenantId);
                     tcl.invalidateTenantInCache(tenantId);
                     // TODO Refactor, document and improve context handling.
-                    tctx.setContext(tcl.loadContext(tenantId));
+                    tctx.setContext(tcl.loadBatchJobContext(tenantId));
                     // Safety check
                     if (tenant.getStatus() != TenantStatusValue.TO_BE_DELETED || !tenantId.equals(tctx.tenantId())) {
                         log.debug("Safety: tenant.getStatus() = {}, tenantId = {}, ctx.tenantId() = {}",

@@ -140,7 +140,7 @@ public class KafkaSqlSink {
 
         String tenantId = key.getTenantId();
         if (tenantId != null) {
-            RegistryTenantContext tctx = tcl.loadContext(tenantId);
+            RegistryTenantContext tctx = tcl.loadBatchJobContext(tenantId);
             tenantContext.setContext(tctx);
         }
         try {

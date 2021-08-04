@@ -75,13 +75,43 @@ public class TenantContextLoader {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
-    public RegistryTenantContext loadContext(String tenantId) {
+    /**
+     * Used for user requests where there is a JWT token in the request
+     * This method enforces authorization and uses JWT token information to verify if the tenant
+     * is authorized to access the organization indicated in the JWT
+     * @param tenantId
+     * @return
+     */
+    public RegistryTenantContext loadRequestContext(String tenantId) {
+        return loadContext(tenantId, true);
+    }
+
+    /**
+     * Used for internal stuff where there isn't a JWT token from the user request available
+     * This won't perform any authorization check.
+     * @param tenantId
+     * @return
+     */
+    public RegistryTenantContext loadBatchJobContext(String tenantId) {
+        return loadContext(tenantId, false);
+    }
+
+    /**
+     * Loads the tenant context from the cache or computes it
+     *
+     * @param tenantId
+     * @param checkTenantAuthorization , enable/disable authorization check using information from a required JWT token
+     * @return
+     */
+    private RegistryTenantContext loadContext(String tenantId, boolean checkTenantAuthorization) {
         if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
-            checkTenantAuthorization(tenantMetadata);
+            if (checkTenantAuthorization) {
+                checkTenantAuthorization(tenantMetadata);
+            }
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
             return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus());
         });

@@ -16,20 +16,21 @@
 
 package io.apicurio.multitenant;
 
-import io.apicurio.multitenant.client.Auth;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.keycloak.authorization.client.util.HttpResponseException;
 
 import javax.enterprise.inject.Typed;
+import java.util.Collections;
 
 
 @QuarkusTest
@@ -38,28 +39,25 @@ import javax.enterprise.inject.Typed;
 @Typed(TenantManagerClientAuthTest.class)
 public class TenantManagerClientAuthTest extends TenantManagerClientTest {
 
-    @ConfigProperty(name = "tenant-manager.keycloak.url")
+    @ConfigProperty(name = "tenant-manager.keycloak.url.configured")
     String authServerUrl;
-
-    @ConfigProperty(name = "tenant-manager.keycloak.realm")
-    String realm;
 
     String clientId = "registry-api";
 
-    private TenantManagerClient createClient(Auth auth) {
-        return new TenantManagerClientImpl("http://localhost:8081/", auth);
+    private TenantManagerClient createClient(OidcAuth auth) {
+        return new TenantManagerClientImpl("http://localhost:8081/", Collections.emptyMap(), auth);
     }
 
     @Override
     protected TenantManagerClient createRestClient() {
-        Auth auth = new Auth(authServerUrl, realm, clientId, "test1");
+        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new Auth(authServerUrl, realm, clientId, "wrongsecret");
+        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "wrongsecret");
         TenantManagerClient client = createClient(auth);
-        Assertions.assertThrows(HttpResponseException.class, client::listTenants);
+        Assertions.assertThrows(NotAuthorizedException.class, client::listTenants);
     }
 }

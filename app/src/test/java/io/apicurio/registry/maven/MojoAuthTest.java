@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -39,11 +39,8 @@ import java.util.Collections;
 @Tag(ApicurioTestTags.DOCKER)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
+    @ConfigProperty(name = "registry.auth.token.endpoint")
+    String authServerUrlConfigured;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
     Boolean authEnabled;
@@ -65,7 +62,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
         return this.createClient(auth);
     }
 
@@ -75,8 +72,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.authServerUrl = authServerUrl;
-        registerRegistryMojo.realm = realm;
+        registerRegistryMojo.authServerUrl = authServerUrlConfigured;
         registerRegistryMojo.clientId = adminClientId;
         registerRegistryMojo.clientSecret = clientSecret;
 

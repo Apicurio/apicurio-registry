@@ -16,30 +16,16 @@
 
 package io.apicurio.multitenant.client.exception;
 
+import io.apicurio.rest.client.error.ApicurioRestClientException;
+
 /**
  * @author Fabian Martinez
  */
-public class RegistryTenantNotFoundException extends RuntimeException {
+public class RegistryTenantNotFoundException extends ApicurioRestClientException {
 
     private static final long serialVersionUID = 1L;
 
-    public RegistryTenantNotFoundException() {
-        super();
-    }
-
-    public RegistryTenantNotFoundException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public RegistryTenantNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     public RegistryTenantNotFoundException(String message) {
         super(message);
-    }
-
-    public RegistryTenantNotFoundException(Throwable cause) {
-        super(cause);
     }
 }

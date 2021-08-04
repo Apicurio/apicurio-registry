@@ -55,12 +55,8 @@ public class MultitenancyProperties {
     Optional<String> tenantManagerUrl;
 
     @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.url")
+    @ConfigProperty(name = "registry.tenant.manager.auth.url.configured")
     Optional<String> tenantManagerAuthUrl;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.realm")
-    Optional<String> tenantManagerAuthRealm;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.client-id")
@@ -112,13 +108,6 @@ public class MultitenancyProperties {
      */
     public Optional<String> getTenantManagerAuthUrl() {
         return tenantManagerAuthUrl;
-    }
-
-    /**
-     * @return the tenant manager auth realm
-     */
-    public Optional<String> getTenantManagerAuthRealm() {
-        return tenantManagerAuthRealm;
     }
 
     /**

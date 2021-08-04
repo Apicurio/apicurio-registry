@@ -22,17 +22,17 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.UUID;
 
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
@@ -58,7 +58,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testWrongCreds() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new KeycloakAuth(authServerInfo.getAuthServerUrl(), authServerInfo.getRealm(), authServerInfo.getReadOnlyClientId(), UUID.randomUUID().toString());
+        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getReadOnlyClientId(), UUID.randomUUID().toString());
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup("foo");
@@ -68,7 +68,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testReadOnly() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new KeycloakAuth(authServerInfo.getAuthServerUrl(), authServerInfo.getRealm(), authServerInfo.getReadOnlyClientId(), authServerInfo.getReadOnlyClientSecret());
+        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getReadOnlyClientId(), authServerInfo.getReadOnlyClientSecret());
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();
@@ -80,7 +80,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new KeycloakAuth(authServerInfo.getAuthServerUrl(), authServerInfo.getRealm(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
+            Auth devAuth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -91,7 +91,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDevRole() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth devAuth = new KeycloakAuth(authServerInfo.getAuthServerUrl(), authServerInfo.getRealm(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
+        Auth devAuth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
         RegistryClient client = createClient(devAuth);
 
         String groupId = TestUtils.generateGroupId();
@@ -120,7 +120,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testAdminRole() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new KeycloakAuth(authServerInfo.getAuthServerUrl(), authServerInfo.getRealm(), authServerInfo.getAdminClientId(), authServerInfo.getAdminClientSecret());
+        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getAdminClientId(), authServerInfo.getAdminClientSecret());
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();

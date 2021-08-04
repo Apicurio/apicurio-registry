@@ -18,8 +18,8 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.VertxHttpClientProvider;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
+import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;

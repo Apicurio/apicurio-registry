@@ -32,7 +32,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
@@ -45,11 +44,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
-    @ConfigProperty(name = "registry.keycloak.url")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String authRealm;
 
     @ConfigProperty(name = "registry.auth.client-secret")
     Optional<String> clientSecret;
@@ -60,14 +56,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
-    private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();
-
-    private String authServerUrlWithRealm;
-
-    @PostConstruct
-    public void init() {
-        this.authServerUrlWithRealm = authServerUrl + "/realms/" + authRealm;
-    }
+    private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
@@ -78,7 +67,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             } else {
                 final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
                 if (credentialsFromContext != null) {
-                    String jwtToken = new OidcAuth(authServerUrlWithRealm, clientId, clientSecret.get()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                    String jwtToken = new OidcAuth(authServerUrl, clientId, clientSecret.get()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
 
                     if (jwtToken != null) {
                         //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager

@@ -13,18 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.client.exception;
 
+package io.apicurio.registry.rest.client.exception;
+
+
+import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.rest.client.error.ApicurioRestClientException;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal 'carles.arnal@redhat.com'
  */
-public class TenantManagerClientException extends ApicurioRestClientException {
+public class RestClientException extends ApicurioRestClientException {
 
     private static final long serialVersionUID = 1L;
 
-    public TenantManagerClientException(String message) {
-        super(message);
+    private final Error error;
+
+    public RestClientException(Error error) {
+        super(error.getMessage());
+        this.error = error;
+    }
+
+    public Error getError() {
+        return error;
     }
 }

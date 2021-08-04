@@ -23,10 +23,10 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;

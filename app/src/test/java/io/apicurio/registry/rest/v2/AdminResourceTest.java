@@ -447,10 +447,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-
-            String actualLevel = Logger.getLogger(testLoggerName).getLevel().getName();
-            assertEquals(level.value(), actualLevel,
-                    "Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "' it was '" + actualLevel + "', even though the server reported it was.");
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
@@ -491,25 +487,31 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         System.out.println("Going to test log level change from " + defaultLogLevel + " to " + firstLevel.name() + " and then to " + secondLevel.name());
 
         setLog.accept(firstLevel);
-        verifyLogLevel(testLoggerName, firstLevel);
-        verifyLevel.accept(firstLevel);
+        TestUtils.retry(() -> {
+            verifyLogLevel(testLoggerName, firstLevel);
+            verifyLevel.accept(firstLevel);
+        });
 
         setLog.accept(secondLevel);
-        verifyLogLevel(testLoggerName, secondLevel);
-        verifyLevel.accept(secondLevel);
+        TestUtils.retry(() -> {
+            verifyLogLevel(testLoggerName, secondLevel);
+            verifyLevel.accept(secondLevel);
+        });
 
         clearLogConfig(testLoggerName);
 
-        Response res = given()
-            .when()
-                .pathParam("logger", testLoggerName)
-                .get("/registry/v2/admin/loggers/{logger}")
-            .thenReturn();
+        TestUtils.retry(() -> {
+            Response res = given()
+                    .when()
+                        .pathParam("logger", testLoggerName)
+                        .get("/registry/v2/admin/loggers/{logger}")
+                    .thenReturn();
 
-        assertEquals(200, res.statusCode());
-        NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
+                assertEquals(200, res.statusCode());
+                NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
 
-        assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
+                assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
+        });
     }
 
     @Test

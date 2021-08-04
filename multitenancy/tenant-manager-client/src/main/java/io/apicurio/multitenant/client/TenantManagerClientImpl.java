@@ -78,7 +78,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
             baseUrl += "/";
         }
         final String endpoint = baseUrl;
-        this.mapper = new ObjectMapper();
+        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.client = new VertxHttpClient(vertx, endpoint, configs, auth, new AuthErrorHandler());
     }
 

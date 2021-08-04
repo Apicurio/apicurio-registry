@@ -91,9 +91,14 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public SchemaInfo getSchemaById(int globalId) throws ArtifactNotFoundException, RegistryStorageException {
-        final ContentHandle contentHandle = storage.getArtifactByContentId(globalId);
-        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.discoverType(contentHandle, null));
+    public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
+        final ContentHandle contentHandle = storage.getArtifactByContentId(contentId);
+        List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
+        if (artifacts == null || artifacts.isEmpty()) {
+            //the contentId points to an orphaned content
+            throw new ArtifactNotFoundException("ContentId: " + contentId);
+        }
+        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null));
     }
 
     @Override

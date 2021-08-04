@@ -72,7 +72,7 @@ public class TenantIdResolver {
                 // 1 is t
                 // 2 is the tenantId
                 String tenantId = tokens[TENANT_ID_POSITION];
-                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
                 tenantContext.setContext(context);
                 if (afterSuccessfullUrlResolution != null) {
                     afterSuccessfullUrlResolution.accept(tenantId);
@@ -82,7 +82,7 @@ public class TenantIdResolver {
 
             String tenantId = tenantIdHeaderProvider.get();
             if (tenantId != null) {
-                RegistryTenantContext context = contextLoader.loadContext(tenantId);
+                RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
                 tenantContext.setContext(context);
                 return true;
             }

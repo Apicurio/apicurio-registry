@@ -75,13 +75,23 @@ public class TenantContextLoader {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
-    public RegistryTenantContext loadContext(String tenantId) {
+    public RegistryTenantContext loadRequestContext(String tenantId) {
+        return loadContext(tenantId, true);
+    }
+
+    public RegistryTenantContext loadBatchJobContext(String tenantId) {
+        return loadContext(tenantId, false);
+    }
+
+    private RegistryTenantContext loadContext(String tenantId, boolean checkTenantAuthorization) {
         if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
-            checkTenantAuthorization(tenantMetadata);
+            if (checkTenantAuthorization) {
+                checkTenantAuthorization(tenantMetadata);
+            }
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
             return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus());
         });

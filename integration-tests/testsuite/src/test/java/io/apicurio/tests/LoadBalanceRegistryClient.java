@@ -209,8 +209,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        return ensureClusterSync(client -> client.listArtifactRules(groupId, artifactId));
-//        return getTarget().listArtifactRules(groupId, artifactId);
+        return getTarget().listArtifactRules(groupId, artifactId);
     }
 
     /**

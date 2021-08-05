@@ -17,13 +17,19 @@
 package io.apicurio.tests;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -41,11 +47,14 @@ import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 
 /**
  * @author Fabian Martinez
  */
 public class LoadBalanceRegistryClient implements RegistryClient {
+
+    protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private LinkedList<RegistryClientHolder> targets;
 
@@ -75,8 +84,38 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     private synchronized RegistryClient getTarget() {
         int randomElementIndex = ThreadLocalRandom.current().nextInt(this.targets.size());
         RegistryClientHolder t = this.targets.get(randomElementIndex);
-        System.out.println("Request to " + t.host);
+        logger.trace("Request to {}", t.host);
         return t.client;
+    }
+
+    private <T> T ensureClusterSync(Function<RegistryClient, T> query){
+
+        try {
+            return TestUtils.retry(() -> {
+                List<T> results = new ArrayList<>();
+                for (RegistryClientHolder target : targets) {
+                    results.add(query.apply(getTarget()));
+                }
+
+                boolean sync = true;
+                T first = results.get(0);
+                for(int i = 1; i < 5 && sync; i++) {
+                    if (!results.get(i).equals(first)) {
+                        sync = false;
+                    }
+                }
+                if (!sync) {
+                    throw new IllegalStateException("Cluster is not synced");
+                }
+
+                return first;
+            });
+        } catch (RestClientException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     /**
@@ -120,7 +159,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-        return getTarget().getArtifactMetaData(groupId, artifactId);
+        return ensureClusterSync(client -> client.getArtifactMetaData(groupId, artifactId));
+//        return getTarget().getArtifactMetaData(groupId, artifactId);
     }
 
     /**
@@ -169,7 +209,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        return getTarget().listArtifactRules(groupId, artifactId);
+        return ensureClusterSync(client -> client.listArtifactRules(groupId, artifactId));
+//        return getTarget().listArtifactRules(groupId, artifactId);
     }
 
     /**
@@ -202,7 +243,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
-        return getTarget().getArtifactRuleConfig(groupId, artifactId, rule);
+        return ensureClusterSync(client -> client.getArtifactRuleConfig(groupId, artifactId, rule));
+//        return getTarget().getArtifactRuleConfig(groupId, artifactId, rule);
     }
 
     /**
@@ -272,7 +314,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        return getTarget().getArtifactVersionMetaData(groupId, artifactId, version);
+        return ensureClusterSync(client -> client.getArtifactVersionMetaData(groupId, artifactId, version));
+//        return getTarget().getArtifactVersionMetaData(groupId, artifactId, version);
     }
 
     /**

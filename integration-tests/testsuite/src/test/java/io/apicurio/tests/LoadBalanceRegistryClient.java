@@ -94,12 +94,12 @@ public class LoadBalanceRegistryClient implements RegistryClient {
             return TestUtils.retry(() -> {
                 List<T> results = new ArrayList<>();
                 for (RegistryClientHolder target : targets) {
-                    results.add(query.apply(getTarget()));
+                    results.add(query.apply(target.client));
                 }
 
                 boolean sync = true;
                 T first = results.get(0);
-                for(int i = 1; i < 5 && sync; i++) {
+                for(int i = 1; i < results.size() && sync; i++) {
                     if (!results.get(i).equals(first)) {
                         sync = false;
                     }

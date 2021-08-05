@@ -58,6 +58,11 @@
 
         </dependency>
 
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-rest-client-vertx</artifactId>
+        </dependency>
+
         <!-- Third Party Libraries -->
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -196,6 +201,7 @@
                         <project.version>${project.version}</project.version>
                         <test.storage>${test.storage}</test.storage>
                         <groups>${groups}</groups>
+                        <smallrye.jwt.sign.key.location>privateKey.jwk</smallrye.jwt.sign.key.location>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

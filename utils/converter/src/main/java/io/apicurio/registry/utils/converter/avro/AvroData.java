@@ -1488,7 +1488,7 @@ public class AvroData {
                     throw new DataException("Unknown Connect schema type: " + schema.type());
             }
 
-            if (schema.name() != null && doLogicalConversion) {
+            if (schema != null && schema.name() != null && doLogicalConversion) {
                 LogicalTypeConverter logicalConverter = TO_CONNECT_LOGICAL_CONVERTERS.get(schema.name());
                 if (logicalConverter != null) {
                     converted = logicalConverter.convert(schema, converted);

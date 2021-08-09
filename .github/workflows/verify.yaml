@@ -119,7 +119,7 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run UI tests - only PRs
+      - name: Run UI tests
         run: ./mvnw verify -Pintegration-tests -Pui -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
       - name: Run Legacy Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true

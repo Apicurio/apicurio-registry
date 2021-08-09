@@ -1103,4 +1103,24 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         latch.await();
     }
+
+    @Test
+    public void testForceArtifactType() throws Exception {
+        var artifactContent = resourceToInputStream("sample.wsdl");
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactContent);
+
+        this.waitForArtifact(groupId, artifactId);
+
+        var meta = clientV2.getArtifactMetaData(groupId, artifactId);
+
+        assertEquals(ArtifactType.AVRO, meta.getType());
+
+        assertNotNull(clientV2.getLatestArtifact(groupId, artifactId));
+
+    }
+
 }

@@ -44,7 +44,7 @@ public class KeycloakTestResourceWithLocalRoles implements QuarkusTestResourceLi
         props.put("registry.keycloak.url", container.getAuthServerUrl());
         props.put("registry.keycloak.realm", "registry");
         props.put("registry.auth.enabled", "true");
-        props.put("quarkus.oidc.client-secret", "test1");
+
         props.put("registry.auth.role-based-authorization", "true");
         props.put("registry.auth.role-source", "application");
 

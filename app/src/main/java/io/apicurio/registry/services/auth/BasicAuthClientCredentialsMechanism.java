@@ -32,7 +32,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
@@ -54,18 +53,8 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
     boolean fakeBasicAuthEnabled;
 
-    @ConfigProperty(name = "registry.keycloak.url")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String authRealm;
-
-    private String authServerUrlWithRealm;
-
-    @PostConstruct
-    public void init() {
-        this.authServerUrlWithRealm = authServerUrl + "/realms/" + authRealm;
-    }
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
@@ -106,7 +95,7 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        final String jwtToken = new OidcAuth(authServerUrlWithRealm, clientCredentials.getLeft(), clientCredentials.getRight()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        final String jwtToken = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

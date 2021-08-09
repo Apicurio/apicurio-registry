@@ -30,6 +30,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;
@@ -42,7 +43,6 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.client.exception.TenantNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;

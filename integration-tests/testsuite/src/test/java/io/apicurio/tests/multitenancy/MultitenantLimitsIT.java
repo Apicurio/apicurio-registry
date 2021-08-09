@@ -41,9 +41,11 @@ import io.apicurio.registry.rest.client.exception.LimitExceededException;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
+import io.apicurio.tests.common.auth.CustomJWTAuth;
 
 /**
  * @author Fabian Martinez
@@ -104,9 +106,13 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
     }
 
     private RegistryClient createTenant() {
+
+        String username = UUID.randomUUID().toString();
+
         NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
         tenantReq.setOrganizationId(UUID.randomUUID().toString());
         tenantReq.setTenantId(UUID.randomUUID().toString());
+        tenantReq.setCreatedBy(username);
 
 //        props.put("registry.limits.config.max-total-schemas", "2");
 //        props.put("registry.limits.config.max-artifact-properties", "2");
@@ -158,12 +164,16 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
         //TODO add limits for more resources
 
-        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl());
+        var keycloak = registryFacade.getMTOnlyKeycloakMock();
+
+        TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
+                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
+
         tenantManager.createTenant(tenantReq);
 
         String tenantAppUrl = TestUtils.getRegistryBaseUrl() + "/t/" + tenantReq.getTenantId();
 
-        return RegistryClientFactory.create(tenantAppUrl + "/apis/registry/v2", Collections.emptyMap(), null);
+        return RegistryClientFactory.create(tenantAppUrl + "/apis/registry/v2", Collections.emptyMap(), new CustomJWTAuth(username, tenantReq.getOrganizationId()));
     }
 
 }

@@ -32,6 +32,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
     public static ConfigDef configDef() {
         ConfigDef configDef = new ConfigDef()
                 .define(REGISTRY_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
+                .define(AUTH_TOKEN_ENDPOINT, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_SERVICE_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_REALM, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_CLIENT_ID, Type.STRING, null, Importance.HIGH, "TODO docs")
@@ -60,6 +61,10 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
     public String getRegistryUrl() {
         return this.getString(REGISTRY_URL);
+    }
+
+    public String getTokenEndpoint() {
+        return this.getString(AUTH_TOKEN_ENDPOINT);
     }
 
     public String getAuthServiceUrl() {

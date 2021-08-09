@@ -49,6 +49,7 @@ import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.auth.JWKSMockServer;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -63,6 +64,7 @@ public class RegistryFacade {
     private LinkedList<RegistryTestProcess> processes = new LinkedList<>();
 
     private KeycloakContainer keycloakContainer;
+    private JWKSMockServer keycloakMock;
 
     private String tenantManagerUrl = "http://localhost:8585";
 
@@ -154,6 +156,10 @@ public class RegistryFacade {
         return Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port, "http://localhost:" + c3port);
     }
 
+    public JWKSMockServer getMTOnlyKeycloakMock() {
+        return this.keycloakMock;
+    }
+
     public boolean isRunning() {
         return !processes.isEmpty();
     }
@@ -177,7 +183,7 @@ public class RegistryFacade {
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("LOG_LEVEL", "DEBUG");
-        appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "TRACE");
 
         if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
             Map<String, String> registry1Env = new HashMap<>(appEnv);
@@ -210,8 +216,10 @@ public class RegistryFacade {
                     appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
                     appEnv.put("REGISTRY_MULTITENANCY_REAPER_EVERY", "3s");
                     appEnv.put("REGISTRY_MULTITENANCY_REAPER_PERIOD_SECONDS", "5");
-                    //TODO when auth is enabled in staging run tests with auth enabled
-//                    runKeycloak(appEnv);
+
+                    //auth is always enabled in multitenancy tests
+                    runKeycloakMock(appEnv);
+
                     runTenantManager(appEnv);
                 } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
                     runKeycloak(appEnv);
@@ -296,6 +304,13 @@ public class RegistryFacade {
         appEnv.put("DATASOURCE_USERNAME", registryAppEnv.get("REGISTRY_DATASOURCE_USERNAME"));
         appEnv.put("DATASOURCE_PASSWORD", registryAppEnv.get("REGISTRY_DATASOURCE_PASSWORD"));
 
+        //auth is always enabled in multitenancy tests
+        appEnv.put("AUTH_ENABLED", "true");
+        appEnv.put("KEYCLOAK_URL", registryAppEnv.get("KEYCLOAK_URL"));
+        appEnv.put("KEYCLOAK_REALM", registryAppEnv.get("KEYCLOAK_REALM"));
+        appEnv.put("KEYCLOAK_API_CLIENT_ID", registryAppEnv.get("KEYCLOAK_API_CLIENT_ID"));
+        appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
+
         appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
         appEnv.put("LOG_LEVEL", "DEBUG");
 
@@ -368,6 +383,54 @@ public class RegistryFacade {
         });
     }
 
+    private void runKeycloakMock(Map<String, String> appEnv) throws Exception {
+        keycloakMock = new JWKSMockServer();
+        keycloakMock.start();
+
+        appEnv.put("AUTH_ENABLED", "true");
+        appEnv.put("ROLE_BASED_AUTHZ_ENABLED", "true");
+        appEnv.put("ROLE_BASED_AUTHZ_SOURCE", "application");
+
+        appEnv.put("KEYCLOAK_URL", keycloakMock.authServerUrl);
+        appEnv.put("KEYCLOAK_REALM", keycloakMock.realm);
+        appEnv.put("KEYCLOAK_API_CLIENT_ID", keycloakMock.clientId);
+        appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
+
+        appEnv.put("TENANT_MANAGER_AUTH_URL", keycloakMock.authServerUrl);
+        appEnv.put("TENANT_MANAGER_REALM", keycloakMock.realm);
+        appEnv.put("TENANT_MANAGER_CLIENT_ID", keycloakMock.clientId);
+        appEnv.put("TENANT_MANAGER_CLIENT_SECRET", keycloakMock.clientSecret);
+
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return "keycloak-mock";
+            }
+
+            @Override
+            public void close() throws Exception {
+                keycloakMock.stop();
+            }
+
+            @Override
+            public String getStdOut() {
+                return "";
+            }
+
+            @Override
+            public String getStdErr() {
+                return "";
+            }
+
+            @Override
+            public boolean isContainer() {
+                return false;
+            }
+
+        });
+    }
+
     private void runKeycloak(Map<String, String> appEnv) throws Exception {
 
         keycloakContainer = new KeycloakContainer()
@@ -383,7 +446,6 @@ public class RegistryFacade {
         appEnv.put("KEYCLOAK_REALM", "registry");
         appEnv.put("KEYCLOAK_API_CLIENT_ID", "registry-api");
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
-        appEnv.put("ROLES_ENABLED", "true");
 
 
         processes.add(new RegistryTestProcess() {

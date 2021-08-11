@@ -125,7 +125,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <tar.long.file.mode>gnu</tar.long.file.mode>
+        <tar.long.file.mode>posix</tar.long.file.mode>
         
         <!-- UI Build Tools -->
         <node.version>12.13.0</node.version>
@@ -141,6 +141,9 @@
         <avro.version>1.10.2</avro.version>
         <json-schema-validator.version>1.0.57</json-schema-validator.version>
         <wire-schema.version>3.7.0</wire-schema.version>
+        <wire-compiler.version>3.7.0</wire-compiler.version>
+        <jimfs.version>1.1</jimfs.version>
+        <icu4j.version>69.1</icu4j.version>
         <protobuf.version>3.17.3</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -409,6 +412,21 @@
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-schema</artifactId>
                 <version>${wire-schema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-compiler</artifactId>
+                <version>${wire-compiler.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.jimfs</groupId>
+                <artifactId>jimfs</artifactId>
+                <version>${jimfs.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ibm.icu</groupId>
+                <artifactId>icu4j</artifactId>
+                <version>${icu4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>

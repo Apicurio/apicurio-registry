@@ -27,13 +27,11 @@
         <dependency>
             <groupId>com.squareup.wire</groupId>
             <artifactId>wire-compiler</artifactId>
-            <version>3.7.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
         <dependency>
             <groupId>com.google.jimfs</groupId>
             <artifactId>jimfs</artifactId>
-            <version>1.1</version>
         </dependency>
 
         <dependency>

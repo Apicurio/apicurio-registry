@@ -54,7 +54,7 @@ public class FileDescriptorUtilsTest {
         DescriptorProtos.FileDescriptorProto fileDescriptorProto = fileDescriptor.toProto();
         String actualSchema = FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptorProto).toSchema();
 
-        String fileName = fileDescriptor.toProto().getName();
+        String fileName = fileDescriptorProto.getName();
         String expectedSchema = ProtobufTestCaseReader.getRawSchema(fileName);
 
         //Convert to Proto and compare

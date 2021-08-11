@@ -84,7 +84,7 @@ public class FileDescriptorUtils {
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)
         throws DescriptorValidationException {
-        return protoFileToFileDescriptor(element, "default");
+        return protoFileToFileDescriptor(element, "default.proto");
     }
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element, String protoFileName) throws DescriptorValidationException {

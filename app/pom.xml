@@ -166,7 +166,7 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
         </dependency>
-        
+
         <!-- GraphQL -->
         <dependency>
             <groupId>com.graphql-java</groupId>
@@ -434,7 +434,7 @@
                 </plugins>
             </build>
         </profile>
-        
+
         <profile>
             <id>native</id>
             <activation>
@@ -468,6 +468,6 @@
                 <quarkus.package.type>native</quarkus.package.type>
             </properties>
         </profile>
-        
+
     </profiles>
 </project>

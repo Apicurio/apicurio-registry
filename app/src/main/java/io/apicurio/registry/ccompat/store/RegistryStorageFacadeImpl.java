@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.store;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -66,6 +67,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Inject
     RulesService rulesService;
+
+    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     @Override
     public List<String> getSubjects() {
@@ -205,7 +208,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
      * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
      */
     private ContentHandle removeQuotedBrackets(String content) {
-        return ContentHandle.create(content.replace("\"{}\"", "{}"));
+        return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
     private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {

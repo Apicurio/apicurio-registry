@@ -49,6 +49,7 @@ import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.ProtoType;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
+import com.squareup.wire.schema.internal.parser.ExtensionsElement;
 import com.squareup.wire.schema.internal.parser.FieldElement;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.OneOfElement;
@@ -247,13 +248,13 @@ public class FileDescriptorUtils {
                     int tag = (Integer) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange.newBuilder()
                             .setStart(tag)
-                            .setEnd(tag);
+                            .setEnd(tag + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
                 } else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange.newBuilder()
                             .setStart(range.getStart())
-                            .setEnd(range.getEndInclusive());
+                            .setEnd(range.getEndInclusive() + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
                 } else {
                     throw new IllegalStateException(
@@ -261,6 +262,27 @@ public class FileDescriptorUtils {
                 }
             }
         }
+        for (ExtensionsElement extensions : messageElem.getExtensions()) {
+            for (Object elem : extensions.getValues()) {
+                if (elem instanceof Integer) {
+                    int tag = (Integer) elem;
+                    DescriptorProto.ExtensionRange.Builder extensionBuilder = DescriptorProto.ExtensionRange.newBuilder()
+                            .setStart(tag)
+                            .setEnd(tag + 1);
+                    message.protoBuilder().addExtensionRange(extensionBuilder.build());
+                } else if (elem instanceof IntRange) {
+                    IntRange range = (IntRange) elem;
+                    DescriptorProto.ExtensionRange.Builder extensionBuilder = DescriptorProto.ExtensionRange.newBuilder()
+                            .setStart(range.getStart())
+                            .setEnd(range.getEndInclusive() + 1);
+                    message.protoBuilder().addExtensionRange(extensionBuilder.build());
+                } else {
+                    throw new IllegalStateException(
+                            "Unsupported extension type: " + elem.getClass().getName());
+                }
+            }
+        }
+
         Boolean isMapEntry = findOptionBoolean(MAP_ENTRY_OPTION, messageElem.getOptions());
         if (isMapEntry != null) {
             DescriptorProtos.MessageOptions.Builder optionsBuilder = DescriptorProtos.MessageOptions.newBuilder()
@@ -372,6 +394,7 @@ public class FileDescriptorUtils {
         ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
         ImmutableList.Builder<TypeElement> nested = ImmutableList.builder();
         ImmutableList.Builder<ReservedElement> reserved = ImmutableList.builder();
+        ImmutableList.Builder<ExtensionsElement> extensions = ImmutableList.builder();
         LinkedHashMap<String, ImmutableList.Builder<FieldElement>> oneofsMap = new LinkedHashMap<>();
         for (OneofDescriptorProto od : descriptor.getOneofDeclList()) {
             oneofsMap.put(od.getName(), ImmutableList.builder());
@@ -400,6 +423,22 @@ public class FileDescriptorUtils {
                     Collections.singletonList(reservedName));
             reserved.add(reservedElem);
         }
+        for (DescriptorProto.ReservedRange reservedRange : descriptor.getReservedRangeList()) {
+            List<IntRange> values = new ArrayList<>();
+            int start = reservedRange.getStart();
+            int end = reservedRange.getEnd() - 1;
+            values.add(new IntRange(start, end));
+            ReservedElement reservedElem = new ReservedElement(DEFAULT_LOCATION, "", values);
+            reserved.add(reservedElem);
+        }
+        for (DescriptorProto.ExtensionRange extensionRange : descriptor.getExtensionRangeList()) {
+            List<IntRange> values = new ArrayList<>();
+            int start = extensionRange.getStart();
+            int end = extensionRange.getEnd() - 1;
+            values.add(new IntRange(start, end));
+            ExtensionsElement extensionsElement = new ExtensionsElement(DEFAULT_LOCATION, "", values);
+            extensions.add(extensionsElement);
+        }
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();
         if (descriptor.getOptions().hasMapEntry()) {
             OptionElement.Kind kind = OptionElement.Kind.BOOLEAN;
@@ -410,7 +449,7 @@ public class FileDescriptorUtils {
         return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
                 reserved.build(), fields.build(),
                 oneofs.stream().map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
-                Collections.emptyList(), Collections.emptyList());
+                extensions.build(), Collections.emptyList());
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {

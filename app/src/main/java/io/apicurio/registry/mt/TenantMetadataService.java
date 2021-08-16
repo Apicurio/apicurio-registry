@@ -36,9 +36,6 @@ public class TenantMetadataService {
     @Inject
     OptionalBean<TenantManagerClient> tenantManagerClient;
 
-    //TODO create a TenantConfiguration object and only allow the access to it via the tenant context
-    //TODO load the TenantConfiguration into the tenant context in the TenantIdResolver(maybe rename that class)
-    //TODO cache the TenantConfiguration in TenantIdResolver
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
         if (tenantManagerClient.isEmpty()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");

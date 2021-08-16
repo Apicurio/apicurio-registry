@@ -21,6 +21,7 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
+import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.runtime.configuration.ProfileManager;
 
@@ -74,7 +75,7 @@ public class TenantManagerClientProducer {
 
                 return OptionalBean.of(new TenantManagerClientImpl(
                         properties.getTenantManagerUrl().get(), Collections.emptyMap(),
-                        new OidcAuth(properties.getTenantManagerAuthUrl().get(),
+                        new OidcAuth(new JdkHttpClientProvider(), properties.getTenantManagerAuthUrl().get(),
                                 properties.getTenantManagerClientId().get(),
                                 properties.getTenantManagerClientSecret().get()
                         )

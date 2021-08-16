@@ -30,6 +30,7 @@
 
         <!--junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
         <junit4.version>4.13.2</junit4.version>
+        <wiremock-jre8.version>2.29.1</wiremock-jre8.version>
     </properties>
 
     <repositories>
@@ -126,6 +127,21 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-admin-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-jwt-build</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.slf4j</groupId>
+                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8</artifactId>
+            <version>${wiremock-jre8.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -141,7 +157,6 @@
             <groupId>io.zonky.test</groupId>
             <artifactId>embedded-postgres</artifactId>
             <version>${embedded-postgres.version}</version><!--$NO-MVN-MAN-VER$-->
-<!--             <scope>test</scope> -->
         </dependency>
 
     </dependencies>

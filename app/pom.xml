@@ -166,7 +166,7 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
         </dependency>
-        
+
         <!-- GraphQL -->
         <dependency>
             <groupId>com.graphql-java</groupId>
@@ -217,11 +217,6 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-jdk</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -439,7 +434,7 @@
                 </plugins>
             </build>
         </profile>
-        
+
         <profile>
             <id>native</id>
             <activation>
@@ -473,6 +468,6 @@
                 <quarkus.package.type>native</quarkus.package.type>
             </properties>
         </profile>
-        
+
     </profiles>
 </project>

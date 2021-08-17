@@ -25,6 +25,21 @@
         </dependency>
 
         <dependency>
+            <groupId>com.squareup.wire</groupId>
+            <artifactId>wire-compiler</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
+        <dependency>
+            <groupId>com.google.jimfs</groupId>
+            <artifactId>jimfs</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ibm.icu</groupId>
+            <artifactId>icu4j</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>

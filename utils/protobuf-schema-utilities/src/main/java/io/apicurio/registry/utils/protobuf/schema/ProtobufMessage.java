@@ -74,6 +74,7 @@ public class ProtobufMessage {
     public void addField(
             String label,
             String type,
+            String typeName,
             String name,
             int num,
             String defaultVal,
@@ -83,12 +84,13 @@ public class ProtobufMessage {
             Integer oneOfIndex
         ) {
         FieldDescriptorProto.Label protoLabel = fieldDescriptorLabels.get(label);
-        addFieldDescriptorProto(protoLabel, type, name, num, defaultVal, jsonName, isDeprecated, isPacked, oneOfIndex);
+        addFieldDescriptorProto(protoLabel, type, typeName, name, num, defaultVal, jsonName, isDeprecated, isPacked, oneOfIndex);
     }
 
     public void addFieldDescriptorProto(
             FieldDescriptorProto.Label label,
             String type,
+            String typeName,
             String name,
             int num,
             String defaultVal,
@@ -102,11 +104,24 @@ public class ProtobufMessage {
         if (label != null) {
             fieldBuilder.setLabel(label);
         }
-        FieldDescriptorProto.Type primType = fieldDescriptorTypes.get(type);
+        FieldDescriptorProto.Type primType = fieldDescriptorTypes.get(typeName);
         if (primType != null) {
             fieldBuilder.setType(primType);
         } else {
-            fieldBuilder.setTypeName(type);
+            FieldDescriptorProto.Type fieldDescriptorType = null;
+            if (type != null) {
+                fieldDescriptorType = fieldDescriptorTypes.get(type);
+                fieldBuilder.setType(fieldDescriptorType);
+            }
+            if (fieldDescriptorType != null &&
+                (fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_MESSAGE) || fieldDescriptorType.equals(
+                    FieldDescriptorProto.Type.TYPE_ENUM)))  {
+                //References to other nested messages / enums / google.protobuf types start with "."
+                //See https://developers.google.com/protocol-buffers/docs/proto#packages_and_name_resolution
+                fieldBuilder.setTypeName(typeName.startsWith(".") ? typeName : "." + typeName);
+            } else {
+                fieldBuilder.setTypeName(typeName);
+            }
         }
         fieldBuilder.setName(name).setNumber(num);
         if (defaultVal != null) {

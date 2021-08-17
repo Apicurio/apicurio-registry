@@ -1,52 +1,24 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.utils.protobuf.schema;
-
-import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
-import static com.google.common.base.CaseFormat.UPPER_CAMEL;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.TimestampProto;
-import com.google.protobuf.WrappersProto;
-import com.google.protobuf.DescriptorProtos.DescriptorProto;
-import com.google.protobuf.DescriptorProtos.EnumDescriptorProto;
-import com.google.protobuf.DescriptorProtos.EnumValueDescriptorProto;
-import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
-import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
-import com.google.protobuf.DescriptorProtos.FileOptions;
-import com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.TimestampProto;
+import com.google.protobuf.WrappersProto;
 import com.squareup.wire.Syntax;
+import com.squareup.wire.schema.EnumConstant;
+import com.squareup.wire.schema.EnumType;
 import com.squareup.wire.schema.Field;
 import com.squareup.wire.schema.Location;
+import com.squareup.wire.schema.MessageType;
+import com.squareup.wire.schema.OneOf;
+import com.squareup.wire.schema.Options;
+import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.ProtoType;
+import com.squareup.wire.schema.Schema;
+import com.squareup.wire.schema.Type;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
 import com.squareup.wire.schema.internal.parser.ExtensionsElement;
@@ -57,11 +29,32 @@ import com.squareup.wire.schema.internal.parser.OptionElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ReservedElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
-
 import kotlin.ranges.IntRange;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
+import static com.google.common.base.CaseFormat.UPPER_CAMEL;
+import static com.google.protobuf.DescriptorProtos.DescriptorProto;
+import static com.google.protobuf.DescriptorProtos.EnumDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.EnumValueDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.FileDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.FileOptions;
+import static com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
+
 /**
- * @author Fabian Martinez
+ * @author Fabian Martinez, Ravindranath Kakarla
  */
 public class FileDescriptorUtils {
 
@@ -91,15 +84,39 @@ public class FileDescriptorUtils {
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)
         throws DescriptorValidationException {
-        return protoFileToFileDescriptor(element, "default");
+        return protoFileToFileDescriptor(element, "default.proto");
     }
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element, String protoFileName) throws DescriptorValidationException {
-        return FileDescriptor.buildFrom(toFileDescriptorProto(element, protoFileName), baseDependencies());
+        Objects.requireNonNull(element);
+        Objects.requireNonNull(protoFileName);
+
+        return protoFileToFileDescriptor(element.toSchema(), protoFileName,
+            Optional.ofNullable(element.getPackageName()));
     }
 
-    private static FileDescriptorProto toFileDescriptorProto(ProtoFileElement element, String protoFileName) {
+    public static FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName)
+        throws DescriptorValidationException {
+        Objects.requireNonNull(schemaDefinition);
+        Objects.requireNonNull(protoFileName);
+
+        return FileDescriptor.buildFrom(toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName), baseDependencies());
+    }
+
+    private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName, Optional<String> optionalPackageName) {
+        final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
+        try {
+            protobufSchemaLoaderContext =
+                ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName, schemaDefinition);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         FileDescriptorProto.Builder schema = FileDescriptorProto.newBuilder();
+
+        ProtoFile element = protobufSchemaLoaderContext.getProtoFile();
+        Schema schemaContext = protobufSchemaLoaderContext.getSchema();
+
         schema.setName(protoFileName);
 
         Syntax syntax = element.getSyntax();
@@ -110,13 +127,19 @@ public class FileDescriptorUtils {
             schema.setPackage(element.getPackageName());
         }
 
-        for (TypeElement typeElem : element.getTypes()) {
-            if (typeElem instanceof MessageElement) {
-                DescriptorProto message = messageElementToDescriptorProto((MessageElement) typeElem);
+        for (ProtoType protoType: schemaContext.getTypes()) {
+            if (!isParentLevelType(protoType, optionalPackageName)) {
+                continue;
+            }
+
+            Type type = schemaContext.getType(protoType);
+            if (type instanceof MessageType) {
+                DescriptorProto
+                    message = messageElementToDescriptorProto((MessageType) type, schemaContext);
                 schema.addMessageType(message);
-            } else if (typeElem instanceof EnumElement) {
-                EnumDescriptorProto enumer = enumElementToProto((EnumElement) typeElem);
-                schema.addEnumType(enumer);
+            } else if (type instanceof  EnumType) {
+                EnumDescriptorProto message = enumElementToProto((EnumType) type);
+                schema.addEnumType(message);
             }
         }
 
@@ -165,45 +188,76 @@ public class FileDescriptorUtils {
         return schema.build();
     }
 
-    private static DescriptorProto messageElementToDescriptorProto(MessageElement messageElem) {
-        ProtobufMessage message = new ProtobufMessage();
-        message.protoBuilder().setName(messageElem.getName());
+    /**
+     * When schema loader links the schema, it also includes google.protobuf types in it.
+     * We want to ignore all the other types except for the ones that are present in the current file.
+     * @return true if a type is a parent type, false otherwise.
+     */
+    private static boolean isParentLevelType(ProtoType protoType, Optional<String> optionalPackageName) {
+        if (optionalPackageName.isPresent()) {
+            String packageName = optionalPackageName.get();
+            String typeName = protoType.toString();
 
-        for (TypeElement type : messageElem.getNestedTypes()) {
-            if (type instanceof MessageElement) {
-                message.protoBuilder().addNestedType(messageElementToDescriptorProto((MessageElement) type));
-            } else if (type instanceof EnumElement) {
-                message.protoBuilder().addEnumType(enumElementToProto((EnumElement) type));
+            //If the type doesn't start with the package name, ignore it.
+            if (!typeName.startsWith(packageName)) {
+                return false;
+            }
+            //We only want to consider the parent level types. The list can contain following,
+            //[io.apicurio.foo.bar.Customer.Address, io.apicurio.foo.bar.Customer, google.protobuf.Timestamp]
+            //We want to only get the type "io.apicurio.foo.bar.Customer" which is parent level type.
+            String [] typeNames = typeName.split(packageName)[1].split("\\.");
+            boolean isNotNested = typeNames.length <= 2;
+            return isNotNested;
+        }
+
+        //If package is not present,
+        //TODO: Square wire has a bug loading schemas without packageName, update the logic when
+        //https://github.com/square/wire/issues/2042 is fixed.
+        return false;
+    }
+
+    private static DescriptorProto messageElementToDescriptorProto(
+        MessageType messageElem, Schema schema) {
+        ProtobufMessage message = new ProtobufMessage();
+        message.protoBuilder().setName(messageElem.getType().getSimpleName());
+
+        for (Type type : messageElem.getNestedTypes()) {
+            if (type instanceof MessageType) {
+                message.protoBuilder().addNestedType(
+                    messageElementToDescriptorProto((MessageType) type, schema));
+            } else if (type instanceof EnumType) {
+                message.protoBuilder().addEnumType(enumElementToProto((EnumType) type));
             }
         }
 
-        Set<String> added = new HashSet<>();
+        Set<String> added = new LinkedHashSet<>();
 
-        for (OneOfElement oneof : messageElem.getOneOfs()) {
+        for (OneOf oneof : messageElem.getOneOfs()) {
             OneofDescriptorProto.Builder oneofBuilder = OneofDescriptorProto.newBuilder().setName(oneof.getName());
             message.protoBuilder().addOneofDecl(oneofBuilder);
 
-            for (FieldElement field : oneof.getFields()) {
-                String jsonName = findOptionString(JSON_NAME_OPTION, field.getOptions());
-                Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
+            for (Field oneOfField : oneof.getFields()) {
+                String oneOfJsonName = findOptionString(JSON_NAME_OPTION, oneOfField.getOptions());
+                Boolean oneOfIsDeprecated = findOptionBoolean(DEPRECATED_OPTION, oneOfField.getOptions());
 
                 message.addFieldDescriptorProto(
-                        FieldDescriptorProto.Label.LABEL_OPTIONAL,
-                        field.getType(),
-                        field.getName(),
-                        field.getTag(),
-                        field.getDefaultValue(),
-                        jsonName,
-                        isDeprecated,
-                        null,
-                        message.protoBuilder().getOneofDeclCount() - 1);
+                    FieldDescriptorProto.Label.LABEL_OPTIONAL,
+                    null,
+                    String.valueOf(oneOfField.getType()),
+                    oneOfField.getName(),
+                    oneOfField.getTag(),
+                    oneOfField.getDefault(),
+                    oneOfJsonName,
+                    oneOfIsDeprecated,
+                    null,
+                    message.protoBuilder().getOneofDeclCount() - 1);
 
-                added.add(field.getName());
+                added.add(oneOfField.getName());
             }
         }
 
         // Process fields after messages so that any newly created map entry messages are at the end
-        for (FieldElement field : messageElem.getFields()) {
+        for (Field field : messageElem.getDeclaredFields()) {
             if (added.contains(field.getName())) {
                 continue;
             }
@@ -211,36 +265,45 @@ public class FileDescriptorUtils {
             //Fields are optional by default in Proto3.
             String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : OPTIONAL;
 
-            String fieldType = field.getType();
-
-            ProtoType protoType = ProtoType.get(fieldType);
+            ProtoType protoType = field.getType();
+            String fieldTypeName = String.valueOf(protoType);
             ProtoType keyType = protoType.getKeyType();
             ProtoType valueType = protoType.getValueType();
             // Map fields are only permitted in messages
             if (protoType.isMap() && keyType != null && valueType != null) {
                 label = "repeated";
-                fieldType = toMapEntry(field.getName());
+                fieldTypeName = toMapEntry(field.getName());
                 ProtobufMessage protobufMapMessage = new ProtobufMessage();
                 DescriptorProto.Builder mapMessage = protobufMapMessage
                         .protoBuilder()
-                        .setName(fieldType)
+                        .setName(fieldTypeName)
                         .mergeOptions(DescriptorProtos.MessageOptions.newBuilder()
                                 .setMapEntry(true)
                                 .build());
 
-                protobufMapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null, null);
-                protobufMapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null, null);
+                protobufMapMessage.addField(null, null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null, null);
+                protobufMapMessage.addField(null, null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null, null);
                 message.protoBuilder().addNestedType(mapMessage.build());
             }
 
-            String jsonName = field.getJsonName();
+            String jsonName = field.getDeclaredJsonName();
             Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
             Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
 
-            message.addField(label, fieldType, field.getName(), field.getTag(), field.getDefaultValue(), jsonName, isDeprecated, isPacked, null);
+            String fieldType = null;
+            Type typeReference = schema.getType(protoType);
+            if (typeReference != null) {
+                if (typeReference instanceof MessageType) {
+                    fieldType = "message";
+                }
+                if (typeReference instanceof EnumType) {
+                    fieldType = "enum";
+                }
+            }
+            message.addField(label, fieldType, fieldTypeName, field.getName(), field.getTag(), field.getDefault(), jsonName, isDeprecated, isPacked, null);
         }
 
-        for (ReservedElement reserved : messageElem.getReserveds()) {
+        for (ReservedElement reserved : messageElem.toElement().getReserveds()) {
             for (Object elem : reserved.getValues()) {
                 if (elem instanceof String) {
                     message.protoBuilder().addReservedName((String) elem);
@@ -262,7 +325,7 @@ public class FileDescriptorUtils {
                 }
             }
         }
-        for (ExtensionsElement extensions : messageElem.getExtensions()) {
+        for (ExtensionsElement extensions : messageElem.toElement().getExtensions()) {
             for (Object elem : extensions.getValues()) {
                 if (elem instanceof Integer) {
                     int tag = (Integer) elem;
@@ -292,7 +355,7 @@ public class FileDescriptorUtils {
         return message.build();
     }
 
-    private static EnumDescriptorProto enumElementToProto(EnumElement enumElem) {
+    private static EnumDescriptorProto enumElementToProto(EnumType enumElem) {
         Boolean allowAlias = findOptionBoolean(ALLOW_ALIAS_OPTION, enumElem.getOptions());
 
         EnumDescriptorProto.Builder builder = EnumDescriptorProto.newBuilder()
@@ -302,7 +365,7 @@ public class FileDescriptorUtils {
                     .setAllowAlias(allowAlias);
             builder.mergeOptions(optionsBuilder.build());
         }
-        for (EnumConstantElement constant : enumElem.getConstants()) {
+        for (EnumConstant constant : enumElem.getConstants()) {
             builder.addValue(EnumValueDescriptorProto.newBuilder()
                     .setName(constant.getName())
                     .setNumber(constant.getTag())
@@ -318,15 +381,15 @@ public class FileDescriptorUtils {
         return s + MAP_ENTRY_SUFFIX;
     }
 
-    private static Optional<OptionElement> findOption(String name, List<OptionElement> options) {
-        return options.stream().filter(o -> o.getName().equals(name)).findFirst();
+    private static Optional<OptionElement> findOption(String name, Options options) {
+        return options.getElements().stream().filter(o -> o.getName().equals(name)).findFirst();
     }
 
-    private static String findOptionString(String name, List<OptionElement> options) {
+    private static String findOptionString(String name, Options options) {
         return findOption(name, options).map(o -> o.getValue().toString()).orElse(null);
     }
 
-    private static Boolean findOptionBoolean(String name, List<OptionElement> options) {
+    private static Boolean findOptionBoolean(String name, Options options) {
         return findOption(name, options).map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
     }
 

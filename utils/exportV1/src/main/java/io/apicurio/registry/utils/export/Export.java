@@ -59,7 +59,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 /**
  * @author Fabian Martinez
  */
-@QuarkusMain
+@QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
 
     static {

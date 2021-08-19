@@ -65,7 +65,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
  * @author Fabian Martinez
  * @author Miroslav Safar
  */
-@QuarkusMain
+@QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
 
     static {

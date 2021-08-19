@@ -93,8 +93,7 @@ public class Export implements QuarkusApplication {
 
         if (args.length > 2 && args[1].equals("--client-props")) {
             String[] clientconf = Arrays.copyOfRange(args, 2, args.length);
-            conf = Arrays.asList(clientconf)
-                    .stream()
+            conf = Arrays.stream(clientconf)
                     .map(keyvalue -> keyvalue.split("="))
                     .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
             System.out.println("Parsed client properties " + conf);
@@ -228,8 +227,7 @@ public class Export implements QuarkusApplication {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
-            return canonicalContent;
+            return canonicalizer.canonicalize(content);
         } catch (Exception e) {
             e.printStackTrace();
 //            log.debug("Failed to canonicalize content of type: {}", artifactType.name());

@@ -36,19 +36,16 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-import-export</artifactId>
-            <version>2.0.1.Final</version>
         </dependency>
 
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
-            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
-            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
             <exclusions>
 
                 <exclusion>

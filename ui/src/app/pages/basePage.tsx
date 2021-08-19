@@ -18,6 +18,7 @@
 import React from "react";
 import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
 import {Services} from "../../services";
+import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner} from "@patternfly/react-core";
 
 // TODO this should be configurable via standard UI config settings
 const MAX_RETRIES: number = 5;
@@ -73,7 +74,18 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
     public render(): React.ReactElement {
         if (this.isError()) {
             return (
-                <ErrorPage error={this.state.error} />
+                <ErrorPage error={this.state.error}/>
+            );
+        } else if (this.isLoading()) {
+            return (
+                <React.Fragment>
+                    <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                        <Flex>
+                            <FlexItem><Spinner size="lg"/></FlexItem>
+                            <FlexItem><span>Loading, please wait...</span></FlexItem>
+                        </Flex>
+                    </PageSection>
+                </React.Fragment>
             );
         } else {
             return this.renderPage();

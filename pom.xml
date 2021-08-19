@@ -100,6 +100,7 @@
         <module>utils/tools</module>
         <module>utils/importexport</module>
         <module>utils/exportV1</module>
+        <module>utils/exportConfluent</module>
         <module>utils/protobuf-schema-utilities</module>
         <module>schema-compatibility/json</module>
         <module>schema-compatibility/protobuf</module>

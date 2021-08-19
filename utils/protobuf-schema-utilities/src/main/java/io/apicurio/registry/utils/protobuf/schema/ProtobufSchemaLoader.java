@@ -41,17 +41,18 @@ public class ProtobufSchemaLoader {
             Path path = inMemoryFileSystem.getPath(dirPath, fileName);
             Files.write(path, schemaDefinition.getBytes());
 
-            SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
-            schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
+            try (SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem)) {
+                schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
 
-            Schema schema = schemaLoader.loadSchema();
-            ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
+                Schema schema = schemaLoader.loadSchema();
+                ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
 
-            if (protoFile == null) {
-                throw new RuntimeException("Error loading Protobuf File: " + fileName);
+                if (protoFile == null) {
+                    throw new RuntimeException("Error loading Protobuf File: " + fileName);
+                }
+
+                return new ProtobufSchemaLoaderContext(schema, protoFile);
             }
-
-            return new ProtobufSchemaLoaderContext(schema, protoFile);
         } catch (Exception e) {
             throw e;
         } finally {

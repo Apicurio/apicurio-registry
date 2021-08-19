@@ -2439,7 +2439,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         deleteGlobalRules();
 
         handles.withHandleNoException( handle -> {
-            final String tenantId = tenantContext.tenantId();
+//            final String tenantId = tenantContext.tenantId();
 
             // Delete all artifacts and related data
 

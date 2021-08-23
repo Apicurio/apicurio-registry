@@ -21,9 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.UUID;
 
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;

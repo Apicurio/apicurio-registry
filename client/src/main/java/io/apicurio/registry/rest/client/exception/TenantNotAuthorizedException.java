@@ -21,7 +21,7 @@ import io.apicurio.registry.rest.v2.beans.Error;
 /**
  * @author Fabian Martinez
  */
-public class TenantNotAuthorizedException extends ForbiddenException {
+public class TenantNotAuthorizedException extends RestClientException {
 
     private static final long serialVersionUID = 1L;
 

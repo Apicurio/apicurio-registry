@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -33,8 +35,6 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;

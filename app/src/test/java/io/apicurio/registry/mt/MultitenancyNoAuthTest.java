@@ -30,7 +30,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.TestAbortedException;

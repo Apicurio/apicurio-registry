@@ -20,10 +20,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ExceptionMapper;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.error.ApicurioRestClientException;
 import io.apicurio.rest.client.error.RestClientErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,19 +44,19 @@ public class ErrorHandler implements RestClientErrorHandler {
     public static final int FORBIDDEN_CODE = 403;
 
     @Override
-    public RestClientException handleErrorResponse(InputStream body, int statusCode) {
+    public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
             if (statusCode == UNAUTHORIZED_CODE) {
                 //authorization error
                 Error error = new Error();
                 error.setErrorCode(statusCode);
-                return new NotAuthorizedException(error);
+                return new NotAuthorizedException("Authentication exception");
             } else {
                 if (statusCode == FORBIDDEN_CODE) {
                     //forbidden error
                     Error error = new Error();
                     error.setErrorCode(statusCode);
-                    return new ForbiddenException(error);
+                    return new ForbiddenException("Authorization error");
                 }
             }
             Error error = mapper.readValue(body, Error.class);
@@ -76,7 +77,7 @@ public class ErrorHandler implements RestClientErrorHandler {
     }
 
     @Override
-    public RestClientException parseInputSerializingError(JsonProcessingException ex) {
+    public ApicurioRestClientException parseInputSerializingError(JsonProcessingException ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setDetail(ex.getMessage());
@@ -86,7 +87,7 @@ public class ErrorHandler implements RestClientErrorHandler {
     }
 
     @Override
-    public RestClientException parseError(Exception ex) {
+    public ApicurioRestClientException parseError(Exception ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());

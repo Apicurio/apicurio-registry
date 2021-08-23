@@ -22,9 +22,9 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.UUID;
 
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;

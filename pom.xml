@@ -135,7 +135,7 @@
         <quarkus.version>1.13.2.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.1.0</jandex.version>
+        <jandex.version>1.1.1</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
@@ -161,7 +161,7 @@
         <apicurio-data-models.version>1.1.14</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>17.0</graphql.version>
+        <graphql.version>17.1</graphql.version>
 
         <!-- JSON Schema Validator -->
         <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>

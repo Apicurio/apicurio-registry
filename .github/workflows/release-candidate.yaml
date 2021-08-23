@@ -33,6 +33,14 @@ jobs:
           version: '11'
           architecture: x64
 
+      - name: Set up settings.xml
+        run: |
+          pwd
+          mkdir -p /home/runner/.m2
+          chmod 755 /home/runner/.m2
+          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+          cat /home/runner/.m2/settings.xml
+
       - name: Set up Gren
         run: npm install github-release-notes -g
 
@@ -81,10 +89,24 @@ jobs:
       - name: Build Examples
         run: |
           cd registry-examples
-          mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
-          ./mvnw clean install
+          mvn clean install
 
-      - name: Commit RC Version Change
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v1
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+ 
+      - name: Maven Deploy
+        run: |
+          cd registry
+          # Retry 3 times before the steps actually fails
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "==== Maven Deploy Step Failed ====" && exit 1)
+          
+      - name: Commit Release Version Change
         run: |
           cd registry
           git add .
@@ -95,56 +117,20 @@ jobs:
           git commit -m "Automated update to RC Version:: ${{ github.event.inputs.release-version}}"
           git push
 
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@v1
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Fetch Latest Commit SHA For Apicurio Registry
-        run: |
-          cd registry
-          echo "latest_commit_sha=$(git log -n 1 --pretty=format:"%H")" >> $GITHUB_ENV
-
-      - name: Create GitHub Release
-        run: |
-          cd registry
-          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate Release Notes
-        run: |
-          cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
-
       - name: Tag Examples
         run: |
           cd registry-examples
           git tag -a -m "Tagging release ${{ github.event.inputs.release-version}}" ${{ github.event.inputs.release-version}}
           git push origin ${{ github.event.inputs.release-version}}
+      - name: Create GitHub Release
+        run: |
+          cd registry
+          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.ACCESS_TOKEN }}
 
-      - name: Login to DockerHub Registry
-        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
-      - name: Build The RC Images for docker.io
-        run: cd registry && ./.github/scripts/build-rc-images.sh docker.io ${{ github.event.inputs.release-version}}
-
-      - name: List Images
-        run: docker images
-
-      - name: Push The RC Images To Docker.io 
-        run: cd registry && ./.github/scripts/push-rc-images.sh docker.io ${{ github.event.inputs.release-version}}
-
-      - name: Login to Quay.io Registry
-        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
-
-      - name: Build The RC Images for Quay.io
-        run: cd registry && ./.github/scripts/build-rc-images.sh quay.io ${{ github.event.inputs.release-version}}
-
-      - name: List Images
-        run: docker images
-      
-      - name: Push The RC Images to Quay.io
-        run: cd registry && ./.github/scripts/push-rc-images.sh quay.io ${{ github.event.inputs.release-version}}
+      - name: Generate Release Notes
+        run: |
+          cd registry
+          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
@@ -164,3 +150,11 @@ jobs:
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

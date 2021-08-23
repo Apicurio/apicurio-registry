@@ -98,8 +98,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-        return getTarget().updateArtifact(groupId, artifactId, data);
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String name, String description, InputStream data) {
+        return getTarget().updateArtifact(groupId, artifactId, version, name, description, data);
     }
 
     /**
@@ -335,9 +335,9 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version,
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String name, String description,
             InputStream data) {
-        return getTarget().createArtifactVersion(groupId, artifactId, version, data);
+        return getTarget().createArtifactVersion(groupId, artifactId, version, name, description, data);
     }
 
     /**
@@ -378,8 +378,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
-        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, data);
+            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, InputStream data) {
+        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, data);
     }
 
     /**

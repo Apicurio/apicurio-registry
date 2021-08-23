@@ -84,6 +84,64 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
 
     @Test
+    public void testCreateArtifact() throws Exception {
+        //Preparation
+        final String groupId = "testCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "testCreateArtifactName";
+        final String description = "testCreateArtifactDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+        waitForArtifact(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals(name, created.getName());
+        assertEquals(description, created.getDescription());
+        assertEquals(ARTIFACT_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+    @Test
+    public void testCreateArtifactVersion() throws Exception {
+        //Preparation
+        final String groupId = "testCreateArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        final String version = "2";
+        final String name = "testCreateArtifactVersionName";
+        final String description = "testCreateArtifactVersionDescription";
+
+        createArtifact(groupId, artifactId);
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(UPDATED_CONTENT.getBytes(StandardCharsets.UTF_8));
+        VersionMetaData versionMetaData = clientV2.createArtifactVersion(groupId, artifactId, version, name, description, stream);
+        waitForVersion(groupId, artifactId, 2);
+
+        ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(versionMetaData);
+        assertEquals(version, versionMetaData.getVersion());
+        assertEquals(name, versionMetaData.getName());
+        assertEquals(description, versionMetaData.getDescription());
+
+        assertNotNull(amd);
+        assertEquals(version, amd.getVersion());
+        assertEquals(name, amd.getName());
+        assertEquals(description, amd.getDescription());
+
+        assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+    @Test
     public void testAsyncCRUD() throws Exception {
         //Preparation
         final String groupId = "testAsyncCRUD";
@@ -723,13 +781,22 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, artifactId);
         final String updatedContent = "{\"name\":\"ibm\"}";
+        final String version = "3";
+        final String name = "testUpdateArtifactName";
+        final String description = "testUpdateArtifactDescription";
 
         final InputStream stream = IoUtil.toStream(updatedContent.getBytes(StandardCharsets.UTF_8));
         //Execution
-        clientV2.updateArtifact(groupId, artifactId, stream);
+        clientV2.updateArtifact(groupId, artifactId, version, name, description, stream);
 
         //Assertions
         assertEquals(updatedContent, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+
+        ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
+        assertNotNull(artifactMetaData);
+        assertEquals(version, artifactMetaData.getVersion());
+        assertEquals(name, artifactMetaData.getName());
+        assertEquals(description, artifactMetaData.getDescription());
     }
 
     @Test

@@ -70,16 +70,30 @@ public class AuthorizedInterceptor {
         }
 
         log.trace("Authentication enabled, protected resource: " + context.getMethod());
-        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
 
-        // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
+        // If the securityIdentity is not set (or is anonymous)...
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
             Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-            if (annotation.level() != AuthorizedLevel.None) {
-                log.trace("Authentication credentials missing and required for protected endpoint.");
-                throw new UnauthorizedException("User is not authenticated.");
+
+            // Anonymous users are allowed to perform "None" operations.
+            if (annotation.level() == AuthorizedLevel.None) {
+                log.trace("Anonymous user is being granted access to 'None' level operation.");
+                return context.proceed();
             }
+
+            // Anonymous users are allowed to perform read-only operations, but only if
+            // registry.auth.anonymous-read-access.enabled is set to 'true'
+            if (authConfig.anonymousReadAccessEnabled && annotation.level() == AuthorizedLevel.Read) {
+                log.trace("Anonymous user is being granted access to read-only operation.");
+                return context.proceed();
+            }
+
+            // Otherwise just fail - auth was enabled but no credentials provided.
+            log.trace("Authentication credentials missing and required for protected endpoint.");
+            throw new UnauthorizedException("User is not authenticated.");
         }
+
+        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
 
         // If the user is an admin (via the admin-override check) then there's no need to
         // check rbac or obac.

@@ -19,6 +19,7 @@ package io.apicurio.registry.ccompat.store;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -37,6 +38,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -65,6 +67,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Inject
     RulesService rulesService;
+
+    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     @Override
     public List<String> getSubjects() {
@@ -98,7 +102,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             //the contentId points to an orphaned content
             throw new ArtifactNotFoundException("ContentId: " + contentId);
         }
-        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(contentHandle, null, null));
+        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null));
     }
 
     @Override
@@ -143,10 +147,18 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             // This is OK - when it happens just move on and create
         }
 
-        // TODO Should this creation and updating of an artifact be a different operation?
-        // TODO method that returns a completion stage should not throw an exception
-        ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
-        return artifactMeta.getContentId();
+        //We validate the schema at creation time by inferring the type from the content
+        try {
+            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null);
+            if (schemaType != null && !artifactType.value().equals(schemaType)) {
+                throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
+            }
+            ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType);
+            return artifactMeta.getContentId();
+        } catch (InvalidArtifactTypeException ex) {
+            //If no artifact type can be inferred, throw invalid schema ex
+            throw new UnprocessableEntityException(ex.getMessage());
+        }
     }
 
     @Override
@@ -190,6 +202,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
             }
         });
+    }
+
+    /**
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     */
+    private ContentHandle removeQuotedBrackets(String content) {
+        return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
     private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {

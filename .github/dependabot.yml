@@ -9,6 +9,15 @@ updates:
       - dependency-name: com.squareup.wire:wire-schema
         versions:
           - ">= 3.6.a, < 3.7"
+      - dependency-name: com.squareup.wire:wire-compiler
+        versions:
+          - ">= 3.6.a, < 3.7"
+      - dependency-name: com.google.jimfs:jimfs
+        versions:
+          - ">= 1.1, < 1.3"
+      - dependency-name: com.ibm.icu:icu4j
+        versions:
+          - ">= 69.1, < 70.1"
       - dependency-name: org.apache.kafka:connect-api
         versions:
           - "> 2.2.1, < 2.3"

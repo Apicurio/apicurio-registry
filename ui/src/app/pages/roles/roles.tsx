@@ -83,15 +83,10 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.isLoading() ?
-                            <Flex>
-                                <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
-                            </Flex>
-                            : this.state.roles.length === 0 ?
-                            <RoleMappingsEmptyState />
-                            :
-                            <RoleList roles={this.state.roles} onRevoke={this.onRevokeRoleMapping}></RoleList>
+                        this.state.roles.length === 0 ?
+                        <RoleMappingsEmptyState />
+                        :
+                        <RoleList roles={this.state.roles} onRevoke={this.onRevokeRoleMapping}></RoleList>
                     }
                 </PageSection>
                 <GrantAccessModal isOpen={this.state.isCreateRoleMappingModalOpen}

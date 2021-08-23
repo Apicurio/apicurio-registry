@@ -6,12 +6,15 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.specified.TestOrderingSyntax2Specified;
+import io.apicurio.registry.utils.protobuf.schema.syntax2.references.TestOrderingSyntax2References;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestOrderingSyntax3;
+import io.apicurio.registry.utils.protobuf.schema.syntax3.references.TestOrderingSyntax3References;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +27,9 @@ public class FileDescriptorUtilsTest {
             Stream.of(
             TestOrderingSyntax2.getDescriptor(),
             TestOrderingSyntax2Specified.getDescriptor(),
-            TestOrderingSyntax3.getDescriptor()
+            TestOrderingSyntax3.getDescriptor(),
+            TestOrderingSyntax2References.getDescriptor(),
+            TestOrderingSyntax3References.getDescriptor()
         )
         .map(Descriptors.FileDescriptor::getFile)
         .map(Arguments::of);
@@ -51,7 +56,7 @@ public class FileDescriptorUtilsTest {
         DescriptorProtos.FileDescriptorProto fileDescriptorProto = fileDescriptor.toProto();
         String actualSchema = FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptorProto).toSchema();
 
-        String fileName = fileDescriptor.toProto().getName();
+        String fileName = fileDescriptorProto.getName();
         String expectedSchema = ProtobufTestCaseReader.getRawSchema(fileName);
 
         //Convert to Proto and compare
@@ -64,6 +69,6 @@ public class FileDescriptorUtilsTest {
 
     private Descriptors.FileDescriptor schemaTextToFileDescriptor(String schema, String fileName) throws Exception {
         ProtoFileElement protoFileElement = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, schema);
-        return FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement, fileName);
+        return FileDescriptorUtils.protoFileToFileDescriptor(schema, fileName, Optional.ofNullable(protoFileElement.getPackageName()));
     }
 }

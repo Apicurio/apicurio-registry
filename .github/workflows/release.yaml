@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
     env:
-      PRE_RELEASE: false
+      IS_PRE_RELEASE: false
     steps:
       - name: Log Metadata
         run: |
@@ -128,14 +128,14 @@ jobs:
       - name: Determine Release Type
         if: "contains(github.event.inputs.release-version, 'RC')"
         run: |
-          echo "This is a pre-release. Setting environment variable 'PRE_RELEASE' to true"
-          echo "PRE_RELEASE=true" >> $GITHUB_ENV
+          echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
+          echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
       
       - name: Create GitHub Release
         run: |
-          echo "PRE_RELEASE=$PRE_RELEASE"
+          echo "IS_PRE_RELEASE=$IS_PRE_RELEASE"
           cd registry
-          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.ACCESS_TOKEN }} ${{ env.PRE_RELEASE }}
+          ./.github/scripts/create-github-release.sh ${{ github.event.inputs.release-version}} ${{ github.event.inputs.branch}} $GITHUB_REPOSITORY ${{ secrets.ACCESS_TOKEN }} ${{ env.IS_PRE_RELEASE }}
 
       - name: Generate Release Notes
         run: |

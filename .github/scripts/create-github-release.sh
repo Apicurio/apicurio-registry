@@ -5,7 +5,7 @@ RELEASE_VERSION="$1"
 BRANCH="$2"
 REPOSITORY="$3"
 ACCESS_TOKEN="$4"
-PRE_RELEASE="$5"
+IS_PRE_RELEASE="$5"
 
 generate_post_data() 
 {
@@ -16,7 +16,7 @@ cat <<EOF
   "name": "$RELEASE_VERSION",
   "body": "",
   "draft": false,
-  "prerelease": $PRE_RELEASE
+  "prerelease": $IS_PRE_RELEASE
 }
 EOF
 }

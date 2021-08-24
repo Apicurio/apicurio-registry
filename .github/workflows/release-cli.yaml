@@ -27,7 +27,7 @@ jobs:
         touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
         echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
         echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-        echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
     
     - name: Log Environment Variables
       run: |
@@ -117,7 +117,7 @@ jobs:
         touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
         echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
         echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-        echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
     
     - name: Echo Environment Variables
       run: |
@@ -195,7 +195,7 @@ jobs:
         touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
         echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
         echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-        echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
           
     - name: Echo Environment Variables
       shell: bash

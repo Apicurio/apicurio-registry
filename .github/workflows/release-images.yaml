@@ -2,7 +2,7 @@ name: Release Images
 on:
   workflow_dispatch: {}
   release:
-    types: [released]
+    types: [released, prereleased]
 
 
 # github.event context is only available when the workflow gets triggered by a release event. Therefore, commenting the below
@@ -24,10 +24,10 @@ jobs:
 
       - name: Fetch required Details
         run: |
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
-          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
+          touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
 
       - name: Download Source Code
         run: wget -c $SOURCE_CODE_URL && unzip $RELEASE_VERSION && ls -lrt && mv ${{github.repository_owner}}* registry
@@ -96,10 +96,16 @@ jobs:
 
       - name: Fetch required Details
         run: |
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq '.zipball_url' | sed 's/"//g')" >> $GITHUB_ENV
-          echo "BRANCH=$(cat latestRelease.json | jq '.target_commitish' | sed 's/"//g')" >> $GITHUB_ENV
+          touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
+          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+
+      - name: Determine Release Type
+        if: "contains(env.RELEASE_VERSION, 'RC')"
+        run: |
+          echo "This is a pre-release. Skipping Image Verification!"
+          exit 0
 
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2      

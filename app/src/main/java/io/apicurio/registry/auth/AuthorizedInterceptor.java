@@ -77,7 +77,7 @@ public class AuthorizedInterceptor {
 
             // Anonymous users are allowed to perform "None" operations.
             if (annotation.level() == AuthorizedLevel.None) {
-                log.trace("Anonymous user is being granted access to 'None' level operation.");
+                log.trace("Anonymous user is being granted access to unprotected operation.");
                 return context.proceed();
             }
 

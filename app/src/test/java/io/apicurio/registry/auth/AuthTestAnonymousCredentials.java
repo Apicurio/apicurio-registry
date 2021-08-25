@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.auth;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -27,6 +30,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
 import io.apicurio.rest.client.auth.Auth;
@@ -72,7 +76,19 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
     @Test
     public void testNoCredentials() throws Exception {
         RegistryClient client = RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), null);
+        // Read-only operation should work without any credentials.
         ArtifactSearchResults results = client.searchArtifacts(groupId, null, null, null, null, null, null, null, null);
         Assertions.assertTrue(results.getCount() >= 0);
+
+        // Write operation should fail without any credentials
+        InputStream data = new ByteArrayInputStream(("{\r\n" +
+                "    \"type\" : \"record\",\r\n" +
+                "    \"name\" : \"userInfo\",\r\n" +
+                "    \"namespace\" : \"my.example\",\r\n" +
+                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
+                "}").getBytes(StandardCharsets.UTF_8));
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            client.createArtifact(groupId, "testNoCredentials", ArtifactType.AVRO, data);
+        });
     }
 }

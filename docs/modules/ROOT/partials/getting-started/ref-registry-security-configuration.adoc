@@ -11,7 +11,7 @@ You can enable authentication for the {registry} web console and core REST API u
 
 {registry} supports a number of authorization configurations, including role-based and content-based approaches.
 {registry} provides role-based authorization for default admin, write, and read-only user roles.
-{registry} also alternatively provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization options are disabled by default.
+{registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization options are disabled by default.
 
 .Prerequisites
 * {keycloak} is installed and running, and configured with a {keycloak} realm and a user. For more details, see
@@ -57,10 +57,7 @@ You can set the following environment variables to configure authentication for 
 |`apicurio-registry`
 |===
 
-Note that, by default, {registry} supports authentication via the OpenID Connect protocol.  This means that
-users (or API clients) must obtain an access token in order to make authenticated calls to the {registry}
-REST API.  However, because some tools do not support OpenID Connect {registry} can be configured to also
-support BASIC authentication by setting the following configuration property to `true`:
+NOTE: By default, {registry} supports authentication using the OpenID Connect protocol.  This means that users (or API clients) must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration property to `true`:
 
 .Configuration for {registry} to enable BASIC authentication support
 [%header,cols="2,2,1,1"]
@@ -77,11 +74,11 @@ support BASIC authentication by setting the following configuration property to 
 
 
 [discrete]
-== Role based authorization in {registry}
+== Role-based authorization in {registry}
 
-Set the following option to `true` to enable role based authorization in {registry}:
+Set the following option to `true` to enable role-based authorization in {registry}:
 
-.Configuration for {registry} role based authorization
+.Configuration for {registry} role-based authorization
 [%header,cols="2,2,1,1"]
 |===
 |Environment variable
@@ -94,16 +91,14 @@ Set the following option to `true` to enable role based authorization in {regist
 |`false`
 |===
 
-Role based authorization can be configured to either use roles found in the user's auth token
-(granted when authenticating via e.g. {keycloak}) or to use role mappings managed internally
-by {registry}.
+You can configure role-based authorization to use roles found in the user's authentication token (for example, granted when authenticating using {keycloak}), or to use role mappings managed internally by {registry}.
 
 [discrete]
 === Using roles from {keycloak}
 
 To enable using roles assigned by {keycloak} set the following environment variables:
 
-.Configuration for {registry} role based authorization using {keycloak}
+.Configuration for {registry} role-based authorization using {keycloak}
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
 |===
 |Environment variable
@@ -162,7 +157,7 @@ variables defined in the table above):
 
 To enable using roles managed internally by {registry}, set the following environment variables:
 
-.Configuration for {registry} role based authorization using internal role mappings
+.Configuration for {registry} role-based authorization using internal role mappings
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
 |===
 |Environment variable
@@ -198,7 +193,7 @@ configuration can be controlled with the following environment variables:
 |String
 |`token`
 |`REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE`
-|The type of information used to determine if a user is an Admin.  Values depend on the FROM above.  E.g. `role` or `claim` when FROM is `token`.
+|The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
 |`REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE`
@@ -210,13 +205,13 @@ configuration can be controlled with the following environment variables:
 |String
 |`org-admin`
 |`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM-VALUE`
-|The value that the JWT token claim indicated by CLAIM must be for the user to be granted admin-override.
+|The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`
 |===
 
-For example, the admin-override feature would allow you to assign the `sr-admin` role to a single user
-in {keycloak} which would grant that user the Admin role.  That user could then use the `/admin/roleMappings`
+For example, you can use the admin-override feature to assign the `sr-admin` role to a single user
+in {keycloak}, which grants that user the admin role.  That user can then use the `/admin/roleMappings`
 REST API (or associated UI) to grant roles to additional users (including additional admins).
 
 [discrete]

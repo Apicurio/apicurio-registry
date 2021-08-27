@@ -116,6 +116,10 @@ export class ConfigService implements Service {
         return this.features().breadcrumbs || false;
     }
 
+    public featureRoleManagement(): boolean {
+        return this.features().roleManagement || false;
+    }
+
     public authType(): string {
         if (!this.config.auth || !this.config.auth.type) {
             return "";

@@ -7,15 +7,15 @@ defvalue="foo"
 
 BRANCH_NAME="$1"       # Git Branch
 IMAGE_REPOSITORY="$2"  # Image Repository, e.g. docker.io, quay.io
-RELEASE_TYPE="$3"      # Either 'snapshot' or 'release'
+RELEASE_TYPE="$3"      # Either 'snapshot' or 'release' or 'pre-release'
 RELEASE_VERSION=${4:-$defvalue}   # Release version (Pass the release version if you also want images tagged with the release version to be pushed)
 
 
 
 # Check if release type is valid
-if [[ ($RELEASE_TYPE != "release") &&  ($RELEASE_TYPE != "snapshot") ]]
+if [[ ($RELEASE_TYPE != "release") &&  ($RELEASE_TYPE != "snapshot") &&  ($RELEASE_TYPE != "pre-release") ]]
 then
-    echo "ERROR: Illegal value '${RELEASE_TYPE}' for variable 'RELEASE_TYPE'. Values can only be [release, snapshot]"
+    echo "ERROR: Illegal value '${RELEASE_TYPE}' for variable 'RELEASE_TYPE'. Values can only be [release, snapshot, pre-release]"
     exit 1	  
 fi
 
@@ -34,6 +34,15 @@ then
     echo "Pushing Images With '${RELEASE_VERSION}' Tag."
     make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${RELEASE_VERSION} push-all-images
 fi
+
+
+# If it is a pre-release, skip images with other tags
+if [[ $RELEASE_TYPE == "pre-release" ]]
+then
+    echo "This is a '${RELEASE_TYPE}'. Skipping other image tags."
+    exit 0
+fi
+
 
 case $BRANCH_NAME in
 

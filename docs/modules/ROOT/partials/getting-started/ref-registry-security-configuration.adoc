@@ -5,16 +5,18 @@
 = {registry} authentication and authorization configuration options
 
 [role="_abstract"]
-This section describes the authentication and authorization options for {registry} using {keycloak}. 
+This section describes the authentication and authorization options for {registry} using {keycloak}.
 
 You can enable authentication for the {registry} web console and core REST API using {keycloak}. The same {keycloak} realm and users are federated across the {registry} web console and core REST API using Open ID Connect (OIDC) so that you only require one set of credentials.
 
-{registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization options are disabled by default. 
+{registry} supports a number of authorization configurations, including role-based and content-based approaches.
+{registry} provides role-based authorization for default admin, write, and read-only user roles.
+{registry} also provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization options are disabled by default.
 
 .Prerequisites
 * {keycloak} is installed and running, and configured with a {keycloak} realm and a user. For more details, see
 ifdef::apicurio-registry[]
-link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
+link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}].
 endif::[]
 ifdef::rh-service-registry[]
 link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/html-single/getting_started_guide/index[Getting Started with {keycloak}].
@@ -34,7 +36,7 @@ You can set the following environment variables to configure authentication for 
 |Type
 |Default
 |`AUTH_ENABLED`
-|When set to `true`, the environment variables that follow are required.
+|Enables/disables authentication in registry.  When set to `true`, the environment variables that follow are required.
 |String
 |`false`
 |`KEYCLOAK_URL`
@@ -55,28 +57,75 @@ You can set the following environment variables to configure authentication for 
 |`apicurio-registry`
 |===
 
-[discrete]
-== {registry} user roles in {keycloak}
+NOTE: By default, {registry} supports authentication using the OpenID Connect protocol.  This means that users (or API clients) must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration property to `true`:
 
-// Added in version v2.0.1
-////
-Set the following option to `true` to enable {registry} user roles for use in {keycloak}:
-
-.Configuration for {registry} user roles
+.Configuration for {registry} to enable BASIC authentication support
 [%header,cols="2,2,1,1"]
 |===
 |Environment variable
 |Java system property
 |Type
 |Default value
-|`ROLES_ENABLED`
-|`registry.auth.roles.enabled`
+|`CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED`
+|`registry.auth.basic-auth-client-credentials.enabled`
 |Boolean
 |`false`
 |===
-////
 
-When {registry} authentication is enabled, you must assign {registry} users to at least one of the following user roles in {keycloak}: 
+
+[discrete]
+== Role-based authorization in {registry}
+
+Set the following option to `true` to enable role-based authorization in {registry}:
+
+.Configuration for {registry} role-based authorization
+[%header,cols="2,2,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`ROLE_BASED_AUTHZ_ENABLED`
+|`registry.auth.role-based-authorization`
+|Boolean
+|`false`
+|===
+
+You can configure role-based authorization to use roles found in the user's authentication token (for example, granted when authenticating using {keycloak}), or to use role mappings managed internally by {registry}.
+
+[discrete]
+=== Using roles from {keycloak}
+
+To enable using roles assigned by {keycloak} set the following environment variables:
+
+.Configuration for {registry} role-based authorization using {keycloak}
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`ROLE_BASED_AUTHZ_SOURCE`
+| When set to `token`, user roles will be taken from the auth token.
+|String
+|`token`
+|`REGISTRY_AUTH_ROLES_ADMIN`
+|The name of the role that indicates a user is an Admin.
+|String
+|`sr-admin`
+|`REGISTRY_AUTH_ROLES_DEVELOPER`
+|The name of the role that indicates a user is a Developer.
+|String
+|`sr-developer`
+|`REGISTRY_AUTH_ROLES_READONLY`
+|The name of the role that indicates a user has Read Only access.
+|String
+|`sr-readonly`
+|===
+
+When {registry} is configured to use roles from {keycloak}, you must assign {registry} users to at least one
+of the following user roles in {keycloak} (note that the role names are configurable via the environment
+variables defined in the table above):
 
 .{registry} roles for authentication and authorization
 [.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
@@ -100,8 +149,70 @@ When {registry} authentication is enabled, you must assign {registry} users to a
 |Yes
 |No
 |No
-|Access to read and search operations only. This role cannot configure any rules. 
+|Access to read and search operations only. This role cannot configure any rules.
 |===
+
+[discrete]
+=== Managing roles directly in {registry}
+
+To enable using roles managed internally by {registry}, set the following environment variables:
+
+.Configuration for {registry} role-based authorization using internal role mappings
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`ROLE_BASED_AUTHZ_SOURCE`
+| When set to `application`, user roles will be managed internally.
+|String
+|`token`
+|===
+
+When using internally managed role mappings, users can be assigned a role using the `/admin/roleMappings`
+endpoint in the {registry} REST API.  See the REST API documentation for details on how to use that API.
+Users can be granted exactly one role:  `ADMIN`, `DEVELOPER`, or `READ_ONLY`.  Only users with Admin
+privileges can grant access to other users.  Because there are no default Admin users in {registry}, it
+is usually helpful to configure another way for users to be identified as admins.  This admin-override
+configuration can be controlled with the following environment variables:
+
+.Configuration for {registry} admin-override functionality
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED`
+| Enables the admin-override feature.
+|String
+|`false`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_FROM`
+|Where to look for admin-override information.  Only `token` is currently supported.
+|String
+|`token`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE`
+|The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
+|String
+|`role`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE`
+|The name of the role that indicates a user is an Admin.
+|String
+|`sr-admin`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM`
+|The name of a JWT token claim to use for determining admin-override.
+|String
+|`org-admin`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM-VALUE`
+|The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
+|String
+|`true`
+|===
+
+For example, you can use the admin-override feature to assign the `sr-admin` role to a single user
+in {keycloak}, which grants that user the admin role.  That user can then use the `/admin/roleMappings`
+REST API (or associated UI) to grant roles to additional users (including additional admins).
 
 [discrete]
 == {registry} artifact owner-only authorization option
@@ -115,8 +226,37 @@ Set the following option to `true` to enable owner-only authorization for update
 |Java system property
 |Type
 |Default value
-|`REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION`
+|`OWNER_ONLY_AUTHZ_ENABLED`
 |`registry.auth.owner-only-authorization`
+|Boolean
+|`false`
+|===
+
+Enabling owner-only authorization results in a configuration where users with write access can only modify
+content that they themselves created.  So users will not be able to update or delete artifacts created by
+other users.
+
+[discrete]
+== Additional {registry} authorization options
+
+In addition to the two main types of authorization (role-based and owner-based authorization), {registry}
+supports the following authorization related features.
+
+[discrete]
+=== Anonymous read-only access
+
+To enable anonymous users (REST API calls with no authentication credentials provided) to be allowed to make
+read-only calls to the REST API, the following option must be set to `true`:
+
+.Configuration for anonymous read-only access
+[%header,cols="2,2,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`REGISTRY_AUTH_ANONYMOUS-READ-ACCESS_ENABLED`
+|`registry.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`
 |===
@@ -135,4 +275,4 @@ endif::[]
 ifdef::rh-service-registry[]
 see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
 endif::[]
-* For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation] 
+* For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]

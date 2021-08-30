@@ -80,12 +80,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.isLoading() ?
-                            <Flex>
-                                <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
-                            </Flex>
-                        : this.artifactsCount() === 0 ?
+                        this.artifactsCount() === 0 ?
                             <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
                             <React.Fragment>

@@ -148,15 +148,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                                groupId={groupId}
                                                artifactId={this.artifactId()} />
                 </PageSection>
-                {
-                    this.isLoading() ?
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
-                    <Flex>
-                        <FlexItem><Spinner size="lg"/></FlexItem>
-                        <FlexItem><span>Loading, please wait...</span></FlexItem>
-                    </Flex>
-                </PageSection>
-                    :
                 <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{default : "noPadding"}} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                           unmountOnExit={true}
@@ -166,7 +157,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                           onSelect={this.handleTabClick}
                     />
                 </PageSection>
-                }
                 <Modal
                     title="Upload Artifact Version"
                     variant="large"

@@ -15,7 +15,6 @@
  */
 package io.apicurio.registry.mt;
 
-import io.apicurio.registry.rest.Headers;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
@@ -24,7 +23,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * This class centralizes the logic to resolve the tenantId from an http request.
@@ -57,30 +56,40 @@ public class TenantIdResolver {
         multitenancyBasePath = "/" + mtProperties.getNameMultitenancyBasePath() + "/";
     }
 
+    // TODO does anyone call this?
     public boolean resolveTenantId(RoutingContext ctx) {
-        return resolveTenantId(ctx.request().uri(), () -> ctx.request().getHeader(Headers.TENANT_ID), null);
+        return resolveTenantId(ctx.request().uri(), (headerName) -> ctx.request().getHeader(headerName), null);
     }
 
-    public boolean resolveTenantId(String uri, Supplier<String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
+    public boolean resolveTenantId(String uri, Function<String, String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
 
         if (mtProperties.isMultitenancyEnabled()) {
             log.trace("Resolving tenantId for request {}", uri);
 
-            if (uri.startsWith(multitenancyBasePath)) {
-                String[] tokens = uri.split("/");
-                // 0 is empty
-                // 1 is t
-                // 2 is the tenantId
-                String tenantId = tokens[TENANT_ID_POSITION];
-                RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
-                tenantContext.setContext(context);
-                if (afterSuccessfullUrlResolution != null) {
-                    afterSuccessfullUrlResolution.accept(tenantId);
+            if (mtProperties.isMultitenancyContextPathEnabled()) {
+                if (uri.startsWith(multitenancyBasePath)) {
+                    String[] tokens = uri.split("/");
+                    // 0 is empty
+                    // 1 is t
+                    // 2 is the tenantId
+                    String tenantId = tokens[TENANT_ID_POSITION];
+                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                    tenantContext.setContext(context);
+                    if (afterSuccessfullUrlResolution != null) {
+                        afterSuccessfullUrlResolution.accept(tenantId);
+                    }
+                    return true;
                 }
-                return true;
             }
+        }
 
-            String tenantId = tenantIdHeaderProvider.get();
+        if (mtProperties.isMultitenancySubdomainEnabled()) {
+            // TODO implement sub-domain handling!
+
+        }
+
+        if (mtProperties.isMultitenancyRequestHeaderEnabled()) {
+            String tenantId = tenantIdHeaderProvider.apply(mtProperties.getTenantIdRequestHeader());
             if (tenantId != null) {
                 RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
                 tenantContext.setContext(context);
@@ -88,6 +97,7 @@ public class TenantIdResolver {
             }
 
         }
+
         //apply default tenant context
         tenantContext.setContext(contextLoader.defaultTenantContext());
         return false;

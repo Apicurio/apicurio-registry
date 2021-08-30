@@ -47,7 +47,7 @@ import java.io.IOException;
  *
  * Multitenancy: the registry can accept per-tenant URLs, accepting requests like /t/{tenantId}/...rest of the api...
  *
- * Disable APIs: it's possible to provide a list of regular expresions for disable API paths.
+ * Disable APIs: it's possible to provide a list of regular expresions to disable API paths.
  * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
  * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
  *
@@ -90,7 +90,7 @@ public class RegistryApplicationServletFilter implements Filter {
             //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = false;
             try {
-                tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
+                tenantResolved = tenantIdResolver.resolveTenantId(requestURI, (headerName) -> req.getHeader(headerName),
                         (tenantId) -> {
 
                             String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));

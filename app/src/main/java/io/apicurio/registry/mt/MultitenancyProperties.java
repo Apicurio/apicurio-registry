@@ -31,16 +31,36 @@ import java.util.Optional;
 public class MultitenancyProperties {
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy")
+    @ConfigProperty(name = "registry.enable.multitenancy", defaultValue = "false")
     boolean multitenancyEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.enabled", defaultValue = "true")
+    boolean mtContextPathEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "true")
+    boolean mtSubdomainEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.enabled", defaultValue = "true")
+    boolean mtRequestHeaderEnabled;
 
     @Inject
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.base.path")
+    @ConfigProperty(name = "registry.multitenancy.base.path", defaultValue = "t")
     String nameMultitenancyBasePath;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.info")
+    String subdomainMultitenancyPattern;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.request-header.name", defaultValue = "X-Registry-Tenant-Id")
+    String tenantIdRequestHeader;
 
     @Inject
     @ConfigProperty(name = "registry.multitenancy.reaper.every")
@@ -79,10 +99,45 @@ public class MultitenancyProperties {
     }
 
     /**
+     * @return true if multitenancy context paths are enabled
+     */
+    public boolean isMultitenancyContextPathEnabled() {
+        return mtContextPathEnabled;
+    }
+
+    /**
+     * @return true if multitenancy subdomains are enabled
+     */
+    public boolean isMultitenancySubdomainEnabled() {
+        return mtSubdomainEnabled;
+    }
+
+    /**
+     * @return true if multitenancy request headers are enabled
+     */
+    public boolean isMultitenancyRequestHeaderEnabled() {
+        return mtRequestHeaderEnabled;
+    }
+
+    /**
      * @return the nameMultitenancyBasePath
      */
     public String getNameMultitenancyBasePath() {
         return nameMultitenancyBasePath;
+    }
+
+    /**
+     * @return the subdomain pattern
+     */
+    public String getSubdomainMultitenancyPattern() {
+        return subdomainMultitenancyPattern;
+    }
+
+    /**
+     * @return the HTTP request header containing a tenant ID
+     */
+    public String getTenantIdRequestHeader() {
+        return tenantIdRequestHeader;
     }
 
     public Duration getReaperPeriod() {

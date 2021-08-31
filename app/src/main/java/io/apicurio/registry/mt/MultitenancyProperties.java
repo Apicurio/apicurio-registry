@@ -47,19 +47,23 @@ public class MultitenancyProperties {
     boolean mtRequestHeaderEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.base.path", defaultValue = "t")
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.base-path", defaultValue = "t")
     String nameMultitenancyBasePath;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.info")
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.location", defaultValue = "header")
+    String subdomainMultitenancyLocation;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.header-name", defaultValue = "Host")
+    String subdomainMultitenancyHeaderName;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.local")
     String subdomainMultitenancyPattern;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.request-header.name", defaultValue = "X-Registry-Tenant-Id")
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.name", defaultValue = "X-Registry-Tenant-Id")
     String tenantIdRequestHeader;
 
     @Inject
@@ -73,6 +77,10 @@ public class MultitenancyProperties {
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
     Optional<String> tenantManagerUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
+    Optional<Boolean> tenantManagerAuthEnabled;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.url.configured")
@@ -127,6 +135,20 @@ public class MultitenancyProperties {
     }
 
     /**
+     * @return the subdomain location (e.g. "header" or "serverName")
+     */
+    public String getSubdomainMultitenancyLocation() {
+        return subdomainMultitenancyLocation;
+    }
+
+    /**
+     * @return the subdomain header name (when the location is "header")
+     */
+    public String getSubdomainMultitenancyHeaderName() {
+        return subdomainMultitenancyHeaderName;
+    }
+
+    /**
      * @return the subdomain pattern
      */
     public String getSubdomainMultitenancyPattern() {
@@ -152,10 +174,10 @@ public class MultitenancyProperties {
     }
 
     /**
-     * @return if auth is enabled
+     * @return true if tenant management authentication is enabled
      */
-    public boolean isAuthEnabled() {
-        return authEnabled;
+    public boolean isTenantManagerAuthEnabled() {
+        return tenantManagerAuthEnabled.orElse(Boolean.FALSE);
     }
 
     /**

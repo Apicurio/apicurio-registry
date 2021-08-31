@@ -15,15 +15,19 @@
  */
 package io.apicurio.registry.mt;
 
-import io.quarkus.runtime.StartupEvent;
-import io.vertx.ext.web.RoutingContext;
-import org.slf4j.Logger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import java.util.function.Consumer;
-import java.util.function.Function;
+
+import org.slf4j.Logger;
+
+import io.quarkus.runtime.StartupEvent;
 
 /**
  * This class centralizes the logic to resolve the tenantId from an http request.
@@ -49,24 +53,46 @@ public class TenantIdResolver {
     @Inject
     TenantContextLoader contextLoader;
 
+    Pattern subdomainNamePattern;
+
     void init(@Observes StartupEvent ev) {
         if (mtProperties.isMultitenancyEnabled()) {
             log.info("Registry running with multitenancy enabled");
         }
         multitenancyBasePath = "/" + mtProperties.getNameMultitenancyBasePath() + "/";
+
+        if (mtProperties.isMultitenancySubdomainEnabled()) {
+            this.subdomainNamePattern = Pattern.compile(mtProperties.getSubdomainMultitenancyPattern());
+        }
     }
 
-    // TODO does anyone call this?
-    public boolean resolveTenantId(RoutingContext ctx) {
-        return resolveTenantId(ctx.request().uri(), (headerName) -> ctx.request().getHeader(headerName), null);
-    }
-
-    public boolean resolveTenantId(String uri, Function<String, String> tenantIdHeaderProvider, Consumer<String> afterSuccessfullUrlResolution) {
+    /**
+     * Resolves the tenant ID from the inbound HTTP request.  The tenantId can potentially be located in one
+     * of the following locations:
+     *
+     * 1) In the context path:  https://registry.example.org/t/{tenantId}/apis/registry/v2/search/artifacts
+     * 2) In a request header:  https://registry.example.org/apis/registry/v2/search/artifacts + header X-Registry-Tenant-Id: {tenantId}
+     * 3) In a subdomain:       https://{tenantId}.registry.example.org/apis/registry/v2/search/artifacts
+     *
+     * Configuration options exist to enable/disable checking each of these locations.  Additional configuration
+     * options exist to modify the specific behavior of each approach.  For example, for (2) it is possible to
+     * configure the name of the request header.
+     *
+     * @param uri
+     * @param headerProvider
+     * @param serverNameProvider
+     * @param afterSuccessfullUrlResolution
+     * @return
+     */
+    public boolean resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
+            Consumer<String> afterSuccessfullUrlResolution) {
 
         if (mtProperties.isMultitenancyEnabled()) {
-            log.trace("Resolving tenantId for request {}", uri);
+            log.trace("Resolving tenantId...");
 
+            // Resolve tenantId from context path (if enabled)
             if (mtProperties.isMultitenancyContextPathEnabled()) {
+                log.trace("Resolving tenantId from path: {}", uri);
                 if (uri.startsWith(multitenancyBasePath)) {
                     String[] tokens = uri.split("/");
                     // 0 is empty
@@ -79,23 +105,56 @@ public class TenantIdResolver {
                         afterSuccessfullUrlResolution.accept(tenantId);
                     }
                     return true;
+                } else {
+                    log.warn("Context-path multi-tenancy enabled.  Detected unmatched path.");
                 }
             }
-        }
 
-        if (mtProperties.isMultitenancySubdomainEnabled()) {
-            // TODO implement sub-domain handling!
+            // Resolve tenantId from domain name (if enabled)
+            if (mtProperties.isMultitenancySubdomainEnabled()) {
+                log.trace("Resolving tenantId from subdomain.");
 
-        }
+                // Get the domain name from the request (configurable to either get it from a request header or the request's server name).
+                String domain = null;
+                String domainLocation = mtProperties.getSubdomainMultitenancyLocation();
+                if (domainLocation.equals("header")) {
+                    String domainHeaderName = mtProperties.getSubdomainMultitenancyHeaderName();
+                    domain = headerProvider.apply(domainHeaderName);
+                } else if (domainLocation.equals("serverName")) {
+                    domain = serverNameProvider.get();
+                } else {
+                    log.warn("Unknown domain location: " + domainLocation);
+                    domain = "";
+                }
 
-        if (mtProperties.isMultitenancyRequestHeaderEnabled()) {
-            String tenantId = tenantIdHeaderProvider.apply(mtProperties.getTenantIdRequestHeader());
-            if (tenantId != null) {
-                RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
-                tenantContext.setContext(context);
-                return true;
+                // Now try to match the domain name against the subdomain pattern to extract the tenantId.
+                // E.g. 12345.example.org where "12345" is the tenantId
+                Matcher matcher = this.subdomainNamePattern.matcher(domain);
+                if (matcher.matches()) {
+                    String tenantId = matcher.group(1);
+                    if (tenantId != null) {
+                        RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                        tenantContext.setContext(context);
+                        return true;
+                    }
+                } else {
+                    log.warn("Subdomain multi-tenancy enabled.  Detected unmatched domain: " + domain);
+                }
             }
 
+            // Resolve tenantId from request header (if enabled)
+            if (mtProperties.isMultitenancyRequestHeaderEnabled()) {
+                String headerName = mtProperties.getTenantIdRequestHeader();
+                log.trace("Resolving tenantId from request header named: {}", headerName);
+                String tenantId = headerProvider.apply(headerName);
+                if (tenantId != null) {
+                    RegistryTenantContext context = contextLoader.loadRequestContext(tenantId);
+                    tenantContext.setContext(context);
+                    return true;
+                } else {
+                    log.warn("Request header multi-tenancy enabled, but header value not found in request.");
+                }
+            }
         }
 
         //apply default tenant context

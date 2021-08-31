@@ -87,12 +87,18 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
-            //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
+            // TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = false;
             try {
-                tenantResolved = tenantIdResolver.resolveTenantId(requestURI, (headerName) -> req.getHeader(headerName),
+                tenantResolved = tenantIdResolver.resolveTenantId(
+                        // Request URI
+                        requestURI,
+                        // Function to get an HTTP request header value
+                        (headerName) -> req.getHeader(headerName),
+                        // Function to get the serverName from the HTTP request
+                        () -> req.getServerName(),
+                        // Handler/callback to do some URL rewriting only if needed
                         (tenantId) -> {
-
                             String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
                             if (actualUri.length() == 0) {
                                 actualUri = "/";
@@ -101,7 +107,6 @@ public class RegistryApplicationServletFilter implements Filter {
                             log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
 
                             rewriteContext.append(actualUri);
-
                         });
             } catch (Throwable e) {
                 ErrorHttpResponse res = exceptionMapper.mapException(e);

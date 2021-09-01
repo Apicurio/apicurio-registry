@@ -17,6 +17,10 @@
 package io.apicurio.registry.rest.client.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
@@ -43,9 +47,11 @@ import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +73,10 @@ public class RegistryClientImpl implements RegistryClient {
     private final ApicurioHttpClient apicurioHttpClient;
     private static final Logger logger = LoggerFactory.getLogger(RegistryClientImpl.class);
 
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper xmlMapper = new ObjectMapper(new XmlFactory());
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+
     public RegistryClientImpl(ApicurioHttpClient apicurioHttpClient) {
         this.apicurioHttpClient = apicurioHttpClient;
     }
@@ -79,7 +89,9 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
         Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, data));
+        String content = IoUtil.toString(data);
+        headers.put(Headers.CONTENT_TYPE, contentType(null, content));
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, IoUtil.toStream(content)));
     }
 
     @Override
@@ -202,7 +214,9 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
         Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
+        String content = IoUtil.toString(data);
+        headers.put(Headers.CONTENT_TYPE, contentType(null, content));
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, IoUtil.toStream(content), headers));
     }
 
     @Override
@@ -224,6 +238,8 @@ public class RegistryClientImpl implements RegistryClient {
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
+        String content = IoUtil.toString(data);
+        headers.put(Headers.CONTENT_TYPE, contentType(artifactType, content));
 
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -232,7 +248,7 @@ public class RegistryClientImpl implements RegistryClient {
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, IoUtil.toStream(content), queryParams));
     }
 
     @Override
@@ -453,5 +469,64 @@ public class RegistryClientImpl implements RegistryClient {
         error.setMessage(ex.getMessage());
         logger.debug("Error serializing request response", ex);
         return new RestClientException(error);
+    }
+
+    private static String contentType(ArtifactType artifactType, String content) {
+        if (artifactType != null) {
+            switch (artifactType) {
+                case PROTOBUF:
+                    return ContentTypes.APPLICATION_PROTOBUF;
+                case WSDL:
+                case XSD:
+                case XML:
+                    return ContentTypes.APPLICATION_XML;
+                case GRAPHQL:
+                    return ContentTypes.APPLICATION_GRAPHQL;
+            }
+        }
+        if (isJson(content)) {
+            return ContentTypes.APPLICATION_JSON;
+        } else if (isXml(content)) {
+            return ContentTypes.APPLICATION_XML;
+        } else if (isYaml(content)) {
+            return ContentTypes.APPLICATION_YAML;
+        }
+        return ContentTypes.APPLICATION_OCTET_STREAM;
+    }
+
+    private static boolean isJson(String content) {
+        try {
+            JsonNode jsonNode = jsonMapper.readTree(content);
+            if (jsonNode != null) {
+                return true;
+            }
+        } catch (Exception ex) {
+            // Nothing to do - it is not json
+        }
+        return false;
+    }
+
+    private static boolean isXml(String content) {
+        try {
+            JsonNode jsonNode = xmlMapper.readTree(content);
+            if (jsonNode != null) {
+                return true;
+            }
+        } catch (Exception ex) {
+            // Nothing to do - it is not xml
+        }
+        return false;
+    }
+
+    private static boolean isYaml(String content) {
+        try {
+            JsonNode jsonNode = yamlMapper.readTree(content);
+            if (jsonNode != null) {
+                return true;
+            }
+        } catch (Exception ex) {
+            // Nothing to do - it is not yaml
+        }
+        return false;
     }
 }

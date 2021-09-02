@@ -482,6 +482,8 @@ public class RegistryClientImpl implements RegistryClient {
                     return ContentTypes.APPLICATION_XML;
                 case GRAPHQL:
                     return ContentTypes.APPLICATION_GRAPHQL;
+                case JSON:
+                    return ContentTypes.APPLICATION_JSON;
             }
         }
         if (isJson(content)) {
@@ -491,7 +493,7 @@ public class RegistryClientImpl implements RegistryClient {
         } else if (isYaml(content)) {
             return ContentTypes.APPLICATION_YAML;
         }
-        return ContentTypes.APPLICATION_OCTET_STREAM;
+        return ContentTypes.APPLICATION_JSON; // JSON is default to preserve previous behaviour
     }
 
     private static boolean isJson(String content) {

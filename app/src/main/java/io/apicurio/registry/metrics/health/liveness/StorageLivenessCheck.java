@@ -42,7 +42,7 @@ public class StorageLivenessCheck implements HealthCheck {
     public synchronized HealthCheckResponse call() {
         return HealthCheckResponse.builder()
                                   .name("StorageLivenessCheck")
-                                  .state(storage.isAlive())
+                                  .status(storage.isAlive())
                                   .build();
     }
 }

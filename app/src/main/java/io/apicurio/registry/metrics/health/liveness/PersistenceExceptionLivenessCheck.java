@@ -62,7 +62,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
         return HealthCheckResponse.builder()
                 .name("PersistenceExceptionLivenessCheck")
                 .withData("errorCount", errorCounter)
-                .state(up)
+                .up()
                 .build();
     }
 

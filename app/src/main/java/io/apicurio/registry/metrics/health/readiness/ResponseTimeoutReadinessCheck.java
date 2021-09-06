@@ -100,7 +100,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
         return HealthCheckResponse.builder()
                 .name("ResponseTimeoutReadinessCheck")
                 .withData("errorCount", errorCounter)
-                .state(up)
+                .up()
                 .build();
     }
 }

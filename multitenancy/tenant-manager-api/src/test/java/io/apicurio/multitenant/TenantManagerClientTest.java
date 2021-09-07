@@ -60,6 +60,7 @@ public class TenantManagerClientTest {
     }
 
     @BeforeEach
+    @SuppressWarnings("deprecation")
     public void cleanup() {
         List<RegistryTenant> list = client.listTenants();
         list.forEach(t -> client.deleteTenant(t.getTenantId()));

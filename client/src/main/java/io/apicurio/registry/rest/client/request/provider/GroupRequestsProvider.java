@@ -278,10 +278,11 @@ public class GroupRequestsProvider {
                 .build();
     }
 
-    public static Request<ArtifactMetaData> updateArtifact(String groupId, String artifactId, InputStream data) {
+    public static Request<ArtifactMetaData> updateArtifact(String groupId, String artifactId, Map<String, String> headers, InputStream data) {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.PUT)
                 .path(Routes.ARTIFACT_BASE_PATH)
+                .headers(headers)
                 .pathParams(List.of(groupId, artifactId))
                 .responseType(new TypeReference<ArtifactMetaData>() {
                 })

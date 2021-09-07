@@ -17,8 +17,7 @@
 
 import React from "react";
 import "./artifacts.css";
-import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
-import {ArtifactsPageHeader} from "./components/pageheader";
+import {Button, Modal, PageSection, PageSectionVariants} from '@patternfly/react-core';
 import {ArtifactList} from "./components/artifactList";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
@@ -29,6 +28,7 @@ import {If} from "../../components/common/if";
 import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services} from "../../../services";
 import {SearchedArtifact} from "../../../models";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
+import {RootPageHeader} from "../../components";
 
 
 /**
@@ -66,8 +66,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
-                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
+                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={0} />
                 </PageSection>
                 <If condition={this.showToolbar}>
                     <PageSection variant={PageSectionVariants.light} padding={{default : "noPadding"}}>
@@ -75,17 +75,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                               paging={this.state.paging}
                                               onPerPageSelect={this.onPerPageSelect}
                                               onSetPage={this.onSetPage}
+                                              onUploadArtifact={this.onUploadArtifact}
                                               onChange={this.onFilterChange}/>
                     </PageSection>
                 </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.isLoading() ?
-                            <Flex>
-                                <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
-                            </Flex>
-                        : this.artifactsCount() === 0 ?
+                        this.artifactsCount() === 0 ?
                             <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
                             <React.Fragment>

@@ -31,7 +31,7 @@ import {
     ToolbarItem
 } from '@patternfly/react-core';
 import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {IfAuth, IfFeature, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {OnPerPageSelect, OnSetPage} from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import {ArtifactsSearchResults, GetArtifactsCriteria, Paging, Services} from "../../../../../services";
 
@@ -44,6 +44,7 @@ export interface ArtifactsPageToolbarProps extends PureComponentProps {
     paging: Paging;
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
+    onUploadArtifact: () => void;
 }
 
 /**
@@ -104,6 +105,14 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                 this.state.ascending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                             }
                         </Button>
+                    </ToolbarItem>
+                    <ToolbarItem className="upload-artifact-item">
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <Button className="btn-header-upload-artifact" data-testid="btn-header-upload-artifact"
+                                        variant="primary" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                            </IfFeature>
+                        </IfAuth>
                     </ToolbarItem>
                     <ToolbarItem className="artifact-paging-item">
                         <Pagination

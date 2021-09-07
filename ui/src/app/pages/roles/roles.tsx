@@ -17,22 +17,12 @@
 
 import React from "react";
 import "./roles.css";
-import {
-    Button,
-    Flex,
-    FlexItem,
-    Modal,
-    PageSection,
-    PageSectionVariants,
-    Spinner,
-    TextContent
-} from '@patternfly/react-core';
+import {Button, Flex, FlexItem, PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {RolesPageHeader} from "./components/pageheader";
 import {RoleMapping} from "../../../models";
 import {Services} from "../../../services";
 import {GrantAccessModal, RoleList, RoleMappingsEmptyState} from "./components";
-import {PleaseWaitModal} from "../../components";
+import {PleaseWaitModal, RootPageHeader} from "../../components";
 
 
 /**
@@ -66,8 +56,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
-                <PageSection className="ps_roles-header" variant={PageSectionVariants.light}>
-                    <RolesPageHeader />
+                <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
+                    <RootPageHeader tabKey={2} />
                 </PageSection>
                 <PageSection className="ps_roles-description" variant={PageSectionVariants.light}>
                     <Flex>
@@ -83,15 +73,10 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.isLoading() ?
-                            <Flex>
-                                <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
-                            </Flex>
-                            : this.state.roles.length === 0 ?
-                            <RoleMappingsEmptyState />
-                            :
-                            <RoleList roles={this.state.roles} onRevoke={this.onRevokeRoleMapping}></RoleList>
+                        this.state.roles.length === 0 ?
+                        <RoleMappingsEmptyState />
+                        :
+                        <RoleList roles={this.state.roles} onRevoke={this.onRevokeRoleMapping}></RoleList>
                     }
                 </PageSection>
                 <GrantAccessModal isOpen={this.state.isCreateRoleMappingModalOpen}

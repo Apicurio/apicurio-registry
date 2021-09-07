@@ -17,14 +17,12 @@
 import React from "react";
 import "./artifactVersion.css";
 import {
-    Breadcrumb, BreadcrumbItem,
+    Breadcrumb,
+    BreadcrumbItem,
     Button,
-    Flex,
-    FlexItem,
     Modal,
     PageSection,
     PageSectionVariants,
-    Spinner,
     Tab,
     Tabs
 } from '@patternfly/react-core';
@@ -140,33 +138,25 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
-                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactVersionPageHeader versions={this.versions()}
+                <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
+                    <ArtifactVersionPageHeader title={this.nameOrId()}
+                                               versions={this.versions()}
                                                version={this.versionParam()}
                                                onUploadVersion={this.onUploadVersion}
                                                onDeleteArtifact={this.onDeleteArtifact}
                                                groupId={groupId}
                                                artifactId={this.artifactId()} />
                 </PageSection>
-                {
-                    this.isLoading() ?
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
-                    <Flex>
-                        <FlexItem><Spinner size="lg"/></FlexItem>
-                        <FlexItem><span>Loading, please wait...</span></FlexItem>
-                    </Flex>
-                </PageSection>
-                    :
                 <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{default : "noPadding"}} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
+                          id="artifact-page-tabs"
                           unmountOnExit={true}
-                          isFilled={true}
+                          isFilled={false}
                           activeKey={this.state.activeTabKey}
                           children={tabs}
                           onSelect={this.handleTabClick}
                     />
                 </PageSection>
-                }
                 <Modal
                     title="Upload Artifact Version"
                     variant="large"
@@ -355,6 +345,13 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         const fname: string = this.artifactNameOrId() + "." + fext;
         Services.getDownloaderService().downloadToFS(content, contentType, fname);
     };
+
+    private nameOrId(): string {
+        if (!this.state.artifact) {
+            return "";
+        }
+        return this.state.artifact.name ? this.state.artifact.name : this.state.artifact.id;
+    }
 
     private versions(): SearchedVersion[] {
         return this.state.versions ? this.state.versions : [];

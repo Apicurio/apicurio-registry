@@ -54,6 +54,7 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
         return this.createClient(auth);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testWrongCreds() throws Exception {
         OidcAuth auth = new OidcAuth(authServerUrl, clientId, "wrongsecret");

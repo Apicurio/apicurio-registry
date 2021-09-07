@@ -16,51 +16,48 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfileBasicClientCredentials;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.BasicAuth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
+/**
+ * @author eric.wittmann@gmail.com
+ */
 @QuarkusTest
-@TestProfile(AuthTestProfileBasicClientCredentials.class)
+@TestProfile(AuthTestProfileAnonymousCredentials.class)
 @Tag(ApicurioTestTags.DOCKER)
-public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
+public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
     String noRoleClientId = "registry-api-no-role";
 
-    final String groupId = "authTestGroupId";
+    final String groupId = getClass().getSimpleName() + "Group";
 
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
-    /**
-     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
-     */
     @Override
     protected RegistryClient createRestClientV2() {
         Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1");
@@ -69,40 +66,29 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new BasicAuth(noRoleClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
         });
     }
 
-
-    @Test
-    public void testBasicAuthClientCredentials() throws Exception {
-        Auth auth = new BasicAuth(noRoleClientId, "test1");
-        RegistryClient client = createClient(auth);
-        String artifactId = TestUtils.generateArtifactId();
-        try {
-            client.listArtifactsInGroup(groupId);
-            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
-            assertNotNull(client.getLatestArtifact(groupId, artifactId));
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.createArtifactRule(groupId, artifactId, ruleConfig);
-
-            client.createGlobalRule(ruleConfig);
-        } finally {
-            client.deleteArtifact(groupId, artifactId);
-        }
-    }
-
     @Test
     public void testNoCredentials() throws Exception {
         RegistryClient client = RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), null);
+        // Read-only operation should work without any credentials.
+        ArtifactSearchResults results = client.searchArtifacts(groupId, null, null, null, null, null, null, null, null);
+        Assertions.assertTrue(results.getCount() >= 0);
+
+        // Write operation should fail without any credentials
+        InputStream data = new ByteArrayInputStream(("{\r\n" +
+                "    \"type\" : \"record\",\r\n" +
+                "    \"name\" : \"userInfo\",\r\n" +
+                "    \"namespace\" : \"my.example\",\r\n" +
+                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
+                "}").getBytes(StandardCharsets.UTF_8));
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.listArtifactsInGroup(groupId);
+            client.createArtifact(groupId, "testNoCredentials", ArtifactType.AVRO, data);
         });
     }
 }

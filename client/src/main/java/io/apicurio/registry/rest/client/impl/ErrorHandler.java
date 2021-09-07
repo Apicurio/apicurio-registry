@@ -20,15 +20,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ExceptionMapper;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.error.ApicurioRestClientException;
 import io.apicurio.rest.client.error.RestClientErrorHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -38,27 +39,28 @@ public class ErrorHandler implements RestClientErrorHandler {
     private static final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private static final Logger logger = Logger.getLogger(ErrorHandler.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
     public static final int UNAUTHORIZED_CODE = 401;
     public static final int FORBIDDEN_CODE = 403;
 
     @Override
-    public RestClientException handleErrorResponse(InputStream body, int statusCode) {
+    public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
             if (statusCode == UNAUTHORIZED_CODE) {
                 //authorization error
                 Error error = new Error();
                 error.setErrorCode(statusCode);
-                return new NotAuthorizedException(error);
+                return new NotAuthorizedException("Authentication exception");
             } else {
                 if (statusCode == FORBIDDEN_CODE) {
                     //forbidden error
                     Error error = new Error();
                     error.setErrorCode(statusCode);
-                    return new ForbiddenException(error);
+                    return new ForbiddenException("Authorization error");
                 }
             }
             Error error = mapper.readValue(body, Error.class);
+            logger.debug("Error returned by Registry application: {}", error.getMessage());
             return ExceptionMapper.map(new RestClientException(error));
         } catch (Exception e) {
             Throwable cause = extractRootCause(e);
@@ -69,26 +71,27 @@ public class ErrorHandler implements RestClientErrorHandler {
                 Error error = new Error();
                 error.setMessage(cause.getMessage());
                 error.setErrorCode(statusCode);
-                logger.log(Level.SEVERE, "Unknown client exception", cause);
                 return new RestClientException(error);
             }
         }
     }
 
     @Override
-    public RestClientException parseInputSerializingError(JsonProcessingException ex) {
+    public ApicurioRestClientException parseInputSerializingError(JsonProcessingException ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setDetail(ex.getMessage());
         error.setMessage("Error trying to parse request body");
+        logger.debug("Error trying to parse request body:", ex);
         return new RestClientException(new Error());
     }
 
     @Override
-    public RestClientException parseError(Exception ex) {
+    public ApicurioRestClientException parseError(Exception ex) {
         final Error error = new Error();
         error.setName(ex.getClass().getSimpleName());
         error.setMessage(ex.getMessage());
+        logger.debug("Error returned:", ex);
         return new RestClientException(error);
     }
 
@@ -107,6 +110,7 @@ public class ErrorHandler implements RestClientErrorHandler {
         if (cause.getSuppressed().length != 0) {
             cause = cause.getSuppressed()[0];
         }
+        logger.debug("Unknown client exception:", cause);
         return cause;
     }
 }

@@ -30,7 +30,7 @@
 
         <!--junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
         <junit4.version>4.13.2</junit4.version>
-        <wiremock-jre8.version>2.30.1</wiremock-jre8.version>
+        <wiremock-jre8.version>2.31.0</wiremock-jre8.version>
     </properties>
 
     <repositories>

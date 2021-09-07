@@ -45,10 +45,26 @@ public class ArtifactsListPage extends BasePage {
     public void verifyIsOpen() throws Exception {
         selenium.getDriverWait().withTimeout(Duration.ofSeconds(30)).until(ExpectedConditions.and(
                 ExpectedConditions.urlContains("/ui/artifacts")));
-        assertNotNull(selenium.getWebElement(() -> getUploadArtifactOpenDialogButton()));
+        assertNotNull(selenium.getWebElement(() -> getArtifactsTab()));
     }
 
-    public WebElement getUploadArtifactOpenDialogButton() {
+    public WebElement getArtifactsTab() {
+        var tabs = selenium.getDriver().findElements(By.className("pf-c-tabs__item-text"));
+        if (tabs == null) {
+            return null;
+        }
+        return tabs.stream().filter(we -> we.getText().equals("Artifacts")).findFirst().orElse(null);
+    }
+
+    public WebElement getEmptyUploadArtifactOpenDialogButton() {
+        try {
+            return selenium.getDriver().findElement(byDataTestId("empty-btn-upload"));
+        } catch (NoSuchElementException e) {
+            return null;
+        }
+    }
+
+    public WebElement getTopUploadArtifactOpenDialogButton() {
         return selenium.getDriver().findElement(byDataTestId("btn-header-upload-artifact"));
     }
 

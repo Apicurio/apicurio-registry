@@ -19,3 +19,10 @@ You can configure the client used to connect to the registry API like this:
 ```
 java -jar target/apicurio-registry-utils-exportConfluent-2.1.0-SNAPSHOT-runner.jar http://localhost:8081/ --client-props bearer.auth.credentials.source=BEARER_TOKEN
 ```
+
+You can import your data into Apicurio Registry using curl:
+```
+curl -X POST "http://<registry-url>/apis/registry/v2/admin/import" \
+  -H "Accept: application/json" -H "Content-Type: application/zip" \
+  --data-binary @confluent-schema-registry-export.zip
+```

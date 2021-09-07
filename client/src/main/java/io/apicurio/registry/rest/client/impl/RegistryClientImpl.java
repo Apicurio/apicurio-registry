@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 /**
@@ -90,7 +91,6 @@ public class RegistryClientImpl implements RegistryClient {
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
         Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
         String content = IoUtil.toString(data);
-        headers.put(Headers.CONTENT_TYPE, contentType(null, content));
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, IoUtil.toStream(content)));
     }
 
@@ -215,7 +215,6 @@ public class RegistryClientImpl implements RegistryClient {
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
         Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
         String content = IoUtil.toString(data);
-        headers.put(Headers.CONTENT_TYPE, contentType(null, content));
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, IoUtil.toStream(content), headers));
     }
 
@@ -239,7 +238,7 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
         String content = IoUtil.toString(data);
-        headers.put(Headers.CONTENT_TYPE, contentType(artifactType, content));
+        contentType(artifactType, content).ifPresent(contentType -> headers.put(Headers.CONTENT_TYPE, contentType));
 
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -471,29 +470,27 @@ public class RegistryClientImpl implements RegistryClient {
         return new RestClientException(error);
     }
 
-    private static String contentType(ArtifactType artifactType, String content) {
+    private static Optional<String> contentType(ArtifactType artifactType, String content) {
         if (artifactType != null) {
             switch (artifactType) {
                 case PROTOBUF:
-                    return ContentTypes.APPLICATION_PROTOBUF;
+                    return Optional.of(ContentTypes.APPLICATION_PROTOBUF);
                 case WSDL:
                 case XSD:
                 case XML:
-                    return ContentTypes.APPLICATION_XML;
+                    return Optional.of(ContentTypes.APPLICATION_XML);
                 case GRAPHQL:
-                    return ContentTypes.APPLICATION_GRAPHQL;
-                case JSON:
-                    return ContentTypes.APPLICATION_JSON;
+                    return Optional.of(ContentTypes.APPLICATION_GRAPHQL);
             }
         }
         if (isJson(content)) {
-            return ContentTypes.APPLICATION_JSON;
+            return Optional.of(ContentTypes.APPLICATION_JSON);
         } else if (isXml(content)) {
-            return ContentTypes.APPLICATION_XML;
+            return Optional.of(ContentTypes.APPLICATION_XML);
         } else if (isYaml(content)) {
-            return ContentTypes.APPLICATION_YAML;
+            return Optional.of(ContentTypes.APPLICATION_YAML);
         }
-        return ContentTypes.APPLICATION_JSON; // JSON is default to preserve previous behaviour
+        return Optional.empty();
     }
 
     private static boolean isJson(String content) {

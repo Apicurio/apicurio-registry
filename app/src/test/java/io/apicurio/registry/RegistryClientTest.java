@@ -199,6 +199,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
 
+    /*
     @Test
     public void testCreateYamlArtifactVersion() throws Exception {
         //Preparation
@@ -231,6 +232,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
+    */
 
     @Test
     public void testAsyncCRUD() throws Exception {
@@ -890,6 +892,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(description, artifactMetaData.getDescription());
     }
 
+    /*
     @Test
     public void testUpdateYamlArtifact() throws Exception {
 
@@ -915,6 +918,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, artifactMetaData.getName());
         assertEquals(description, artifactMetaData.getDescription());
     }
+     */
 
     @Test
     public void deleteArtifactsInGroup() throws Exception {

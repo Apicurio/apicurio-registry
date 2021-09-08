@@ -63,7 +63,7 @@ public class TenantManagerClientProducer {
                         "but the no \"registry.tenant.manager.url\" is provided");
             }
 
-            if (properties.isAuthEnabled()) {
+            if (properties.isTenantManagerAuthEnabled()) {
 
                 if (properties.getTenantManagerAuthUrl().isEmpty() ||
                         properties.getTenantManagerClientId().isEmpty() ||

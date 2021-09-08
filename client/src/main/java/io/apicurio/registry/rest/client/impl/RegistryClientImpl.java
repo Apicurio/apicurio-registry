@@ -17,10 +17,6 @@
 package io.apicurio.registry.rest.client.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
@@ -47,11 +43,9 @@ import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
-import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +57,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 
 /**
@@ -73,10 +66,6 @@ public class RegistryClientImpl implements RegistryClient {
 
     private final ApicurioHttpClient apicurioHttpClient;
     private static final Logger logger = LoggerFactory.getLogger(RegistryClientImpl.class);
-
-    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-    private static final ObjectMapper xmlMapper = new ObjectMapper(new XmlFactory());
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
 
     public RegistryClientImpl(ApicurioHttpClient apicurioHttpClient) {
         this.apicurioHttpClient = apicurioHttpClient;
@@ -88,10 +77,9 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
-        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
-        String content = IoUtil.toString(data);
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, IoUtil.toStream(content)));
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, data));
     }
 
     @Override
@@ -114,9 +102,10 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, String contentType, InputStream data) {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, queryParams, data));
+        final Map<String, String> headers = contentType != null ? Map.of(Headers.CONTENT_TYPE, contentType) : Collections.emptyMap();
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, headers, queryParams, data));
     }
 
     @Override
@@ -167,8 +156,9 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        apicurioHttpClient.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, data));
+    public void testUpdateArtifact(String groupId, String artifactId, String contentType, InputStream data) {
+        final Map<String, String> headers = contentType != null ? Map.of(Headers.CONTENT_TYPE, contentType) : Collections.emptyMap();
+        apicurioHttpClient.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, headers, data));
     }
 
     @Override
@@ -212,10 +202,9 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
-        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
-        String content = IoUtil.toString(data);
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, IoUtil.toStream(content), headers));
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
     }
 
     @Override
@@ -226,20 +215,17 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
-        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
+        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
         if (artifactId != null) {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
-        String content = IoUtil.toString(data);
-        contentType(artifactType, content).ifPresent(contentType -> headers.put(Headers.CONTENT_TYPE, contentType));
-
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
@@ -247,7 +233,7 @@ public class RegistryClientImpl implements RegistryClient {
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, IoUtil.toStream(content), queryParams));
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
     }
 
     @Override
@@ -448,7 +434,7 @@ public class RegistryClientImpl implements RegistryClient {
         return Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
     }
 
-    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription) {
+    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription, String contentType) {
         final Map<String, String> headers = new HashMap<>();
         if (version != null) {
             headers.put(Headers.VERSION, version);
@@ -459,6 +445,9 @@ public class RegistryClientImpl implements RegistryClient {
         if (artifactDescription != null) {
             headers.put(Headers.DESCRIPTION_ENCODED, encodeToBase64(artifactDescription));
         }
+        if (contentType != null) {
+            headers.put(Headers.CONTENT_TYPE, contentType);
+        }
         return headers;
     }
 
@@ -468,64 +457,5 @@ public class RegistryClientImpl implements RegistryClient {
         error.setMessage(ex.getMessage());
         logger.debug("Error serializing request response", ex);
         return new RestClientException(error);
-    }
-
-    private static Optional<String> contentType(ArtifactType artifactType, String content) {
-        if (artifactType != null) {
-            switch (artifactType) {
-                case PROTOBUF:
-                    return Optional.of(ContentTypes.APPLICATION_PROTOBUF);
-                case WSDL:
-                case XSD:
-                case XML:
-                    return Optional.of(ContentTypes.APPLICATION_XML);
-                case GRAPHQL:
-                    return Optional.of(ContentTypes.APPLICATION_GRAPHQL);
-            }
-        }
-        if (isJson(content)) {
-            return Optional.of(ContentTypes.APPLICATION_JSON);
-        } else if (isXml(content)) {
-            return Optional.of(ContentTypes.APPLICATION_XML);
-        } else if (isYaml(content)) {
-            return Optional.of(ContentTypes.APPLICATION_YAML);
-        }
-        return Optional.empty();
-    }
-
-    private static boolean isJson(String content) {
-        try {
-            JsonNode jsonNode = jsonMapper.readTree(content);
-            if (jsonNode != null) {
-                return true;
-            }
-        } catch (Exception ex) {
-            // Nothing to do - it is not json
-        }
-        return false;
-    }
-
-    private static boolean isXml(String content) {
-        try {
-            JsonNode jsonNode = xmlMapper.readTree(content);
-            if (jsonNode != null) {
-                return true;
-            }
-        } catch (Exception ex) {
-            // Nothing to do - it is not xml
-        }
-        return false;
-    }
-
-    private static boolean isYaml(String content) {
-        try {
-            JsonNode jsonNode = yamlMapper.readTree(content);
-            if (jsonNode != null) {
-                return true;
-            }
-        } catch (Exception ex) {
-            // Nothing to do - it is not yaml
-        }
-        return false;
     }
 }

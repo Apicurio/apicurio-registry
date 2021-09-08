@@ -20,7 +20,6 @@ package io.apicurio.registry.maven;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.List;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -84,8 +83,9 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
             for (TestArtifact artifact : artifacts) {
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
+                String contentType = contentType(artifact);
                 try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    getClient().testUpdateArtifact(groupId, artifactId, data);
+                    getClient().testUpdateArtifact(groupId, artifactId, contentType, data);
                     getLog().info(String.format("[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).", groupId, artifactId));
                 } catch (Exception e) {
                     errorCount++;
@@ -97,5 +97,13 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
         if (errorCount > 0) {
             throw new MojoExecutionException("Errors while testing artifacts for update...");
         }
+    }
+
+    private String contentType(TestArtifact testArtifact) {
+        String contentType = testArtifact.getContentType();
+        if(contentType != null) {
+            return contentType;
+        }
+        return getContentTypeByExtension(testArtifact.getFile().getName());
     }
 }

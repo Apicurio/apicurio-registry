@@ -36,6 +36,7 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -152,7 +153,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         //Execution
         final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
-        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.OPENAPI, IfExists.FAIL, false, name, description, stream);
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.OPENAPI, IfExists.FAIL, false, name, description, ContentTypes.APPLICATION_YAML, stream);
         waitForArtifact(groupId, artifactId);
 
         //Assertions
@@ -199,7 +200,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
 
-    /*
     @Test
     public void testCreateYamlArtifactVersion() throws Exception {
         //Preparation
@@ -214,7 +214,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         //Execution
         final InputStream stream = IoUtil.toStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
-        VersionMetaData versionMetaData = clientV2.createArtifactVersion(groupId, artifactId, version, name, description, stream);
+        VersionMetaData versionMetaData = clientV2.createArtifactVersion(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
         waitForVersion(groupId, artifactId, 2);
 
         ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
@@ -232,7 +232,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
-    */
 
     @Test
     public void testAsyncCRUD() throws Exception {
@@ -892,7 +891,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(description, artifactMetaData.getDescription());
     }
 
-    /*
     @Test
     public void testUpdateYamlArtifact() throws Exception {
 
@@ -907,7 +905,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         final InputStream stream = IoUtil.toStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
         //Execution
-        clientV2.updateArtifact(groupId, artifactId, version, name, description, stream);
+        clientV2.updateArtifact(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
 
         //Assertions
         assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
@@ -918,7 +916,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, artifactMetaData.getName());
         assertEquals(description, artifactMetaData.getDescription());
     }
-     */
 
     @Test
     public void deleteArtifactsInGroup() throws Exception {

@@ -56,6 +56,9 @@ public class TenantContextLoader {
     AuthConfig authConfig;
 
     @Inject
+    MultitenancyProperties mtProperties;
+
+    @Inject
     TenantMetadataService tenantMetadataService;
 
     @Inject
@@ -83,7 +86,7 @@ public class TenantContextLoader {
      * @return
      */
     public RegistryTenantContext loadRequestContext(String tenantId) {
-        return loadContext(tenantId, true);
+        return loadContext(tenantId, mtProperties.isMultitenancyAuthorizationEnabled());
     }
 
     /**

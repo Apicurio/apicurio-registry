@@ -35,6 +35,10 @@ public class MultitenancyProperties {
     boolean multitenancyEnabled;
 
     @Inject
+    @ConfigProperty(name = "registry.multitenancy.authorization.enabled", defaultValue = "true")
+    boolean mtAuthorizationEnabled;
+
+    @Inject
     @ConfigProperty(name = "registry.multitenancy.types.context-path.enabled", defaultValue = "true")
     boolean mtContextPathEnabled;
 
@@ -104,6 +108,13 @@ public class MultitenancyProperties {
      */
     public boolean isMultitenancyEnabled() {
         return multitenancyEnabled;
+    }
+
+    /**
+     * @return true if multitenancy authorization is enabled
+     */
+    public boolean isMultitenancyAuthorizationEnabled() {
+        return mtAuthorizationEnabled;
     }
 
     /**

@@ -82,7 +82,6 @@ public class TenantIdResolver {
      * @param headerProvider
      * @param serverNameProvider
      * @param afterSuccessfullUrlResolution
-     * @return
      */
     public boolean resolveTenantId(String uri, Function<String, String> headerProvider, Supplier<String> serverNameProvider,
             Consumer<String> afterSuccessfullUrlResolution) {

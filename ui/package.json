@@ -63,7 +63,7 @@
     "@patternfly/react-icons": "4.10.7",
     "ace-builds": "1.4.8",
     "apicurio-data-models": "1.1.11",
-    "axios": "0.21.1",
+    "axios": "0.21.2",
     "keycloak-js": "^10.0.2",
     "mobx": "^4.3.1",
     "moment": "2.24.0",

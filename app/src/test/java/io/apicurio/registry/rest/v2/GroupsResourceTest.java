@@ -315,7 +315,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Create OpenAPI artifact - provide a custom No-ASCII name
-        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char č";
+        String customNoASCIIName = new String(Base64.decode("Q1VTVE9NIE5BTUUgd2l0aCBOTy1BU0NJSSBjaGFyIMSN"), StandardCharsets.UTF_8);
         given()
             .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
@@ -501,7 +501,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Update OpenAPI artifact with a custom no-ascii name
-        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char ě";
+        String customNoASCIIName = new String(Base64.decode("Q1VTVE9NIE5BTUUgd2l0aCBOTy1BU0NJSSBjaGFyIMSb"), StandardCharsets.UTF_8);
         given()
             .when()
                 .contentType(CT_JSON)
@@ -849,8 +849,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo(customDescription));
 
         // Create another new version of the artifact with a custom No-ASCII name and description
-        String customNameNoASCII = "CUSTOM NAME WITH NO-ASCII CHAR ě";
-        String customDescriptionNoASCII = "CUSTOM DESCRIPTION WITH NO-ASCII CHAR ě";
+        String customNameNoASCII = new String(Base64.decode("Q1VTVE9NIE5BTUUgV0lUSCBOTy1BU0NJSSBDSEFSIMSb"), StandardCharsets.UTF_8);
+        String customDescriptionNoASCII = new String(Base64.decode("Q1VTVE9NIERFU0NSSVBUSU9OIFdJVEggTk8tQVNDSUkgQ0hBUiDEmw=="), StandardCharsets.UTF_8);
 
         given()
             .when()

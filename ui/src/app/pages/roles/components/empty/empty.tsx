@@ -25,6 +25,7 @@ import {If} from "../../../../components/common/if";
  */
 export interface RoleMappingsEmptyStateProps extends PureComponentProps {
     isFiltered?: boolean;
+    onCreateRoleMapping?: ()=>void;
 }
 
 /**
@@ -62,6 +63,7 @@ export class RoleMappingsEmptyState extends PureComponent<RoleMappingsEmptyState
                         There are currently no role mappings configured for the registry.  Click the "Grant Access"
                         button above to grant access to a user.
                     </EmptyStateBody>
+                    <Button variant="primary" data-testid="btn-grant-access" onClick={this.props.onCreateRoleMapping}>Grant Access</Button>
                 </If>
             </EmptyState>
         );

@@ -71,7 +71,7 @@
     "react-ace": "8.1.0",
     "react-dom": "17.0.1",
     "react-moment": "0.9.7",
-    "react-router-dom": "5.2.0",
+    "react-router-dom": "5.2.1",
     "redoc": "2.0.0-rc.28",
     "to-arraybuffer": "^1.0.1",
     "styled-components": "^4.2.0",

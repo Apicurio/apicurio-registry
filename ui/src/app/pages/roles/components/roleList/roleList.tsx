@@ -18,22 +18,21 @@ import React from "react";
 import "./roleList.css";
 import {
     Button,
-    DataList,
-    DataListAction,
-    DataListCell,
-    DataListItemCells,
-    DataListItemRow, Modal
+    Modal
 } from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {RoleMapping, RoleTypes} from "../../../../../models";
-import {UserIcon, UnlockIcon} from "@patternfly/react-icons";
+import { TableComposable, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { RoleMapping, RoleTypes } from "../../../../../models";
+import { RoleMappingsEmptyState } from '../empty';
 
 /**
  * Properties
  */
 export interface RoleListProps extends PureComponentProps {
     roles: RoleMapping[];
+    roleFilter: RoleMapping;
     onRevoke: (principalId: string) => void;
+    onEditRoleMapping: (role: RoleMapping) => void;
 }
 
 /**
@@ -43,8 +42,8 @@ export interface RoleListProps extends PureComponentProps {
 export interface RoleListState extends PureComponentState {
     isRevokeModalOpen: boolean;
     revokingPrincipalId: string;
+    currentRole: RoleMapping;
 }
-
 
 /**
  * Models the list of roles.
@@ -54,44 +53,79 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
     constructor(props: Readonly<RoleListProps>) {
         super(props);
     }
-
+  
     public render(): React.ReactElement {
+
+        const roleActions = (role: RoleMapping) => [
+            {
+                title: 'Edit',
+                onClick: () => { this.props.onEditRoleMapping(role)}
+            },
+            {
+                title: 'Revoke Access',
+                onClick: () => {this.onRevokeRoleMapping(role.principalId)}
+            }
+        ];
+
+        let filteredRoles = this.props.roles.sort((rm1, rm2) => {
+            return rm1.principalId.localeCompare(rm2.principalId);
+        }).filter((role: RoleMapping)=>{
+            if(this.props.roleFilter.principalId.length > 0) {
+                return role.principalId.includes(this.props.roleFilter.principalId);
+            } 
+            return true;
+        }).filter((role: RoleMapping)=>{
+            if (this.props.roleFilter.role.length > 0) {
+                switch (role.role) {
+                    case RoleTypes.DEVELOPER:
+                        return "Manager".includes(this.props.roleFilter.role);
+                    case RoleTypes.ADMIN:
+                        return "Admin".includes(this.props.roleFilter.role);
+                    case RoleTypes.READ_ONLY:
+                        return "Viewer".includes(this.props.roleFilter.role);
+                }
+            }
+            return true;
+        });
         return (
+            filteredRoles.length === 0 ?
+                <RoleMappingsEmptyState isFiltered={true}/> :
             <React.Fragment>
-                <DataList aria-label="List of roles" className="role-list">
-                    {
-                        this.props.roles.sort((rm1, rm2) => {
-                            return rm1.principalId.localeCompare(rm2.principalId);
-                        }).map( (role, idx) =>
-                                <DataListItemRow className="role-list-item" key={role.principalId}>
-                                    <DataListItemCells
-                                        dataListCells={[
-                                            <DataListCell key="type icon" className="type-icon-cell">
-                                                <UserIcon />
-                                            </DataListCell>,
-                                            <DataListCell key="main content" className="content-cell">
-                                                <span className="role-txt role-principal">{ role.principalId }</span>
-                                                <span className="role-txt">has been granted</span>
-                                                <span className="role-txt role-role">{ this.roleName(role.role) }</span>
-                                                <span className="role-txt">access.</span>
-                                            </DataListCell>
-                                        ]}
-                                    />
-                                    <DataListAction
-                                        aria-labelledby={`role-list-revoke-action-${idx}`}
-                                        id={`role-list-revoke-action-${idx}`}
-                                        aria-label="Revoke Access"
-                                    >
-                                        <Button key={role.principalId} variant="secondary" className="role-revoke-action"
-                                                onClick={this.onRevokeRoleMapping(role.principalId)}>
-                                            <UnlockIcon className="role-revoke-icon" />
-                                            <span>Revoke</span>
-                                        </Button>
-                                    </DataListAction>
-                                </DataListItemRow>
+                <TableComposable>
+                    <Thead>
+                        <Tr>
+                            {/* <Th
+                            /> */}
+                            <Th>Account</Th>
+                            <Th>Role</Th>
+                        </Tr>
+                    </Thead>
+                    <Tbody>
+                        {filteredRoles.map((role, rowIndex) =>
+
+                            <Tr key={rowIndex}>
+                                {/* Disable for now until we want to support multi-select.
+                                <Td
+                                    key={`${rowIndex}_0`}
+                                    select={{
+                                        rowIndex,
+                                        onSelect: this.onSelect,
+                                        isSelected: false,
+                                    }}
+                                /> */}
+                                <Td>{role.principalId}</Td>
+                                <Td>{this.roleName(role.role)}</Td>
+                                <Td className = "role-list-action-column"
+                                    key={`${rowIndex}_2`}
+                                    actions={{
+                                        items: roleActions(role)
+                                    }}
+                                />
+                            </Tr>
                         )
-                    }
-                </DataList>
+                        }
+                    </Tbody>
+                </TableComposable>
                 <Modal
                     title="Revoke Access"
                     variant="small"
@@ -103,7 +137,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
                         <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onRevokeModalClose}>Cancel</Button>
                     ]}
                 >
-                    <p>Do you really want to revoke { this.state.revokingPrincipalId }'s access?</p>
+                    <p>Do you really want to revoke {this.state.revokingPrincipalId}'s access?</p>
                 </Modal>
             </React.Fragment>
         );
@@ -112,14 +146,15 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
     protected initializeState(): RoleListState {
         return {
             isRevokeModalOpen: false,
-            revokingPrincipalId: ""
+            revokingPrincipalId: "",
+            currentRole: this.props.roles[0],
         };
     }
 
     private roleName(role: string): string {
         switch (role) {
             case RoleTypes.DEVELOPER:
-                return "Developer";
+                return "Manager";
             case RoleTypes.ADMIN:
                 return "Admin";
             case RoleTypes.READ_ONLY:
@@ -128,13 +163,11 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         return role;
     }
 
-    private onRevokeRoleMapping(principalId: string): () => void {
-        return () => {
-            this.setMultiState({
-                isRevokeModalOpen: true,
-                revokingPrincipalId: principalId
-            });
-        };
+    private onRevokeRoleMapping = (principalId: string) => {
+        this.setMultiState({
+            isRevokeModalOpen: true,
+            revokingPrincipalId: principalId
+        });    
     };
 
     private onRevokeModalClose = (): void => {

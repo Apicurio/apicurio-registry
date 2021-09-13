@@ -31,16 +31,44 @@ import java.util.Optional;
 public class MultitenancyProperties {
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy")
+    @ConfigProperty(name = "registry.enable.multitenancy", defaultValue = "false")
     boolean multitenancyEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
+    @ConfigProperty(name = "registry.multitenancy.authorization.enabled", defaultValue = "true")
+    boolean mtAuthorizationEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.base.path")
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.enabled", defaultValue = "true")
+    boolean mtContextPathEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "true")
+    boolean mtSubdomainEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.enabled", defaultValue = "true")
+    boolean mtRequestHeaderEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.base-path", defaultValue = "t")
     String nameMultitenancyBasePath;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.location", defaultValue = "header")
+    String subdomainMultitenancyLocation;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.header-name", defaultValue = "Host")
+    String subdomainMultitenancyHeaderName;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.local")
+    String subdomainMultitenancyPattern;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.name", defaultValue = "X-Registry-Tenant-Id")
+    String tenantIdRequestHeader;
 
     @Inject
     @ConfigProperty(name = "registry.multitenancy.reaper.every")
@@ -53,6 +81,10 @@ public class MultitenancyProperties {
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
     Optional<String> tenantManagerUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
+    Optional<Boolean> tenantManagerAuthEnabled;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.url.configured")
@@ -79,10 +111,66 @@ public class MultitenancyProperties {
     }
 
     /**
+     * @return true if multitenancy authorization is enabled
+     */
+    public boolean isMultitenancyAuthorizationEnabled() {
+        return mtAuthorizationEnabled;
+    }
+
+    /**
+     * @return true if multitenancy context paths are enabled
+     */
+    public boolean isMultitenancyContextPathEnabled() {
+        return mtContextPathEnabled;
+    }
+
+    /**
+     * @return true if multitenancy subdomains are enabled
+     */
+    public boolean isMultitenancySubdomainEnabled() {
+        return mtSubdomainEnabled;
+    }
+
+    /**
+     * @return true if multitenancy request headers are enabled
+     */
+    public boolean isMultitenancyRequestHeaderEnabled() {
+        return mtRequestHeaderEnabled;
+    }
+
+    /**
      * @return the nameMultitenancyBasePath
      */
     public String getNameMultitenancyBasePath() {
         return nameMultitenancyBasePath;
+    }
+
+    /**
+     * @return the subdomain location (e.g. "header" or "serverName")
+     */
+    public String getSubdomainMultitenancyLocation() {
+        return subdomainMultitenancyLocation;
+    }
+
+    /**
+     * @return the subdomain header name (when the location is "header")
+     */
+    public String getSubdomainMultitenancyHeaderName() {
+        return subdomainMultitenancyHeaderName;
+    }
+
+    /**
+     * @return the subdomain pattern
+     */
+    public String getSubdomainMultitenancyPattern() {
+        return subdomainMultitenancyPattern;
+    }
+
+    /**
+     * @return the HTTP request header containing a tenant ID
+     */
+    public String getTenantIdRequestHeader() {
+        return tenantIdRequestHeader;
     }
 
     public Duration getReaperPeriod() {
@@ -97,10 +185,10 @@ public class MultitenancyProperties {
     }
 
     /**
-     * @return if auth is enabled
+     * @return true if tenant management authentication is enabled
      */
-    public boolean isAuthEnabled() {
-        return authEnabled;
+    public boolean isTenantManagerAuthEnabled() {
+        return tenantManagerAuthEnabled.orElse(Boolean.FALSE);
     }
 
     /**

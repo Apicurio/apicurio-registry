@@ -172,10 +172,10 @@ push-tenant-manager-image:
 	docker push $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG)
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-build-all-images: build-mem-image build-sql-image build-kafkasql-image
+build-all-images: build-mem-image build-sql-image build-kafkasql-image build-tenant-manager-image
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
-push-all-images: push-mem-image push-sql-image push-kafkasql-image
+push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-manager-image
 
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines

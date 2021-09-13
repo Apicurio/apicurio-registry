@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-export * from "./pageheader";
 export * from "./empty";
 export * from "./roleList";
 export * from "./modals";

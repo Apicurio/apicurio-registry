@@ -124,6 +124,10 @@ objects:
             value: ${REGISTRY_QUARKUS_LOG_LEVEL}
           - name: QUARKUS_PROFILE
             value: prod
+          - name: REGISTRY_ENABLE_SENTRY
+            value: ${REGISTRY_ENABLE_SENTRY}
+          - name: REGISTRY_SENTRY_DSN
+            value: ${REGISTRY_SENTRY_DSN}
 
           - name: DB_HOST
             valueFrom:
@@ -283,6 +287,10 @@ objects:
             value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
             value: ${TENANT_MANAGER_LOG_LEVEL}
+          - name: TENANT_MANAGER_ENABLE_SENTRY
+            value: ${TENANT_MANAGER_ENABLE_SENTRY}
+          - name: TENANT_MANAGER_SENTRY_DSN
+            value: ${TENANT_MANAGER_SENTRY_DSN}
 
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
@@ -521,3 +529,14 @@ parameters:
 - name: ENVOY_CONFIG_CM_NAME
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
+
+- name: REGISTRY_ENABLE_SENTRY
+  value: "false"
+- name: REGISTRY_SENTRY_DSN
+  description: Url used to send sentry events
+  value: "http://localhost:8090"
+- name: TENANT_MANAGER_ENABLE_SENTRY
+  value: "false"
+- name: TENANT_MANAGER_SENTRY_DSN
+  description: Url used to send sentry events
+  value: "http://localhost:8090"

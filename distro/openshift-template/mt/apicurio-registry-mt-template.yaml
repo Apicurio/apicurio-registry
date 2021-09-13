@@ -152,7 +152,7 @@ objects:
               secretKeyRef:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.password
-          
+
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
           - name: KEYCLOAK_URL
@@ -164,30 +164,37 @@ objects:
           - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
             value: ${CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED}
 
-          - name: OWNER_ONLY_AUTHZ_ENABLED
-            value: ${OWNER_ONLY_AUTHZ_ENABLED}
-          - name: ROLE_BASED_AUTHZ_ENABLED
-            value: ${ROLE_BASED_AUTHZ_ENABLED}
-          - name: ROLE_BASED_AUTHZ_SOURCE
-            value: ${ROLE_BASED_AUTHZ_SOURCE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_FROM}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE}
-          - name: REGISTRY_AUTH_ROLES_ADMIN
-            value: ${REGISTRY_AUTH_ROLES_ADMIN}
-          - name: REGISTRY_AUTH_ROLES_DEVELOPER
-            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_RBAC_ENABLED
+            value: ${REGISTRY_AUTH_RBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_ENABLED
+            value: ${REGISTRY_AUTH_OBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS
+            value: ${REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS}
+          - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
+            value: ${REGISTRY_AUTH_ANONYMOUS_READS_ENABLED}
           - name: REGISTRY_AUTH_ROLES_READONLY
             value: ${REGISTRY_AUTH_ROLES_READONLY}
+          - name: REGISTRY_AUTH_ROLES_DEVELOPER
+            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_ROLES_ADMIN
+            value: ${REGISTRY_AUTH_ROLES_ADMIN}
+          - name: REGISTRY_AUTH_ROLE_SOURCE
+            value: ${REGISTRY_AUTH_ROLE_SOURCE}
+          - name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
+            value: ${REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN}
+
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_FROM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE}
 
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}

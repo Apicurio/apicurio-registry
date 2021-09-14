@@ -180,14 +180,14 @@ push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-m
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
 pr-check:
-	mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	NO_DOCKER=true mvn verify -Pintegration-tests -Pmultitenancy -Psql -am -pl integration-tests/testsuite \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
 build-project:
-	mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
 # 

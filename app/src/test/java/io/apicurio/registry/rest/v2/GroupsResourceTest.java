@@ -533,7 +533,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testUpdateArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(GROUP, "testUpdateArtifactNoAscii/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Update OpenAPI artifact with a custom no-ascii name
         String customNoASCIIName = "CUSTOM NAME with NO-ASCII char ě";
@@ -543,7 +543,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
-                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .pathParam("artifactId", "testUpdateArtifactNoAscii/EmptyAPI")
                 .body(updatedArtifactContent)
                 .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
             .then()
@@ -560,7 +560,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .header("X-Registry-Description-Encoded", Base64.encode(customNoASCIIDescription.getBytes(StandardCharsets.UTF_8)))
-                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .pathParam("artifactId", "testUpdateArtifactNoAscii/EmptyAPI")
                 .body(updatedArtifactContent)
                 .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
             .then()
@@ -578,7 +578,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
                 .header("X-Registry-Name", customName)
                 .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
-                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .pathParam("artifactId", "testUpdateArtifactNoAscii/EmptyAPI")
                 .body(updatedArtifactContent)
                 .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
             .then()
@@ -876,7 +876,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testCreateArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+        createArtifact(GROUP, "testCreateArtifactVersionNoAscii/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
         // Create another new version of the artifact with a custom No-ASCII name and description
         String customNameNoASCII = "CUSTOM NAME WITH NO-ASCII CHAR ě";
@@ -888,7 +888,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-Name-Encoded", Base64.encode(customNameNoASCII.getBytes(StandardCharsets.UTF_8)))
                 .header("X-Registry-Description-Encoded", Base64.encode(customDescriptionNoASCII.getBytes(StandardCharsets.UTF_8)))
-                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .pathParam("artifactId", "testCreateArtifactVersionNoAscii/EmptyAPI")
                 .body(updatedArtifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
@@ -901,7 +901,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .pathParam("artifactId", "testCreateArtifactVersionNoAscii/EmptyAPI")
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
             .then()
                 .statusCode(200)
@@ -916,7 +916,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-Name-Encoded", Base64.encode(customNameNoASCII.getBytes(StandardCharsets.UTF_8)))
                 .header("X-Registry-Name", customName)
-                .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI")
+                .pathParam("artifactId", "testCreateArtifactVersionNoAscii/EmptyAPI")
                 .body(updatedArtifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()

@@ -39,6 +39,7 @@ import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -314,23 +315,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("id", equalTo("testCreateArtifact/EmptyAPI-customName"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
-        // Create OpenAPI artifact - provide a custom No-ASCII name
-        String customNoASCIIName = new String(Base64.decode("Q1VTVE9NIE5BTUUgd2l0aCBOTy1BU0NJSSBjaGFyIMSN"), StandardCharsets.UTF_8);
-        given()
-            .when()
-                .contentType(CT_JSON + "; artifactType=OPENAPI")
-                .pathParam("groupId", GROUP)
-                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customNameEncoded")
-                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
-                .body(artifactContent)
-                .post("/registry/v2/groups/{groupId}/artifacts")
-            .then()
-                .statusCode(200)
-                .body("groupId", equalTo(GROUP))
-                .body("name", equalTo(customNoASCIIName))
-                .body("id", equalTo("testCreateArtifact/EmptyAPI-customNameEncoded"))
-                .body("type", equalTo(ArtifactType.OPENAPI.name()));
-
         // Create OpenAPI artifact - provide a custom description
         String customDescription = "CUSTOM DESCRIPTION";
         given()
@@ -346,6 +330,29 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("groupId", equalTo(GROUP))
                 .body("description", equalTo(customDescription))
                 .body("id", equalTo("testCreateArtifact/EmptyAPI-customDescription"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+    }
+
+    @Test
+    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    public void testCreateArtifactNoAscii() {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact - provide a custom No-ASCII name
+        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char č";
+        given()
+            .when()
+                .contentType(CT_JSON + "; artifactType=OPENAPI")
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifact/EmptyAPI-customNameEncoded")
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .body(artifactContent)
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("groupId", equalTo(GROUP))
+                .body("name", equalTo(customNoASCIIName))
+                .body("id", equalTo("testCreateArtifact/EmptyAPI-customNameEncoded"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Create OpenAPI artifact - provide a custom No-ASCII description
@@ -366,6 +373,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Create OpenAPI artifact - provide a custom name and encoded custom name (conflict - should fail)
+        String customName = "CUSTOM NAME";
         given()
             .when()
                 .contentType(CT_JSON + "; artifactType=OPENAPI")
@@ -377,7 +385,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(409);
-
     }
 
     @Test
@@ -500,23 +507,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
-        // Update OpenAPI artifact with a custom no-ascii name
-        String customNoASCIIName = new String(Base64.decode("Q1VTVE9NIE5BTUUgd2l0aCBOTy1BU0NJSSBjaGFyIMSb"), StandardCharsets.UTF_8);
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
-                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
-                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
-                .body(updatedArtifactContent)
-                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
-            .then()
-                .statusCode(200)
-                .body("name", equalTo(customNoASCIIName))
-                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("type", equalTo(ArtifactType.OPENAPI.name()));
-
         // Update OpenAPI artifact with a custom description
         String customDescription = "CUSTOM DESCRIPTION";
         given()
@@ -531,6 +521,34 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("description", equalTo(customDescription))
+                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("type", equalTo(ArtifactType.OPENAPI.name()));
+
+    }
+
+    @Test
+    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    public void testUpdateArtifactNoAscii() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, "testUpdateArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Update OpenAPI artifact with a custom no-ascii name
+        String customNoASCIIName = "CUSTOM NAME with NO-ASCII char ě";
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.name())
+                .header("X-Registry-Name-Encoded", Base64.encode(customNoASCIIName.getBytes(StandardCharsets.UTF_8)))
+                .pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
+                .body(updatedArtifactContent)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(200)
+                .body("name", equalTo(customNoASCIIName))
                 .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
@@ -552,6 +570,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Try to Update artifact with a custom name and encoded name (conflict - should fail)
+        String customName = "CUSTOM NAME";
         given()
             .when()
                 .contentType(CT_JSON)
@@ -848,9 +867,20 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("description", equalTo(customDescription));
 
+    }
+
+    @Test
+    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    public void testCreateArtifactVersionNoAscii() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, "testCreateArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
         // Create another new version of the artifact with a custom No-ASCII name and description
-        String customNameNoASCII = new String(Base64.decode("Q1VTVE9NIE5BTUUgV0lUSCBOTy1BU0NJSSBDSEFSIMSb"), StandardCharsets.UTF_8);
-        String customDescriptionNoASCII = new String(Base64.decode("Q1VTVE9NIERFU0NSSVBUSU9OIFdJVEggTk8tQVNDSUkgQ0hBUiDEmw=="), StandardCharsets.UTF_8);
+        String customNameNoASCII = "CUSTOM NAME WITH NO-ASCII CHAR ě";
+        String customDescriptionNoASCII = "CUSTOM DESCRIPTION WITH NO-ASCII CHAR ě";
 
         given()
             .when()
@@ -879,6 +909,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("description", equalTo(customDescriptionNoASCII));
 
         // Try to create new version of the artifact with a custom name and encoded name (conflict)
+        String customName = "CUSTOM NAME";
         given()
             .when()
                 .contentType(CT_JSON)

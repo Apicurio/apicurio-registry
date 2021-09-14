@@ -549,7 +549,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("name", equalTo(customNoASCIIName))
-                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("id", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Update OpenAPI artifact with a custom no-ascii description
@@ -566,7 +566,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("description", equalTo(customNoASCIIDescription))
-                .body("id", equalTo("testUpdateArtifact/EmptyAPI"))
+                .body("id", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
                 .body("type", equalTo(ArtifactType.OPENAPI.name()));
 
         // Try to Update artifact with a custom name and encoded name (conflict - should fail)

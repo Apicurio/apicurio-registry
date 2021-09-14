@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -47,9 +50,11 @@ import io.apicurio.registry.types.RuleType;
  */
 public class LoadBalanceRegistryClient implements RegistryClient {
 
+    protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
     private LinkedList<RegistryClientHolder> targets;
 
-    private class RegistryClientHolder {
+    public class RegistryClientHolder {
         RegistryClient client;
         String host;
     }
@@ -72,10 +77,14 @@ public class LoadBalanceRegistryClient implements RegistryClient {
 
     }
 
+    public List<RegistryClientHolder> getRegistryNodes() {
+        return targets;
+    }
+
     private synchronized RegistryClient getTarget() {
         int randomElementIndex = ThreadLocalRandom.current().nextInt(this.targets.size());
         RegistryClientHolder t = this.targets.get(randomElementIndex);
-        System.out.println("Request to " + t.host);
+        logger.trace("Request to {}", t.host);
         return t.client;
     }
 

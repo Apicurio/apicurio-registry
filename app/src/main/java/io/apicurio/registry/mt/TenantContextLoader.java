@@ -56,6 +56,9 @@ public class TenantContextLoader {
     AuthConfig authConfig;
 
     @Inject
+    MultitenancyProperties mtProperties;
+
+    @Inject
     TenantMetadataService tenantMetadataService;
 
     @Inject
@@ -83,7 +86,7 @@ public class TenantContextLoader {
      * @return
      */
     public RegistryTenantContext loadRequestContext(String tenantId) {
-        return loadContext(tenantId, true);
+        return loadContext(tenantId, mtProperties.isMultitenancyAuthorizationEnabled());
     }
 
     /**
@@ -132,11 +135,13 @@ public class TenantContextLoader {
     private void checkTenantAuthorization(final RegistryTenant tenant) {
         if (authConfig.isAuthEnabled()) {
             if (!isTokenResolvable()) {
+                logger.warn("Tenant cannot be accessed: missing JWT");
                 throw new TenantNotAuthorizedException("JWT not found");
             }
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
             if (accessedOrganizationId.isEmpty() || !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+                logger.warn("User not authorized to access tenant {}", tenant.getTenantId());
                 throw new TenantNotAuthorizedException("Tenant not authorized");
             }
         }

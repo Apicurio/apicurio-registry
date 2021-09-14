@@ -152,7 +152,7 @@ objects:
               secretKeyRef:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.password
-          
+
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
           - name: KEYCLOAK_URL
@@ -164,30 +164,37 @@ objects:
           - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
             value: ${CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED}
 
-          - name: OWNER_ONLY_AUTHZ_ENABLED
-            value: ${OWNER_ONLY_AUTHZ_ENABLED}
-          - name: ROLE_BASED_AUTHZ_ENABLED
-            value: ${ROLE_BASED_AUTHZ_ENABLED}
-          - name: ROLE_BASED_AUTHZ_SOURCE
-            value: ${ROLE_BASED_AUTHZ_SOURCE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_FROM}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM}
-          - name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE
-            value: ${REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE}
-          - name: REGISTRY_AUTH_ROLES_ADMIN
-            value: ${REGISTRY_AUTH_ROLES_ADMIN}
-          - name: REGISTRY_AUTH_ROLES_DEVELOPER
-            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_RBAC_ENABLED
+            value: ${REGISTRY_AUTH_RBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_ENABLED
+            value: ${REGISTRY_AUTH_OBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS
+            value: ${REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS}
+          - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
+            value: ${REGISTRY_AUTH_ANONYMOUS_READS_ENABLED}
           - name: REGISTRY_AUTH_ROLES_READONLY
             value: ${REGISTRY_AUTH_ROLES_READONLY}
+          - name: REGISTRY_AUTH_ROLES_DEVELOPER
+            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_ROLES_ADMIN
+            value: ${REGISTRY_AUTH_ROLES_ADMIN}
+          - name: REGISTRY_AUTH_ROLE_SOURCE
+            value: ${REGISTRY_AUTH_ROLE_SOURCE}
+          - name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
+            value: ${REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN}
+
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_FROM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE}
 
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}
@@ -444,6 +451,7 @@ parameters:
   required: true
 
 - name: AUTH_ENABLED
+  description: flag to enable/disable authentication
   value: "false"
 - name: KEYCLOAK_URL
   description: Keycloak base url
@@ -458,42 +466,50 @@ parameters:
   description: flag to enable/disable feature to allow basic authentication using service-account clientId and client secret as credentials
   value: "true"
 
-- name: OWNER_ONLY_AUTHZ_ENABLED
-  description: flag to enable/disable owner-only authorization
-  value: "false"
-- name: ROLE_BASED_AUTHZ_ENABLED
+- name: REGISTRY_AUTH_RBAC_ENABLED
   description: flag to enable/disable role based authorization
   value: "false"
-- name: ROLE_BASED_AUTHZ_SOURCE
-  description: property to set the source of auth roles when checking authorization (e.g. token or application)
-  value: "token"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_ENABLED
-  description: flag to enable/disable the admin-override auth feature
+- name: REGISTRY_AUTH_OBAC_ENABLED
+  description: flag to enable/disable owner-only authorization
   value: "false"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_FROM
-  description: property to set where to get admin-override meta-data from (e.g. token)
-  value: "token"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_TYPE
-  description: property to set the type of admin-override meta-data (e.g. role or claim)
-  value: "role"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_ROLE
-  description: property to set the role that activates admin-override (e.g. sr-admin)
-  value: "sr-admin"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM
-  description: property to set the claim that potentially activates admin-override
-  value: "is_org_admin"
-- name: REGISTRY_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE
-  description: property to set the claim value that must match to activate admin-override
-  value: "true"
-- name: REGISTRY_AUTH_ROLES_ADMIN
-  description: property to set the name of the role that enables Admin access when using token based RBAC
-  value: "sr-admin"
-- name: REGISTRY_AUTH_ROLES_DEVELOPER
-  description: property to set the name of the role that enables Developer access when using token based RBAC
-  value: "sr-developer"
+- name: REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS
+  description: flag to enable/disable limiting of group access when using owner-only authorization
+  value: "false"
+- name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
+  description: flag to enable/disable anonymous read access
+  value: "false"
 - name: REGISTRY_AUTH_ROLES_READONLY
   description: property to set the name of the role that enables ReadOnly access when using token based RBAC
   value: "sr-readonly"
+- name: REGISTRY_AUTH_ROLES_DEVELOPER
+  description: property to set the name of the role that enables Developer access when using token based RBAC
+  value: "sr-developer"
+- name: REGISTRY_AUTH_ROLES_ADMIN
+  description: property to set the name of the role that enables Admin access when using token based RBAC
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ROLE_SOURCE
+  description: property to set the source of auth roles when checking authorization (e.g. token or application)
+  value: "token"
+- name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
+
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
+  description: flag to enable/disable the admin-override auth feature
+  value: "false"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
+  description: property to set where to get admin-override meta-data from (e.g. token)
+  value: "token"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
+  description: property to set the type of admin-override meta-data (e.g. role or claim)
+  value: "role"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
+  description: property to set the role that activates admin-override (e.g. sr-admin)
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM
+  description: property to set the claim that potentially activates admin-override
+  value: "is_org_admin"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
+  description: property to set the claim value that must match to activate admin-override
+  value: "true"
 
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager

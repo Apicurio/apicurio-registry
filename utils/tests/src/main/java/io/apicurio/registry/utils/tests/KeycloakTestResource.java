@@ -59,6 +59,7 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
         props.put("registry.auth.client-secret", "test1");
         props.put("registry.auth.role-based-authorization", "true");
         props.put("registry.auth.owner-only-authorization", "true");
+        props.put("registry.auth.admin-override.enabled", "true");
 
         createTestUser();
 

@@ -139,10 +139,9 @@
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
         <json-schema-validator.version>1.0.58</json-schema-validator.version>
-        <wire-schema.version>3.7.0</wire-schema.version>
-        <wire-compiler.version>3.7.0</wire-compiler.version>
-        <jimfs.version>1.1</jimfs.version>
-        <icu4j.version>69.1</icu4j.version>
+        <wire-schema.version>4.0.1-SNAPSHOT</wire-schema.version>
+        <wire-compiler.version>4.0.1-SNAPSHOT</wire-compiler.version>
+        <okio.version>3.0.0-alpha.9</okio.version>
         <protobuf.version>3.17.3</protobuf.version>
         <xmlsec.version>2.1.5</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -416,16 +415,18 @@
                 <artifactId>wire-compiler</artifactId>
                 <version>${wire-compiler.version}</version>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/com.squareup.okio/okio-fakefilesystem -->
             <dependency>
-                <groupId>com.google.jimfs</groupId>
-                <artifactId>jimfs</artifactId>
-                <version>${jimfs.version}</version>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-fakefilesystem</artifactId>
+                <version>${okio.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.ibm.icu</groupId>
-                <artifactId>icu4j</artifactId>
-                <version>${icu4j.version}</version>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>${okio.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>

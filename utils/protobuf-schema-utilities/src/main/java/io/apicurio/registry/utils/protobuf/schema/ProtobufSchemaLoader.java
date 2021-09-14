@@ -1,17 +1,15 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.common.collect.Lists;
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.SchemaLoader;
+import okio.Buffer;
+import okio.Sink;
+import okio.fakefilesystem.FakeFileSystem;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Optional;
 
 public class ProtobufSchemaLoader {
@@ -26,38 +24,39 @@ public class ProtobufSchemaLoader {
      */
     public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition)
         throws IOException {
-        final FileSystem inMemoryFileSystem = Jimfs.newFileSystem(Configuration.unix());
+        final FakeFileSystem inMemoryFileSystem = new FakeFileSystem();
         String [] dirs = {};
+
         if (packageName.isPresent()) {
             dirs = packageName.get().split("\\.");
         }
-        try {
-            String dirPath = "";
-            for (String dir: dirs) {
-                dirPath = dirPath + "/" + dir;
-                Path path = inMemoryFileSystem.getPath(dirPath);
-                Files.createDirectory(path);
-            }
-            Path path = inMemoryFileSystem.getPath(dirPath, fileName);
-            Files.write(path, schemaDefinition.getBytes());
 
-            try (SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem)) {
-                schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
-
-                Schema schema = schemaLoader.loadSchema();
-                ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
-
-                if (protoFile == null) {
-                    throw new RuntimeException("Error loading Protobuf File: " + fileName);
-                }
-
-                return new ProtobufSchemaLoaderContext(schema, protoFile);
-            }
-        } catch (Exception e) {
-            throw e;
-        } finally {
-            inMemoryFileSystem.close();
+        String dirPath = "";
+        for (String dir: dirs) {
+            dirPath = dirPath + "/" + dir;
+            inMemoryFileSystem.createDirectory(okio.Path.get(dirPath));
         }
+
+        final Buffer buffer = new Buffer();
+        buffer.writeUtf8(schemaDefinition);
+
+        final Sink sink = inMemoryFileSystem.sink(okio.Path.get(dirPath + "/" + fileName));
+        sink.write(buffer, buffer.size());
+        sink.close();
+        buffer.close();
+
+        final SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
+        schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
+
+        final Schema schema = schemaLoader.loadSchema();
+        final String path = dirPath + "/" + fileName;
+        final ProtoFile protoFile = schema.protoFile(path.replaceFirst("/", ""));
+
+        if (protoFile == null) {
+            throw new RuntimeException("Error loading Protobuf File: " + fileName);
+        }
+
+        return new ProtobufSchemaLoaderContext(schema, protoFile);
     }
 
     protected static class ProtobufSchemaLoaderContext {

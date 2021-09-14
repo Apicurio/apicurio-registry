@@ -8,16 +8,16 @@ updates:
     ignore:
       - dependency-name: com.squareup.wire:wire-schema
         versions:
-          - ">= 3.6.a, < 3.7"
+          - ">= 3.6.a, < 4.3"
       - dependency-name: com.squareup.wire:wire-compiler
         versions:
-          - ">= 3.6.a, < 3.7"
-      - dependency-name: com.google.jimfs:jimfs
+          - ">= 3.6.a, < 4.3"
+      - dependency-name: com.squareup.okio:okio-fakefilesystem
         versions:
-          - ">= 1.1, < 1.3"
-      - dependency-name: com.ibm.icu:icu4j
+          - ">= 3.0.0-alpha.9, < 3.0.1"
+      - dependency-name: com.squareup.okio:okio
         versions:
-          - ">= 69.1, < 70.1"
+          - ">= 3.0.0-alpha.9, < 3.0.1"
       - dependency-name: org.apache.kafka:connect-api
         versions:
           - "> 2.2.1, < 2.3"

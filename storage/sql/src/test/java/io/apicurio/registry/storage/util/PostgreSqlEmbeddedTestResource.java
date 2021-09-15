@@ -37,6 +37,20 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     @Override
     public Map<String, String> start() {
 
+        String currentEnv = System.getenv("CURRENT_ENV");
+
+        if (currentEnv != null && "mas".equals(currentEnv)) {
+            Map<String, String> props = new HashMap<>();
+            props.put("quarkus.datasource.jdbc.url", "jdbc:postgresql://localhost:5432/test");
+            props.put("quarkus.datasource.username", "test");
+            props.put("quarkus.datasource.password", "test");
+            return props;
+        } else {
+            return startPostgresql();
+        }
+    }
+
+    private Map<String, String> startPostgresql() {
         try {
             database = EmbeddedPostgres.start();
         } catch (IOException e) {

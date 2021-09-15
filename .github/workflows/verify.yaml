@@ -107,7 +107,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-tenant-manager
+          make build-sql-native build-tenant-manager-native
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -151,7 +151,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-tenant-manager-image
+          make push-sql-native-image push-tenant-manager-native-image
 
       - name: List All The Images
         run: docker images

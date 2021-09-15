@@ -15,17 +15,35 @@
  * limitations under the License.
  */
 import React from "react";
-import {Button, Form, FormGroup, Modal, TextInput} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {RoleTypes} from "../../../../../models";
+import { Button, 
+    DescriptionList, 
+    DescriptionListGroup, 
+    DescriptionListTerm, 
+    DescriptionListDescription, 
+    Form, 
+    FormGroup, 
+    Modal,
+    Radio, 
+    Select, SelectOption, SelectOptionObject, SelectVariant,
+    TextInput,
+    Tooltip } from '@patternfly/react-core';
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { RoleTypes, RoleMapping } from "../../../../../models";
+import {OutlinedQuestionCircleIcon} from '@patternfly/react-icons'
+import "./grantAccessModal.css";
 
 /**
  * Properties
  */
 export interface GrantAccessModalProps extends PureComponentProps {
     isOpen: boolean;
+    isUpdateAccess: boolean;
+    serviceRegistryInstance?: string;
+    accountId?: string;
+    roles: null | RoleMapping[];
+    defaultRole?: RoleMapping;
     onClose: () => void;
-    onGrant: (principalId: string, role: string) => void;
+    onGrant: (accountId: string, role: string, isUpdate: boolean) => void;
 }
 
 /**
@@ -33,9 +51,10 @@ export interface GrantAccessModalProps extends PureComponentProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface GrantAccessModalState extends PureComponentState {
+    isAccountIDSelectOpen: boolean;
     isValid: boolean;
-    principalId: string;
-    role: string;
+    accountId: string | undefined;
+    role: string | undefined;
 }
 
 
@@ -47,54 +66,129 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     constructor(props: Readonly<GrantAccessModalProps>) {
         super(props);
     }
+    componentDidUpdate(prevProps: GrantAccessModalProps) {
+        if (this.props.defaultRole !== prevProps.defaultRole) {
+            if (this.props.defaultRole) {
+                this.setMultiState({
+                    accountId: this.props.defaultRole.principalId,
+                    role: this.props.defaultRole.role
+                })
+            } else {
+                this.setMultiState({
+                    accountId: "",
+                    role: undefined
+                })
+            }
+        }
+        // Typical usage (don't forget to compare props):
+        // if (this.props.userID !== prevProps.userID) {
+        //   this.fetchData(this.props.userID);
+        // }
+      }
 
     public render(): React.ReactElement {
         return (
             <Modal
-                title="Grant Access"
+                title="Manage Permissions"
+                description="Manage access to resources in this Service Registry instance by assigning permissions to an account."
                 variant="medium"
                 isOpen={this.props.isOpen}
                 onClose={this.props.onClose}
                 className="grant-access-modal pf-m-redhat-font"
                 actions={[
-                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid}>Grant</Button>,
+                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid}>{this.props.isUpdateAccess ? "Update" : "Create"}</Button>,
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
 
+
                 <Form>
+                    {this.props.serviceRegistryInstance !== undefined ? (<DescriptionList>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Service Registry instance</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.serviceRegistryInstance}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                    </DescriptionList>
+                    ) : undefined}
+
                     <FormGroup
-                        label="Principal"
+                        label="Account ID"
+                        labelIcon={<Tooltip
+                            position="top"
+                            content={
+                              <div>A service account enables your application or tool to connect securely to your resources. A user account enables users in your organization to access resources.</div>
+                            }
+                          >
+                            <OutlinedQuestionCircleIcon/>
+                          </Tooltip>}
                         isRequired
-                        fieldId="grant-access-principal"
-                        helperText="Please provide a valid principal identifier"
+                        fieldId="grant-access-account-id"
                     >
-                        <TextInput
-                            isRequired
-                            type="text"
+                        {this.props.roles !== null ?
+                        <Select
                             id="grant-access-principal"
                             name="grant-access-principal"
-                            aria-describedby="grant-access-principal-helper"
-                            onChange={this.handlePrincipalChange}
-                        />
+                            variant={SelectVariant.typeahead}
+                            typeAheadAriaLabel="Select an account ID"
+                            onToggle={this.onAccountIDToggle}
+                            onSelect={this.onAccountIDSelect}
+                            onClear={this.onAccountIDClearSelection}
+                            selections={this.state.accountId}
+                            isOpen={this.state.isAccountIDSelectOpen}
+                            isInputValuePersisted={true}
+                            placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account ID"}
+                            maxHeight = {'100px'}
+                            isDisabled={this.props.isUpdateAccess}
+                        >
+                            {this.props.roles.map((option, index) => (
+                                <SelectOption
+                                    key={index}
+                                    value={option.principalId}
+                                    
+                                />
+                            ))}
+                        </Select> :   
+                           <TextInput
+                           isRequired
+                           type="text"
+                           id="grant-access-principal"
+                           name="grant-access-principal"
+                           aria-describedby="grant-access-principal-helper"
+                           onChange={this.handlePrincipalChange}
+                       /> }
                     </FormGroup>
                     <FormGroup
                         label="Role"
                         isRequired
                         fieldId="grant-access-role"
                     >
-                        <select
-                            className="pf-c-form-control pf-m-placeholder"
-                            id="grant-access-role"
+                        <Radio id="grant-access-role"
+                            className = "grant-access-radio-button"
                             name="grant-access-role"
-                            aria-label="Select a role"
-                            value={ this.state.role }
+                            label="Administrator" 
+                            description="Give roles to other principals on this Service Registry instance, configure global rules, and access data import and export features."
+                            value={RoleTypes.ADMIN}
                             onChange={this.handleRoleChange}
-                        >
-                            <option value={ RoleTypes.READ_ONLY }>Viewer</option>
-                            <option value={ RoleTypes.DEVELOPER }>Developer</option>
-                            <option value={ RoleTypes.ADMIN }>Admin</option>
-                        </select>
+                            isChecked={this.state.role == RoleTypes.ADMIN}
+                        />
+
+                        <Radio id="grant-access-role"
+                            className = "grant-access-radio-button"
+                            name="grant-access-role"
+                            label="Manager" 
+                            description="Read and write artifacts on this Service Registry instance."
+                            value={RoleTypes.DEVELOPER}
+                            onChange={this.handleRoleChange}
+                            isChecked={this.state.role == RoleTypes.DEVELOPER} />
+
+                        <Radio id="grant-access-role"
+                            className = "grant-access-radio-button"
+                            name="grant-access-role"
+                            label="Viewer" 
+                            description="Read artifacts on this Service Registry instance."
+                            value={RoleTypes.READ_ONLY}
+                            onChange={this.handleRoleChange} 
+                            isChecked={this.state.role == RoleTypes.READ_ONLY}/>
                     </FormGroup>
                 </Form>
 
@@ -104,9 +198,10 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
     protected initializeState(): GrantAccessModalState {
         return {
+            isAccountIDSelectOpen: false,
             isValid: false,
-            principalId: "",
-            role: RoleTypes.READ_ONLY
+            accountId: this.props.isUpdateAccess && this.props.roles ? this.props.roles[0].principalId : "",
+            role: undefined
         };
     }
 
@@ -114,26 +209,52 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         this.setMultiState(this.initializeState());
     }
 
+    private onAccountIDClearSelection = () => {
+        this.setMultiState({
+          accountID: "",
+          isAccountIDSelectOpen: false
+        });
+      };
+
     private handlePrincipalChange = (value: string): void => {
         this.setMultiState({
-            principalId: value,
+            accountId: value,
             isValid: this.checkValid(value, this.state.role)
         })
     };
 
-    private handleRoleChange = (event: any): void => {
+    private onAccountIDSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
+        if (isPlaceholder) this.onAccountIDClearSelection();
+        else {
+          this.setMultiState({
+            accountId: selection,
+            isValid: this.checkValid(selection, this.state.role),
+            isAccountIDSelectOpen: false
+          });
+          console.log('selected:', selection);
+        }
+      };
+
+    private onAccountIDToggle = (isOpen: boolean) => {
+        this.setSingleState("isAccountIDSelectOpen", isOpen);
+      };
+
+    private handleRoleChange = (_isChecked: boolean, event: any): void => {
         this.setMultiState({
             role: event.target.value,
-            isValid: this.checkValid(this.state.principalId, event.target.value)
+            isValid: this.checkValid(this.state.accountId, event.target.value)
         })
     };
 
     private doGrantAccess = (): void => {
-        this.props.onGrant(this.state.principalId, this.state.role);
+        this.props.onGrant(this.state.accountId as string, 
+            this.state.role as string,
+            this.props.roles?.find(role => role.principalId == this.state.accountId) !== undefined);
+        this.reset();
     }
 
-    private checkValid(principalId: string, role: string): boolean {
-        if (!principalId) {
+    private checkValid(accountId: SelectOptionObject | string | undefined, role: string | undefined): boolean {
+        if (!accountId) {
             return false;
         }
         if (!role) {

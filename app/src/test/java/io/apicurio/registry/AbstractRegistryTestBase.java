@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractRegistryTestBase {
 
+    public static final String CURRENT_ENV = "CURRENT_ENV";
+    public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
 
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();

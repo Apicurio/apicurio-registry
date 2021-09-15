@@ -189,8 +189,9 @@ pr-check:
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
 build-project:
-	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+# TODO undo skipping tests for main build and running tests just for app module
+	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.
-# 
+#
 # .PHONY: <target-name>  ## Description of what target does

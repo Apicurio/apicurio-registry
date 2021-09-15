@@ -13,11 +13,7 @@
     <artifactId>apicurio-registry-storage-sql</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-sql</name>
-    
-    <properties>
-        <groups></groups>
-    </properties>
-    
+
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
@@ -34,6 +30,11 @@
                 </exclusion>
             </exclusions>
 
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-apicurio-registry-avro</artifactId>
         </dependency>
 
         <dependency>

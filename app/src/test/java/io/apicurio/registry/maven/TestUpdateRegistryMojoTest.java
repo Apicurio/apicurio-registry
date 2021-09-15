@@ -45,7 +45,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         artifact.setFile(file);
         artifacts.add(artifact);
 
-        mojo.artifacts = artifacts;
+        mojo.setArtifacts(artifacts);
 
         Assertions.assertThrows(MojoExecutionException.class, () -> {
             mojo.execute();

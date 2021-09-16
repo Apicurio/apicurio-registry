@@ -87,6 +87,16 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <name>Rishab Prasad</name>
+            <id>riprasad</id>
+            <email>riprasad@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+4</timezone>
+        </developer>
     </developers>
 
     <modules>

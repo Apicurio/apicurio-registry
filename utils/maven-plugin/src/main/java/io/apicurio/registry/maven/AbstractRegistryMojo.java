@@ -106,6 +106,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
                 return ContentTypes.APPLICATION_GRAPHQL;
             case "proto":
                 return ContentTypes.APPLICATION_PROTOBUF;
+            case "wsdl":
+            case "xsd":
             case "xml":
                 return ContentTypes.APPLICATION_XML;
         }

@@ -491,7 +491,7 @@ parameters:
   description: property to set the source of auth roles when checking authorization (e.g. token or application)
   value: "token"
 - name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
-
+  value: "false"
 - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
   description: flag to enable/disable the admin-override auth feature
   value: "false"

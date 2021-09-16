@@ -139,7 +139,7 @@ jobs:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-tenant-manager-image
+          make build-sql-native-image build-tenant-manager-native-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'

@@ -209,16 +209,17 @@ push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-m
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
 pr-check:
-# TODO undo skipping tests for main build and running tests just for app module
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
-		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
-#	NO_DOCKER=true mvn verify -Pintegration-tests -Pmultitenancy -Psql -am -pl integration-tests/testsuite \
-#		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	./scripts/clean-postgres.sh
+	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Pmultitenancy -Psql -am -pl integration-tests/testsuite \
+		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
 build-project:
-# TODO undo skipping tests for main build and running tests just for app module
+# run unit tests for app module
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+# build everything without running tests in order to be able to build container images
 	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
 # Please declare your targets as .PHONY in the format shown below, so that the 'make help' parses the information correctly.

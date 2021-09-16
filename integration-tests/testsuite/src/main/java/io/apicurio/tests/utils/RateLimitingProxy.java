@@ -66,7 +66,8 @@ public class RateLimitingProxy {
         server = vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(this::proxyRequest)
             .listen(server -> {
                 if (server.succeeded()) {
-                    logger.info("Proxy server started on port " + port);
+                    logger.info("Proxy server started on port {}", port);
+                    logger.info("Proxying server {}:{}", destinationHost, destinationPort);
                 } else {
                     logger.error("Error starting server", server.cause());
                 }
@@ -94,10 +95,12 @@ public class RateLimitingProxy {
         boolean allowed = allowed();
 
         if (!allowed) {
+            logger.info("Rejecting request, no longer allowed");
             req.response().setStatusCode(429);
             req.response().end();
             return;
         }
+        logger.info("Allowing request, redirecting");
 
         HttpClientRequest clientReq = client.request(req.method(), destinationPort, destinationHost, req.uri(), clientRes -> {
             req.response().setChunked(true);

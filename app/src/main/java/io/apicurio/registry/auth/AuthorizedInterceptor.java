@@ -89,7 +89,7 @@ public class AuthorizedInterceptor {
             }
 
             // Otherwise just fail - auth was enabled but no credentials provided.
-            log.trace("Authentication credentials missing and required for protected endpoint.");
+            log.warn("Authentication credentials missing and required for protected endpoint.");
             throw new UnauthorizedException("User is not authenticated.");
         }
 
@@ -104,13 +104,13 @@ public class AuthorizedInterceptor {
 
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
-            log.trace("RBAC enabled and required role missing.");
+            log.warn("RBAC enabled and required role missing.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
         if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
-            log.trace("OBAC enabled and operation not permitted due to wrong owner.");
+            log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 

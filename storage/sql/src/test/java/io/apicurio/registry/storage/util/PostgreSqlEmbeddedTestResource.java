@@ -59,7 +59,9 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     @Override
     public void stop() {
         try {
-            database.close();
+            if (database != null) {
+                database.close();
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

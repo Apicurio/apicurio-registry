@@ -53,7 +53,12 @@ public class RateLimitingProxy {
 
         vertx = Vertx.vertx();
         client = vertx.createHttpClient(new HttpClientOptions());
-        this.destinationHost = destinationHost;
+        if (destinationHost.endsWith("127.0.0.1.nip.io")) {
+            logger.info("Changing proxy destination host to localhost");
+            this.destinationHost = "localhost";
+        } else {
+            this.destinationHost = destinationHost;
+        }
         this.destinationPort = destinationPort;
     }
 

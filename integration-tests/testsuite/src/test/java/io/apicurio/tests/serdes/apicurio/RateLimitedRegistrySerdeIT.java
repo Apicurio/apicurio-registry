@@ -81,7 +81,6 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
-    @Tag(Constants.ACCEPTANCE)
     void testFindLatestRateLimited() throws Exception {
 
         RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
@@ -122,7 +121,6 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
     }
 
     @Test
-    @Tag(Constants.ACCEPTANCE)
     void testAutoRegisterRateLimited() throws Exception {
 
         RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());

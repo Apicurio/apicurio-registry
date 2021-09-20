@@ -1,24 +1,23 @@
-DROP TABLE apicurio;
+SELECT schemaname, tablename, tableowner FROM pg_tables WHERE schemaname = 'public';
 
-DROP SEQUENCE contentidsequence;
-DROP SEQUENCE globalidsequence;
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
 
-DROP TABLE globalrules;
+SELECT schemaname, tablename, tableowner FROM pg_tables WHERE schemaname = 'public';
 
-DROP TABLE artifacts CASCADE;
+SELECT relname FROM pg_class WHERE relkind = 'S';
 
-DROP TABLE rules CASCADE;
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT relname FROM pg_class WHERE relkind = 'S') LOOP
+        EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.relname) || ' CASCADE';
+    END LOOP;
+END $$;
 
-DROP TABLE content CASCADE;
-
-DROP TABLE versions CASCADE;
-
-DROP TABLE properties CASCADE;
-
-DROP TABLE labels CASCADE;
-
-DROP TABLE logconfiguration;
-
-DROP TABLE groups;
-
-DROP TABLE acls;
+SELECT relname FROM pg_class WHERE relkind = 'S';

@@ -31,10 +31,10 @@ jobs:
           go-version: '^1.16.8'
       - run: go version
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '11'
+          version: '17'
           architecture: x64
 
       - name: Get maven wrapper
@@ -76,10 +76,10 @@ jobs:
           go-version: '^1.16.8'
       - run: go version
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '11'
+          version: '17'
           architecture: x64
 
       - name: Build All Variants

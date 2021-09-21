@@ -22,14 +22,17 @@ jobs:
     name: Kubernetes Tests Basic
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '17'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Get maven wrapper
@@ -62,14 +65,17 @@ jobs:
     name: Kubernetes Tests Clustered
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '17'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Build All Variants

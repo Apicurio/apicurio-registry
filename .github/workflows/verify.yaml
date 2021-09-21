@@ -22,14 +22,17 @@ jobs:
     name: Verify Build
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '17'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Cache Dependencies
@@ -75,18 +78,22 @@ jobs:
       - name: Push The Images To Quay.io
         if: github.event_name == 'push'
         run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
+
   build-native-images:
     name: Build native images
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '17'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Cache Dependencies

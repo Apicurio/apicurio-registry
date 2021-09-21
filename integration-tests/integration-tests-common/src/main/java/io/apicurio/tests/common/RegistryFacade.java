@@ -482,8 +482,44 @@ public class RegistryFacade {
     private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
 
         String noDocker = System.getenv("NO_DOCKER");
+        String currentEnv = System.getenv("CURRENT_ENV");
 
-        if (noDocker != null && noDocker.equals("true")) {
+        if (currentEnv != null && "mas".equals(currentEnv)) {
+
+            //postgresql running in a pre-deployed container
+
+            appEnv.put("REGISTRY_DATASOURCE_URL", "jdbc:postgresql://localhost:5432/test");
+            appEnv.put("REGISTRY_DATASOURCE_USERNAME", "test");
+            appEnv.put("REGISTRY_DATASOURCE_PASSWORD", "test");
+
+            processes.add(new RegistryTestProcess() {
+
+                @Override
+                public String getName() {
+                    return "container-postgresql";
+                }
+
+                @Override
+                public void close() throws Exception {
+                }
+
+                @Override
+                public String getStdOut() {
+                    return "";
+                }
+
+                @Override
+                public String getStdErr() {
+                    return "";
+                }
+
+                @Override
+                public boolean isContainer() {
+                    return false;
+                }
+            });
+
+        } else if (noDocker != null && noDocker.equals("true")) {
             EmbeddedPostgres database = EmbeddedPostgres.start();
 
 

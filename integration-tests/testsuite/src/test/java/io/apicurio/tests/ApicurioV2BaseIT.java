@@ -16,7 +16,6 @@
 
 package io.apicurio.tests;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
@@ -25,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -95,16 +95,13 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
                 logger.error("", e);
             }
         }
-        TestUtils.retry(() -> assertTrue(registryClient.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount() == 0));
+        ensureClusterSync(client -> assertTrue(client.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount() == 0));
     }
 
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
         ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
         // make sure we have schema registered
-        retry(() -> registryClient.getContentByGlobalId(amd.getGlobalId()));
-        retry(() -> registryClient.getArtifactVersionMetaData(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion())));
-
         ensureClusterSync(amd.getGlobalId());
         ensureClusterSync(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion()));
 
@@ -115,9 +112,6 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         VersionMetaData meta = registryClient.createArtifactVersion(groupId, artifactId, null, artifact);
 
         //wait for storage
-        retry(() -> registryClient.getContentByGlobalId(meta.getGlobalId()));
-        retry(() -> registryClient.getArtifactVersionMetaData(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion())));
-
         ensureClusterSync(meta.getGlobalId());
         ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
 
@@ -128,9 +122,6 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         ArtifactMetaData meta = registryClient.updateArtifact(groupId, artifactId, artifact);
 
         //wait for storage
-        retry(() -> registryClient.getContentByGlobalId(meta.getGlobalId()));
-        retry(() -> registryClient.getArtifactVersionMetaData(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion())));
-
         ensureClusterSync(meta.getGlobalId());
         ensureClusterSync(meta.getGroupId(), meta.getId(), String.valueOf(meta.getVersion()));
 
@@ -148,6 +139,8 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
                     target.client.getContentByGlobalId(globalId);
                 }
             });
+        } else {
+            TestUtils.retry(() -> registryClient.getContentByGlobalId(globalId));
         }
     }
 
@@ -162,6 +155,24 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
                     target.client.getArtifactVersionMetaData(groupId, artifactId, version);
                 }
             });
+        } else {
+            TestUtils.retry(() -> registryClient.getArtifactVersionMetaData(groupId, artifactId, version));
+        }
+    }
+
+    private void ensureClusterSync(Consumer<RegistryClient> function) throws Exception {
+        if (registryClient instanceof LoadBalanceRegistryClient) {
+            LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
+
+            var nodes = loadBalanceRegistryClient.getRegistryNodes();
+
+            TestUtils.retry(() -> {
+                for (RegistryClientHolder target : nodes) {
+                    function.accept(target.client);
+                }
+            });
+        } else {
+            TestUtils.retry(() -> function.accept(registryClient));
         }
     }
 

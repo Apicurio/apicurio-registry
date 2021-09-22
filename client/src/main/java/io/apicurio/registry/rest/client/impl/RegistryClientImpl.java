@@ -77,8 +77,8 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
-        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifact(normalizeGid(groupId), artifactId, headers, data));
     }
 
@@ -102,9 +102,10 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
+    public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, String contentType, InputStream data) {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, queryParams, data));
+        final Map<String, String> headers = contentType != null ? Map.of(Headers.CONTENT_TYPE, contentType) : Collections.emptyMap();
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactVersionMetaDataByContent(normalizeGid(groupId), artifactId, headers, queryParams, data));
     }
 
     @Override
@@ -155,8 +156,9 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        apicurioHttpClient.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, data));
+    public void testUpdateArtifact(String groupId, String artifactId, String contentType, InputStream data) {
+        final Map<String, String> headers = contentType != null ? Map.of(Headers.CONTENT_TYPE, contentType) : Collections.emptyMap();
+        apicurioHttpClient.sendRequest(GroupRequestsProvider.testUpdateArtifact(normalizeGid(groupId), artifactId, headers, data));
     }
 
     @Override
@@ -200,8 +202,8 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
-        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactVersion(normalizeGid(groupId), artifactId, data, headers));
     }
 
@@ -213,18 +215,17 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
-        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription);
+        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
         if (artifactId != null) {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
-
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
@@ -433,7 +434,7 @@ public class RegistryClientImpl implements RegistryClient {
         return Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
     }
 
-    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription) {
+    private Map<String, String> headersFrom(String version, String artifactName, String artifactDescription, String contentType) {
         final Map<String, String> headers = new HashMap<>();
         if (version != null) {
             headers.put(Headers.VERSION, version);
@@ -443,6 +444,9 @@ public class RegistryClientImpl implements RegistryClient {
         }
         if (artifactDescription != null) {
             headers.put(Headers.DESCRIPTION_ENCODED, encodeToBase64(artifactDescription));
+        }
+        if (contentType != null) {
+            headers.put(Headers.CONTENT_TYPE, contentType);
         }
         return headers;
     }

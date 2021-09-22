@@ -35,6 +35,7 @@ public interface Headers {
     String NAME_ENCODED = "X-Registry-Name-Encoded";
     String DESCRIPTION = "X-Registry-Description";
     String DESCRIPTION_ENCODED = "X-Registry-Description-Encoded";
+    String CONTENT_TYPE = "Content-Type";
 
     default void checkIfDeprecated(
         Supplier<ArtifactState> stateSupplier,

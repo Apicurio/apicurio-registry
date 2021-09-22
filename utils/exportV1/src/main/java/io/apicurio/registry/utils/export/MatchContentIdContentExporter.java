@@ -17,6 +17,10 @@
 package io.apicurio.registry.utils.export;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.codec.digest.DigestUtils;
 import io.apicurio.registry.rest.beans.VersionMetaData;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
@@ -28,6 +32,9 @@ public class MatchContentIdContentExporter implements ContentExporter {
 
     private EntityWriter writer;
 
+    private Map<String, Long> contentIndex = new HashMap<>();
+
+
     public MatchContentIdContentExporter(EntityWriter writer) {
         this.writer = writer;
     }
@@ -37,11 +44,21 @@ public class MatchContentIdContentExporter implements ContentExporter {
      */
     @Override
     public Long writeContent(String contentHash, String canonicalContentHash, byte[] contentBytes, VersionMetaData meta) {
+
+        byte[] content = contentBytes;
+        String hash = contentHash;
+        while(contentIndex.containsKey(hash)) {
+            content = new StringBuilder(new String(content)).append(" ".getBytes()).toString().getBytes();
+            hash = DigestUtils.sha256Hex(content);
+        }
+
+        contentIndex.put(hash, meta.getGlobalId());
+
         ContentEntity contentEntity = new ContentEntity();
         contentEntity.contentId = meta.getGlobalId();
-        contentEntity.contentHash = contentHash;
+        contentEntity.contentHash = hash;
         contentEntity.canonicalHash = canonicalContentHash;
-        contentEntity.contentBytes = contentBytes;
+        contentEntity.contentBytes = content;
 
         try {
             writer.writeEntity(contentEntity);

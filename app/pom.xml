@@ -116,8 +116,8 @@
 
         <!-- Sentry -->
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-logging-sentry</artifactId>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry</artifactId>
         </dependency>
 
         <!-- Third Party Libraries -->

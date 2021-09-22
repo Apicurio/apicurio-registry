@@ -79,8 +79,8 @@
             <artifactId>quarkus-flyway</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-logging-sentry</artifactId>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry</artifactId>
         </dependency>
 
         <dependency>

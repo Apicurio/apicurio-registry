@@ -109,6 +109,7 @@ public class SerdeConfig {
      * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry.
      */
     public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
+    public static final String AUTH_SERVICE_URL_TOKEN_ENDPOINT = "/realms/%s/protocol/openid-connect/token";
 
     /**
      * The Realm of the Auth Service.

@@ -228,9 +228,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
         }
 
-        //FIXME configure url with realm and token endpoint
+        final String tokenEndpoint =  authServerUrl + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
-        return configureAuthWithUrl(config, authServerUrl);
+        return configureAuthWithUrl(config, tokenEndpoint);
     }
 
     private OidcAuth configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {

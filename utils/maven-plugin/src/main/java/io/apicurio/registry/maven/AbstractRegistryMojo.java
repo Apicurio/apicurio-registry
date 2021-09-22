@@ -40,24 +40,24 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
      * The registry's url.
-     * e.g. http://localhost:8080/api
+     * e.g. http://localhost:8080/api/v2
      */
-    @Parameter(required = true)
+    @Parameter(required = true, property = "registry.url")
     String registryUrl;
 
-    @Parameter
+    @Parameter(property = "auth.server.url")
     String authServerUrl;
 
-    @Parameter
+    @Parameter(property = "client.id")
     String clientId;
 
-    @Parameter
+    @Parameter(property = "client.secret")
     String clientSecret;
 
-    @Parameter
+    @Parameter(property = "username")
     String username;
 
-    @Parameter
+    @Parameter(property = "password")
     String password;
 
     private static RegistryClient client;

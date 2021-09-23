@@ -29,7 +29,6 @@ import {
     SelectOption,
     SelectOptionObject,
     SelectVariant,
-    TextContent,
     TextInput,
     Toolbar,
     ToolbarContent,
@@ -50,7 +49,7 @@ import {PleaseWaitModal, RootPageHeader} from "../../components";
  */
 // tslint:disable-next-line:no-empty-interface
 export interface RolesPageProps extends PageProps {
-
+    principalSelect: any
 }
 
 /**
@@ -82,6 +81,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
     }
 
     public renderPage(): React.ReactElement {
+    debugger;
         return (
             <React.Fragment>
                 <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
@@ -90,9 +90,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                 <PageSection className="ps_roles-description" variant={PageSectionVariants.light}>
                     <Flex>
                         <FlexItem>
-                            <TextContent>
-                                Manage access to the registry by granting/revoking roles to specific users.
-                            </TextContent>
+                            {this.props.dropDown}
                         </FlexItem>
                     </Flex>
                 </PageSection>

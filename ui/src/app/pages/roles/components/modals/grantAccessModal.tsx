@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from "react";
+import React, {ReactNode} from "react";
 import { Button, 
     DescriptionList, 
     DescriptionListGroup, 
@@ -41,6 +41,7 @@ export interface GrantAccessModalProps extends PureComponentProps {
     serviceRegistryInstance?: string;
     accountId?: string;
     roles: null | RoleMapping[];
+    rolesSelectComponent?: ReactNode;
     defaultRole?: RoleMapping;
     onClose: () => void;
     onGrant: (accountId: string, role: string, isUpdate: boolean) => void;
@@ -124,38 +125,40 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                         isRequired
                         fieldId="grant-access-account-id"
                     >
-                        {this.props.roles !== null ?
-                        <Select
-                            id="grant-access-principal"
-                            name="grant-access-principal"
-                            variant={SelectVariant.typeahead}
-                            typeAheadAriaLabel="Select an account ID"
-                            onToggle={this.onAccountIDToggle}
-                            onSelect={this.onAccountIDSelect}
-                            onClear={this.onAccountIDClearSelection}
-                            selections={this.state.accountId}
-                            isOpen={this.state.isAccountIDSelectOpen}
-                            isInputValuePersisted={true}
-                            placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account ID"}
-                            maxHeight = {'100px'}
-                            isDisabled={this.props.isUpdateAccess}
-                        >
-                            {this.props.roles.map((option, index) => (
-                                <SelectOption
-                                    key={index}
-                                    value={option.principalId}
-                                    
-                                />
-                            ))}
-                        </Select> :   
-                           <TextInput
-                           isRequired
-                           type="text"
-                           id="grant-access-principal"
-                           name="grant-access-principal"
-                           aria-describedby="grant-access-principal-helper"
-                           onChange={this.handlePrincipalChange}
-                       /> }
+                        {this.props.rolesSelectComponent ? this.props.rolesSelectComponent :
+                            this.props.roles !== null ?
+                            <Select
+                                id="grant-access-principal"
+                                name="grant-access-principal"
+                                variant={SelectVariant.typeahead}
+                                typeAheadAriaLabel="Select an account ID"
+                                onToggle={this.onAccountIDToggle}
+                                onSelect={this.onAccountIDSelect}
+                                onClear={this.onAccountIDClearSelection}
+                                selections={this.state.accountId}
+                                isOpen={this.state.isAccountIDSelectOpen}
+                                isInputValuePersisted={true}
+                                placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account ID"}
+                                maxHeight = {'100px'}
+                                isDisabled={this.props.isUpdateAccess}
+                            >
+                                {this.props.roles.map((option, index) => (
+                                    <SelectOption
+                                        key={index}
+                                        value={option.principalId}
+                                        
+                                    />
+                                ))}
+                            </Select> :   
+                            <TextInput
+                                isRequired
+                                type="text"
+                                id="grant-access-principal"
+                                name="grant-access-principal"
+                                aria-describedby="grant-access-principal-helper"
+                                onChange={this.handlePrincipalChange}
+                            /> 
+                        }
                     </FormGroup>
                     <FormGroup
                         label="Role"

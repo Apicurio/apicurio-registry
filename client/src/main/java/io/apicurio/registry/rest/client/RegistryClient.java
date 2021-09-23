@@ -48,14 +48,18 @@ public interface RegistryClient {
 
     InputStream getLatestArtifact(String groupId, String artifactId);
 
-    ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data);
+    ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data);
+
+    default ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data) {
+        return updateArtifact(groupId, artifactId, version, artifactName, artifactDescription, null, data);
+    }
 
     default ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, InputStream data) {
-        return updateArtifact(groupId, artifactId, version, null, null, data);
+        return updateArtifact(groupId, artifactId, version, null, null, null, data);
     }
 
     default ArtifactMetaData updateArtifact(String groupId, String artifactId, InputStream data) {
-        return updateArtifact(groupId, artifactId, null, null, null, data);
+        return updateArtifact(groupId, artifactId, null, null, null, null, data);
     }
 
     void deleteArtifact(String groupId, String artifactId);
@@ -64,10 +68,14 @@ public interface RegistryClient {
 
     void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data);
 
-    VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data);
+    VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, String contentType, InputStream data);
+
+    default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, Boolean canonical, InputStream data) {
+        return getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, null, data);
+    }
 
     default VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId, InputStream data) {
-        return getArtifactVersionMetaDataByContent(groupId, artifactId, null, data);
+        return getArtifactVersionMetaDataByContent(groupId, artifactId, null, null, data);
     }
 
     List<RuleType> listArtifactRules(String groupId, String artifactId);
@@ -84,7 +92,11 @@ public interface RegistryClient {
 
     void updateArtifactState(String groupId, String artifactId, UpdateState data);
 
-    void testUpdateArtifact(String groupId, String artifactId, InputStream data);
+    void testUpdateArtifact(String groupId, String artifactId, String contentType, InputStream data);
+
+    default void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
+        testUpdateArtifact(groupId, artifactId, null, data);
+    }
 
     InputStream getArtifactVersion(String groupId, String artifactId, String version);
 
@@ -100,10 +112,14 @@ public interface RegistryClient {
     VersionSearchResults listArtifactVersions(String groupId, String artifactId, Integer offset,
                                               Integer limit);
 
-    VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data);
+    VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, String contentType, InputStream data);
+
+    default VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data){
+        return createArtifactVersion(groupId, artifactId, version, artifactName, artifactDescription, null, data);
+    }
 
     default VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, InputStream data) {
-        return createArtifactVersion(groupId, artifactId, version, null, null, data);
+        return createArtifactVersion(groupId, artifactId, version, null, null, null, data);
     }
 
     ArtifactSearchResults listArtifactsInGroup(String groupId, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
@@ -112,23 +128,27 @@ public interface RegistryClient {
         return listArtifactsInGroup(groupId, null, null, null, null);
     }
 
-    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data);;
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data);
+
+    default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
+        return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, null, data);
+    };
 
     default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, InputStream data) {
-        return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, null, null, data);
+        return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, null, null, null, data);
     }
 
     default ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) {
-        return createArtifact(groupId, artifactId, null, null, null, null, null, null, data);
+        return createArtifact(groupId, artifactId, null, null, null, null, null, null, null, data);
     }
     default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, InputStream data) {
-        return createArtifact(groupId, artifactId, version, null, null, null, null, null, data);
+        return createArtifact(groupId, artifactId, version, null, null, null, null, null, null, data);
     }
     default ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream data) {
-        return createArtifact(groupId, artifactId, null, artifactType, null, null, null, null, data);
+        return createArtifact(groupId, artifactId, null, artifactType, null, null, null, null, null, data);
     }
     default ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, IfExists ifExists, InputStream data) {
-        return createArtifact(groupId, artifactId, null, artifactType, ifExists, null, null, null, data);
+        return createArtifact(groupId, artifactId, null, artifactType, ifExists, null, null, null, null, data);
     }
 
     void deleteArtifactsInGroup(String groupId);

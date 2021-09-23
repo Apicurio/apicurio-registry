@@ -17,6 +17,7 @@
 
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
 import io.apicurio.rest.client.auth.OidcAuth;
@@ -29,6 +30,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 
 import java.util.Collections;
+import java.util.Locale;
 
 /**
  * Base class for all Registry Mojo's.
@@ -40,24 +42,24 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
      * The registry's url.
-     * e.g. http://localhost:8080/api
+     * e.g. http://localhost:8080/api/v2
      */
-    @Parameter(required = true)
+    @Parameter(required = true, property = "registry.url")
     String registryUrl;
 
-    @Parameter
+    @Parameter(property = "auth.server.url")
     String authServerUrl;
 
-    @Parameter
+    @Parameter(property = "client.id")
     String clientId;
 
-    @Parameter
+    @Parameter(property = "client.secret")
     String clientSecret;
 
-    @Parameter
+    @Parameter(property = "username")
     String username;
 
-    @Parameter
+    @Parameter(property = "password")
     String password;
 
     private static RegistryClient client;
@@ -87,4 +89,28 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException;
+
+    protected String getContentTypeByExtension(String fileName){
+        if(fileName == null) return null;
+        String[] temp = fileName.split("[.]");
+        String extension = temp[temp.length - 1];
+        switch (extension.toLowerCase(Locale.ROOT)){
+            case "avro":
+            case "avsc":
+            case "json":
+                return ContentTypes.APPLICATION_JSON;
+            case "yml":
+            case "yaml":
+                return ContentTypes.APPLICATION_YAML;
+            case "graphql":
+                return ContentTypes.APPLICATION_GRAPHQL;
+            case "proto":
+                return ContentTypes.APPLICATION_PROTOBUF;
+            case "wsdl":
+            case "xsd":
+            case "xml":
+                return ContentTypes.APPLICATION_XML;
+        }
+        return null;
+    }
 }

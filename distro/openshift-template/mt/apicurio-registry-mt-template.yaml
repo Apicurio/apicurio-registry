@@ -101,6 +101,22 @@ objects:
           app: apicurio-registry
           template: multitenant-apicurio-registry
       spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - apicurio-registry
+                  - key: template
+                    operator: In
+                    values:
+                    - multitenant-apicurio-registry
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+              weight: 100
         serviceAccount: ${SERVICE_ACCOUNT_NAME}
         serviceAccountName: ${SERVICE_ACCOUNT_NAME}
         volumes:

@@ -51,14 +51,14 @@ export const SchemaCard: React.FC<SchemaCardPropsProps> = ({
         >
           <DescriptionListTerm>Value schema artifact ID</DescriptionListTerm>
           {hasValueSchema ? (
-            <MatchingSchemaCard artifactName={artifactName} />
+            <MatchingSchemaCard artifactName={artifactName} keySchema={false} />
           ) : (
             <NoMatchingSchema artifactName={artifactName} keySchema={false} />
           )}
 
           <DescriptionListTerm>Key schema artifact ID</DescriptionListTerm>
           {hasKeySchema ? (
-            <MatchingSchemaCard artifactName={artifactName} />
+            <MatchingSchemaCard artifactName={artifactName} keySchema={true}/>
           ) : (
             <NoMatchingSchema artifactName={artifactName} keySchema={true} />
           )}

@@ -24,7 +24,7 @@ import {
   DescriptionListDescription,
   Popover,
 } from '@patternfly/react-core'
-import './style.css'
+//import './style.css'
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons'
 
 export type NoMatchingSchemaProps = {
@@ -56,7 +56,7 @@ export const NoMatchingSchema: React.FC<NoMatchingSchemaProps> = ({
               <div>
                 The system couldn't find a matching schema for this topic in the
                 selected Service Registry instance. Please make sure to use the
-                following naming format for the Artifact ID:
+                following naming format for the Artifact ID:{artifactName+ keySchema?'-key': '-value'}
               </div>
             }
           >

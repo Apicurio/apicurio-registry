@@ -19,7 +19,7 @@ import React from 'react';
 import {
   Title,
   Button,
-  EmptyState as PFEmptyState,
+  EmptyState,
   EmptyStateIcon,
   EmptyStateBody,
   EmptyStateVariant,
@@ -32,34 +32,25 @@ import {
 import { ArrowRightIcon, InfoCircleIcon } from '@patternfly/react-icons';
 
 export type EmptyStateProps = {
-  title?: string;
-  bodyContent?: string;
-  topicKey?: string;
-  topicValue?: string;
-  schemaHeader?: string;
+  artifactName:string
 };
 
 export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
-  title,
-  bodyContent,
-  topicKey,
-  topicValue,
-  schemaHeader,
+  artifactName
 }: EmptyStateProps) => {
-  const { ...restTitleProps } = {};
-  const { ...restEmptyStateProps } = {};
+  
 
   return (
-    <>
+    
       <Card>
-        {schemaHeader && <CardTitle>{schemaHeader}</CardTitle>}
+         <CardTitle>Topic Schemas</CardTitle>
         <CardBody>
-          <PFEmptyState variant={EmptyStateVariant.xl} {...restEmptyStateProps}>
+          <EmptyState variant={EmptyStateVariant.xl} >
             <EmptyStateIcon icon={InfoCircleIcon} color='#2B9AF3' />
-            <Title headingLevel='h2' {...restTitleProps}>
-              {title}
+            <Title headingLevel='h2' >
+              No matching schema exists for the selected instance
             </Title>
-            <EmptyStateBody>{bodyContent}</EmptyStateBody>
+            <EmptyStateBody>The system couldn't find a matching schema for this topic in the selected Service Registry{<br/>} instance. Please make sure to use the folowing naming format for the artifact ID:</EmptyStateBody>
             <EmptyStateSecondaryActions>
               <ClipboardCopy
                 isReadOnly
@@ -67,7 +58,7 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
                 clickTip='Copied'
                 className='pf-u-w-25'
               >
-                {topicKey}
+                {artifactName + '-key'}
               </ClipboardCopy>
             </EmptyStateSecondaryActions>
             <EmptyStateSecondaryActions>
@@ -77,7 +68,7 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
                 clickTip='Copied'
                 className='pf-u-w-25'
               >
-                {topicValue}
+                {artifactName + '-value'}
               </ClipboardCopy>
             </EmptyStateSecondaryActions>
             <EmptyStateSecondaryActions>
@@ -85,9 +76,9 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
                 Go to Service Registry instance <ArrowRightIcon />
               </Button>
             </EmptyStateSecondaryActions>
-          </PFEmptyState>
+          </EmptyState>
         </CardBody>
       </Card>
-    </>
+ 
   );
 };

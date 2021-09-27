@@ -16,102 +16,85 @@
  */
 
 import React from 'react'
-import { PageComponent, PageProps, PageState } from '../basePage'
 import { SchemaCard } from './SchemaCard'
 import { Services } from 'src/services'
 import { SchemaEmptyState } from './EmptyState'
+import {
+  PureComponent,
+  PureComponentProps,
+  PureComponentState,
+} from '../../components/baseComponent'
 
 /**
  * Properties
  */
-// tslint:disable-next-line:no-empty-interface
-export interface SchemaMappingProps extends PageProps {}
+
+export interface SchemaMappingProps extends PureComponentProps {
+  artifactId: string
+}
 
 /**
  * State
  */
-export interface SchemaMappingState extends PageState {
+export interface SchemaMappingState extends PureComponentState {
   hasKeySchema: boolean
   hasValueSchema: boolean
-  artifactId: string
 }
 
-function is404(e: any) {
-  if (typeof e === 'string') {
-    try {
-      const eo: any = JSON.parse(e)
-      if (eo && eo.error_code && eo.error_code === 404) {
-        return true
-      }
-    } catch (e) {
-      // Do nothing
-    }
-  }
-  return false
-}
-
-export class SchemaMapping extends PageComponent<
-  SchemaMappingState,
-  SchemaMappingProps
+export class SchemaMapping extends PureComponent<
+  SchemaMappingProps,
+  SchemaMappingState
 > {
-  constructor(props: Readonly<SchemaMappingState>) {
+  constructor(props: Readonly<SchemaMappingProps>) {
     super(props)
   }
 
-  public renderPage(): React.ReactElement {
-    return (
-    this.props.hasKeySchema || this.props.hasValueSchema?
+  public render(): React.ReactElement {
+    return this.state.hasKeySchema || this.state.hasValueSchema ? (
       <SchemaCard
-        hasKeySchema={this.props.hasKeySchema}
-        hasValueSchema={this.props.hasValueSchema}
+        hasKeySchema={this.state.hasKeySchema}
+        hasValueSchema={this.state.hasValueSchema}
         artifactName={this.props.artifactId}
-      />:
-      <SchemaEmptyState/>
+      />
+    ) : (
+      <SchemaEmptyState artifactName={this.props.artifactId} />
     )
   }
 
-  protected initializePageState(): SchemaMappingProps {
-    return {}
-  }
-
-  protected groupIdParam(): string {
-    return this.getPathParam('groupId')
-  }
-
-  protected artifactIdParam(): string {
-    return this.getPathParam('artifactId')
-  }
-
-  protected versionParam(): string {
-    return this.getPathParam('version')
+  protected initializeState(): SchemaMappingState {
+    return {
+      hasKeySchema: false,
+      hasValueSchema: false,
+    }
   }
 
   // @ts-ignore
-  protected getSchema(): Promise[] | null {
-    let groupId: string | null = this.groupIdParam()
-    if (groupId == 'default') {
-      groupId = null
-    }
-    const artifactId: string = this.artifactIdParam()
-    Services.getLoggerService().info('Loading data for artifact: ', artifactId)
+  protected createLoaders(): Promise[] | null {
+    Services.getLoggerService().info(
+      'Loading data for artifact: ',
+      this.props.artifactId,
+    )
     return [
       Services.getGroupsService()
-        .getArtifactMetaData(groupId, artifactId, this.versionParam())
+        .getArtifactMetaData('null', this.props.artifactId + '-key', 'latest')
+        .then((data) => {
+          this.setSingleState('hasKeySchema', true)
+        })
         .catch((e) => {
-          if (is404(e)) {
-            this.setSingleState('hasValueSchema', false)
-          } else {
-            throw e
-          }
-        }),
-      Services.getGroupsService()
-        .getArtifactMetaData(groupId, artifactId, this.versionParam())
-        .catch((e) => {
-          if (is404(e)) {
+          if (e.error_code == '404') {
             this.setSingleState('hasKeySchema', false)
-          } else {
-            throw e
-          }
+          } else throw e
+        }),
+
+      Services.getGroupsService()
+        .getArtifactMetaData('null', this.props.artifactId + '-value', 'latest')
+        .then((data) => {
+          this.setSingleState('hasValueSchema', true)
+        })
+        .catch((e) => {
+          if (e.error_code == '404') {
+            this.setSingleState('hasValueSchema', false)
+          } else throw e
         }),
     ]
   }

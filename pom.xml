@@ -154,7 +154,7 @@
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>69.1</icu4j.version>
         <protobuf.version>3.18.0</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <xmlsec.version>2.1.7</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Picocli -->

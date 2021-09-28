@@ -25,6 +25,7 @@ public class TestArtifact {
 
     private String groupId;
     private String artifactId;
+    private String contentType;
     private File file;
 
     /**
@@ -73,6 +74,20 @@ public class TestArtifact {
      */
     public void setFile(File file) {
         this.file = file;
+    }
+
+    /**
+     * @return the content type
+     */
+    public String getContentType() {
+        return contentType;
+    }
+
+    /**
+     * @param contentType the contentType to set
+     */
+    public void setContentType(String contentType){
+        this.contentType = contentType;
     }
 
 }

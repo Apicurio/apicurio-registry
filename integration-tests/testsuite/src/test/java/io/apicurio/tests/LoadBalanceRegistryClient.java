@@ -107,8 +107,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String name, String description, InputStream data) {
-        return getTarget().updateArtifact(groupId, artifactId, version, name, description, data);
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String name, String description, String contentType, InputStream data) {
+        return getTarget().updateArtifact(groupId, artifactId, version, name, description, contentType, data);
     }
 
     /**
@@ -153,8 +153,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
-            Boolean canonical, InputStream data) {
-        return getTarget().getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, data);
+            Boolean canonical, String contentType, InputStream data) {
+        return getTarget().getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, contentType, data);
     }
 
     /**
@@ -256,8 +256,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#testUpdateArtifact(java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        getTarget().testUpdateArtifact(groupId, artifactId, data);
+    public void testUpdateArtifact(String groupId, String artifactId, String contentType, InputStream data) {
+        getTarget().testUpdateArtifact(groupId, artifactId, contentType, data);
     }
 
     /**
@@ -344,9 +344,9 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      * @see io.apicurio.registry.rest.client.RegistryClient#createArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.io.InputStream)
      */
     @Override
-    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String name, String description,
+    public VersionMetaData createArtifactVersion(String groupId, String artifactId, String version, String name, String description, String contentType,
             InputStream data) {
-        return getTarget().createArtifactVersion(groupId, artifactId, version, name, description, data);
+        return getTarget().createArtifactVersion(groupId, artifactId, version, name, description,contentType, data);
     }
 
     /**
@@ -387,8 +387,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, InputStream data) {
-        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, data);
+            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, String contentType, InputStream data) {
+        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, contentType, data);
     }
 
     /**

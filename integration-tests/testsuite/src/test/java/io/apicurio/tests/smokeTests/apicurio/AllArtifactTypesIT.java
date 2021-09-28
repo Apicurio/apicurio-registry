@@ -62,7 +62,7 @@ class AllArtifactTypesIT extends ApicurioV2BaseIT {
         TestUtils.retry(() -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream(v2Content)));
 
         // Test update (invalid content)
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("This is not valid content")), errorCodeExtractor);
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.testUpdateArtifact(groupId, artifactId, IoUtil.toStream("{\"This is not a valid content.")), errorCodeExtractor);
 
         // Update artifact (valid v2 content)
         createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
@@ -75,7 +75,7 @@ class AllArtifactTypesIT extends ApicurioV2BaseIT {
         assertNotNull(byContent.getVersion());
 
         // Update artifact (invalid content)
-        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.createArtifactVersion(groupId, artifactId, null, IoUtil.toStream("This is not valid content.")), errorCodeExtractor);
+        TestUtils.assertClientError(RuleViolationException.class.getSimpleName(), 409, () -> client.createArtifactVersion(groupId, artifactId, null, IoUtil.toStream("{\"This is not a valid content.")), errorCodeExtractor);
 
         // Override Validation rule for the artifact
         rule.setConfig("NONE");
@@ -85,7 +85,7 @@ class AllArtifactTypesIT extends ApicurioV2BaseIT {
         TestUtils.retry(() -> client.getArtifactRuleConfig(groupId, artifactId, rule.getType()));
 
         // Update artifact (invalid content) - should work now
-        VersionMetaData amd2 = createArtifactVersion(groupId, artifactId, IoUtil.toStream("This is not valid content."));
+        VersionMetaData amd2 = createArtifactVersion(groupId, artifactId, IoUtil.toStream("{\"This is not a valid content."));
         // Make sure artifact is fully registered
         TestUtils.retry(() -> client.getContentByGlobalId(amd2.getGlobalId()));
     }

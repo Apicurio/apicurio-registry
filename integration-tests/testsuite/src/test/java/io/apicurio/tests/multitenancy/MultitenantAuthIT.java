@@ -51,9 +51,6 @@ import io.smallrye.jwt.build.Jwt;
 
 
 /**
- * NOTE! This test is not testing security nor authentication features yet!
- * Once authentication is enabled in our deployments we will enable it for our testing
- *
  * @author Fabian Martinez
  */
 @Tag(Constants.MULTITENANCY)

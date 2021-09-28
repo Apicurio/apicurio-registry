@@ -51,7 +51,7 @@ public class AdminOverride {
 
     public boolean isAdmin() {
         // When multi-tenancy is enabled, the owner of the tenant is always an admin.
-        if (mtProperties.isMultitenancyEnabled() && isTenantOwner()) {
+        if (mtProperties.isMultitenancyEnabled() && authConfig.isTenantOwnerAdminEnabled() && isTenantOwner()) {
             return true;
         }
 

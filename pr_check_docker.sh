@@ -15,6 +15,8 @@ export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
 which pg_ctl
 PGDATA=/var/lib/postgresql/data /usr/lib/postgresql/*/bin/pg_ctl start -o "-c listen_addresses='*' -p 5432"
 
+docker_setup_db
+
 echo "Running make pr-check"
 make pr-check
 

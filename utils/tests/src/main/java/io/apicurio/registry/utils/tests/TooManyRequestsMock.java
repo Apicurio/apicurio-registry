@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.utils;
+package io.apicurio.registry.utils.tests;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
 
 /**
  * @author Fabian Martinez

@@ -481,7 +481,7 @@ public class RegistryFacade {
     @SuppressWarnings("rawtypes")
     private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
 
-        String noDocker = System.getenv("NO_DOCKER");
+        String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
         String currentEnv = System.getenv("CURRENT_ENV");
 
         if (currentEnv != null && "mas".equals(currentEnv)) {

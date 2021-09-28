@@ -141,7 +141,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.13.2.Final</quarkus.version>
+        <quarkus.version>2.2.3.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>

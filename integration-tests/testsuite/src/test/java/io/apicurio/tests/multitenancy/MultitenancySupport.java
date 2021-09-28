@@ -45,14 +45,14 @@ public class MultitenancySupport {
     }
 
     public TenantUserClient createTenant() throws Exception {
-        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
         return createTenant(user);
     }
 
     public TenantUserClient createTenant(TenantUser user) throws Exception {
         String tenantAppUrl = registerTenant(user);
         var client = createUserClient(user, tenantAppUrl);
-        registryFacade.getMTOnlyKeycloakMock().addStubForTenant(user.clientId, user.clientSecret, user.organizationId);
+        registryFacade.getMTOnlyKeycloakMock().addStubForTenant(user.principalId, user.principalPassword, user.organizationId);
         return new TenantUserClient(user, tenantAppUrl, client, registryFacade.getMTOnlyKeycloakMock().tokenEndpoint);
     }
 

@@ -24,15 +24,13 @@ public class TenantUser {
     public final String tenantId;
     public final String principalId;
     public final String organizationId;
-    public final String clientId;
-    public final String clientSecret;
+    public final String principalPassword;
 
-    public TenantUser(String tenantId, String principalId, String organizationId, String clientId, String clientSecret) {
+    public TenantUser(String tenantId, String principalId, String organizationId, String principalPassword) {
         this.tenantId = tenantId;
         this.principalId = principalId;
         this.organizationId = organizationId;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
+        this.principalPassword = principalPassword;
     }
 
 }

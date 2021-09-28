@@ -100,8 +100,9 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
                 //add auth properties
                 .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
-                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.clientId)
-                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.clientSecret)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
 
 
                 .withSerializer(AvroKafkaSerializer.class)
@@ -151,8 +152,9 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
                 //add auth properties
                 .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
-                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.clientId)
-                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.clientSecret)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
 
                 .withSerializer(AvroKafkaSerializer.class)
                 .withDeserializer(AvroKafkaDeserializer.class)

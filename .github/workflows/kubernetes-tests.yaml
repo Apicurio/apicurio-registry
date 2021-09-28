@@ -26,6 +26,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.8'
+      - run: go version
+
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
@@ -65,6 +70,11 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.8'
+      - run: go version
 
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1

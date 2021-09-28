@@ -101,6 +101,22 @@ objects:
           app: apicurio-registry
           template: multitenant-apicurio-registry
       spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - apicurio-registry
+                  - key: template
+                    operator: In
+                    values:
+                    - multitenant-apicurio-registry
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+              weight: 100
         serviceAccount: ${SERVICE_ACCOUNT_NAME}
         serviceAccountName: ${SERVICE_ACCOUNT_NAME}
         volumes:
@@ -124,6 +140,14 @@ objects:
             value: ${REGISTRY_QUARKUS_LOG_LEVEL}
           - name: QUARKUS_PROFILE
             value: prod
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
 
           - name: DB_HOST
             valueFrom:
@@ -283,6 +307,14 @@ objects:
             value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
             value: ${TENANT_MANAGER_LOG_LEVEL}
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
 
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
@@ -521,3 +553,9 @@ parameters:
 - name: ENVOY_CONFIG_CM_NAME
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
+
+- name: ENABLE_SENTRY
+  value: "false"
+- name: SENTRY_DSN_SECRET_NAME
+  description: Secret name containing dsn for connecting to sentry
+  value: sentry-dsn-secret

@@ -154,7 +154,7 @@
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>69.1</icu4j.version>
         <protobuf.version>3.18.0</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <xmlsec.version>2.1.7</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Picocli -->
@@ -186,6 +186,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.0.5.Final</apicurio-common-rest-client.version>
+        <sentry.version>1.7.30</sentry.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -470,6 +471,11 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.sentry</groupId>
+                <artifactId>sentry</artifactId>
+                <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
             </dependency>
 
             <!-- Picocli -->

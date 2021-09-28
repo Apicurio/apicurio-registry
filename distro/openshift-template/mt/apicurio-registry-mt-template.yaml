@@ -141,6 +141,14 @@ objects:
           - name: QUARKUS_PROFILE
             value: prod
 
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
+
           - name: DB_HOST
             valueFrom:
               secretKeyRef:
@@ -299,6 +307,14 @@ objects:
             value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
             value: ${TENANT_MANAGER_LOG_LEVEL}
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
 
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
@@ -537,3 +553,9 @@ parameters:
 - name: ENVOY_CONFIG_CM_NAME
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
+
+- name: ENABLE_SENTRY
+  value: "false"
+- name: SENTRY_DSN_SECRET_NAME
+  description: Secret name containing dsn for connecting to sentry
+  value: sentry-dsn-secret

@@ -52,12 +52,7 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-auth</artifactId>
-        </dependency>
-
-	<dependency>
+	    <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
         </dependency>
@@ -223,11 +218,6 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

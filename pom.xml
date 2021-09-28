@@ -141,7 +141,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>2.2.2.Final</quarkus.version>
+        <quarkus.version>2.2.3.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
@@ -185,7 +185,7 @@
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.0.7.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.0.9.Final</apicurio-common-rest-client.version>
         <sentry.version>1.7.30</sentry.version>
 
         <!-- Search -->
@@ -363,22 +363,17 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-auth</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-util</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-rest-client-vertx</artifactId>
                 <version>${apicurio-common-rest-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-rest-client-jdk</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-common</artifactId>
                 <version>${apicurio-common-rest-client.version}</version>
             </dependency>
 

@@ -1,4 +1,4 @@
-FROM quay.io/app-sre/postgres
+FROM quay.io/app-sre/postgres:12
 
 ENV POSTGRES_PASSWORD test
 ENV POSTGRES_USER test
@@ -13,9 +13,6 @@ RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
   && rm -f /tmp/apache-maven.tar.gz \
   && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 
-# copy the setup scripts and the pr check script
-COPY pr_check_docker.sh /docker-entrypoint-initdb.d/
-
 # copy over the kas-fleet-manager
 RUN mkdir -p /opt/srs/apicurio-registry
 COPY . /opt/srs/apicurio-registry
@@ -25,6 +22,6 @@ RUN chown -R postgres:postgres /opt/srs/apicurio-registry /usr/bin/mvn
 
 WORKDIR /opt/srs/apicurio-registry
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+USER postgres
 
-CMD ["postgres"]
+ENTRYPOINT ["./pr_check_docker.sh"]

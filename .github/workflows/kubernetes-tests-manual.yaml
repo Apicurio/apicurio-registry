@@ -23,6 +23,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.8'
+      - run: go version
+
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:

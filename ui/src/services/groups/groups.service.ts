@@ -241,18 +241,6 @@ export class GroupsService extends BaseService {
         return this.httpDelete(endpoint);
     }
 
-    public downloadArtifacts(): Promise<string> {
-        const options: any = this.options({
-            "Accept": "*"
-        });
-
-        options.responseType = "blob";
-        options.transformResponse = (data: any) => data;
-        let endpoint: string = this.endpoint("/v2/admin/export");
-
-        return this.httpGet<string>(endpoint, options);
-    }
-
     private normalizeGroupId(groupId: string|null): string {
         return groupId || "default";
     }

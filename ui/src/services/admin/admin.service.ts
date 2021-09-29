@@ -113,4 +113,18 @@ export class AdminService extends BaseService {
         return this.httpDelete(endpoint);
     }
 
+    public downloadArtifacts(): Promise<string> {
+        this.logger.info("[AdminService] Download the artifacts.");
+
+        const options: any = this.options({
+            "Accept": "*"
+        });
+
+        options.responseType = "blob";
+        options.transformResponse = (data: any) => data;
+        let endpoint: string = this.endpoint("/v2/admin/export");
+
+        return this.httpGet<string>(endpoint, options);
+    }
+
 }

@@ -22,13 +22,15 @@ export interface DownloadArtifactsFederatedProps
   extends DownloadArtifactsProps,
     FederatedPageProps {}
 
-export default class FederatedArtifactsPage extends DownloadArtifacts {
+export default class DownloadArtifactsFederated extends DownloadArtifacts {
   constructor(props: Readonly<DownloadArtifactsFederatedProps>) {
     super(props);
   }
 
   protected postConstruct(): void {
-    FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
+    FederatedUtils.updateConfiguration(
+      this.props as DownloadArtifactsFederatedProps
+    );
     super.postConstruct();
   }
 }

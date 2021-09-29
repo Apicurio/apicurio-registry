@@ -56,7 +56,7 @@ export class DownloadArtifacts extends PageComponent<
     event: React.MouseEvent<HTMLButtonElement>
   ): void => {
     event.preventDefault();
-    Services.getGroupsService()
+    Services.getAdminService()
       .downloadArtifacts()
       .then((response: string) => {
         this.createDownloadLink(response);

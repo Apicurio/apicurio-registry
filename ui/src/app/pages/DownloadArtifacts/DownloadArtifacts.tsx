@@ -52,7 +52,10 @@ export class DownloadArtifacts extends PageComponent<
     link.remove();
   };
 
-  private downloadArtifacts = (): void => {
+  private downloadArtifacts = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ): void => {
+    event.preventDefault();
     Services.getGroupsService()
       .downloadArtifacts()
       .then((response: string) => {

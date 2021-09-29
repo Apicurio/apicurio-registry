@@ -22,7 +22,6 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
-
             <exclusions>
                 <exclusion>
                     <groupId>io.quarkus</groupId>

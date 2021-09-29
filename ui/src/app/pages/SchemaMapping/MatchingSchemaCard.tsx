@@ -27,19 +27,19 @@ import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon'
 
 export type MatchingSchemaProps = {
-  artifactName: string
+  topicName: string
   keySchema: boolean
 }
 
 export const MatchingSchemaCard: React.FC<MatchingSchemaProps> = ({
-  artifactName,
+  topicName,
   keySchema,
 }) => {
   return (
     <DescriptionListDescription>
       <Grid hasGutter rowSpan={2}>
         <GridItem rowSpan={2}>
-          <CheckCircleIcon /> {artifactName + keySchema ? '-key' : '-value'}
+          <CheckCircleIcon /> {topicName + keySchema ? '-key' : '-value'}
         </GridItem>
         <GridItem>
           <Button isInline variant={ButtonVariant.link} component="a" href="#">

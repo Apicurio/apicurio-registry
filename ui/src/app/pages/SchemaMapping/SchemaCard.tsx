@@ -30,13 +30,13 @@ import { NoMatchingSchema } from './NoMatchingSchema'
 export type SchemaCardPropsProps = {
   hasValueSchema: boolean
   hasKeySchema: boolean
-  artifactName: string
+  topicName: string
 }
 
 export const SchemaCard: React.FC<SchemaCardPropsProps> = ({
   hasKeySchema,
   hasValueSchema,
-  artifactName,
+  topicName,
 }) => {
   return (
     <Card>
@@ -51,16 +51,16 @@ export const SchemaCard: React.FC<SchemaCardPropsProps> = ({
         >
           <DescriptionListTerm>Value schema artifact ID</DescriptionListTerm>
           {hasValueSchema ? (
-            <MatchingSchemaCard artifactName={artifactName} keySchema={false} />
+            <MatchingSchemaCard topicName={topicName} keySchema={false} />
           ) : (
-            <NoMatchingSchema artifactName={artifactName} keySchema={false} />
+            <NoMatchingSchema topicName={topicName} keySchema={false} />
           )}
 
           <DescriptionListTerm>Key schema artifact ID</DescriptionListTerm>
           {hasKeySchema ? (
-            <MatchingSchemaCard artifactName={artifactName} keySchema={true}/>
+            <MatchingSchemaCard topicName={topicName} keySchema={true}/>
           ) : (
-            <NoMatchingSchema artifactName={artifactName} keySchema={true} />
+            <NoMatchingSchema topicName={topicName} keySchema={true} />
           )}
         </DescriptionList>
       </CardBody>

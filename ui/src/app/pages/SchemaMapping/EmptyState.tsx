@@ -50,7 +50,7 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
             <Title headingLevel='h2' >
               No matching schema exists for the selected instance
             </Title>
-            <EmptyStateBody>The system couldn't find a matching schema for this topic in the selected Service Registry{<br/>} instance. Please make sure to use the folowing naming format for the artifact ID:</EmptyStateBody>
+            <EmptyStateBody>The system couldn't find a matching schema for this topic in the selected Service Registry{<br/>} instance. Please make sure to use the following naming format for the artifact ID:</EmptyStateBody>
             <EmptyStateSecondaryActions>
               <ClipboardCopy
                 isReadOnly

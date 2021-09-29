@@ -30,7 +30,9 @@ import {
  */
 
 export interface SchemaMappingProps extends PureComponentProps {
-  artifactId: string
+  topicName: string
+  groupId:string
+  version:string
 }
 
 /**
@@ -54,16 +56,16 @@ export class SchemaMapping extends PureComponent<
       <SchemaCard
         hasKeySchema={this.state.hasKeySchema}
         hasValueSchema={this.state.hasValueSchema}
-        artifactName={this.props.artifactId}
+        topicName={this.props.topicName}
       />
     ) : (
-      <SchemaEmptyState artifactName={this.props.artifactId} />
+      <SchemaEmptyState artifactName={this.props.topicName} />
     )
   }
 
   protected initializeState(): SchemaMappingState {
     return {
-      hasKeySchema: false,
+      hasKeySchema: true,
       hasValueSchema: false,
     }
   }
@@ -72,29 +74,31 @@ export class SchemaMapping extends PureComponent<
   protected createLoaders(): Promise[] | null {
     Services.getLoggerService().info(
       'Loading data for artifact: ',
-      this.props.artifactId,
+      this.props.topicName,
     )
+    const topicNameValue= this.props.topicName+'-value'
+    const topicNameKey= this.props.topicName+'-key'
     return [
       Services.getGroupsService()
-        .getArtifactMetaData('null', this.props.artifactId + '-key', 'latest')
+        .getArtifactMetaData(this.props.groupId, topicNameKey, this.props.version)
         .then((data) => {
           this.setSingleState('hasKeySchema', true)
         })
         .catch((e) => {
           if (e.error_code == '404') {
             this.setSingleState('hasKeySchema', false)
-          } else throw e
+          } 
         }),
 
       Services.getGroupsService()
-        .getArtifactMetaData('null', this.props.artifactId + '-value', 'latest')
+        .getArtifactMetaData(this.props.groupId, topicNameValue, this.props.version)
         .then((data) => {
           this.setSingleState('hasValueSchema', true)
         })
         .catch((e) => {
           if (e.error_code == '404') {
             this.setSingleState('hasValueSchema', false)
-          } else throw e
+          } 
         }),
     ]
   }

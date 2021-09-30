@@ -126,11 +126,18 @@ objects:
         - name: envoy-unix-sockets
           emptyDir:
             medium: Memory
+        - name: db-ssl-ca
+          secret:
+            secretName: ${DATABASE_SSL_CA_SECRET_NAME}
 
         containers:
         - name: apicurio-registry
           image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: db-ssl-ca
+            mountPath: /config/db-ssl-ca.pem
+            subPath: ca.pem
           env:
           - name: REGISTRY_ENABLE_MULTITENANCY
             value: "true"
@@ -165,7 +172,7 @@ objects:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.name
           - name: REGISTRY_DATASOURCE_URL
-            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
           - name: REGISTRY_DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
@@ -270,6 +277,10 @@ objects:
         - name: tenant-manager
           image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: db-ssl-ca
+            mountPath: /config/db-ssl-ca.pem
+            subPath: ca.pem
           env:
           - name: DB_HOST
             valueFrom:
@@ -287,7 +298,7 @@ objects:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.name
           - name: DATASOURCE_URL
-            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
           - name: DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
@@ -480,6 +491,9 @@ parameters:
 
 - name: DATABASE_SECRET_NAME
   description: Secret name with database connection details
+  required: true
+- name: DATABASE_SSL_CA_SECRET_NAME
+  description: Secret name with database SSL CA
   required: true
 
 - name: AUTH_ENABLED

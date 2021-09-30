@@ -165,7 +165,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion(boolean)
      */
     @Override
     public String insertVersion(boolean firstVersion) {
@@ -213,18 +213,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionMetaDataByContentHash() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN tenant_content tc ON v.contentId = tc.contentId AND v.tenantId=tc.tenantId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND tc.contentHash = ?";
     }
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
         return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND c.contentId = ?";
+                + "WHERE v.tenantId = ? AND v.contentId = ?";
     }
 
     /**
@@ -233,7 +232,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionMetaDataByCanonicalHash() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN tenant_content tc ON v.contentId = tc.contentId AND v.tenantId = tc.tenantId"
+                + "JOIN content c ON tc.contenthash = c.contentHash "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
     }
@@ -243,7 +243,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
+        return "SELECT v.globalId, v.version, v.versionId, v.contentId, c.content FROM versions v JOIN tenant_content tc ON v.contentId = tc.contentId AND v.tenantId=tc.tenantId JOIN content c ON c.contentHash=tc.contenthash WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -252,7 +252,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionContent() {
         return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN tanant_content tc ON v.contentId = tc.contentId AND v.tenantId = tc.tenantId "
+                + "JOIN content c ON c.contentHash = tc.contenthash "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
@@ -283,7 +284,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentIdByHash() {
-        return "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
+        return "SELECT tc.contentId FROM tenant_content tc WHERE tc.contentHash = ? AND tc.tenantId = ?";
     }
 
     /**
@@ -579,7 +580,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentCountByHash() {
-        return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ?";
+        return "SELECT COUNT(tc.contentId) FROM tenant_content tc WHERE tc.contentHash = ? AND tc.tenantId = ?";
     }
 
     /**
@@ -587,9 +588,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content FROM content c "
-                + "JOIN versions v ON v.contentId = c.contentId "
-                + "WHERE v.tenantId = ? AND c.contentId = ?";
+        return "SELECT c.content FROM tenant_content tc "
+                + "JOIN content c ON tc.contenthash = c.contentHash"
+                + "WHERE tc.tenantId = ? AND tc.contentId = ?";
     }
 
     /**
@@ -597,14 +598,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content FROM content c "
-                + "JOIN versions v ON v.contentId = c.contentId "
-                + "WHERE v.tenantId = ? AND c.contentHash = ?";
+        return "SELECT c.content FROM tenant_content tc "
+                + "JOIN content c ON tc.contenthash = c.contentHash"
+                + "WHERE tc.tenantId = ? AND c.contentHash = ?";
     }
 
     @Override
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
+
+        //TODO: Delete content from content table if there is no contentId pointing to it
+        //TODO: Delete all contentIds from tenant_content table, if there is no version pointing to it
         return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
     }
 
@@ -746,7 +750,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?)";
+        //TODO: When importing create contentId -> contentHash relation in tenant_content table
+        return "INSERT INTO content (canonicalHash, contentHash, content) VALUES (?, ?, ?)";
     }
 
     /**

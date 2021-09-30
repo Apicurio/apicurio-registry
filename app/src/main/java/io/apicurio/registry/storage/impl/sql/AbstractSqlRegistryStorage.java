@@ -584,20 +584,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if ("postgresql".equals(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
-                    .bind(0, nextContentId(handle))
-                    .bind(1, canonicalContentHash)
-                    .bind(2, contentHash)
-                    .bind(3, contentBytes)
+                    .bind(0, canonicalContentHash)
+                    .bind(1, contentHash)
+                    .bind(2, contentBytes)
                     .execute();
             sql = sqlStatements.selectContentIdByHash();
             contentId = handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext.tenantId())
                     .mapTo(Long.class)
                     .one();
         } else if ("h2".equals(sqlStatements.dbType())) {
             sql = sqlStatements.selectContentIdByHash();
             Optional<Long> contentIdOptional = handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext.tenantId())
                     .mapTo(Long.class)
                     .findOne();
             if (contentIdOptional.isPresent()) {
@@ -605,14 +606,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             } else {
                 sql = sqlStatements.upsertContent();
                 handle.createUpdate(sql)
-                    .bind(0, nextContentId(handle))
-                    .bind(1, canonicalContentHash)
-                    .bind(2, contentHash)
-                    .bind(3, contentBytes)
+                    .bind(0, canonicalContentHash)
+                    .bind(1, contentHash)
+                    .bind(2, contentBytes)
                     .execute();
                 sql = sqlStatements.selectContentIdByHash();
                 contentId = handle.createQuery(sql)
                         .bind(0, contentHash)
+                        .bind(1, tenantContext.tenantId())
                         .mapTo(Long.class)
                         .one();
             }
@@ -2615,6 +2616,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     protected void resetContentId(Handle handle) {
+        //Todo: No longer use contentIdSequence
         String sql = sqlStatements.selectMaxContentId();
         Optional<Long> maxContentId = handle.createQuery(sql)
                 .mapTo(Long.class)
@@ -2759,14 +2761,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
     protected void importContent(Handle handle, ContentEntity entity) {
+        //Todo: Create content in content table and add mapping into tenant_content
         try {
             if (!isContentExists(entity.contentId)) {
                 String sql = sqlStatements.importContent();
                 handle.createUpdate(sql)
-                    .bind(0, entity.contentId)
-                    .bind(1, entity.canonicalHash)
-                    .bind(2, entity.contentHash)
-                    .bind(3, entity.contentBytes)
+                    .bind(0, entity.canonicalHash)
+                    .bind(1, entity.contentHash)
+                    .bind(2, entity.contentBytes)
                     .execute();
                 log.info("Content entity imported successfully.");
             } else {

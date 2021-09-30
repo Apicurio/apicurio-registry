@@ -69,14 +69,14 @@ public class RateLimitingProxy {
     public void start() {
 
         server = vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(this::proxyRequest)
-                .listen(server -> {
-                    if (server.succeeded()) {
-                        logger.info("Proxy server started on port {}", port);
-                        logger.info("Proxying server {}:{}", destinationHost, destinationPort);
-                    } else {
-                        logger.error("Error starting server", server.cause());
-                    }
-                });
+            .listen(server -> {
+                if (server.succeeded()) {
+                    logger.info("Proxy server started on port {}", port);
+                    logger.info("Proxying server {}:{}", destinationHost, destinationPort);
+                } else {
+                    logger.error("Error starting server", server.cause());
+                }
+            });
 
     }
 
@@ -106,39 +106,52 @@ public class RateLimitingProxy {
         }
         logger.info("Allowing request, redirecting");
 
+        req.pause();
+
         client.request(req.method(), destinationPort, destinationHost, req.uri())
                 .onSuccess(clientReq -> executeProxy(clientReq, req))
                 .onFailure(throwable -> logger.error("Error found creating request", throwable));
     }
 
-    private void executeProxy(HttpClientRequest clientReq, HttpServerRequest serverRequest) {
-
+    private void executeProxy(HttpClientRequest clientReq, HttpServerRequest req) {
         clientReq.response(reqResult -> {
             if (reqResult.succeeded()) {
-                HttpClientResponse clientResponse = reqResult.result();
-                serverRequest.response().setChunked(true);
-                serverRequest.response().setStatusCode(clientResponse.statusCode());
-                serverRequest.response().headers().setAll(clientResponse.headers());
-                clientResponse.handler(data -> serverRequest.response().write(data));
-                clientResponse.endHandler((v) -> serverRequest.response().end());
-                clientResponse.exceptionHandler(e -> logger.error("Error caught in response of request to serverless", e));
-                serverRequest.response().exceptionHandler(e -> logger.error("Error caught in response to client", e));
+                HttpClientResponse clientRes = reqResult.result();
+                req.response().setChunked(true);
+                req.response().setStatusCode(clientRes.statusCode());
+                req.response().headers().setAll(clientRes.headers());
+                clientRes.handler(data -> req.response().write(data));
+                clientRes.endHandler((v) -> req.response().end());
+                clientRes.exceptionHandler(e -> logger.error("Error caught in response of request to serverless", e));
+                req.response().exceptionHandler(e -> logger.error("Error caught in response to client", e));
+            } else {
+                logger.error("Error in async result", reqResult.cause());
             }
         });
 
-        if (serverRequest.isEnded()) {
+        clientReq.setChunked(true);
+        clientReq.headers().setAll(req.headers());
+
+        if (req.isEnded()) {
             clientReq.end();
         } else {
-            serverRequest.handler(clientReq::write);
-            serverRequest.endHandler((v) -> clientReq.end());
+            req.handler(data -> {
+                clientReq.write(data);
+            });
+            req.endHandler((v) -> {
+                clientReq.end();
+            });
             clientReq.exceptionHandler(e -> {
                 logger.error("Error caught in proxiying request", e);
-                serverRequest.response().setStatusCode(500).putHeader("x-error", e.getMessage()).end();
+                req.response().setStatusCode(500).putHeader("x-error", e.getMessage()).end();
             });
         }
+        req.resume();
 
-        serverRequest.exceptionHandler(e -> {
-            logger.error("Error caught in request from client", e);
+        req.exceptionHandler(e -> {
+           logger.error("Error caught in request from client", e);
         });
+
     }
+
 }

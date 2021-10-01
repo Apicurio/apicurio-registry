@@ -18,9 +18,14 @@ package io.apicurio.multitenant;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+
+import javax.inject.Inject;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,7 @@ import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.multitenant.logging.audit.MockAuditLogService;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
@@ -49,6 +55,9 @@ import org.junit.jupiter.api.TestInstance;
 public class TenantManagerClientTest {
 
     private static TenantManagerClient client;
+
+    @Inject
+    MockAuditLogService auditLogService;
 
     @BeforeAll
     public void beforeAll() {
@@ -72,9 +81,14 @@ public class TenantManagerClientTest {
 
     @Test
     public void testCRUD() {
+        auditLogService.resetAuditLogs();
+
+        //CRUD tenant1
         NewRegistryTenantRequest req = new NewRegistryTenantRequest();
         req.setTenantId(UUID.randomUUID().toString());
         req.setOrganizationId("aaa");
+        req.setName("tenant1");
+        req.setCreatedBy("apicurio");
         TenantResource tr = new TenantResource();
         tr.setLimit(5L);
         tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
@@ -87,12 +101,70 @@ public class TenantManagerClientTest {
         assertNotNull(tenant.getCreatedOn());
         assertNotNull(tenant.getResources());
         assertFalse(tenant.getResources().isEmpty());
+        assertEquals(req.getTenantId(), tenant.getTenantId());
+        assertEquals(req.getOrganizationId(), tenant.getOrganizationId());
+        assertEquals(req.getName(), tenant.getName());
+        assertEquals(req.getCreatedBy(), tenant.getCreatedBy());
 
         testGetTenant(tenant.getTenantId(), req);
 
         testUpdateTenant(tenant.getTenantId());
 
+        RegistryTenant tenant1updated = client.getTenant(tenant.getTenantId());
+
         testDelete(tenant.getTenantId());
+
+        //create tenant2
+        NewRegistryTenantRequest req2 = new NewRegistryTenantRequest();
+        req2.setTenantId(UUID.randomUUID().toString());
+        req2.setOrganizationId("bbb");
+        req2.setName("tenant2");
+        req2.setCreatedBy("registry");
+
+        RegistryTenant tenant2 = client.createTenant(req2);
+
+        assertNotNull(tenant2);
+        assertNotNull(tenant2.getTenantId());
+        assertNotNull(tenant2.getCreatedOn());
+        assertNotNull(tenant2.getResources());
+        assertTrue(tenant2.getResources().isEmpty());
+        assertEquals(req2.getTenantId(), tenant2.getTenantId());
+        assertEquals(req2.getOrganizationId(), tenant2.getOrganizationId());
+
+        //verify audit logs
+        List<Map<String, String>> auditLogs = auditLogService.getAuditLogs();
+        assertEquals(4, auditLogs.size());
+
+        //createTenant entry
+        var audit = auditLogs.get(0);
+        assertEquals(tenant.getTenantId(), audit.get("tenantId"));
+        assertEquals("createTenant", audit.get("action"));
+        assertEquals("success", audit.get("result"));
+        assertEquals(tenant.getOrganizationId(), audit.get("orgId"));
+        assertEquals(tenant.getName(), audit.get("name"));
+        assertEquals(tenant.getCreatedBy(), audit.get("createdBy"));
+
+        //updateTenant entry
+        audit = auditLogs.get(1);
+        assertEquals(tenant1updated.getTenantId(), audit.get("tenantId"));
+        assertEquals("updateTenant", audit.get("action"));
+        assertEquals("success", audit.get("result"));
+        assertEquals(tenant1updated.getStatus().value(), audit.get("tenantStatus"));
+
+        //deleteTenant entry
+        audit = auditLogs.get(2);
+        assertEquals(tenant.getTenantId(), audit.get("tenantId"));
+        assertEquals("deleteTenant", audit.get("action"));
+        assertEquals("success", audit.get("result"));
+
+        //createTenant tenant2 entry
+        audit = auditLogs.get(3);
+        assertEquals(tenant2.getTenantId(), audit.get("tenantId"));
+        assertEquals("createTenant", audit.get("action"));
+        assertEquals("success", audit.get("result"));
+        assertEquals(tenant2.getOrganizationId(), audit.get("orgId"));
+        assertEquals(tenant2.getName(), audit.get("name"));
+        assertEquals(tenant2.getCreatedBy(), audit.get("createdBy"));
     }
 
     @Test
@@ -153,6 +225,7 @@ public class TenantManagerClientTest {
         tr.setLimit(256L);
         tr.setType(ResourceType.MAX_LABEL_SIZE_BYTES);
         req.setResources(List.of(tr));
+        req.setStatus(TenantStatusValue.READY);
 
         client.updateTenant(tenantId, req);
 

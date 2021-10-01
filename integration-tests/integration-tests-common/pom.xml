@@ -21,7 +21,7 @@
         <skipTests>true</skipTests>
         
         <junit.version>5.8.1</junit.version>
-        <junit.platform-launcher.version>1.7.2</junit.platform-launcher.version>
+        <junit.platform-launcher.version>1.8.1</junit.platform-launcher.version>
         
         <logback.version>1.2.6</logback.version>
         <hamcrest.version>2.2</hamcrest.version>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React from 'react'
 import {
   Title,
   Button,
@@ -28,57 +28,57 @@ import {
   Card,
   CardBody,
   CardTitle,
-} from '@patternfly/react-core';
-import { ArrowRightIcon, InfoCircleIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core'
+import { ArrowRightIcon, InfoCircleIcon } from '@patternfly/react-icons'
 
 export type EmptyStateProps = {
-  artifactName:string
-};
+  artifactName: string
+}
 
 export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
-  artifactName
+  artifactName,
 }: EmptyStateProps) => {
-  
-
   return (
-    
-      <Card>
-         <CardTitle>Topic Schemas</CardTitle>
-        <CardBody>
-          <EmptyState variant={EmptyStateVariant.xl} >
-            <EmptyStateIcon icon={InfoCircleIcon} color='#2B9AF3' />
-            <Title headingLevel='h2' >
-              No matching schema exists for the selected instance
-            </Title>
-            <EmptyStateBody>The system couldn't find a matching schema for this topic in the selected Service Registry{<br/>} instance. Please make sure to use the following naming format for the artifact ID:</EmptyStateBody>
-            <EmptyStateSecondaryActions>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip='Copy'
-                clickTip='Copied'
-                className='pf-u-w-25'
-              >
-                {artifactName + '-key'}
-              </ClipboardCopy>
-            </EmptyStateSecondaryActions>
-            <EmptyStateSecondaryActions>
-              <ClipboardCopy
-                isReadOnly
-                hoverTip='Copy'
-                clickTip='Copied'
-                className='pf-u-w-25'
-              >
-                {artifactName + '-value'}
-              </ClipboardCopy>
-            </EmptyStateSecondaryActions>
-            <EmptyStateSecondaryActions>
-              <Button variant='link' >
-                Go to Service Registry instance <ArrowRightIcon />
-              </Button>
-            </EmptyStateSecondaryActions>
-          </EmptyState>
-        </CardBody>
-      </Card>
- 
-  );
-};
+    <Card>
+      <CardTitle>Topic Schemas</CardTitle>
+      <CardBody>
+        <EmptyState variant={EmptyStateVariant.large}>
+          <EmptyStateIcon icon={InfoCircleIcon} color="#2B9AF3" />
+          <Title headingLevel="h4" size="lg">
+            No matching schema exists for the selected instance
+          </Title>
+          <EmptyStateBody>
+            The system couldn't find a matching schema for this topic in the
+            selected Service Registry instance. Please make sure to use the
+            following naming format for the artifact ID:
+          </EmptyStateBody>
+          <EmptyStateSecondaryActions>
+            <ClipboardCopy
+              isReadOnly
+              hoverTip="Copy"
+              clickTip="Copied"
+              className="pf-u-w-25"
+            >
+              {artifactName + '-key'}
+            </ClipboardCopy>
+          </EmptyStateSecondaryActions>
+          <EmptyStateSecondaryActions>
+            <ClipboardCopy
+              isReadOnly
+              hoverTip="Copy"
+              clickTip="Copied"
+              className="pf-u-w-25"
+            >
+              {artifactName + '-value'}
+            </ClipboardCopy>
+          </EmptyStateSecondaryActions>
+          <EmptyStateSecondaryActions>
+            <Button variant="link">
+              Go to Service Registry instance <ArrowRightIcon />
+            </Button>
+          </EmptyStateSecondaryActions>
+        </EmptyState>
+      </CardBody>
+    </Card>
+  )
+}

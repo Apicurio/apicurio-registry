@@ -19,31 +19,28 @@ import React from 'react'
 import { SchemaCard } from './SchemaCard'
 import { Services } from 'src/services'
 import { SchemaEmptyState } from './EmptyState'
-import {
-  PureComponent,
-  PureComponentProps,
-  PureComponentState,
-} from '../../components/baseComponent'
+import { PageComponent, PageProps, PageState } from '../basePage'
 
 /**
  * Properties
  */
 
-export interface SchemaMappingProps extends PureComponentProps {
+export interface SchemaMappingProps extends PageProps {
   topicName: string
-  groupId:string
-  version:string
+  groupId: string
+  version: string
+  registryId: string
 }
 
 /**
  * State
  */
-export interface SchemaMappingState extends PureComponentState {
+export interface SchemaMappingState extends PageState {
   hasKeySchema: boolean
   hasValueSchema: boolean
 }
 
-export class SchemaMapping extends PureComponent<
+export class SchemaMapping extends PageComponent<
   SchemaMappingProps,
   SchemaMappingState
 > {
@@ -51,7 +48,7 @@ export class SchemaMapping extends PureComponent<
     super(props)
   }
 
-  public render(): React.ReactElement {
+  public renderPage(): React.ReactElement {
     return this.state.hasKeySchema || this.state.hasValueSchema ? (
       <SchemaCard
         hasKeySchema={this.state.hasKeySchema}
@@ -63,43 +60,55 @@ export class SchemaMapping extends PureComponent<
     )
   }
 
-  protected initializeState(): SchemaMappingState {
+  protected initializePageState(): SchemaMappingState {
     return {
-      hasKeySchema: true,
+      hasKeySchema: false,
       hasValueSchema: false,
     }
   }
 
+  componentDidUpdate(prevProps: SchemaMappingProps) {
+    if (prevProps.registryId !== this.props.registryId) {
+      this.createLoaders()
+    }
+  }
+
   // @ts-ignore
-  protected createLoaders(): Promise[] | null {
+  protected createLoaders(): Promise {
+    return this.getArtifactsMetadata()
+  }
+
+  private getArtifactsMetadata() {
     Services.getLoggerService().info(
       'Loading data for artifact: ',
       this.props.topicName,
     )
-    const topicNameValue= this.props.topicName+'-value'
-    const topicNameKey= this.props.topicName+'-key'
-    return [
-      Services.getGroupsService()
-        .getArtifactMetaData(this.props.groupId, topicNameKey, this.props.version)
-        .then((data) => {
-          this.setSingleState('hasKeySchema', true)
-        })
-        .catch((e) => {
-          if (e.error_code == '404') {
-            this.setSingleState('hasKeySchema', false)
-          } 
-        }),
+    const topicNameValue = this.props.topicName + '-value'
+    const topicNameKey = this.props.topicName + '-key'
 
+    Services.getGroupsService()
+      .getArtifactMetaData(this.props.groupId, topicNameKey, this.props.version)
+      .then((data) => {
+        this.setSingleState('hasKeySchema', true)
+      })
+      .catch((e) => {
+        if (e.error_code == '404') {
+          this.setSingleState('hasKeySchema', false)
+        }
+      }),
       Services.getGroupsService()
-        .getArtifactMetaData(this.props.groupId, topicNameValue, this.props.version)
+        .getArtifactMetaData(
+          this.props.groupId,
+          topicNameValue,
+          this.props.version,
+        )
         .then((data) => {
           this.setSingleState('hasValueSchema', true)
         })
         .catch((e) => {
           if (e.error_code == '404') {
             this.setSingleState('hasValueSchema', false)
-          } 
-        }),
-    ]
+          }
+        })
   }
 }

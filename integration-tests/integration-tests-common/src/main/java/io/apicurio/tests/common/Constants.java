@@ -73,4 +73,7 @@ public interface Constants {
      */
     public static final String NO_DOCKER_ENV_VAR = "NO_DOCKER";
 
+    public static final String CURRENT_ENV = "CURRENT_ENV";
+    public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
+
 }

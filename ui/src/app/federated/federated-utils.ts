@@ -21,14 +21,14 @@ import {PureComponent} from "../components";
 /**
  * Component properties shared by all federated pages.
  */
-export interface FederatedPageProps {
+export interface FederatedComponentProps {
     config: ConfigType;
     history: any;
 }
 
 export class FederatedUtils {
 
-    static updateConfiguration(props: FederatedPageProps): void {
+    static updateConfiguration(props: FederatedComponentProps): void {
         Services.getLoggerService().info("[FederatedUtils] Updating config: %o", props.config);
         Services.getConfigService().updateConfig(props.config);
         PureComponent.setHistory(props.history);

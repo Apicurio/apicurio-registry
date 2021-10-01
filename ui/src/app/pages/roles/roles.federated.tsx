@@ -18,14 +18,14 @@
 import React from "react";
 import "./roles.css";
 import {RolesPage, RolesPageProps} from "./roles";
-import {FederatedPageProps, FederatedUtils} from "../../federated";
+import {FederatedComponentProps, FederatedUtils} from "../../federated";
 
 
 /**
  * Properties
  */
 // tslint:disable-next-line:no-empty-interface
-export interface FederatedRolesPageProps extends RolesPageProps, FederatedPageProps {
+export interface FederatedRolesPageProps extends RolesPageProps, FederatedComponentProps {
 }
 
 /**
@@ -38,7 +38,7 @@ export default class FederatedRolesPage extends RolesPage {
     }
 
     protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
+        FederatedUtils.updateConfiguration(this.props as FederatedComponentProps);
         super.postConstruct();
     }
 

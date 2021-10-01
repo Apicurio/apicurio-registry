@@ -5,6 +5,7 @@
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 2);
+-- TODO update this ddl file to version 3 and reflect all required changes to tables
 
 CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
 CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;

@@ -125,7 +125,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 2;
+    private static int DB_VERSION = 3;
     private static final Object dbMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -2912,7 +2912,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .one();
     }
 
-    protected static long nextGlobalId(Handle handle) {
+    protected long nextGlobalId(Handle handle) {
+
+//        handle.createQuery(null)
+
+        if ("postgresql".equals(sqlStatements.dbType())) {
+
+//            String sql = "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?"
+
+//            handle.createUpdate(null)
+
+
+        }
+
+
+
+
         return handle.createQuery("SELECT nextval('globalidsequence')")
                 .mapTo(Long.class)
                 .one();

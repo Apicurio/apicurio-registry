@@ -5,6 +5,8 @@
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 2);
+-- TODO update this ddl file to version 3 and reflect all required changes to tables
+-- don't do it for now, as it helps with testing the upgrade process
 
 CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
 CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;
@@ -22,21 +24,17 @@ CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NUL
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 
-CREATE TABLE content (canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
-ALTER TABLE content ADD PRIMARY KEY (contentHash);
+CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
+ALTER TABLE content ADD PRIMARY KEY (contentId);
+ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
--- CREATE INDEX IDX_content_2 ON content USING HASH (contentHash); Primary key should be enough
-
-CREATE TABLE tenant_content (tenantid VARCHAR(128) NOT NULL, contentid BIGINT NOT NULL, contenthash VARCHAR(64) NOT NULL);
-ALTER TABLE tenant_content ADD PRIMARY KEY (tenantid, contentid);
-ALTER TABLE tenant_content ADD CONSTRAINT FK_tenant_content_1 FOREIGN KEY (contenthash) REFERENCES content(contenthash);
--- CREATE INDEX IDX_tenant_content_1 ON tenant_content USING HASH (contentHash); Is this needed? When will we search by contentHash in this table?
+CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
 
 CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (tenantId, groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
-ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (tenantId, contentId) REFERENCES tenant_content(tenantid, contentid);
+ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content(contentId);
 CREATE INDEX IDX_versions_1 ON versions(version);
 CREATE INDEX IDX_versions_2 ON versions USING HASH (state);
 CREATE INDEX IDX_versions_3 ON versions(name);

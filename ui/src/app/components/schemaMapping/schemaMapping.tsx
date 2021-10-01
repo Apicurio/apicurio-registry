@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
  */
 
 import React from 'react'
-import { SchemaCard } from './SchemaCard'
-import { Services } from 'src/services'
-import { SchemaEmptyState } from './EmptyState'
-import { PageComponent, PageProps, PageState } from '../basePage'
+import {SchemaCard} from './schemaCard'
+import {Services} from 'src/services'
+import {SchemaEmptyState} from './emptyState'
+import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
 
 /**
  * Properties
  */
 
-export interface SchemaMappingProps extends PageProps {
+export interface SchemaMappingProps extends PureComponentProps {
   topicName: string
   groupId: string
   version: string
@@ -35,20 +35,18 @@ export interface SchemaMappingProps extends PageProps {
 /**
  * State
  */
-export interface SchemaMappingState extends PageState {
+export interface SchemaMappingState extends PureComponentState {
   hasKeySchema: boolean
   hasValueSchema: boolean
 }
 
-export class SchemaMapping extends PageComponent<
-  SchemaMappingProps,
-  SchemaMappingState
-> {
+export class SchemaMapping extends PureComponent<SchemaMappingProps, SchemaMappingState> {
+
   constructor(props: Readonly<SchemaMappingProps>) {
     super(props)
   }
 
-  public renderPage(): React.ReactElement {
+  public render(): React.ReactElement {
     return this.state.hasKeySchema || this.state.hasValueSchema ? (
       <SchemaCard
         hasKeySchema={this.state.hasKeySchema}
@@ -60,25 +58,24 @@ export class SchemaMapping extends PageComponent<
     )
   }
 
-  protected initializePageState(): SchemaMappingState {
+  protected initializeState(): SchemaMappingState {
     return {
       hasKeySchema: false,
       hasValueSchema: false,
     }
   }
 
-  componentDidUpdate(prevProps: SchemaMappingProps) {
+  componentDidUpdate(prevProps: SchemaMappingProps): void {
     if (prevProps.registryId !== this.props.registryId) {
-      this.createLoaders()
+      this.createLoaders();
     }
   }
 
-  // @ts-ignore
-  protected createLoaders(): Promise {
+  protected createLoaders(): void {
     return this.getArtifactsMetadata()
   }
 
-  private getArtifactsMetadata() {
+  private getArtifactsMetadata(): void {
     Services.getLoggerService().info(
       'Loading data for artifact: ',
       this.props.topicName,

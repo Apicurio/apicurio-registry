@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import {
   DescriptionList,
   DescriptionListTerm,
 } from '@patternfly/react-core'
-import './style.css'
-import { MatchingSchemaCard } from './MatchingSchemaCard'
-import { NoMatchingSchema } from './NoMatchingSchema'
+import './schemaCard.css'
+import { MatchingSchemaCard } from './matchingSchemaCard'
+import { NoMatchingSchema } from './noMatchingSchema'
 
 export type SchemaCardPropsProps = {
   hasValueSchema: boolean

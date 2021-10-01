@@ -34,7 +34,7 @@ public class AuditLogService {
 
     public void log(String action, String result, Map<String, String> metadata) {
         StringBuilder m = new StringBuilder();
-        m.append("tenant-manager")
+        m.append("tenant-manager.audit")
             .append(" ")
             .append("action=\"").append(action).append("\" ")
             .append("result=\"").append(result).append("\" ");

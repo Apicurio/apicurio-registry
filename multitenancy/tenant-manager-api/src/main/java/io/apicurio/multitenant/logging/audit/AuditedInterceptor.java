@@ -49,7 +49,7 @@ public class AuditedInterceptor {
     AuditLogService auditLogService;
 
     @AroundInvoke
-    public Object authorizeMethod(InvocationContext context) throws Exception {
+    public Object auditMethod(InvocationContext context) throws Exception {
 
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
 

@@ -24,7 +24,6 @@ import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.utils.Utils;
-import io.apicurio.registry.utils.CheckPeriodCache;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -35,18 +34,23 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implemntation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
-    protected final Map<Long, SchemaLookupResult<S>> schemaCacheByGlobalId = new ConcurrentHashMap<>();
-    protected final Map<String, Long> globalIdCacheByContent = new ConcurrentHashMap<>();
-    protected CheckPeriodCache<ArtifactReference, Long> globalIdCacheByArtifactReference = new CheckPeriodCache<>(0);
+    /**
+     * K1 = Artifact reference
+     * K2 = Global ID
+     * K3 = Content
+     * K4 = Content ID
+     * V = Schema lookup result
+     */
+    protected final K4ERCache<ArtifactReference, Long, String, Long, SchemaLookupResult<S>> schemaCache = new K4ERCache<>();
 
     protected SchemaParser<S> schemaParser;
     protected RegistryClient client;
@@ -112,7 +116,40 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             }
             checkPeriod = checkPeriodParam;
         }
-        globalIdCacheByArtifactReference = new CheckPeriodCache<>(checkPeriod);
+
+        schemaCache.configureLifetime(Duration.ofMillis(checkPeriod));
+        schemaCache.configureRetryBackoff(Duration.ofMillis(200));
+        schemaCache.configureRetryCount(4);
+
+        schemaCache.configureKeyExtractor1(SchemaLookupResult::toArtifactReference);
+        schemaCache.configureKeyExtractor2(SchemaLookupResult::getGlobalId);
+        schemaCache.configureKeyExtractor3(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureKeyExtractor4(SchemaLookupResult::getContentId);
+
+        /*
+         * Load schema by global ID.
+         */
+        schemaCache.configureLoaderFunction2((globalId, ignored) -> {
+            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
+            //TODO or at least add some method to the api to return the version metadata by globalId
+//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
+            InputStream rawSchema = client.getContentByGlobalId(globalId);
+
+            byte[] schema = IoUtil.toBytes(rawSchema);
+            S parsed = schemaParser.parseSchema(schema);
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            return result
+                //FIXME it's impossible to retrieve this info with only the globalId
+//                  .groupId(null)
+//                  .artifactId(null)
+//                  .version(0)
+                .globalId(globalId)
+                .rawSchema(schema)
+                .schema(parsed)
+                .build();
+        });
 
         String groupIdOverride = config.getExplicitArtifactGroupId();
         if (groupIdOverride != null) {
@@ -178,27 +215,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
-        return schemaCacheByGlobalId.computeIfAbsent(globalId, k -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
-            //TODO or at least add some method to the api to return the version metadata by globalId
-//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = client.getContentByGlobalId(globalId);
-
-            byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            return result
-                    //FIXME it's impossible to retrieve this info with only the globalId
-//                  .groupId(null)
-//                  .artifactId(null)
-//                  .version(0)
-                    .globalId(globalId)
-                    .rawSchema(schema)
-                    .schema(parsed)
-                    .build();
-        });
+        return schemaCache.get2(globalId);
     }
 
     /**
@@ -206,9 +223,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void reset() {
-        this.schemaCacheByGlobalId.clear();
-        this.globalIdCacheByContent.clear();
-        this.globalIdCacheByArtifactReference.clear();
+        this.schemaCache.clear();
     }
 
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {

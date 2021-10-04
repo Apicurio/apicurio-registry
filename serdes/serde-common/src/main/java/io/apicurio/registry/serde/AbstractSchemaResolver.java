@@ -34,6 +34,7 @@ import org.apache.kafka.common.header.Headers;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -245,7 +246,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        return new OidcAuth(tokenEndpoint, clientId, clientSecret);
+        return new OidcAuth(tokenEndpoint, clientId, clientSecret, Optional.empty());
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

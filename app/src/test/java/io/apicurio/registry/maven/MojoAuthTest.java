@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -62,7 +63,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -62,7 +63,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
@@ -71,10 +72,10 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.authServerUrl = authServerUrlConfigured;
-        registerRegistryMojo.clientId = adminClientId;
-        registerRegistryMojo.clientSecret = clientSecret;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
+        registerRegistryMojo.setClientId(adminClientId);
+        registerRegistryMojo.setClientSecret(clientSecret);
 
         super.testRegister(registerRegistryMojo, "testRegister");
     }
@@ -86,9 +87,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setClient(null);
 
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.username = testUsername;
-        registerRegistryMojo.password = testPassword;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setUsername(testUsername);
+        registerRegistryMojo.setPassword(testPassword);
 
         super.testRegister(registerRegistryMojo, "testBasicAuth");
     }

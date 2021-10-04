@@ -69,7 +69,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
         return HealthCheckResponse.builder()
                 .name("PersistenceTimeoutReadinessCheck")
                 .withData("errorCount", errorCounter)
-                .state(up)
+                .up()
                 .build();
     }
 

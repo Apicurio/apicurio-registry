@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -167,7 +168,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         var keycloak = registryFacade.getMTOnlyKeycloakMock();
 
         TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
+                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret, Optional.empty()));
 
         tenantManager.createTenant(tenantReq);
 

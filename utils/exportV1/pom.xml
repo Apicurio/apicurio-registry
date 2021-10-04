@@ -55,7 +55,7 @@
             <artifactId>apicurio-registry-app</artifactId>
             <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
             <exclusions>
-            
+
                 <exclusion>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-resteasy-jackson</artifactId>
@@ -64,12 +64,12 @@
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-smallrye-openapi</artifactId>
                 </exclusion>
-            
+
                 <exclusion>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-ui</artifactId>
                 </exclusion>
-            
+
             </exclusions>
         </dependency>
         

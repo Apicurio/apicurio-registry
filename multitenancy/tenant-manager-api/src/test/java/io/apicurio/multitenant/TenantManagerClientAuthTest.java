@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.enterprise.inject.Typed;
 import java.util.Collections;
+import java.util.Optional;
 
 
 @QuarkusTest
@@ -50,14 +51,14 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
 
     @Override
     protected TenantManagerClient createRestClient() {
-        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "test1");
+        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @SuppressWarnings("deprecation")
     @Test
     public void testWrongCreds() throws Exception {
-        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "wrongsecret");
+        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "wrongsecret", Optional.empty());
         TenantManagerClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, client::listTenants);
     }

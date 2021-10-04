@@ -45,7 +45,7 @@ public class RegistryDeploymentInfoReadinessCheck implements HealthCheck {
             RegistryDeploymentInfo deploymentInfo = deploymentInfoService.getRegistryDeploymentInfo();
             return HealthCheckResponse.builder()
                     .name(CHECK_NAME)
-                    .state(deploymentInfo.getUrl() != null)
+                    .status(deploymentInfo.getUrl() != null)
                     .withData("registryName", deploymentInfo.getName())
                     .withData("registryUrl", deploymentInfo.getUrl())
                     .build();

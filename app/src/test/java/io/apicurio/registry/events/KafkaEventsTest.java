@@ -38,10 +38,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.rnorth.ducttape.unreliables.Unreliables;
 
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -57,8 +57,8 @@ import io.quarkus.test.junit.TestProfile;
  */
 @QuarkusTest
 @TestProfile(KafkaEventsProfile.class)
-@DisabledIfSystemProperty(named = "kafka.storage", matches = "true")
 @Tag(ApicurioTestTags.DOCKER)
+@Disabled
 public class KafkaEventsTest extends AbstractResourceTestBase {
 
     @Test

@@ -16,16 +16,16 @@
 
 package io.apicurio.tests.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Fabian Martinez
@@ -94,7 +94,6 @@ public class RateLimitingProxy {
         return false;
     }
 
-    @SuppressWarnings("deprecation")
     private void proxyRequest(HttpServerRequest req) {
 
         boolean allowed = allowed();
@@ -107,21 +106,29 @@ public class RateLimitingProxy {
         }
         logger.info("Allowing request, redirecting");
 
-        HttpClientRequest clientReq = client.request(req.method(), destinationPort, destinationHost, req.uri(), clientRes -> {
-            req.response().setChunked(true);
-            req.response().setStatusCode(clientRes.statusCode());
-            req.response().headers().setAll(clientRes.headers());
-            clientRes.handler(data -> {
-                req.response().write(data);
-            });
-            clientRes.endHandler((v) -> req.response().end());
-            clientRes.exceptionHandler(e -> {
-               logger.error("Error caught in response of request to serverless", e);
-            });
-            req.response().exceptionHandler(e -> {
-               logger.error("Error caught in response to client", e);
-            });
+        req.pause();
+
+        client.request(req.method(), destinationPort, destinationHost, req.uri())
+                .onSuccess(clientReq -> executeProxy(clientReq, req))
+                .onFailure(throwable -> logger.error("Error found creating request", throwable));
+    }
+
+    private void executeProxy(HttpClientRequest clientReq, HttpServerRequest req) {
+        clientReq.response(reqResult -> {
+            if (reqResult.succeeded()) {
+                HttpClientResponse clientRes = reqResult.result();
+                req.response().setChunked(true);
+                req.response().setStatusCode(clientRes.statusCode());
+                req.response().headers().setAll(clientRes.headers());
+                clientRes.handler(data -> req.response().write(data));
+                clientRes.endHandler((v) -> req.response().end());
+                clientRes.exceptionHandler(e -> logger.error("Error caught in response of request to serverless", e));
+                req.response().exceptionHandler(e -> logger.error("Error caught in response to client", e));
+            } else {
+                logger.error("Error in async result", reqResult.cause());
+            }
         });
+
         clientReq.setChunked(true);
         clientReq.headers().setAll(req.headers());
 
@@ -139,6 +146,7 @@ public class RateLimitingProxy {
                 req.response().setStatusCode(500).putHeader("x-error", e.getMessage()).end();
             });
         }
+        req.resume();
 
         req.exceptionHandler(e -> {
            logger.error("Error caught in request from client", e);

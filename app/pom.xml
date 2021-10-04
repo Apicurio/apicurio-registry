@@ -52,12 +52,7 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-auth</artifactId>
-        </dependency>
-
-	<dependency>
+	    <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
         </dependency>
@@ -98,6 +93,7 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-kotlin</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -211,6 +207,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-apicurio-registry-avro</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -218,11 +219,6 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

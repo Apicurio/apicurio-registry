@@ -62,7 +62,7 @@ jobs:
       run: gu install native-image
 
     - name: Get maven wrapper
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       run: cd registry && ./mvnw -pl cli -am install
@@ -152,7 +152,7 @@ jobs:
       run: gu install native-image
 
     - name: Get maven wrapper
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       run: cd registry && ./mvnw -pl cli -am install
@@ -244,7 +244,7 @@ jobs:
 
     - name: Get maven wrapper
       shell: bash
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       shell: cmd

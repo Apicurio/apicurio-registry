@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
+import java.util.Optional;
 
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -78,13 +79,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test55", Optional.empty());
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -93,7 +94,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         client.listArtifactsInGroup(groupId);
@@ -103,7 +104,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
+            Auth devAuth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -120,7 +121,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -153,7 +154,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -205,10 +206,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        Auth authDev = new OidcAuth(authServerUrlConfigured, developerClientId, "test1");
+        Auth authDev = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
         RegistryClient clientDev = createClient(authDev);
 
-        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         RegistryClient clientAdmin = createClient(authAdmin);
 
         // Admin user will create an artifact

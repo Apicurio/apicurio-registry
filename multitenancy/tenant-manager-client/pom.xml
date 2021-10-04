@@ -25,11 +25,6 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-auth</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.apicurio</groupId>
             <artifactId>apicurio-common-rest-client-jdk</artifactId>
         </dependency>
 

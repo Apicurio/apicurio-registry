@@ -82,15 +82,15 @@ public class AuditedInterceptor {
             action = context.getMethod().getName();
         }
 
-        String result = "success";
+        String result = AuditHttpRequestContext.SUCCESS;
         try {
             return context.proceed();
         } catch (Exception e) {
-            result = "failure";
+            result = AuditHttpRequestContext.FAILURE;
             metadata.put("error_msg", e.getMessage());
             throw e;
         } finally {
-            auditLogService.log(action, result, metadata);
+            auditLogService.log(action, result, metadata, null);
         }
 
     }

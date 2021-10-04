@@ -35,8 +35,8 @@ public class MockAuditLogService extends AuditLogService {
      * @see io.apicurio.multitenant.logging.audit.AuditLogService#log(java.lang.String, java.lang.String, java.util.Map)
      */
     @Override
-    public void log(String action, String result, Map<String, String> metadata) {
-        super.log(action, result, metadata);
+    public void log(String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {
+        super.log(action, result, metadata, requestInfo);
         Map<String, String> audit = new HashMap<>(metadata);
         audit.put("action", action);
         audit.put("result", result);

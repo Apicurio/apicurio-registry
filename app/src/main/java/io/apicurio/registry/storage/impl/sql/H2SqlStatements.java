@@ -25,7 +25,6 @@ public class H2SqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public H2SqlStatements() {
     }
@@ -55,7 +54,7 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -79,11 +78,27 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence(String)
      */
     @Override
     public String resetSequence(String sequence) {
         return "ALTER SEQUENCE " + sequence + " RESTART WITH ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#increaseNextContentId()
+     */
+    @Override
+    public String increaseNextContentId() {
+        return "INSERT INTO sequences (tenantid, name, nextval) VALUES (?, 'contentidsequence', 1) ON DUPLICATE KEY UPDATE nextval=nextval+1";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectNextContentId()
+     */
+    @Override
+    public String selectNextContentId() {
+        throw new UnsupportedOperationException("Unsupported operation for database type: " + dbType());
     }
 
 }

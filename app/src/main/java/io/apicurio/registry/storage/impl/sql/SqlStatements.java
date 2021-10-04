@@ -442,9 +442,24 @@ public interface SqlStatements {
     public String selectGroupByGroupId();
 
     /**
-     * As statement used to get the next generated/sequenced globalId.
+     * A statement used to get the next generated/sequenced globalId.
      */
     public String selectNextGlobalId();
+
+    /**
+     * A statement used to get the next generated/sequenced contentId.
+     */
+    public String selectNextContentId();
+
+    /**
+     * A statement used to get the current value of generated/sequenced contentId.
+     */
+    public String selectCurrentContentId();
+
+    /**
+     * A statement used to increase the current value of generated/sequenced contentId by one.
+     */
+    public String increaseNextContentId();
 
     /*
      * The next few statements support exporting data from the DB.

@@ -867,4 +867,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT COUNT(a.principalId) FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentContentId()
+     */
+    @Override
+    public String selectCurrentContentId() {
+        return "SELECT nextval FROM sequences WHERE tenantId=? AND name='contentidsequence'";
+    }
+
 }

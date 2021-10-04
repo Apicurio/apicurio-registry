@@ -19,13 +19,13 @@ package io.apicurio.registry.storage.impl.sql;
 /**
  * H2 implementation of the sql statements interface.  Provides sql statements that
  * are specific to PostgreSQL, where applicable.
+ *
  * @author eric.wittmann@gmail.com
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public PostgreSQLSqlStatements() {
     }
@@ -55,7 +55,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -79,11 +79,27 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence(String)
      */
     @Override
     public String resetSequence(String sequence) {
         return "SELECT setval('" + sequence + "', ?, FALSE)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectNextContentId()
+     */
+    @Override
+    public String selectNextContentId() {
+        return "INSERT INTO sequences (tenantid, name, nextval) VALUES (?, 'contentidsequence', 1) ON CONFLICT (tenantid, name) DO UPDATE SET nextval=sequences.nextval+1 RETURNING nextval";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#increaseNextContentId()
+     */
+    @Override
+    public String increaseNextContentId() {
+        return selectNextContentId();
     }
 
 }

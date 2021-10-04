@@ -119,7 +119,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 2;
+    private static int DB_VERSION = 3;
     private static final Object dbMutex = new Object();
 
     @Inject
@@ -2810,10 +2810,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return false;
     }
 
-    protected static long nextContentId(Handle handle) {
-        return handle.createQuery("SELECT nextval('contentidsequence')")
-                .mapTo(Long.class)
-                .one();
+    protected long nextContentId(Handle handle) {
+        if ("postgresql".equals(sqlStatements.dbType())) {
+            handle.createQuery(sqlStatements.increaseNextContentId()).bind(0, tenantContext.tenantId());
+            return handle.createQuery(sqlStatements.selectCurrentContentId()).bind(0, tenantContext.tenantId()).mapTo(Long.class).one();
+        } else if ("h2".equals(sqlStatements.dbType())) {
+            return handle.createQuery(sqlStatements.selectNextContentId()).bind(0, tenantContext.tenantId()).mapTo(Long.class).one();
+        } else {
+            throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
+        }
     }
 
     protected static long nextGlobalId(Handle handle) {

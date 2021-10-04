@@ -27,6 +27,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -50,6 +52,7 @@ import io.apicurio.tests.utils.RateLimitingProxy;
  * @author Fabian Martinez
  */
 @Tag(Constants.MULTITENANCY)
+@DisabledIfEnvironmentVariable(named = Constants.CURRENT_ENV, matches = Constants.CURRENT_ENV_MAS_REGEX)
 public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
     private KafkaFacade kafkaCluster = KafkaFacade.getInstance();

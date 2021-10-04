@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-export * from "./common";
-export * from "./errorPage";
-export * from "./header";
-export * from "./ruleList";
-export * from "./baseComponent";
-export * from "./modals";
+export * from "./emptyState";
+export * from "./matchingSchemaCard";
+export * from "./noMatchingSchema";
+export * from "./schemaCard";
 export * from "./schemaMapping";
+export * from "./schemaMapping.federated";

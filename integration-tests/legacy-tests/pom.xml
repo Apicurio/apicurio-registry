@@ -20,8 +20,8 @@
         <skipTests>true</skipTests>
         
         <junit.version>5.8.1</junit.version>
-        <junit.platform-launcher.version>1.7.2</junit.platform-launcher.version>
-        <version.okhttp>4.9.0</version.okhttp>
+        <junit.platform-launcher.version>1.8.1</junit.platform-launcher.version>
+        <version.okhttp>4.9.2</version.okhttp>
         <kafka.version>2.3.0</kafka.version>
 
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>

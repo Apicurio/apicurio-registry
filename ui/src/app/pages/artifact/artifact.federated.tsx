@@ -17,9 +17,9 @@
 
 import React from "react";
 import {ArtifactRedirectPage, ArtifactRedirectPageProps} from "./artifact";
-import {FederatedPageProps, FederatedUtils} from "../../federated";
+import {FederatedComponentProps, FederatedUtils} from "../../federated";
 
-export interface FederatedArtifactRedirectPageProps extends ArtifactRedirectPageProps, FederatedPageProps {
+export interface FederatedArtifactRedirectPageProps extends ArtifactRedirectPageProps, FederatedComponentProps {
     groupId: string;
     artifactId: string;
 }
@@ -31,7 +31,7 @@ export default class FederatedArtifactRedirectPage extends ArtifactRedirectPage 
     }
 
     protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
+        FederatedUtils.updateConfiguration(this.props as FederatedComponentProps);
         super.postConstruct();
     }
 

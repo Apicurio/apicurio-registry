@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,30 +15,20 @@
  * limitations under the License.
  */
 
-import React from "react";
-import "./rules.css";
-import {RulesPage, RulesPageProps} from "./rules";
+import {SchemaMapping, SchemaMappingProps} from "./schemaMapping";
 import {FederatedComponentProps, FederatedUtils} from "../../federated";
 
-
-/**
- * Properties
- */
-// tslint:disable-next-line:no-empty-interface
-export interface FederatedRulesPageProps extends RulesPageProps, FederatedComponentProps {
+export interface FederatedSchemaMappingProps extends SchemaMappingProps, FederatedComponentProps {
 }
 
-/**
- * The global rules page.
- */
-export default class FederatedRulesPage extends RulesPage {
+export default class FederatedSchemaMapping extends SchemaMapping {
 
-    constructor(props: Readonly<FederatedRulesPageProps>) {
+    constructor(props: Readonly<FederatedSchemaMappingProps>) {
         super(props);
     }
 
     protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as FederatedComponentProps);
+        FederatedUtils.updateConfiguration(this.props as any);
         super.postConstruct();
     }
 

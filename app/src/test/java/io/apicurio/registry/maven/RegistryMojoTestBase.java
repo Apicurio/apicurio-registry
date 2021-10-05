@@ -93,7 +93,7 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         valueSchemaArtifact.setFile(valueSchemaFile);
         artifacts.add(valueSchemaArtifact);
 
-        mojo.artifacts = artifacts;
+        mojo.setArtifacts(artifacts);
         mojo.execute();
     }
 }

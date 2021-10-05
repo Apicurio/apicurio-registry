@@ -23,15 +23,17 @@ import io.apicurio.registry.rest.client.RegistryClient;
  */
 public class TenantUserClient {
 
-    final TenantUser user;
-    final String tenantAppUrl;
-    final RegistryClient client;
+    public final TenantUser user;
+    public final String tenantAppUrl;
+    public final RegistryClient client;
+    public final String tokenEndpoint;
 
-    public TenantUserClient(TenantUser user, String tenantAppUrl, RegistryClient client) {
+    public TenantUserClient(TenantUser user, String tenantAppUrl, RegistryClient client, String tokenEndpoint) {
         super();
         this.user = user;
         this.tenantAppUrl = tenantAppUrl;
         this.client = client;
+        this.tokenEndpoint = tokenEndpoint;
     }
 
 }

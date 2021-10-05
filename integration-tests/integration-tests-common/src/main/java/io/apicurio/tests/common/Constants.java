@@ -67,4 +67,13 @@ public interface Constants {
     String AUTH = "auth";
 
     Path LOGS_DIR = Paths.get("target/logs/");
+
+    /**
+     * Env var name for mandating the testsuite to avoid using docker for running required infrastructure
+     */
+    public static final String NO_DOCKER_ENV_VAR = "NO_DOCKER";
+
+    public static final String CURRENT_ENV = "CURRENT_ENV";
+    public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
+
 }

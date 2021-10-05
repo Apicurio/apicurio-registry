@@ -37,6 +37,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 @Alternative
@@ -95,7 +96,7 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        final String jwtToken = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        final String jwtToken = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight(), Optional.empty()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

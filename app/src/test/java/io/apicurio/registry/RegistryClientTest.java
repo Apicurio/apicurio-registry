@@ -17,7 +17,9 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -43,6 +45,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -1340,6 +1343,23 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertNotNull(clientV2.getLatestArtifact(groupId, artifactId));
 
+    }
+
+    @Test
+    public void testClientRateLimitError() {
+        TooManyRequestsMock mock = new TooManyRequestsMock();
+        mock.start();
+        try {
+            RegistryClient client = RegistryClientFactory.create(mock.getMockUrl());
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getLatestArtifact("test", "test"));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.createArtifact(null, "aaa", IoUtil.toStream("{}")));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getContentByGlobalId(5));
+        } finally {
+            mock.stop();
+        }
     }
 
 }

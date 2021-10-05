@@ -31,6 +31,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Base class for all Registry Mojo's.
@@ -67,7 +68,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     protected RegistryClient getClient() {
         if (client == null) {
             if (authServerUrl != null && clientId != null && clientSecret != null) {
-                Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret);
+                Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret, Optional.empty());
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);
@@ -79,7 +80,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         return client;
     }
 
-    protected void setClient(RegistryClient client) {
+    public void setClient(RegistryClient client) {
         AbstractRegistryMojo.client = client;
     }
 
@@ -112,5 +113,29 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
                 return ContentTypes.APPLICATION_XML;
         }
         return null;
+    }
+
+    public void setRegistryUrl(String registryUrl) {
+        this.registryUrl = registryUrl;
+    }
+
+    public void setAuthServerUrl(String authServerUrl) {
+        this.authServerUrl = authServerUrl;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

@@ -47,6 +47,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
 

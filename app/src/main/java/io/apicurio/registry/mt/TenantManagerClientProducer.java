@@ -30,6 +30,7 @@ import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 import java.util.Collections;
+import java.util.Optional;
 
 /**
  * @author Fabian Martinez
@@ -77,7 +78,8 @@ public class TenantManagerClientProducer {
                         properties.getTenantManagerUrl().get(), Collections.emptyMap(),
                         new OidcAuth(new JdkHttpClientProvider(), properties.getTenantManagerAuthUrl().get(),
                                 properties.getTenantManagerClientId().get(),
-                                properties.getTenantManagerClientSecret().get()
+                                properties.getTenantManagerClientSecret().get(),
+                                Optional.empty()
                         )
                 ));
 

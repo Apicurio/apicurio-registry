@@ -19,6 +19,7 @@ package io.apicurio.registry.auth;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import io.apicurio.rest.client.auth.Auth;
@@ -77,16 +78,16 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         RegistryClient clientAdmin = createClient(authAdmin);
 
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
 
         // User is authenticated but no roles assigned yet - operations should fail.

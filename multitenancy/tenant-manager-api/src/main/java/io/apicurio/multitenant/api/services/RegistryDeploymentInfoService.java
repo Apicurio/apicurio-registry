@@ -24,9 +24,7 @@ import io.apicurio.multitenant.api.datamodel.RegistryDeploymentInfo;
 
 /**
  * This service provides information about the registry deployment paired with this tenant manager.
- * The tenant manager can know what registry deployment is paired with via different ways.
- * Via "registry.route.url" config property or via "registry.route.name", with the latter the tenant manager
- * will use the OpenshiftClient to query the Openshift cluster to get the registry deployment url.
+ * The tenant manager can know what registry deployment is paired with via "registry.route.url" config property.
  *
  * @author Fabian Martinez
  */

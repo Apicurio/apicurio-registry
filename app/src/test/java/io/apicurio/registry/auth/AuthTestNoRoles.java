@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -62,13 +63,13 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test55", Optional.empty());
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -78,7 +79,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {

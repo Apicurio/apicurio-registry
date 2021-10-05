@@ -42,6 +42,10 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-apicurio-registry-avro</artifactId>
+        </dependency>
 
         <!-- Test Only -->
         <dependency>
@@ -96,7 +100,7 @@
                         </goals>
                         <configuration>
                             <includeGroupIds>io.apicurio</includeGroupIds>
-                            <includeTypes>jar</includeTypes>
+                            <includeTypes>jar,maven-plugin</includeTypes>
                             <outputDirectory>
                                 ${project.build.directory}/classes
                             </outputDirectory>

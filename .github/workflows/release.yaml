@@ -85,7 +85,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+          mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
           make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
 
       - name: Build Examples

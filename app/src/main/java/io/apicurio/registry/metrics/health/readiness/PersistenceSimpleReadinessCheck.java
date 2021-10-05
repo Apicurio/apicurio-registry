@@ -44,7 +44,7 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
     public synchronized HealthCheckResponse call() {
         return HealthCheckResponse.builder()
             .name("PersistenceSimpleReadinessCheck")
-            .state(test())
+            .status(test())
             .build();
     }
 }

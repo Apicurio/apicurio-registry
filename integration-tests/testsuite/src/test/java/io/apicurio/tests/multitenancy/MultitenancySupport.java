@@ -17,6 +17,7 @@
 package io.apicurio.tests.multitenancy;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -81,7 +82,7 @@ public class MultitenancySupport {
         if (tenantManager == null) {
             var keycloak = registryFacade.getMTOnlyKeycloakMock();
             tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
+                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret, Optional.empty()));
         }
         return tenantManager;
     }

@@ -16,35 +16,42 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 
+@Singleton
 public class FacadeConverter {
 
-    public static int convertUnsigned(long value) {
+    @Inject
+    CCompatConfig cconfig;
+
+    public int convertUnsigned(long value) {
         if (value < 0 || value > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Value out of unsigned integer range: " + value);
         }
         return (int) value;
     }
 
-    public static Schema convert(String subject, StoredArtifactDto storedArtifact) {
+    public Schema convert(String subject, StoredArtifactDto storedArtifact) {
         return new Schema(
-                convertUnsigned(storedArtifact.getContentId()),
+                convertUnsigned(cconfig.legacyIdModeEnabled ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
                 subject,
                 convertUnsigned(storedArtifact.getVersionId()),
                 storedArtifact.getContent().content()
         );
     }
 
-    public static SchemaContent convert(ContentHandle content) {
+    public SchemaContent convert(ContentHandle content) {
         return new SchemaContent(content.content());
     }
 
-    public static SubjectVersion convert(String artifactId, Number version) {
+    public SubjectVersion convert(String artifactId, Number version) {
         return new SubjectVersion(artifactId, version.longValue());
     }
 }

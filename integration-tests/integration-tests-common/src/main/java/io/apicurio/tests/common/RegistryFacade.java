@@ -47,7 +47,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
-import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
 
@@ -158,6 +157,8 @@ public class RegistryFacade {
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("LOG_LEVEL", "DEBUG");
         appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
+
+        loadProvidedAppEnv(appEnv);
 
         if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
             Map<String, String> registry1Env = new HashMap<>(appEnv);
@@ -464,7 +465,7 @@ public class RegistryFacade {
 
     private void runRegistry(String path, Map<String, String> appEnv) {
         Exec executor = new Exec();
-        LOGGER.info("Starting Registry app from: {}", path);
+        LOGGER.info("Starting Registry app from: {} env: {}", path, appEnv);
         CompletableFuture.supplyAsync(() -> {
             try {
 
@@ -644,6 +645,23 @@ public class RegistryFacade {
             }
         });
         processes.clear();
+    }
+
+    /**
+     * Reads environment variables with the prefix TEST_APP_ENV
+     */
+    private void loadProvidedAppEnv(Map<String, String> appEnv) {
+
+        String envPrefix = "TEST_APP_ENV_";
+
+        System.getenv()
+            .entrySet()
+            .stream()
+            .filter(env -> env.getKey().startsWith(envPrefix))
+            .forEach(env -> {
+                appEnv.put(env.getKey().substring(envPrefix.length()), env.getValue());
+            });
+
     }
 
 }

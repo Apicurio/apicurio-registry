@@ -16,51 +16,23 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
-<<<<<<< HEAD
-import io.apicurio.registry.auth.Authorized;
-import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedStyle;
-=======
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_CONCURRENT_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_GROUP_TAG;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_COUNT_DESC;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME;
-import static io.apicurio.registry.metrics.MetricIDs.REST_REQUEST_RESPONSE_TIME_DESC;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
-
 import java.util.List;
 
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.container.AsyncResponse;
 
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-
->>>>>>> 4d60ffcc (Added a legacy mode to revert the ccompat API to use globalId instead of contentId (#1900))
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.logging.Logged;
-<<<<<<< HEAD
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import java.util.List;
-
-=======
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
->>>>>>> 4d60ffcc (Added a legacy mode to revert the ccompat API to use globalId instead of contentId (#1900))
 
 /**
  * @author Ales Justin

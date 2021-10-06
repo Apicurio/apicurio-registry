@@ -113,8 +113,9 @@ export class SchemaMapping extends PureComponent<
       topicName
     );
 
-    const artifactId1 = topicName + "-value";
-    const artifactId2 = topicName + "-key";
+    const artifactId1 = topicName + "-key";
+    const artifactId2 = topicName + "-value";
+  
 
     return [
       Services.getGroupsService()

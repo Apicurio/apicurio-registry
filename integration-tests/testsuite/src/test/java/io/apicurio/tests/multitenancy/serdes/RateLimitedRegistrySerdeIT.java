@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.InputStream;
 import java.util.List;
 
+import io.apicurio.tests.utils.RetryLimitingProxy;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -191,4 +192,67 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
     }
 
+    @Test
+    void testRetryRateLimited() throws Exception {
+
+        RetryLimitingProxy proxy = new RetryLimitingProxy(3, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            String topicName = TestUtils.generateTopic();
+            //because of using TopicIdStrategy
+            String artifactId = topicName + "-value";
+            kafkaCluster.createTopic(topicName, 1, 1);
+
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
+
+            new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+                .withTopic(topicName)
+
+                //url of the proxy
+                .withCommonProperty(SerdeConfig.REGISTRY_URL, tenantRateLimitedUrl)
+
+                //add auth properties
+                .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
+
+                .withSerializer(AvroKafkaSerializer.class)
+                .withDeserializer(AvroKafkaDeserializer.class)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+                        clientTenant.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+
+                // make serdes tester send multiple message batches, that will test that the cache is used when loaded
+                .withMessages(4, 5)
+
+                .build()
+                .test();
+
+
+            ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+            byte[] rawSchema = IoUtil.toBytes(clientTenant.getContentByGlobalId(meta.getGlobalId()));
+
+            assertEquals(new String(avroSchema.generateSchemaBytes()), new String(rawSchema));
+
+        } finally {
+            proxy.stop();
+        }
+
+    }
 }

@@ -16,39 +16,32 @@
 
 package io.apicurio.tests.utils;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.HttpServerRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public class RateLimitingProxy extends LimitingProxy {
+public class RetryLimitingProxy extends LimitingProxy {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private int buckets;
+    private int failures;
 
-    public RateLimitingProxy(int failAfterRequests, String destinationHost, int destinationPort) {
+    public RetryLimitingProxy(int failures, String destinationHost, int destinationPort) {
         super(destinationHost, destinationPort);
         // this will rate limit just based on total requests
         // that means that if buckets=3 the proxy will successfully redirect the first 3 requests and every request after that will be rejected with 429 status
-        this.buckets = failAfterRequests;
+        this.failures = failures;
     }
 
     @Override
     protected synchronized boolean allowed() {
-        if (buckets > 0) {
-            buckets--;
-            return true;
+        if (failures > 0) {
+            failures--;
+            return false;
         }
-        return false;
+        return true;
     }
 }

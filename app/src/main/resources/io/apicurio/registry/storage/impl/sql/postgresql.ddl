@@ -30,6 +30,7 @@ ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, arti
 
 CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
+ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
 CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
 

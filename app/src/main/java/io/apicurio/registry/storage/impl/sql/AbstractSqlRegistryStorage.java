@@ -587,9 +587,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         if ("postgresql".equals(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
-                    .bind(0, canonicalContentHash)
-                    .bind(1, contentHash)
-                    .bind(2, contentBytes)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, nextContentId(handle))
+                    .bind(2, canonicalContentHash)
+                    .bind(3, contentHash)
+                    .bind(4, contentBytes)
                     .execute();
             sql = sqlStatements.selectContentIdByHash();
             contentId = handle.createQuery(sql)
@@ -609,9 +611,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             } else {
                 sql = sqlStatements.upsertContent();
                 handle.createUpdate(sql)
-                    .bind(0, canonicalContentHash)
-                    .bind(1, contentHash)
-                    .bind(2, contentBytes)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, nextContentId(handle))
+                    .bind(2, canonicalContentHash)
+                    .bind(3, contentHash)
+                    .bind(4, contentBytes)
                     .execute();
                 sql = sqlStatements.selectContentIdByHash();
                 contentId = handle.createQuery(sql)

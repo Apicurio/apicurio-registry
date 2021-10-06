@@ -37,7 +37,7 @@ public class RetryLimitingProxy extends LimitingProxy {
     }
 
     @Override
-    protected synchronized boolean allowed() {
+    protected boolean allowed() {
         if (failures > 0) {
             failures--;
             return false;

@@ -67,7 +67,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (canonicalHash, contentHash, content) VALUES (?, ?, ?)";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -79,11 +79,19 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequence()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override
-    public String resetSequence(String sequence) {
-        return "ALTER SEQUENCE " + sequence + " RESTART WITH ?";
+    public String getNextSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE value = value + 1";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
+     */
+    @Override
+    public String resetSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = ?";
     }
 
 }

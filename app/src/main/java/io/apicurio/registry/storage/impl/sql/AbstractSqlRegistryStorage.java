@@ -133,12 +133,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
+    private static final String GLOBAL_ID_SEQUENCE = "globalId";
+    private static final String CONTENT_ID_SEQUENCE = "contentId";
 
     @Inject
     Logger log;
 
     @Inject
     TenantContext tenantContext;
+
     protected TenantContext tenantContext() {
         return tenantContext;
     }
@@ -2577,10 +2580,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(0, tenantContext.tenantId())
                 .execute();
 
+            // Delete all content by tenantId
+
+            sql = sqlStatements.deleteAllContent();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
             return null;
         });
 
-        deleteAllOrphanedContent();
     }
 
     protected void deleteAllOrphanedContent() {
@@ -2597,41 +2606,50 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     protected void resetGlobalId(Handle handle) {
-        String sql = sqlStatements.selectMaxGlobalId();
-        Optional<Long> maxGlobalId = handle.createQuery(sql)
-                .mapTo(Long.class)
-                .findOne();
-
-        if (maxGlobalId.isPresent()) {
-            log.info("Resetting globalId sequence");
-            long id = maxGlobalId.get() + 1;
-
-            sql = sqlStatements.resetSequence("globalidsequence");
-
-            handle.createUpdate(sql)
-                .bind(0, id)
-                .executeNoUpdate();
-            log.info("Successfully reset globalId to {}", id);
-        }
+        resetSequence(handle, GLOBAL_ID_SEQUENCE, sqlStatements.selectMaxGlobalId());
     }
 
     protected void resetContentId(Handle handle) {
-        //Todo: No longer use contentIdSequence
-        String sql = sqlStatements.selectMaxContentId();
-        Optional<Long> maxContentId = handle.createQuery(sql)
+        resetSequence(handle, CONTENT_ID_SEQUENCE, sqlStatements.selectMaxContentId());
+    }
+
+    private void resetSequence(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
+        Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
+                .bind(0, tenantContext.tenantId())
                 .mapTo(Long.class)
                 .findOne();
 
-        if (maxContentId.isPresent()) {
-            log.info("Resetting contentId sequence");
-            long id = maxContentId.get() + 1;
+        Optional<Long> currentIdSeq = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                .bind(0, sequenceName)
+                .bind(1, tenantContext.tenantId())
+                .mapTo(Long.class)
+                .findOne();
 
-            sql = sqlStatements.resetSequence("contentidsequence");
+        //TODO maybe do this in one query
+        Optional<Long> maxId = maxIdTable
+                .map(maxIdTableValue -> {
+                   if (currentIdSeq.isPresent()) {
+                       if (currentIdSeq.get() > maxIdTableValue) {
+                           //id in sequence is bigger than max value in table
+                           return currentIdSeq.get();
+                       }
+                   }
+                   //max value in table is bigger that id in sequence
+                   return maxIdTableValue;
+                });
 
-            handle.createUpdate(sql)
-                .bind(0, id)
-                .executeNoUpdate();
-            log.info("Successfully reset contentId to {}", id);
+
+        if (maxId.isPresent()) {
+            log.info("Resetting {} sequence", sequenceName);
+            long id = maxId.get() + 1;
+
+            handle.createUpdate(sqlStatements.resetSequenceValue())
+                .bind(0, tenantContext.tenantId())
+                .bind(1, sequenceName)
+                .bind(2, id)
+                .bind(3, id)
+                .execute();
+            log.info("Successfully reset {} to {}", sequenceName, id);
         }
     }
 
@@ -2758,17 +2776,19 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             }
         } else {
             log.info("Duplicate globalId detected, skipping import of artifact version.");
+            //TODO generate a new globalId and add the artifact, maybe only depending on a feature flag
         }
     }
     protected void importContent(Handle handle, ContentEntity entity) {
-        //Todo: Create content in content table and add mapping into tenant_content
         try {
             if (!isContentExists(entity.contentId)) {
                 String sql = sqlStatements.importContent();
                 handle.createUpdate(sql)
-                    .bind(0, entity.canonicalHash)
-                    .bind(1, entity.contentHash)
-                    .bind(2, entity.contentBytes)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, entity.contentId)
+                    .bind(2, entity.canonicalHash)
+                    .bind(3, entity.contentHash)
+                    .bind(4, entity.contentBytes)
                     .execute();
                 log.info("Content entity imported successfully.");
             } else {
@@ -2828,16 +2848,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String sql = sqlStatements().selectContentExists();
             return handle.createQuery(sql)
                     .bind(0, contentId)
+                    .bind(1, tenantContext.tenantId())
                     .mapTo(Integer.class)
                     .one() > 0;
         });
     }
 
-    public boolean isGlobalIdExists(long globalId) throws RegistryStorageException {
+    protected boolean isGlobalIdExists(long globalId) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectGlobalIdExists();
             return handle.createQuery(sql)
                     .bind(0, globalId)
+                    .bind(1, tenantContext.tenantId())
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -2906,31 +2928,34 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return false;
     }
 
-    protected static long nextContentId(Handle handle) {
-        return handle.createQuery("SELECT nextval('contentidsequence')")
-                .mapTo(Long.class)
-                .one();
+    protected long nextContentId(Handle handle) {
+        return nextSequenceValue(handle, CONTENT_ID_SEQUENCE);
     }
 
     protected long nextGlobalId(Handle handle) {
+        return nextSequenceValue(handle, GLOBAL_ID_SEQUENCE);
+    }
 
-//        handle.createQuery(null)
-
+    private long nextSequenceValue(Handle handle, String sequenceName) {
+        String sql = sqlStatements.getNextSequenceValue();
         if ("postgresql".equals(sqlStatements.dbType())) {
-
-//            String sql = "INSERT INTO logconfiguration (logger, loglevel) VALUES (?, ?) ON CONFLICT (logger) DO UPDATE SET loglevel = ?"
-
-//            handle.createUpdate(null)
-
-
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, sequenceName)
+                    .mapTo(Long.class)
+                    .one();
+        } else {
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .bind(1, sequenceName)
+                .execute();
+            //will this work properly with concurrent executions?
+            return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                    .bind(0, sequenceName)
+                    .bind(1, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
         }
-
-
-
-
-        return handle.createQuery("SELECT nextval('globalidsequence')")
-                .mapTo(Long.class)
-                .one();
     }
 
     private static String limitStr(String value, int limit) {

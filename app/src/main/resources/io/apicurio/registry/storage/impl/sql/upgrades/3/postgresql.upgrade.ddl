@@ -5,6 +5,13 @@
 
 UPDATE apicurio SET prop_value = 3 WHERE prop_name = 'db_version';
 
+-- new approach
+CREATE TABLE content_by_tenant (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
+ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
+CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
+CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
+
+
 -- create new table
 CREATE TABLE tenant_content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, contentHash VARCHAR(64) NOT NULL);
 ALTER TABLE tenant_content ADD PRIMARY KEY (tenantId, contentId);

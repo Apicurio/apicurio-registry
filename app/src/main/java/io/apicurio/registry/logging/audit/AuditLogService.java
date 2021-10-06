@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.multitenant.logging.audit;
+package io.apicurio.registry.logging.audit;
 
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
@@ -22,9 +22,6 @@ import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.slf4j.Logger;
 
-/**
- * @author Fabian Martinez
- */
 @ApplicationScoped
 public class AuditLogService {
 
@@ -48,11 +45,11 @@ public class AuditLogService {
         }
 
         StringBuilder m = new StringBuilder();
-        m.append("tenant-manager.audit")
-            .append(" ")
-            .append("action=\"").append(action).append("\" ")
-            .append("result=\"").append(result).append("\" ")
-            .append("src_ip=\"").append(remoteAddress).append("\" ");
+        m.append("apicurio-registry.audit")
+                .append(" ")
+                .append("action=\"").append(action).append("\" ")
+                .append("result=\"").append(result).append("\" ")
+                .append("src_ip=\"").append(remoteAddress).append("\" ");
         if (forwardedRemoteAddress != null) {
             m.append("x_forwarded_for=\"").append(forwardedRemoteAddress).append("\" ");
         }

@@ -123,6 +123,7 @@
         <module>client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
+        <module>audit</module>
     </modules>
 
     <properties>

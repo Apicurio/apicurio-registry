@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-package io.apicurio.multitenant.logging.audit;
+package io.apicurio.registry.logging.audit;
+
+import javax.interceptor.InterceptorBinding;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * @author Fabian Martinez
+ * This annotation is processed by {@link AuditedInterceptor}
+ *
  */
-public interface AuditHttpRequestInfo {
+@InterceptorBinding
+@Retention(RUNTIME)
+@Target({METHOD, TYPE})
+public @interface Audited {
 
     /**
-     * @return the sourceIp
+     * If empty or null the method name will be used as the action identifier
+     * @return
      */
-    String getSourceIp();
-
-    /**
-     * @return the forwardedFor
-     */
-    String getForwardedFor();
+    String action() default "";
 
 }

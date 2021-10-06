@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.multitenant.logging.audit;
+package io.apicurio.registry.logging.audit;
 
 import javax.enterprise.context.RequestScoped;
 
-/**
- * @author Fabian Martinez
- */
 @RequestScoped
 public class AuditHttpRequestContext implements AuditHttpRequestInfo {
 

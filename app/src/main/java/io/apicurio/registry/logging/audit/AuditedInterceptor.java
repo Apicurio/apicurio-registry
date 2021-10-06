@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.multitenant.logging.audit;
+package io.apicurio.registry.logging.audit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,8 +27,6 @@ import javax.interceptor.InvocationContext;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.registry.audit.AuditHttpRequestContext;
-import io.apicurio.registry.audit.AuditLogService;
 
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
@@ -37,8 +35,6 @@ import io.apicurio.registry.audit.AuditLogService;
  *
  * This interceptor reads the inner method parameters to gather extra information for the audit entry.
  *
- * *** IMPORTANT NOTE *** TenantId is assumed to be found in the annotated method parameters, either as an Object field or simply as a String.
- * **Caution** Any string parameter will be considered the tenantId
  *
  * @author Fabian Martinez
  */
@@ -54,6 +50,7 @@ public class AuditedInterceptor {
     public Object auditMethod(InvocationContext context) throws Exception {
 
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
+
 
         Map<String, String> metadata = new HashMap<>();
 
@@ -77,6 +74,7 @@ public class AuditedInterceptor {
             }
         }
 
+
         String action = annotation.action();
         if (action == null || action.isEmpty()) {
             action = context.getMethod().getName();
@@ -90,7 +88,10 @@ public class AuditedInterceptor {
             metadata.put("error_msg", e.getMessage());
             throw e;
         } finally {
-            auditLogService.log("tenant-manager.audit", action, result, metadata, null);
+            auditLogService.log(action, result, metadata, null);
         }
+
     }
+
+
 }

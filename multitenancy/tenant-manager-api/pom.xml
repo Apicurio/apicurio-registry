@@ -17,6 +17,12 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-audit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     
         <dependency>
             <groupId>io.apicurio</groupId>

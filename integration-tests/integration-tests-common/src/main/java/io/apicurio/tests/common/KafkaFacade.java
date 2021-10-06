@@ -23,6 +23,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.kafka.EmbeddedKafka;
 import io.apicurio.tests.common.utils.RegistryUtils;
 
 import java.util.Arrays;
@@ -35,6 +36,7 @@ public class KafkaFacade implements RegistryTestProcess {
     static final Logger LOGGER = LoggerFactory.getLogger(KafkaFacade.class);
 
     private KafkaContainer kafkaContainer;
+    private EmbeddedKafka embeddedKafka;
     private AdminClient client;
 
     private static KafkaFacade instance;
@@ -58,11 +60,14 @@ public class KafkaFacade implements RegistryTestProcess {
         if (kafkaContainer != null) {
             return kafkaContainer.getBootstrapServers();
         }
+        if (embeddedKafka != null) {
+            return embeddedKafka.bootstrapServers();
+        }
         return null;
     }
 
     public void startIfNeeded() {
-        if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry() && kafkaContainer != null) {
+        if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry() && isRunning()) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed as registry storage");
         } else {
             start();
@@ -73,10 +78,14 @@ public class KafkaFacade implements RegistryTestProcess {
         if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry()) {
             LOGGER.info("Skipping stopping of kafka, because it's needed for registry storage");
         } else {
-            if (kafkaContainer != null) {
+            if (isRunning()) {
                 close();
             }
         }
+    }
+
+    private boolean isRunning() {
+        return kafkaContainer != null || embeddedKafka != null;
     }
 
     private boolean isKafkaBasedRegistry() {
@@ -84,11 +93,23 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     public void start() {
-        LOGGER.info("Starting kafka container");
-        kafkaContainer = new KafkaContainer();
-        kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
-        kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-        kafkaContainer.start();
+        if (isRunning()) {
+            throw new IllegalStateException("Kafka cluster is already running");
+        }
+
+        String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
+
+        if (noDocker != null && noDocker.equals("true")) {
+            LOGGER.info("Starting kafka embedded");
+            embeddedKafka = new EmbeddedKafka();
+            embeddedKafka.start();
+        } else {
+            LOGGER.info("Starting kafka container");
+            kafkaContainer = new KafkaContainer();
+            kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
+            kafkaContainer.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
+            kafkaContainer.start();
+        }
     }
 
     public KafkaContainer startNewKafka() {
@@ -113,7 +134,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     @Override
     public String getName() {
-        return "kafka";
+        return "kafka-" + kafkaContainer == null ? "embedded" : "container";
     }
 
     @Override
@@ -127,15 +148,25 @@ public class KafkaFacade implements RegistryTestProcess {
             kafkaContainer.stop();
             kafkaContainer = null;
         }
+        if (embeddedKafka != null) {
+            embeddedKafka.stop();
+            embeddedKafka = null;
+        }
     }
 
     @Override
     public String getStdOut() {
+        if (kafkaContainer == null) {
+            return "";
+        }
         return kafkaContainer.getLogs(OutputType.STDOUT);
     }
 
     @Override
     public String getStdErr() {
+        if (kafkaContainer == null) {
+            return "";
+        }
         return kafkaContainer.getLogs(OutputType.STDERR);
     }
 

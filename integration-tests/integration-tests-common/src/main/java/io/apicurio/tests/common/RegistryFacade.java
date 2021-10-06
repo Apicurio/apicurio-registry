@@ -185,6 +185,8 @@ public class RegistryFacade {
         appEnv.put("LOG_LEVEL", "DEBUG");
         appEnv.put("REGISTRY_LOG_LEVEL", "TRACE");
 
+        loadProvidedAppEnv(appEnv);
+
         if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
             Map<String, String> registry1Env = new HashMap<>(appEnv);
             deployStorage(registry1Env);
@@ -481,7 +483,7 @@ public class RegistryFacade {
     @SuppressWarnings("rawtypes")
     private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
 
-        String noDocker = System.getenv("NO_DOCKER");
+        String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
         String currentEnv = System.getenv("CURRENT_ENV");
 
         if (currentEnv != null && "mas".equals(currentEnv)) {
@@ -666,7 +668,7 @@ public class RegistryFacade {
         }
         String path = getJarPath();
         Exec executor = new Exec();
-        LOGGER.info("Starting Registry app from: {}", path);
+        LOGGER.info("Starting Registry app from: {} env: {}", path, appEnv);
         CompletableFuture.supplyAsync(() -> {
             try {
 
@@ -928,6 +930,23 @@ public class RegistryFacade {
         } else {
             return localValue;
         }
+    }
+    
+    /**
+     * Reads environment variables with the prefix TEST_APP_ENV
+     */
+    private void loadProvidedAppEnv(Map<String, String> appEnv) {
+
+        String envPrefix = "TEST_APP_ENV_";
+
+        System.getenv()
+            .entrySet()
+            .stream()
+            .filter(env -> env.getKey().startsWith(envPrefix))
+            .forEach(env -> {
+                appEnv.put(env.getKey().substring(envPrefix.length()), env.getValue());
+            });
+
     }
 
 }

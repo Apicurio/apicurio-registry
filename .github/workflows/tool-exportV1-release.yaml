@@ -24,7 +24,7 @@ jobs:
         echo "Tag name:   $TAG_NAME"
         echo "Upload URL: $UPLOAD_URL"
     - name: Get maven wrapper
-      run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
     - name: Set version
       run: ./mvnw versions:set -DnewVersion="$TAG_NAME"
     - name: Build exportV1 jar

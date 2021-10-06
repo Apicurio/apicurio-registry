@@ -68,3 +68,32 @@ enum AddressType {
 message AnotherType {
     message Address {}
 }
+
+service OriginalService {
+  rpc Foo(Customer) returns(Address);
+}
+
+service DeprecatedService {
+  rpc Foo(Customer) returns(Address);
+  option deprecated = true;
+}
+
+service DeprecatedMethod {
+  rpc Foo(Customer) returns(Address) {
+    option deprecated = true;
+  }
+}
+
+message Feature {
+  string name = 1;
+  string location = 2;
+}
+
+service RouteStreamingService {
+  rpc RequestRPC(stream Customer) returns(Address);
+  rpc ResponseRPC(Customer) returns(stream Address);
+  rpc RouteRPC(stream Customer) returns(stream Address);
+  rpc DeprecatedRPC(stream Customer) returns(stream Address) {
+    option deprecated = true;
+  }
+}

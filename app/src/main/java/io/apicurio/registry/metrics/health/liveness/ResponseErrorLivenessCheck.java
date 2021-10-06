@@ -60,7 +60,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
         return HealthCheckResponse.builder()
                 .name("ResponseErrorLivenessCheck")
                 .withData("errorCount", errorCounter)
-                .state(up)
+                .up()
                 .build();
     }
 

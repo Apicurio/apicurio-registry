@@ -34,6 +34,7 @@ import org.apache.kafka.common.header.Headers;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -155,7 +156,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * Resolve an artifact reference given the topic name, message headers, data, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
      * values (groupId, artifactId, version).
-     *
      * @param topic
      * @param headers
      * @param data
@@ -228,9 +228,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
         }
 
-        //FIXME configure url with realm and token endpoint
+        final String tokenEndpoint =  authServerUrl + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
-        return configureAuthWithUrl(config, authServerUrl);
+        return configureAuthWithUrl(config, tokenEndpoint);
     }
 
     private OidcAuth configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
@@ -245,7 +245,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        return new OidcAuth(tokenEndpoint, clientId, clientSecret);
+        return new OidcAuth(tokenEndpoint, clientId, clientSecret, Optional.empty());
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

@@ -17,6 +17,7 @@
 package io.apicurio.tests.multitenancy;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -45,14 +46,15 @@ public class MultitenancySupport {
     }
 
     public TenantUserClient createTenant() throws Exception {
-        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
         return createTenant(user);
     }
 
     public TenantUserClient createTenant(TenantUser user) throws Exception {
         String tenantAppUrl = registerTenant(user);
         var client = createUserClient(user, tenantAppUrl);
-        return new TenantUserClient(user, tenantAppUrl, client);
+        registryFacade.getMTOnlyKeycloakMock().addStubForTenant(user.principalId, user.principalPassword, user.organizationId);
+        return new TenantUserClient(user, tenantAppUrl, client, registryFacade.getMTOnlyKeycloakMock().tokenEndpoint);
     }
 
     private String registerTenant(TenantUser user) throws Exception {
@@ -80,7 +82,7 @@ public class MultitenancySupport {
         if (tenantManager == null) {
             var keycloak = registryFacade.getMTOnlyKeycloakMock();
             tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
+                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret, Optional.empty()));
         }
         return tenantManager;
     }

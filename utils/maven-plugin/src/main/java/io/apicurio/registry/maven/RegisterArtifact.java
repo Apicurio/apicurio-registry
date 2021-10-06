@@ -33,6 +33,7 @@ public class RegisterArtifact {
     private File file;
     private IfExists ifExists;
     private Boolean canonicalize;
+    private String contentType;
 
     /**
      * Constructor.
@@ -136,6 +137,20 @@ public class RegisterArtifact {
      */
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    /**
+     * @return the content type
+     */
+    public String getContentType() {
+        return contentType;
+    }
+
+    /**
+     * @param contentType the contentType to set
+     */
+    public void setContentType(String contentType){
+        this.contentType = contentType;
     }
 
 }

@@ -67,7 +67,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             } else {
                 final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
                 if (credentialsFromContext != null) {
-                    String jwtToken = new OidcAuth(authServerUrl, clientId, clientSecret.get()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                    String jwtToken = new OidcAuth(authServerUrl, clientId, clientSecret.get(), Optional.empty()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
 
                     if (jwtToken != null) {
                         //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager

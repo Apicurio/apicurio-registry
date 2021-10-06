@@ -17,7 +17,9 @@ import com.squareup.wire.schema.OneOf;
 import com.squareup.wire.schema.Options;
 import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.ProtoType;
+import com.squareup.wire.schema.Rpc;
 import com.squareup.wire.schema.Schema;
+import com.squareup.wire.schema.Service;
 import com.squareup.wire.schema.Type;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
@@ -28,6 +30,8 @@ import com.squareup.wire.schema.internal.parser.OneOfElement;
 import com.squareup.wire.schema.internal.parser.OptionElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ReservedElement;
+import com.squareup.wire.schema.internal.parser.RpcElement;
+import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import kotlin.ranges.IntRange;
 
@@ -51,7 +55,10 @@ import static com.google.protobuf.DescriptorProtos.EnumValueDescriptorProto;
 import static com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
 import static com.google.protobuf.DescriptorProtos.FileDescriptorProto;
 import static com.google.protobuf.DescriptorProtos.FileOptions;
+import static com.google.protobuf.DescriptorProtos.MethodDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.MethodOptions;
 import static com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
+import static com.google.protobuf.DescriptorProtos.ServiceDescriptorProto;
 
 /**
  * @author Fabian Martinez, Ravindranath Kakarla
@@ -127,7 +134,7 @@ public class FileDescriptorUtils {
             schema.setPackage(element.getPackageName());
         }
 
-        for (ProtoType protoType: schemaContext.getTypes()) {
+        for (ProtoType protoType : schemaContext.getTypes()) {
             if (!isParentLevelType(protoType, optionalPackageName)) {
                 continue;
             }
@@ -137,10 +144,15 @@ public class FileDescriptorUtils {
                 DescriptorProto
                     message = messageElementToDescriptorProto((MessageType) type, schemaContext);
                 schema.addMessageType(message);
-            } else if (type instanceof  EnumType) {
+            } else if (type instanceof EnumType) {
                 EnumDescriptorProto message = enumElementToProto((EnumType) type);
                 schema.addEnumType(message);
             }
+        }
+
+        for (Service service : element.getServices()) {
+            ServiceDescriptorProto serviceDescriptorProto = serviceElementToProto(service);
+            schema.addService(serviceDescriptorProto);
         }
 
         //dependencies on protobuf default types are always added
@@ -205,7 +217,7 @@ public class FileDescriptorUtils {
             //We only want to consider the parent level types. The list can contain following,
             //[io.apicurio.foo.bar.Customer.Address, io.apicurio.foo.bar.Customer, google.protobuf.Timestamp]
             //We want to only get the type "io.apicurio.foo.bar.Customer" which is parent level type.
-            String [] typeNames = typeName.split(packageName)[1].split("\\.");
+            String[] typeNames = typeName.split(packageName)[1].split("\\.");
             boolean isNotNested = typeNames.length <= 2;
             return isNotNested;
         }
@@ -374,6 +386,41 @@ public class FileDescriptorUtils {
         return builder.build();
     }
 
+    private static DescriptorProtos.ServiceDescriptorProto serviceElementToProto(Service serviceElem) {
+        ServiceDescriptorProto.Builder builder = ServiceDescriptorProto.newBuilder().setName(serviceElem.name());
+
+        for (Rpc rpc : serviceElem.rpcs()) {
+            MethodDescriptorProto.Builder methodBuilder = MethodDescriptorProto
+                    .newBuilder()
+                    .setName(rpc.getName())
+                    .setInputType(getTypeName(rpc.getRequestType().toString()))
+                    .setOutputType(getTypeName(rpc.getResponseType().toString()));
+            if (rpc.getRequestStreaming()) {
+                methodBuilder.setClientStreaming(rpc.getRequestStreaming());
+            }
+            if (rpc.getResponseStreaming()) {
+                methodBuilder.setServerStreaming(rpc.getResponseStreaming());
+            }
+            Boolean deprecated = findOptionBoolean(DEPRECATED_OPTION, rpc.getOptions());
+            if (deprecated != null) {
+                MethodOptions.Builder optionsBuilder = MethodOptions.newBuilder()
+                        .setDeprecated(deprecated);
+                methodBuilder.mergeOptions(optionsBuilder.build());
+            }
+
+            builder.addMethod(methodBuilder.build());
+        }
+
+        Boolean deprecated = findOptionBoolean(DEPRECATED_OPTION, serviceElem.options());
+        if (deprecated != null) {
+            DescriptorProtos.ServiceOptions.Builder optionsBuilder = DescriptorProtos.ServiceOptions.newBuilder()
+                    .setDeprecated(deprecated);
+            builder.mergeOptions(optionsBuilder.build());
+        }
+
+        return builder.build();
+    }
+
     private static String toMapEntry(String s) {
         if (s.contains("_")) {
             s = LOWER_UNDERSCORE.to(UPPER_CAMEL, s);
@@ -419,6 +466,11 @@ public class FileDescriptorUtils {
             EnumElement enumer = toEnum(ed);
             types.add(enumer);
         }
+        ImmutableList.Builder<ServiceElement> services = ImmutableList.builder();
+        for (ServiceDescriptorProto sv : file.getServiceList()) {
+            ServiceElement service = toService(sv);
+            services.add(service);
+        }
         ImmutableList.Builder<String> imports = ImmutableList.builder();
         ImmutableList.Builder<String> publicImports = ImmutableList.builder();
         List<String> dependencyList = file.getDependencyList();
@@ -448,7 +500,7 @@ public class FileDescriptorUtils {
             options.add(option);
         }
         return new ProtoFileElement(DEFAULT_LOCATION, packageName, syntax, imports.build(),
-                publicImports.build(), types.build(), Collections.emptyList(), Collections.emptyList(),
+                publicImports.build(), types.build(), services.build(), Collections.emptyList(),
                 options.build());
     }
 
@@ -537,6 +589,19 @@ public class FileDescriptorUtils {
         return new EnumElement(DEFAULT_LOCATION, name, "", options.build(), constants.build());
     }
 
+    private static ServiceElement toService(DescriptorProtos.ServiceDescriptorProto sv) {
+        String name = sv.getName();
+        ImmutableList.Builder<RpcElement> rpcs = ImmutableList.builder();
+        for (MethodDescriptorProto md : sv.getMethodList()) {
+            rpcs.add(new RpcElement(DEFAULT_LOCATION, md.getName(), "", md.getInputType(),
+                    md.getOutputType(), md.getClientStreaming(), md.getServerStreaming(),
+                    getOptionList(md.getOptions().hasDeprecated(), md.getOptions().getDeprecated())));
+        }
+
+        return new ServiceElement(DEFAULT_LOCATION, name, "", rpcs.build(),
+                getOptionList(sv.getOptions().hasDeprecated(), sv.getOptions().getDeprecated()));
+    }
+
     private static FieldElement toField(FileDescriptorProto file, FieldDescriptorProto fd, boolean inOneof) {
         String name = fd.getName();
         DescriptorProtos.FieldOptions fieldDescriptorOptions = fd.getOptions();
@@ -588,6 +653,21 @@ public class FileDescriptorUtils {
             FieldDescriptorProto.Type type = field.getType();
             return FieldDescriptor.Type.valueOf(type).name().toLowerCase();
         }
+    }
+
+    private static List<OptionElement> getOptionList(boolean hasDeprecated, boolean deprecated) {
+        ImmutableList.Builder<OptionElement> options = ImmutableList.builder();
+        if (hasDeprecated) {
+            OptionElement.Kind kind = OptionElement.Kind.BOOLEAN;
+            OptionElement option = new OptionElement(DEPRECATED_OPTION, kind, deprecated, false);
+            options.add(option);
+        }
+
+        return options.build();
+    }
+
+    private static String getTypeName(String typeName) {
+        return typeName.startsWith(".") ? typeName : "." + typeName;
     }
 
 }

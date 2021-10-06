@@ -41,7 +41,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build and Test All Variants
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
@@ -98,7 +98,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all

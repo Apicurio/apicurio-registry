@@ -91,6 +91,7 @@ public class AuthConfig {
             log.debug("   Role Source: " + roleSource);
         }
         log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
+        log.debug("Tenant Owner is Admin: " + tenantOwnerIsAdminEnabled);
         log.debug("Admin Override Enabled: " + adminOverrideEnabled);
         if (adminOverrideEnabled) {
             log.debug("   Admin Override from: " + adminOverrideFrom);
@@ -112,6 +113,10 @@ public class AuthConfig {
 
     public boolean isObacEnabled() {
         return this.ownerOnlyAuthorizationEnabled;
+    }
+
+    public boolean isTenantOwnerAdminEnabled() {
+        return this.tenantOwnerIsAdminEnabled;
     }
 
     public boolean isAdminOverrideEnabled() {

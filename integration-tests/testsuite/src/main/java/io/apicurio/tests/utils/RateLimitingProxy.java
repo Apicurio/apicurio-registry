@@ -44,7 +44,7 @@ public class RateLimitingProxy extends LimitingProxy {
     }
 
     @Override
-    protected synchronized boolean allowed() {
+    protected boolean allowed() {
         if (buckets > 0) {
             buckets--;
             return true;

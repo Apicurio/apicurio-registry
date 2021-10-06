@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Block `n` first requests, then allow the rest through.
+ * 
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
  */
@@ -31,8 +33,6 @@ public class RetryLimitingProxy extends LimitingProxy {
 
     public RetryLimitingProxy(int failures, String destinationHost, int destinationPort) {
         super(destinationHost, destinationPort);
-        // this will rate limit just based on total requests
-        // that means that if buckets=3 the proxy will successfully redirect the first 3 requests and every request after that will be rejected with 429 status
         this.failures = failures;
     }
 

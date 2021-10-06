@@ -42,6 +42,8 @@ import io.apicurio.multitenant.api.datamodel.SortOrder;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.api.dto.DtoMappers;
+import io.apicurio.multitenant.logging.audit.AuditLogService;
+import io.apicurio.multitenant.logging.audit.Audited;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
@@ -57,6 +59,9 @@ public class TenantsResourceImpl implements TenantsResource {
 
     @Inject
     RegistryTenantStorage tenantsRepository;
+
+    @Inject
+    AuditLogService auditLog;
 
     @Override
     public RegistryTenantList getTenants(@QueryParam("status") String status,
@@ -88,6 +93,7 @@ public class TenantsResourceImpl implements TenantsResource {
 
     @Override
     @Transactional
+    @Audited
     public Response createTenant(NewRegistryTenantRequest tenantRequest) {
 
         required(tenantRequest.getTenantId(), "TenantId is mandatory");
@@ -136,6 +142,7 @@ public class TenantsResourceImpl implements TenantsResource {
      */
     @Override
     @Transactional
+    @Audited
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest tenantRequest) {
         RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
         if (tenantRequest.getName() != null) {
@@ -176,6 +183,7 @@ public class TenantsResourceImpl implements TenantsResource {
 
     @Override
     @Transactional
+    @Audited
     public void deleteTenant(@PathParam("tenantId") String tenantId) {
         RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
         tenant.setStatus(TenantStatusValue.TO_BE_DELETED.value());

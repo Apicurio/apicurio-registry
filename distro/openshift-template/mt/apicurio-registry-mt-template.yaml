@@ -147,6 +147,8 @@ objects:
             value: ${REGISTRY_QUARKUS_LOG_LEVEL}
           - name: QUARKUS_PROFILE
             value: prod
+          - name: ENABLE_ACCESS_LOG
+            value: ${ENABLE_ACCESS_LOG}
 
           - name: ENABLE_SENTRY
             value: ${ENABLE_SENTRY}
@@ -318,6 +320,8 @@ objects:
             value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
             value: ${TENANT_MANAGER_LOG_LEVEL}
+          - name: ENABLE_ACCESS_LOG
+            value: ${ENABLE_ACCESS_LOG}
 
           - name: ENABLE_SENTRY
             value: ${ENABLE_SENTRY}
@@ -430,6 +434,9 @@ parameters:
 
 - name: TENANT_MANAGER_QUARKUS_LOG_LEVEL
   value: INFO
+
+- name: ENABLE_ACCESS_LOG
+  value: false
 
 - name: SERVICE_ACCOUNT_NAME
   displayName: Service Account to use for the deployment

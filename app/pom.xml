@@ -57,6 +57,11 @@
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-audit</artifactId>
+        </dependency>
+
         <!-- Quarkus Dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>

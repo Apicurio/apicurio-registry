@@ -16,27 +16,23 @@
 
 package io.apicurio.registry.logging.audit;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.apicurio.registry.audit.AuditHttpRequestContext;
+import io.apicurio.registry.audit.AuditLogService;
 
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
-
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
- *
+ * <p>
  * This interceptor follows the execution of a method and marks the audit entry as failed if the inner method throws an exception.
- *
+ * <p>
  * This interceptor reads the inner method parameters to gather extra information for the audit entry.
- *
- *
- * @author Fabian Martinez
  */
 @Audited
 @Interceptor
@@ -55,25 +51,8 @@ public class AuditedInterceptor {
         Map<String, String> metadata = new HashMap<>();
 
         for (Object parameter : context.getParameters()) {
-            if (parameter instanceof NewRegistryTenantRequest) {
-                NewRegistryTenantRequest tenant = (NewRegistryTenantRequest) parameter;
-                metadata.put("tenantId", tenant.getTenantId());
-                metadata.put("orgId", tenant.getOrganizationId());
-                metadata.put("name", tenant.getName());
-                metadata.put("createdBy", tenant.getCreatedBy());
-            } else if (parameter instanceof String) {
-                metadata.put("tenantId", (String)parameter);
-            } else if (parameter instanceof UpdateRegistryTenantRequest) {
-                UpdateRegistryTenantRequest tenant = (UpdateRegistryTenantRequest) parameter;
-                if (tenant.getStatus() != null) {
-                    metadata.put("tenantStatus", tenant.getStatus().value());
-                }
-                if (tenant.getName() != null) {
-                    metadata.put("name", tenant.getName());
-                }
-            }
+            //TODO add here request parameters to auditing metadata
         }
-
 
         String action = annotation.action();
         if (action == null || action.isEmpty()) {
@@ -88,10 +67,7 @@ public class AuditedInterceptor {
             metadata.put("error_msg", e.getMessage());
             throw e;
         } finally {
-            auditLogService.log(action, result, metadata, null);
+            auditLogService.log("registry.audit", action, result, metadata, null);
         }
-
     }
-
-
 }

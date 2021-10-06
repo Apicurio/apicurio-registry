@@ -79,7 +79,8 @@ public class HttpRequestsAuditFilter implements ContainerRequestFilter, Containe
             metadata.put("response_code", String.valueOf(responseContext.getStatus()));
             metadata.put("user", Optional.ofNullable(requestContext.getSecurityContext()).map(SecurityContext::getUserPrincipal).map(Principal::getName).orElseGet(() -> ""));
 
-            auditLog.log("tenant-manager.audit", "request", AuditHttpRequestContext.FAILURE, metadata, null);
+            //TODO find a way to figure out invoker
+            auditLog.log("", "request", AuditHttpRequestContext.FAILURE, metadata, null);
         }
 
     }

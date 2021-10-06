@@ -15,38 +15,49 @@
  * limitations under the License.
  */
 
-import React from 'react'
+import React from "react";
+import { Link } from "react-router-dom";
 import {
   Grid,
   GridItem,
-  Button,
-  ButtonVariant,
   DescriptionListDescription,
-} from '@patternfly/react-core'
-import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon'
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon'
+} from "@patternfly/react-core";
+import { PureComponent } from "../baseComponent";
+import ExternalLinkAltIcon from "@patternfly/react-icons/dist/js/icons/external-link-alt-icon";
+import CheckCircleIcon from "@patternfly/react-icons/dist/js/icons/check-circle-icon";
 
 export type MatchingSchemaProps = {
-  topicName: string
-  keySchema: boolean
-}
+  topicName: string;
+  keySchema: boolean;
+  routePath: string;
+};
 
-export const MatchingSchemaCard: React.FC<MatchingSchemaProps> = ({
-  topicName,
-  keySchema,
-}) => {
-  return (
-    <DescriptionListDescription>
-      <Grid hasGutter rowSpan={2}>
-        <GridItem rowSpan={2}>
-          <CheckCircleIcon /> {topicName + keySchema ? '-key' : '-value'}
-        </GridItem>
-        <GridItem>
-          <Button isInline variant={ButtonVariant.link} component="a" href="#">
-            View details <ExternalLinkAltIcon />
-          </Button>
-        </GridItem>
-      </Grid>
-    </DescriptionListDescription>
-  )
+export class MatchingSchemaCard extends PureComponent<MatchingSchemaProps, {}> {
+  constructor(props: Readonly<MatchingSchemaProps>) {
+    super(props);
+  }
+
+  protected initializeState() {
+    return {};
+  }
+
+  public render(): React.ReactElement {
+    const { keySchema, topicName, routePath } = this.props;
+    const postfix = keySchema ? "-key" : "-value";
+
+    return (
+      <DescriptionListDescription>
+        <Grid hasGutter rowSpan={2}>
+          <GridItem rowSpan={2}>
+            <CheckCircleIcon color="#38812f" /> {topicName + postfix}
+          </GridItem>
+          <GridItem>
+            <Link to={routePath}>
+              View details <ExternalLinkAltIcon />
+            </Link>
+          </GridItem>
+        </Grid>
+      </DescriptionListDescription>
+    );
+  }
 }

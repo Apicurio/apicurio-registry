@@ -28,7 +28,7 @@ export default class FederatedSchemaMapping extends SchemaMapping {
     }
 
     protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as any);
+        FederatedUtils.updateConfiguration(this.props as FederatedSchemaMappingProps);
         super.postConstruct();
     }
 

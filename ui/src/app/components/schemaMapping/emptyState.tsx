@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import React from 'react'
+import React from "react";
+import { Link } from "react-router-dom";
 import {
   Title,
-  Button,
   EmptyState,
   EmptyStateIcon,
   EmptyStateBody,
@@ -28,15 +28,20 @@ import {
   Card,
   CardBody,
   CardTitle,
-} from '@patternfly/react-core'
-import { ArrowRightIcon, InfoCircleIcon } from '@patternfly/react-icons'
+} from "@patternfly/react-core";
+import ArrowRightIcon from "@patternfly/react-icons/dist/js/icons/arrow-icon";
+import InfoCircleIcon from "@patternfly/react-icons/dist/js/icons/info-circle-icon";
 
 export type EmptyStateProps = {
-  artifactName: string
-}
+  artifactName: string;
+  basename: string;
+  registryId: string;
+};
 
 export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
   artifactName,
+  basename,
+  registryId,
 }: EmptyStateProps) => {
   return (
     <Card>
@@ -53,32 +58,22 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
             following naming format for the artifact ID:
           </EmptyStateBody>
           <EmptyStateSecondaryActions>
-            <ClipboardCopy
-              isReadOnly
-              hoverTip="Copy"
-              clickTip="Copied"
-              className="pf-u-w-25"
-            >
-              {artifactName + '-key'}
+            <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+              {artifactName + "-key"}
             </ClipboardCopy>
           </EmptyStateSecondaryActions>
           <EmptyStateSecondaryActions>
-            <ClipboardCopy
-              isReadOnly
-              hoverTip="Copy"
-              clickTip="Copied"
-              className="pf-u-w-25"
-            >
-              {artifactName + '-value'}
+            <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+              {artifactName + "-value"}
             </ClipboardCopy>
           </EmptyStateSecondaryActions>
           <EmptyStateSecondaryActions>
-            <Button variant="link">
+            <Link to={`${basename}/t/${registryId}`}>
               Go to Service Registry instance <ArrowRightIcon />
-            </Button>
+            </Link>
           </EmptyStateSecondaryActions>
         </EmptyState>
       </CardBody>
     </Card>
-  )
-}
+  );
+};

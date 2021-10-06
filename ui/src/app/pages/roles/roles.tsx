@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-import React from "react";
+import React, {ReactNode} from "react";
 import "./roles.css";
 import {
     Button,
     ButtonVariant,
-    Flex,
-    FlexItem,
     InputGroup,
     PageSection,
     PageSectionVariants,
@@ -75,24 +73,15 @@ const roleFilterOptions = ['Account', 'Role'];
  */
 export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
 
-
     constructor(props: Readonly<RolesPageProps>) {
         super(props);
     }
 
     public renderPage(): React.ReactElement {
-    debugger;
         return (
             <React.Fragment>
                 <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
                     <RootPageHeader tabKey={2} />
-                </PageSection>
-                <PageSection className="ps_roles-description" variant={PageSectionVariants.light}>
-                    <Flex>
-                        <FlexItem>
-                            {this.props.dropDown}
-                        </FlexItem>
-                    </Flex>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
                     {

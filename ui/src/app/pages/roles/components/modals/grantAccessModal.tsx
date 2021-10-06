@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {ReactNode} from "react";
+import React from "react";
 import { Button, 
     DescriptionList, 
     DescriptionListGroup, 
@@ -27,9 +27,11 @@ import { Button,
     Select, SelectOption, SelectOptionObject, SelectVariant,
     TextInput,
     Tooltip } from '@patternfly/react-core';
+import {Services, Principal} from "../../../../../services";
 import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import { RoleTypes, RoleMapping } from "../../../../../models";
 import {OutlinedQuestionCircleIcon} from '@patternfly/react-icons'
+import { SelectPrincipalAccount } from "./SelectPrincipalAccount";
 import "./grantAccessModal.css";
 
 /**
@@ -41,7 +43,6 @@ export interface GrantAccessModalProps extends PureComponentProps {
     serviceRegistryInstance?: string;
     accountId?: string;
     roles: null | RoleMapping[];
-    rolesSelectComponent?: ReactNode;
     defaultRole?: RoleMapping;
     onClose: () => void;
     onGrant: (accountId: string, role: string, isUpdate: boolean) => void;
@@ -81,13 +82,11 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                 })
             }
         }
-        // Typical usage (don't forget to compare props):
-        // if (this.props.userID !== prevProps.userID) {
-        //   this.fetchData(this.props.userID);
-        // }
-      }
+    }
 
     public render(): React.ReactElement {
+        let principals: Principal[] | undefined = Services.getConfigService().principals();
+      
         return (
             <Modal
                 title="Manage Permissions"
@@ -125,7 +124,16 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                         isRequired
                         fieldId="grant-access-account-id"
                     >
-                        {this.props.rolesSelectComponent ? this.props.rolesSelectComponent :
+                        {principals ? <SelectPrincipalAccount 
+                            id={this.state.accountId} 
+                            onIdUpdate={(id: string) => {
+                                this.setMultiState({
+                                    accountId: id,
+                                    isValid: this.checkValid(id, this.state.role),
+                                    isAccountIDSelectOpen: false
+                                  });
+                            }} 
+                            initialOptions={principals? principals: []}/> :
                             this.props.roles !== null ?
                             <Select
                                 id="grant-access-principal"

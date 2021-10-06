@@ -1145,6 +1145,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         return created;
     }
 
+    @SuppressWarnings("unused")
     private ArtifactMetaData createOpenAPIYamlArtifact(String groupId, String artifactId) throws Exception {
         final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.OPENAPI, IfExists.FAIL, false, stream);

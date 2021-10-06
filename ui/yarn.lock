@@ -475,6 +475,7 @@
   resolved "https://registry.yarnpkg.com/@patternfly/react-icons/-/react-icons-4.10.7.tgz#fe2eabf88512afe7dab0c0e7c71142ec6e594664"
   integrity sha512-CiHYDOS8jrxNiy/KIxv9vPqg3cie4SzsbQKh+eW8lj41x68IrgILiw3VvjcJeVXXJDRW36T7u3IPKjMI6zuoyA==
 
+
 "@patternfly/react-icons@^4.10.7", "@patternfly/react-icons@^4.11.17":
   version "4.11.17"
   resolved "https://registry.yarnpkg.com/@patternfly/react-icons/-/react-icons-4.11.17.tgz#61f27cb638f7417734dbc2c0e557760df6e28e5f"

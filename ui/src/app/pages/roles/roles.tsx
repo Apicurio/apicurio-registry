@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-import React from "react";
+import React, {ReactNode} from "react";
 import "./roles.css";
 import {
     Button,
     ButtonVariant,
-    Flex,
-    FlexItem,
     InputGroup,
     PageSection,
     PageSectionVariants,
@@ -29,7 +27,6 @@ import {
     SelectOption,
     SelectOptionObject,
     SelectVariant,
-    TextContent,
     TextInput,
     Toolbar,
     ToolbarContent,
@@ -50,7 +47,7 @@ import {PleaseWaitModal, RootPageHeader} from "../../components";
  */
 // tslint:disable-next-line:no-empty-interface
 export interface RolesPageProps extends PageProps {
-
+    principalSelect: any
 }
 
 /**
@@ -76,7 +73,6 @@ const roleFilterOptions = ['Account', 'Role'];
  */
 export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
 
-
     constructor(props: Readonly<RolesPageProps>) {
         super(props);
     }
@@ -86,15 +82,6 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
             <React.Fragment>
                 <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
                     <RootPageHeader tabKey={2} />
-                </PageSection>
-                <PageSection className="ps_roles-description" variant={PageSectionVariants.light}>
-                    <Flex>
-                        <FlexItem>
-                            <TextContent>
-                                Manage access to the registry by granting/revoking roles to specific users.
-                            </TextContent>
-                        </FlexItem>
-                    </Flex>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
                     {
@@ -164,8 +151,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                     onGrant={this.createRoleMapping}
                     roles={this.state.isRoleMappingUpdate ? this.state.roles : null}
                     defaultRole={this.state.selectedRole} />
-                {this.state.isPleaseWaitModalOpen ? <PleaseWaitModal message={this.state.pleaseWaitMessage}
-                    isOpen={this.state.isPleaseWaitModalOpen} /> : <></>}
+                <PleaseWaitModal message={this.state.pleaseWaitMessage}
+                                 isOpen={this.state.isPleaseWaitModalOpen} />
             </React.Fragment>
         );
     }
@@ -246,7 +233,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                     currentRoleMappings[index] = mapping;
                     console.log("found role")
                 }
-            })
+            });
 
             this.pleaseWait(false, "");
             this.setSingleState("roles", [

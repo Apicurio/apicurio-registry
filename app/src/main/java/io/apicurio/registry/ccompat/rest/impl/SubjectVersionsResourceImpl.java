@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.BadRequestException;
+
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -28,11 +34,6 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import java.util.List;
-
-
 /**
  * @author Ales Justin
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -41,6 +42,8 @@ import java.util.List;
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {
 
+    @Inject
+    FacadeConverter converter;
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
@@ -52,7 +55,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
         Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
-        int sid = FacadeConverter.convertUnsigned(id);
+        int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
 

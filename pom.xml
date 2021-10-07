@@ -123,7 +123,6 @@
         <module>client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
-        <module>audit</module>
     </modules>
 
     <properties>
@@ -362,11 +361,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-audit</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

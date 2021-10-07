@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import io.apicurio.registry.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.audit.AuditLogService;
 import io.quarkus.test.Mock;
 
 /**
@@ -34,11 +32,11 @@ public class MockAuditLogService extends AuditLogService {
     private static final List<Map<String, String>> auditLogs = new CopyOnWriteArrayList<>();
 
     /**
-     * @see io.apicurio.registry.audit.AuditLogService#log(java.lang.String, java.lang.String, java.lang.String, java.util.Map, AuditHttpRequestInfo)
+     * @see io.apicurio.multitenant.logging.audit.AuditLogService#log(java.lang.String, java.lang.String, java.util.Map)
      */
     @Override
-    public void log(String invoker, String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {
-        super.log(invoker, action, result, metadata, requestInfo);
+    public void log(String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {
+        super.log(action, result, metadata, requestInfo);
         Map<String, String> audit = new HashMap<>(metadata);
         audit.put("action", action);
         audit.put("result", result);

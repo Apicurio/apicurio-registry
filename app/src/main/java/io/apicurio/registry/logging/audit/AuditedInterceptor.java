@@ -16,8 +16,7 @@
 
 package io.apicurio.registry.logging.audit;
 
-import io.apicurio.registry.audit.AuditHttpRequestContext;
-import io.apicurio.registry.audit.AuditLogService;
+
 import org.slf4j.Logger;
 
 import javax.annotation.Priority;
@@ -60,8 +59,7 @@ public class AuditedInterceptor {
             }
             Class co = parameter.getClass();
             Field[] cfields = co.getDeclaredFields();
-            for(Field f: cfields)
-            {
+            for (Field f : cfields) {
                 String attributeName = f.getName();
                 String getterMethodName = "get"
                         + attributeName.substring(0, 1).toUpperCase()

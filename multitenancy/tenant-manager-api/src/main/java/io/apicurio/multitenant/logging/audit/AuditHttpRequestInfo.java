@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.audit;
+package io.apicurio.multitenant.logging.audit;
 
 /**
  * @author Fabian Martinez

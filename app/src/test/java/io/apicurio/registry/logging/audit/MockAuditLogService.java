@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.logging.audit;
 
-import io.apicurio.registry.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.audit.AuditLogService;
 import io.quarkus.test.Mock;
 
 import java.util.HashMap;
@@ -32,7 +30,7 @@ public class MockAuditLogService extends AuditLogService {
     private static final List<Map<String, String>> auditLogs = new CopyOnWriteArrayList<>();
 
     /**
-     * @see io.apicurio.registry.audit.AuditLogService#log(java.lang.String, java.lang.String, java.lang.String, java.util.Map, AuditHttpRequestInfo)
+     * @see io.apicurio.registry.logging.audit.AuditLogService#log(java.lang.String, java.lang.String, java.lang.String, java.util.Map, AuditHttpRequestInfo)
      */
     @Override
     public void log(String invoker, String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {

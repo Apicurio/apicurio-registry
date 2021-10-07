@@ -27,8 +27,6 @@ import javax.interceptor.InvocationContext;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.registry.audit.AuditHttpRequestContext;
-import io.apicurio.registry.audit.AuditLogService;
 
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
@@ -55,6 +53,7 @@ public class AuditedInterceptor {
 
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
 
+
         Map<String, String> metadata = new HashMap<>();
 
         for (Object parameter : context.getParameters()) {
@@ -77,6 +76,7 @@ public class AuditedInterceptor {
             }
         }
 
+
         String action = annotation.action();
         if (action == null || action.isEmpty()) {
             action = context.getMethod().getName();
@@ -90,7 +90,10 @@ public class AuditedInterceptor {
             metadata.put("error_msg", e.getMessage());
             throw e;
         } finally {
-            auditLogService.log("tenant-manager.audit", action, result, metadata, null);
+            auditLogService.log(action, result, metadata, null);
         }
+
     }
+
+
 }

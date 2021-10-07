@@ -16,9 +16,6 @@
 
 package io.apicurio.registry.logging.audit;
 
-import io.apicurio.registry.audit.AuditHttpRequestContext;
-import io.apicurio.registry.audit.AuditLogService;
-import io.apicurio.registry.audit.HttpRequestsAuditFilter;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
@@ -26,7 +23,9 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
+import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.ext.Provider;
@@ -36,10 +35,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Filters REST API requests and responses to generate audit logs for failed requests
+ *
+ */
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 @ApplicationScoped
-public class RegistryHttpRequestsAuditFilter extends HttpRequestsAuditFilter {
+public class HttpRequestsAuditFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
     @Context
     HttpServletRequest request;

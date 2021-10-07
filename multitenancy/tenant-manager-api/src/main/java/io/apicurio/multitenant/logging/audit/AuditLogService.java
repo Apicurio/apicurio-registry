@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.audit;
+package io.apicurio.multitenant.logging.audit;
 
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
@@ -35,7 +35,7 @@ public class AuditLogService {
     AuditHttpRequestContext context;
 
     @ActivateRequestContext
-    public void log(String invoker, String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {
+    public void log(String action, String result, Map<String, String> metadata, AuditHttpRequestInfo requestInfo) {
 
         String remoteAddress;
         String forwardedRemoteAddress;
@@ -48,7 +48,7 @@ public class AuditLogService {
         }
 
         StringBuilder m = new StringBuilder();
-        m.append(invoker)
+        m.append("tenant-manager.audit")
             .append(" ")
             .append("action=\"").append(action).append("\" ")
             .append("result=\"").append(result).append("\" ")
@@ -63,4 +63,5 @@ public class AuditLogService {
         //mark in the context that we already generated an audit entry for this request
         context.setAuditEntryGenerated(true);
     }
+
 }

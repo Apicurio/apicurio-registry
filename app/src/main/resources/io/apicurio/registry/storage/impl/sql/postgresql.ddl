@@ -5,12 +5,6 @@
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
 INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 3);
--- TODO update this ddl file to version 3 and reflect all required changes to tables
--- don't do it for now, as it helps with testing the upgrade process
-
--- TODO remove sequences
---CREATE SEQUENCE contentidsequence INCREMENT BY 1 NO MINVALUE;
---CREATE SEQUENCE globalidsequence INCREMENT BY 1 NO MINVALUE;
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);

@@ -528,9 +528,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             labels.forEach(label -> {
                 String sqli = sqlStatements.insertLabel();
                 handle.createUpdate(sqli)
-                      .bind(0, globalId)
-                      .bind(1, limitStr(label.toLowerCase(), 256))
-                      .execute();
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, globalId)
+                        .bind(2, limitStr(label.toLowerCase(), 256))
+                        .execute();
             });
         }
 
@@ -539,10 +540,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             properties.forEach((k,v) -> {
                 String sqli = sqlStatements.insertProperty();
                 handle.createUpdate(sqli)
-                      .bind(0, globalId)
-                      .bind(1, limitStr(k.toLowerCase(), 256))
-                      .bind(2, limitStr(v.toLowerCase(), 1024))
-                      .execute();
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, globalId)
+                        .bind(2, limitStr(k.toLowerCase(), 256))
+                        .bind(3, limitStr(v.toLowerCase(), 1024))
+                        .execute();
             });
         }
 
@@ -723,16 +725,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 sql = sqlStatements.deleteLabels();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteProperties();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
                     .execute();
 
                 // Delete versions
@@ -787,14 +791,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 String sql = sqlStatements.deleteLabelsByGroupId();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deletePropertiesByGroupId();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
                     .execute();
 
                 // Delete versions
@@ -1582,18 +1588,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 sql = sqlStatements.deleteVersionLabels();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .bind(3, version)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
+                    .bind(4, version)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteVersionProperties();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .bind(3, version)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
+                    .bind(4, version)
                     .execute();
 
                 // Delete version
@@ -1710,13 +1718,15 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Delete all appropriate rows in the "labels" table
                 sql = sqlStatements.deleteLabelsByGlobalId();
                 handle.createUpdate(sql)
-                    .bind(0, globalId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, globalId)
                     .execute();
 
                 // Delete all appropriate rows in the "properties" table
                 sql = sqlStatements.deletePropertiesByGlobalId();
                 handle.createUpdate(sql)
-                    .bind(0, globalId)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, globalId)
                     .execute();
 
                 // Insert new labels into the "labels" table
@@ -1725,9 +1735,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     labels.forEach(label -> {
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
-                              .bind(0, globalId)
-                              .bind(1, limitStr(label.toLowerCase(), 256))
-                              .execute();
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, globalId)
+                                .bind(2, limitStr(label.toLowerCase(), 256))
+                                .execute();
                     });
                 }
 
@@ -1737,10 +1748,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     properties.forEach((k,v) -> {
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
-                              .bind(0, globalId)
-                              .bind(1, limitStr(k.toLowerCase(), 256))
-                              .bind(2, limitStr(v.toLowerCase(), 1024))
-                              .execute();
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, globalId)
+                                .bind(2, limitStr(k.toLowerCase(), 256))
+                                .bind(3, limitStr(v.toLowerCase(), 1024))
+                                .execute();
                     });
                 }
 
@@ -1779,18 +1791,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 sql = sqlStatements.deleteVersionLabels();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .bind(3, version)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
+                    .bind(4, version)
                     .execute();
 
                 // Delete properties
                 sql = sqlStatements.deleteVersionProperties();
                 handle.createUpdate(sql)
                     .bind(0, tenantContext.tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .bind(3, version)
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, normalizeGroupId(groupId))
+                    .bind(3, artifactId)
+                    .bind(4, version)
                     .execute();
 
                 if (rowCount == 0) {
@@ -2548,11 +2562,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String sql = sqlStatements.deleteAllLabels();
             handle.createUpdate(sql)
                 .bind(0, tenantContext.tenantId())
+                .bind(1, tenantContext.tenantId())
                 .execute();
 
             sql = sqlStatements.deleteAllProperties();
             handle.createUpdate(sql)
                 .bind(0, tenantContext.tenantId())
+                .bind(1, tenantContext.tenantId())
                 .execute();
 
             sql = sqlStatements.deleteAllVersions();
@@ -2747,9 +2763,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     entity.labels.forEach(label -> {
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
-                              .bind(0, entity.globalId)
-                              .bind(1, label.toLowerCase())
-                              .execute();
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, entity.globalId)
+                                .bind(2, label.toLowerCase())
+                                .execute();
                     });
                 }
 
@@ -2758,10 +2775,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     entity.properties.forEach((k,v) -> {
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
-                              .bind(0, entity.globalId)
-                              .bind(1, k.toLowerCase())
-                              .bind(2, v.toLowerCase())
-                              .execute();
+                                .bind(0, tenantContext.tenantId())
+                                .bind(1, entity.globalId)
+                                .bind(2, k.toLowerCase())
+                                .bind(3, v.toLowerCase())
+                                .execute();
                     });
                 }
 

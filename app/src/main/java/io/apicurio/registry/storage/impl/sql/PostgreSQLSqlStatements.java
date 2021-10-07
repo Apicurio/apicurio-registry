@@ -67,7 +67,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentHash) DO NOTHING";
     }
 
     /**

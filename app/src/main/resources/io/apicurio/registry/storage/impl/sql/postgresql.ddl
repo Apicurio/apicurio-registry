@@ -47,13 +47,13 @@ CREATE INDEX IDX_versions_5 ON versions USING HASH (createdBy);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions USING HASH (contentId);
 
-CREATE TABLE properties (globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
-ALTER TABLE properties ADD CONSTRAINT FK_props_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
+CREATE TABLE properties (tenantId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, pkey VARCHAR(256) NOT NULL, pvalue VARCHAR(1024));
+ALTER TABLE properties ADD CONSTRAINT FK_props_1 FOREIGN KEY (tenantId, globalId) REFERENCES versions(tenantId, globalId);
 CREATE INDEX IDX_props_1 ON properties(pkey);
 CREATE INDEX IDX_props_2 ON properties(pvalue);
 
-CREATE TABLE labels (globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
-ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId);
+CREATE TABLE labels (tenantId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, label VARCHAR(256) NOT NULL);
+ALTER TABLE labels ADD CONSTRAINT FK_labels_1 FOREIGN KEY (tenantId, globalId) REFERENCES versions(tenantId, globalId);
 CREATE INDEX IDX_labels_1 ON labels(label);
 
 CREATE TABLE logconfiguration (logger VARCHAR(512) NOT NULL, loglevel VARCHAR(32) NOT NULL);

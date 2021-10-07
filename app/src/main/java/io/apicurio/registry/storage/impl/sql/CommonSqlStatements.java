@@ -353,7 +353,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
 
     /**
@@ -361,17 +361,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabelsByGlobalId() {
-        return "DELETE FROM labels WHERE globalId = ?";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId = ?";
     }
 
     @Override
     public String deleteLabelsByGroupId() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
     @Override
     public String deleteAllLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
     }
 
     /**
@@ -379,7 +379,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
 
     /**
@@ -387,17 +387,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deletePropertiesByGlobalId() {
-        return "DELETE FROM properties WHERE globalId = ?";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId = ?";
     }
 
     @Override
     public String deletePropertiesByGroupId() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
     @Override
     public String deleteAllProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
     }
 
     /**
@@ -476,7 +476,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionLabels() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels l WHERE l.tenantId = ? AND l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -484,7 +484,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionProperties() {
-        return "DELETE FROM properties p WHERE p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM properties p WHERE p.tenantId = ? AND p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -492,7 +492,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertLabel() {
-        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
+        return "INSERT INTO labels (tenantId, globalId, label) VALUES (?, ?, ?)";
     }
 
     /**
@@ -500,7 +500,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertProperty() {
-        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+        return "INSERT INTO properties (tenantId, globalId, pkey, pvalue) VALUES (?, ?, ?, ?)";
     }
 
     /**

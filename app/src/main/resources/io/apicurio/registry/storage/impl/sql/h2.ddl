@@ -25,8 +25,8 @@ ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, arti
 CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
-CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
-CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
+CREATE HASH INDEX IDX_content_1 ON content(canonicalHash);
+CREATE HASH INDEX IDX_content_2 ON content(contentHash);
 
 CREATE TABLE versions (globalId BIGINT NOT NULL, tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionId INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, properties TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (tenantId, globalId);

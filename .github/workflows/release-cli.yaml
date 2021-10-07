@@ -18,7 +18,7 @@ on:
   
 
 jobs:
-  build-linux-cli:
+  release-linux-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-linux-cli == 'true')
     runs-on: ubuntu-latest
     steps:
@@ -102,13 +102,13 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}
 
 
 
-  build-macos-cli:
+  release-macos-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-macos-cli == 'true')
     runs-on: macos-latest
     steps:
@@ -179,13 +179,13 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}
 
 
 
-  build-win64-cli:
+  release-win64-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-win64-cli == 'true')
     runs-on: windows-2019
     steps:
@@ -277,6 +277,6 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}

@@ -91,7 +91,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ? RETURNING value";
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ?";
     }
 
 }

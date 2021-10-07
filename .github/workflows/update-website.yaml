@@ -5,7 +5,7 @@ on:
     types: [released]
 
 jobs:
-  release-images:
+  update-website:
     if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-18.04 
     steps:
@@ -70,6 +70,6 @@ jobs:
         if: ${{ failure() }}
         uses: Co-qn/google-chat-notification@releases/v1
         with:
-          name: ${{ github.workflow }}
+          name: ${{ github.job }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}

@@ -28,6 +28,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v1.beans.Rule;
@@ -71,9 +72,10 @@ public class RulesResourceImpl implements RulesResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.RulesResource#createGlobalRule(io.apicurio.registry.rest.v1.v1.beans.Rule)
+     * @see io.apicurio.registry.rest.v1.RulesResource#createGlobalRule (io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
@@ -85,6 +87,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#deleteAllGlobalRules()
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
@@ -113,9 +116,10 @@ public class RulesResourceImpl implements RulesResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v1.RulesResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v1.v1.beans.Rule)
+     * @see io.apicurio.registry.rest.v1.RulesResource#updateGlobalRuleConfig (io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
@@ -141,6 +145,7 @@ public class RulesResourceImpl implements RulesResource {
      * @see io.apicurio.registry.rest.v1.RulesResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {

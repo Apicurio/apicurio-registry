@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.multitenant.logging.audit;
+package io.apicurio.registry.logging.audit;
+
+import io.apicurio.registry.audit.AuditHttpRequestInfo;
+import io.apicurio.registry.audit.AuditLogService;
+import io.quarkus.test.Mock;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import io.apicurio.registry.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.audit.AuditLogService;
-import io.quarkus.test.Mock;
 
-/**
- * @author Fabian Martinez
- */
 @Mock
 public class MockAuditLogService extends AuditLogService {
 

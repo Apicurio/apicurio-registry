@@ -38,6 +38,11 @@
             <artifactId>quarkus-resteasy</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-undertow</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 </project>

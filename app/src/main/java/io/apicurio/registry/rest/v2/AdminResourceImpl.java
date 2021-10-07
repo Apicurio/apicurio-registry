@@ -33,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import io.apicurio.registry.logging.audit.Audited;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.auth.Authorized;
@@ -113,6 +114,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
@@ -124,6 +126,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteAllGlobalRules()
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
@@ -155,6 +158,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
@@ -180,6 +184,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
@@ -218,6 +223,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#removeLogConfiguration(java.lang.String)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration removeLogConfiguration(String logger) {
         return logConfigService.removeLogLevelConfiguration(logger);
@@ -227,6 +233,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#setLogConfiguration(java.lang.String, io.apicurio.registry.rest.v2.beans.LogConfiguration)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
         if (data.getLevel() == null) {
@@ -239,6 +246,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#importData(java.io.InputStream)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void importData(InputStream data) {
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
@@ -266,6 +274,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
         if (forBrowser != null && forBrowser) {
@@ -286,6 +295,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
@@ -317,9 +327,10 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#updateRoleMapping(java.lang.String, io.apicurio.registry.rest.v2.beans.Role)
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateRoleMapping (java.lang.String, io.apicurio.registry.rest.v2.beans.Role)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
@@ -330,6 +341,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteRoleMapping(java.lang.String)
      */
     @Override
+    @Audited
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {

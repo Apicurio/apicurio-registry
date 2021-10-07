@@ -63,5 +63,4 @@ public class AuditLogService {
         //mark in the context that we already generated an audit entry for this request
         context.setAuditEntryGenerated(true);
     }
-
 }

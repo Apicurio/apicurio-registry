@@ -18,12 +18,15 @@ package io.apicurio.registry.logging.audit;
 
 import io.apicurio.registry.audit.AuditHttpRequestContext;
 import io.apicurio.registry.audit.AuditLogService;
+import org.slf4j.Logger;
 
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,20 +45,40 @@ public class AuditedInterceptor {
     @Inject
     AuditLogService auditLogService;
 
+    @Inject
+    Logger log;
+
     @AroundInvoke
     public Object auditMethod(InvocationContext context) throws Exception {
 
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
-
-
         Map<String, String> metadata = new HashMap<>();
 
         for (Object parameter : context.getParameters()) {
-            //TODO add here request parameters to auditing metadata
+            if (parameter == null || parameter instanceof String) {
+                continue;
+            }
+            Class co = parameter.getClass();
+            Field[] cfields = co.getDeclaredFields();
+            for(Field f: cfields)
+            {
+                String attributeName = f.getName();
+                String getterMethodName = "get"
+                        + attributeName.substring(0, 1).toUpperCase()
+                        + attributeName.substring(1);
+                Method m;
+                try {
+                    m = co.getMethod(getterMethodName);
+                    Object valObject = m.invoke(parameter);
+                    metadata.put(attributeName, valObject != null ? valObject.toString() : "");
+                } catch (NoSuchMethodException e) {
+                    log.trace("Method not found when extracting metadata for audit logging", e);
+                }
+            }
         }
 
         String action = annotation.action();
-        if (action == null || action.isEmpty()) {
+        if (action.isEmpty()) {
             action = context.getMethod().getName();
         }
 

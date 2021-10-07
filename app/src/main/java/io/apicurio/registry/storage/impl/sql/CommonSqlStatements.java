@@ -901,4 +901,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM downloads d WHERE d.expires < ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
+     */
+    @Override
+    public String insertSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
+    }
+
 }

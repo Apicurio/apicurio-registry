@@ -83,7 +83,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE value = value + 1";
+        return "UPDATE sequences sa SET value = (SELECT sb.value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
     }
 
     /**
@@ -91,7 +91,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = ?";
+        return "MERGE INTO sequences (tenantId, name, value) KEY (tenantId, name) VALUES(?, ?, ?)";
     }
 
 }

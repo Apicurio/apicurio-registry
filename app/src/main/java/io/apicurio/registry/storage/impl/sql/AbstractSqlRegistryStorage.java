@@ -990,7 +990,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     + "FROM artifacts a "
                     + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
             if (joinContentTable) {
-                select.append("JOIN content c ON v.contentId = c.contentId ");
+                select.append("JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId ");
             }
 
             where.append("WHERE a.tenantId = ?");
@@ -1014,8 +1014,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                                 + "v.groupId LIKE ? OR "
                                 + "a.artifactId LIKE ? OR "
                                 + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId) OR "
-                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)"
+                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId AND l.tenantId = v.tenantId) OR "
+                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)"
                                 + ")");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getValue() + "%");
@@ -1039,7 +1039,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case labels:
-                        where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
+                        where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId AND l.tenantId = v.tenantId)");
                         binders.add((query, idx) -> {
                           //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
                             query.bind(idx, filter.getValue().toLowerCase());
@@ -1073,7 +1073,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case properties:
-                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)");
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
                         binders.add((query, idx) -> {
                             //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                             query.bind(idx, filter.getValue().toLowerCase());
@@ -1105,9 +1105,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String artifactsQuerySql = select.toString() + where.toString() + orderByQuery.toString() + limitOffset.toString();
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
             // Query for the total row count
-            String countSelect = "SELECT count(a.artifactId) FROM artifacts a JOIN versions v ON a.latest = v.globalId ";
+            String countSelect = "SELECT count(a.artifactId) "
+                    + "FROM artifacts a "
+                    + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ";
             if (joinContentTable) {
-                countSelect += "JOIN content c ON v.contentId = c.contentId ";
+                countSelect += "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId ";
             }
             Query countQuery = handle.createQuery(countSelect + where.toString());
 
@@ -2663,12 +2665,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.info("Resetting {} sequence", sequenceName);
             long id = maxId.get() + 1;
 
-            handle.createUpdate(sqlStatements.resetSequenceValue())
-                .bind(0, tenantContext.tenantId())
-                .bind(1, sequenceName)
-                .bind(2, id)
-                .bind(3, id)
-                .execute();
+            if ("postgresql".equals(sqlStatements.dbType())) {
+                handle.createUpdate(sqlStatements.resetSequenceValue())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, sequenceName)
+                    .bind(2, id)
+                    .bind(3, id)
+                    .execute();
+            } else {
+                handle.createUpdate(sqlStatements.resetSequenceValue())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, sequenceName)
+                    .bind(2, id)
+                    .execute();
+            }
+
             log.info("Successfully reset {} to {}", sequenceName, id);
         }
     }
@@ -2959,19 +2970,34 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private long nextSequenceValue(Handle handle, String sequenceName) {
-        String sql = sqlStatements.getNextSequenceValue();
         if ("postgresql".equals(sqlStatements.dbType())) {
-            return handle.createQuery(sql)
+            return handle.createQuery(sqlStatements.getNextSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)
                     .mapTo(Long.class)
                     .one();
         } else {
-            handle.createUpdate(sql)
-                .bind(0, tenantContext.tenantId())
-                .bind(1, sequenceName)
-                .execute();
-            //will this work properly with concurrent executions?
+            // no way to automatically increment the sequence in h2 with just one query
+            //good news is that this algorithm should be safe for concurrent executions and is lock free
+            Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                    .bind(0, sequenceName)
+                    .bind(1, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .findOne();
+
+            if (seqExists.isPresent()) {
+                handle.createUpdate(sqlStatements.getNextSequenceValue())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, sequenceName)
+                    .execute();
+            } else {
+                handle.createUpdate(sqlStatements.insertSequenceValue())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, sequenceName)
+                    .bind(2, 1)
+                    .execute();
+            }
+
             return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
                     .bind(0, sequenceName)
                     .bind(1, tenantContext.tenantId())

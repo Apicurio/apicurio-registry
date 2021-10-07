@@ -456,6 +456,8 @@ public interface SqlStatements {
 
     public String resetSequenceValue();
 
+    public String insertSequenceValue();
+
     /*
      * The next few statements support exporting data from the DB.
      */

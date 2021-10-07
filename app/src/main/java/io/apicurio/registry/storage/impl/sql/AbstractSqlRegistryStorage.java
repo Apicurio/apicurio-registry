@@ -2663,7 +2663,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         if (maxId.isPresent()) {
             log.info("Resetting {} sequence", sequenceName);
-            long id = maxId.get() + 1;
+            long id = maxId.get();
 
             if ("postgresql".equals(sqlStatements.dbType())) {
                 handle.createUpdate(sqlStatements.resetSequenceValue())

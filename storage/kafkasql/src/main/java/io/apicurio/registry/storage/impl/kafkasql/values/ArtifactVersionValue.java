@@ -20,11 +20,13 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
+@ToString
 public class ArtifactVersionValue extends AbstractMessageValue {
 
     private ArtifactState state;

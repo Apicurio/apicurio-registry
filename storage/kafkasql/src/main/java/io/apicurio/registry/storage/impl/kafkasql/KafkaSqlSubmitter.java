@@ -105,8 +105,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
-        ContentKey key = ContentKey.create(contentId, contentHash);
+    public CompletableFuture<UUID> submitContent(String tenantId, long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
+        ContentKey key = ContentKey.create(tenantId, contentId, contentHash);
         ContentValue value = ContentValue.create(action, canonicalHash, content);
         return send(key, value);
     }
@@ -219,8 +219,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Global ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalId(ActionType action) {
-        GlobalIdKey key = GlobalIdKey.create();
+    public CompletableFuture<UUID> submitGlobalId(String tenantId, ActionType action) {
+        GlobalIdKey key = GlobalIdKey.create(tenantId);
         GlobalIdValue value = GlobalIdValue.create(action);
         return send(key, value);
     }
@@ -229,8 +229,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContentId(ActionType action) {
-        ContentIdKey key = ContentIdKey.create();
+    public CompletableFuture<UUID> submitContentId(String tenantId, ActionType action) {
+        ContentIdKey key = ContentIdKey.create(tenantId);
         ContentIdValue value = ContentIdValue.create(action);
         return send(key, value);
     }

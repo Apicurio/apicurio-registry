@@ -43,14 +43,7 @@ import java.util.Optional;
  */
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
-    /**
-     * K1 = Artifact reference
-     * K2 = Global ID
-     * K3 = Content
-     * K4 = Content ID
-     * V = Schema lookup result
-     */
-    protected final K4ERCache<ArtifactReference, Long, String, Long, SchemaLookupResult<S>> schemaCache = new K4ERCache<>();
+    protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
 
     protected SchemaParser<S> schemaParser;
     protected RegistryClient client;
@@ -121,35 +114,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureRetryBackoff(Duration.ofMillis(200));
         schemaCache.configureRetryCount(4);
 
-        schemaCache.configureKeyExtractor1(SchemaLookupResult::toArtifactReference);
-        schemaCache.configureKeyExtractor2(SchemaLookupResult::getGlobalId);
-        schemaCache.configureKeyExtractor3(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
-        schemaCache.configureKeyExtractor4(SchemaLookupResult::getContentId);
-
-        /*
-         * Load schema by global ID.
-         */
-        schemaCache.configureLoaderFunction2((globalId, ignored) -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
-            //TODO or at least add some method to the api to return the version metadata by globalId
-//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = client.getContentByGlobalId(globalId);
-
-            byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            return result
-                //FIXME it's impossible to retrieve this info with only the globalId
-//                  .groupId(null)
-//                  .artifactId(null)
-//                  .version(0)
-                .globalId(globalId)
-                .rawSchema(schema)
-                .schema(parsed)
-                .build();
-        });
+        schemaCache.configureArtifactReferenceKeyExtractor(SchemaLookupResult::toArtifactReference);
+        schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
+        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
 
         String groupIdOverride = config.getExplicitArtifactGroupId();
         if (groupIdOverride != null) {
@@ -215,7 +183,27 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
-        return schemaCache.get2(globalId);
+        return schemaCache.getByGlobalId(globalId, globalIdKey -> {
+            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
+            //TODO or at least add some method to the api to return the version metadata by globalId
+//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
+            InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
+
+            byte[] schema = IoUtil.toBytes(rawSchema);
+            S parsed = schemaParser.parseSchema(schema);
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            return result
+                //FIXME it's impossible to retrieve this info with only the globalId
+//                  .groupId(null)
+//                  .artifactId(null)
+//                  .version(0)
+                .globalId(globalIdKey)
+                .rawSchema(schema)
+                .schema(parsed)
+                .build();
+        });
     }
 
     /**

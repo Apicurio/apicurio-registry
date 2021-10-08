@@ -54,7 +54,7 @@ public class ContentKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return contentHash;
+        return getTenantId() + contentHash;
     }
 
     /**

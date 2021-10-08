@@ -2728,7 +2728,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .execute();
                 log.info("Artifact rule imported successfully.");
             } catch (Exception e) {
-                log.warn("Failed to import content entity (likely it already exists).");
+                log.warn("Failed to import content entity (likely it already exists).", e);
             }
         } else {
             log.warn("Artifact rule import failed: artifact not found.");
@@ -2736,16 +2736,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
     protected void importArtifactVersion(Handle handle, ArtifactVersionEntity entity) {
         if (!isArtifactExists(entity.groupId, entity.artifactId)) {
-            String sql = sqlStatements.insertArtifact();
-            handle.createUpdate(sql)
-                .bind(0, tenantContext.tenantId())
-                .bind(1, normalizeGroupId(entity.groupId))
-                .bind(2, entity.artifactId)
-                .bind(3, entity.artifactType.name())
-                .bind(4, entity.createdBy)
-                .bind(5, new Date(entity.createdOn))
-                .execute();
-            log.info("Artifact entity imported successfully.");
+            try {
+                String sql = sqlStatements.insertArtifact();
+                handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(entity.groupId))
+                    .bind(2, entity.artifactId)
+                    .bind(3, entity.artifactType.name())
+                    .bind(4, entity.createdBy)
+                    .bind(5, new Date(entity.createdOn))
+                    .execute();
+                log.info("Artifact entity imported successfully.");
+            } catch (Exception e) {
+                log.warn("Failed to import artifact entity.", e);
+            }
+
         }
 
         if (!isGlobalIdExists(entity.globalId)) {
@@ -2841,7 +2846,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .execute();
             log.info("Global Rule entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import content entity (likely it already exists).");
+            log.warn("Failed to import content entity (likely it already exists).", e);
         }
     }
     protected void importGroup(Handle handle, GroupEntity entity) {
@@ -2860,7 +2865,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .execute();
             log.info("Group entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import group entity (likely it already exists).");
+            log.warn("Failed to import group entity (likely it already exists).", e);
         }
     }
 
@@ -2978,7 +2983,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
         } else {
             // no way to automatically increment the sequence in h2 with just one query
-            //good news is that this algorithm should be safe for concurrent executions and is lock free
+            // good news is that this algorithm is good enough for our needs and is lock free
+            // we are incresing the sequence value in a way that it's not safe for concurrent executions
+            // but we are just doing this because our h2 storage is not supposed to be used concurrently
+            // caveat emptor , consider yourself as warned
             Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
                     .bind(0, sequenceName)
                     .bind(1, tenantContext.tenantId())
@@ -2986,23 +2994,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .findOne();
 
             if (seqExists.isPresent()) {
-                handle.createUpdate(sqlStatements.getNextSequenceValue())
+                //
+                Long newValue = seqExists.get() + 1;
+                handle.createUpdate(sqlStatements.resetSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)
+                    .bind(2, newValue)
                     .execute();
+                return newValue;
             } else {
                 handle.createUpdate(sqlStatements.insertSequenceValue())
                     .bind(0, tenantContext.tenantId())
                     .bind(1, sequenceName)
                     .bind(2, 1)
                     .execute();
+                return 1;
             }
-
-            return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Long.class)
-                    .one();
         }
     }
 

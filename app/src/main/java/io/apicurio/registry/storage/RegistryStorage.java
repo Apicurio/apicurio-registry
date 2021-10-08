@@ -24,6 +24,7 @@ import java.util.function.Function;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
@@ -119,11 +120,12 @@ public interface RegistryStorage {
      * @param version (optional)
      * @param artifactType
      * @param content
+     * @param references
      * @throws ArtifactAlreadyExistsException
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException;
+                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
      * Creates a new artifact (from the given value including metadata) in the artifactStore.  The artifactId must be unique
@@ -139,7 +141,7 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException;
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes an artifact by its group and unique id. Returns list of artifact versions.

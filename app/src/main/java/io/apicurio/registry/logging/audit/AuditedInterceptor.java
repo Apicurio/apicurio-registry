@@ -24,8 +24,6 @@ import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,25 +51,10 @@ public class AuditedInterceptor {
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
         Map<String, String> metadata = new HashMap<>();
 
-        for (Object parameter : context.getParameters()) {
-            if (parameter == null || parameter instanceof String) {
-                continue;
-            }
-            Class co = parameter.getClass();
-            Field[] cfields = co.getDeclaredFields();
-            for (Field f : cfields) {
-                String attributeName = f.getName();
-                String getterMethodName = "get"
-                        + attributeName.substring(0, 1).toUpperCase()
-                        + attributeName.substring(1);
-                Method m;
-                try {
-                    m = co.getMethod(getterMethodName);
-                    Object valObject = m.invoke(parameter);
-                    metadata.put(attributeName, valObject != null ? valObject.toString() : "");
-                } catch (NoSuchMethodException e) {
-                    log.trace("Method not found when extracting metadata for audit logging", e);
-                }
+        for (int i = 0; i < context.getMethod().getParameters().length; i++) {
+            Object parameter = context.getParameters()[i];
+            if (parameter != null) {
+                metadata.put("parameter" + i, parameter.toString());
             }
         }
 

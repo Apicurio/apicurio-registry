@@ -2726,7 +2726,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(3, entity.type.name())
                     .bind(4, entity.configuration)
                     .execute();
-                log.info("Content entity imported successfully.");
+                log.info("Artifact rule imported successfully.");
             } catch (Exception e) {
                 log.warn("Failed to import content entity (likely it already exists).");
             }
@@ -2745,7 +2745,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(4, entity.createdBy)
                 .bind(5, new Date(entity.createdOn))
                 .execute();
-            log.info("Artifact created successfully.");
+            log.info("Artifact entity imported successfully.");
         }
 
         if (!isGlobalIdExists(entity.globalId)) {
@@ -2767,7 +2767,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(12, SqlUtil.serializeProperties(entity.properties))
                     .bind(13, entity.contentId)
                     .execute();
-                log.info("Content entity imported successfully.");
+                log.info("Artifact version entity imported successfully.");
 
                 // Insert labels into the "labels" table
                 if (entity.labels != null && !entity.labels.isEmpty()) {

@@ -43,6 +43,7 @@ public class RoleMappingDtoMapper implements RowMapper<RoleMappingDto> {
         RoleMappingDto dto = new RoleMappingDto();
         dto.setPrincipalId(rs.getString("principalId"));
         dto.setRole(rs.getString("role"));
+        dto.setPrincipalName(rs.getString("principalName"));
         return dto;
     }
 

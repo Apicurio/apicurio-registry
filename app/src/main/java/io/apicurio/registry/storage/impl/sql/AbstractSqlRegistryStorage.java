@@ -2299,10 +2299,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
         log.debug("Inserting a role mapping row for: {}", principalId);
         try {
             this.handles.withHandle( handle -> {
@@ -2311,6 +2311,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                       .bind(0, tenantContext.tenantId())
                       .bind(1, principalId)
                       .bind(2, role)
+                      .bind(3, principalName)
                       .execute();
                 return null;
             });

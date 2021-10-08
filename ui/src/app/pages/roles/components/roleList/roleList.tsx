@@ -53,7 +53,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
     constructor(props: Readonly<RoleListProps>) {
         super(props);
     }
-  
+
     public render(): React.ReactElement {
 
         const roleActions = (role: RoleMapping) => [
@@ -72,7 +72,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         }).filter((role: RoleMapping)=>{
             if(this.props.roleFilter.principalId.length > 0) {
                 return role.principalId.includes(this.props.roleFilter.principalId);
-            } 
+            }
             return true;
         }).filter((role: RoleMapping)=>{
             if (this.props.roleFilter.role.length > 0) {
@@ -91,7 +91,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
             filteredRoles.length === 0 ?
                 <RoleMappingsEmptyState isFiltered={true}/> :
             <React.Fragment>
-                <TableComposable>
+                <TableComposable className="role-list">
                     <Thead>
                         <Tr>
                             {/* <Th
@@ -113,7 +113,10 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
                                         isSelected: false,
                                     }}
                                 /> */}
-                                <Td>{role.principalId}</Td>
+                                <Td>
+                                    <div className="principal-id">{ role.principalId }</div>
+                                    <div className="principal-name">{ role.principalName }</div>
+                                </Td>
                                 <Td>{this.roleName(role.role)}</Td>
                                 <Td className = "role-list-action-column"
                                     key={`${rowIndex}_2`}
@@ -167,7 +170,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         this.setMultiState({
             isRevokeModalOpen: true,
             revokingPrincipalId: principalId
-        });    
+        });
     };
 
     private onRevokeModalClose = (): void => {

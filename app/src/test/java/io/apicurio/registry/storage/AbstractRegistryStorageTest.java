@@ -999,7 +999,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ArtifactMetaDataDto artifactDto2 = storage().createArtifactWithMetadata(
             group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build());
         storage().createGlobalRule(RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
-        storage().createRoleMapping(principal, role);
+        storage().createRoleMapping(principal, role, null);
 
         // Verify data exists
 

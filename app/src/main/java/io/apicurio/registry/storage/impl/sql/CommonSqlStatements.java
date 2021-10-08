@@ -803,7 +803,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertRoleMapping() {
-        return "INSERT INTO acls (tenantId, principalId, role) VALUES (?, ?, ?)";
+        return "INSERT INTO acls (tenantId, principalId, role, principalName) VALUES (?, ?, ?, ?)";
     }
 
     /**

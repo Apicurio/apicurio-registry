@@ -806,11 +806,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
-        delegate.createRoleMapping(principalId, role);
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
+        delegate.createRoleMapping(principalId, role, principalName);
     }
 
     /**

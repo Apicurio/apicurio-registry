@@ -626,6 +626,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("TestUser");
         mapping.setRole(RoleType.DEVELOPER);
+        mapping.setPrincipalName("Foo bar");
         given()
             .when()
                 .contentType(CT_JSON).body(mapping)
@@ -643,6 +644,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("principalId", equalTo("TestUser"))
+                    .body("principalName", equalTo("Foo bar"))
                     .body("role", equalTo("DEVELOPER"));
         });
         TestUtils.retry(() -> {
@@ -653,6 +655,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("[0].principalId", equalTo("TestUser"))
+                    .body("[0].principalName", equalTo("Foo bar"))
                     .body("[0].role", equalTo("DEVELOPER"));
         });
 

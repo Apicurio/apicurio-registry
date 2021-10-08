@@ -37,7 +37,7 @@ import {
 import { SearchIcon } from "@patternfly/react-icons";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RoleMapping} from "../../../models";
-import {Services} from "../../../services";
+import {Principal, Services} from "../../../services";
 import {GrantAccessModal, RoleList, RoleMappingsEmptyState} from "./components";
 import {PleaseWaitModal, RootPageHeader} from "../../components";
 
@@ -224,14 +224,16 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         this.onCreateRoleMapping();
     }
 
-    private onUpdateRoleMapping = (principalId: string, role: string): void => {
+    private onUpdateRoleMapping = (principal: Principal, role: string): void => {
         this.pleaseWait(true, "Granting access, please wait...");
-        Services.getAdminService().updateRoleMapping(principalId, role).then((mapping) => {
-            let currentRoleMappings = this.state.roles;
+        Services.getAdminService().updateRoleMapping(principal.id, role).then((mapping) => {
+            const currentRoleMappings = this.state.roles;
             currentRoleMappings.map((role, index) => {
-                if (role.principalId == mapping.principalId) {
-                    currentRoleMappings[index] = mapping;
-                    console.log("found role")
+                if (role.principalId === mapping.principalId) {
+                    currentRoleMappings[index] = {
+                        ...mapping,
+                        principalName: principal.displayName as string
+                    };
                 }
             });
 
@@ -242,13 +244,13 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         }).catch(e => this.handleServerError(e, "Error updating access."));
     };
 
-    private createRoleMapping = (principalId: string, role: string, isUpdate: boolean): void => {
+    private createRoleMapping = (principal: Principal, role: string, isUpdate: boolean): void => {
         this.closeRoleMappingModal();
         if (isUpdate) {
-            this.onUpdateRoleMapping(principalId, role);
+            this.onUpdateRoleMapping(principal, role);
         } else {
             this.pleaseWait(true, "Granting access, please wait...");
-            Services.getAdminService().createRoleMapping(principalId, role).then((mapping) => {
+            Services.getAdminService().createRoleMapping(principal.id, role, principal.displayName as string).then((mapping) => {
                 this.pleaseWait(false, "");
                 this.setSingleState("roles", [
                     mapping, ...this.state.roles

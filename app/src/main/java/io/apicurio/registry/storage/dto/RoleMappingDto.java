@@ -20,6 +20,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 /**
@@ -27,6 +29,8 @@ import lombok.ToString;
  */
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 @EqualsAndHashCode
 @ToString
 @RegisterForReflection
@@ -34,39 +38,12 @@ public class RoleMappingDto {
 
     private String principalId;
     private String role;
+    private String principalName;
 
     /**
      * Constructor.
      */
     public RoleMappingDto() {
-    }
-
-    /**
-     * @return the principalId
-     */
-    public String getPrincipalId() {
-        return principalId;
-    }
-
-    /**
-     * @param principalId the principalId to set
-     */
-    public void setPrincipalId(String principalId) {
-        this.principalId = principalId;
-    }
-
-    /**
-     * @return the role
-     */
-    public String getRole() {
-        return role;
-    }
-
-    /**
-     * @param role the role to set
-     */
-    public void setRole(String role) {
-        this.role = role;
     }
 
 }

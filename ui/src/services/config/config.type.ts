@@ -57,7 +57,7 @@ export interface Principal {
     id: string;
     displayName?: string;
     emailAddress?: string;
-};
+}
 
 export interface ConfigType {
     artifacts: ArtifactsConfig;

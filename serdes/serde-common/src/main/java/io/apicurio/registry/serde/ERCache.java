@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 import java.time.Duration;
@@ -173,8 +174,12 @@ public class ERCache<V> {
                         "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // Rethrow the exception if we are not going to retry any more
-                if (i == retries)
+                // Rethrow the exception if we are not going to retry any more OR
+                // the exception is NOT caused by throttling. This prevents
+                // retries in cases where it does not make sense,
+                // e.g. an ArtifactNotFoundException is thrown.
+                // TODO Add additional exceptions that should cause a retry.
+                if (i == retries || !(e instanceof RateLimitedClientException))
                     return Result.error(e);
             }
             try {

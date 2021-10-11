@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -72,9 +73,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
 
-        SchemaLookupResult<S> result = resolveSchemaByArtifactReferenceCached(artifactReference);
-        if (result != null) {
-            return result;
+        try {
+            return resolveSchemaByArtifactReferenceCached(artifactReference);
+        } catch (ArtifactNotFoundException ex) {
+            // Ignore and continue
         }
 
         if (autoCreateArtifact) {

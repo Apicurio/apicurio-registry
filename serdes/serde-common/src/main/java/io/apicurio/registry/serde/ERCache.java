@@ -53,7 +53,7 @@ public class ERCache<V> {
 
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
-    private int retries;
+    private long retries;
 
     // === Configuration
 
@@ -65,7 +65,7 @@ public class ERCache<V> {
         this.backoff = backoff;
     }
 
-    public void configureRetryCount(int retries) {
+    public void configureRetryCount(long retries) {
         this.retries = retries;
     }
 
@@ -157,13 +157,13 @@ public class ERCache<V> {
 
     // === Util & Other
 
-    private static <T> Result<T, RuntimeException> retry(Duration backoff, int retries, Supplier<T> supplier) {
+    private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries, Supplier<T> supplier) {
         if (retries < 0)
             throw new IllegalArgumentException();
         Objects.requireNonNull(supplier);
         Objects.requireNonNull(backoff);
 
-        for (int i = 0; i <= retries; i++) {
+        for (long i = 0; i <= retries; i++) {
             try {
                 T value = supplier.get();
                 if (value != null)

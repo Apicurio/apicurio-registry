@@ -31,7 +31,6 @@ import io.apicurio.rest.client.auth.OidcAuth;
 import org.apache.kafka.common.header.Headers;
 
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
@@ -91,28 +90,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         Object ais = config.getArtifactResolverStrategy();
         Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
 
-        long checkPeriod = 0;
-        Object cp = config.getCheckPeriodMs();
-        if (cp != null) {
-            long checkPeriodParam;
-            if (cp instanceof Number) {
-                checkPeriodParam = ((Number) cp).longValue();
-            } else if (cp instanceof String) {
-                checkPeriodParam = Long.parseLong((String) cp);
-            } else if (cp instanceof Duration) {
-                checkPeriodParam = ((Duration) cp).toMillis();
-            } else {
-                throw new IllegalArgumentException("Check period config param type unsupported (must be a Number, String, or Duration): " + cp);
-            }
-            if (checkPeriodParam < 0) {
-                throw new IllegalArgumentException("Check period must be non-negative: " + checkPeriodParam);
-            }
-            checkPeriod = checkPeriodParam;
-        }
-
-        schemaCache.configureLifetime(Duration.ofMillis(checkPeriod));
-        schemaCache.configureRetryBackoff(Duration.ofMillis(200));
-        schemaCache.configureRetryCount(4);
+        schemaCache.configureLifetime(config.getCheckPeriod());
+        schemaCache.configureRetryBackoff(config.getRetryBackoff());
+        schemaCache.configureRetryCount(config.getRetryCount());
 
         schemaCache.configureArtifactReferenceKeyExtractor(SchemaLookupResult::toArtifactReference);
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);

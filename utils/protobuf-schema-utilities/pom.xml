@@ -51,6 +51,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Used for Proto assertions in tests -->
+        <dependency>
+            <groupId>com.google.truth.extensions</groupId>
+            <artifactId>truth-proto-extension</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

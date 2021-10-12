@@ -58,3 +58,6 @@ ALTER TABLE groups ADD PRIMARY KEY (tenantId, groupId);
 
 CREATE TABLE acls (tenantId VARCHAR(128) NOT NULL, principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (tenantId, principalId);
+
+CREATE TABLE downloads (tenantId VARCHAR(128) NOT NULL, downloadId VARCHAR(128) NOT NULL, context TEXT);
+ALTER TABLE downloads ADD PRIMARY KEY (tenantId, principalId);

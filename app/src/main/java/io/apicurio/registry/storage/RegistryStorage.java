@@ -26,6 +26,7 @@ import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -632,4 +633,10 @@ public interface RegistryStorage {
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
+
+    /**
+     * Called to consume a download from the DB (single-use) and return its context info.
+     * @param downloadId
+     */
+    public DownloadContextDto consumeDownload(String downloadId);
 }

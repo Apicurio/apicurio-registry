@@ -18,21 +18,16 @@ package io.apicurio.registry.rest.v2;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 
 import org.slf4j.Logger;
 
@@ -49,6 +44,7 @@ import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
@@ -62,7 +58,6 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
-import io.apicurio.registry.utils.impexp.EntityWriter;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -84,6 +79,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     LogConfigurationService logConfigService;
+
+    @Inject
+    DataExporter exporter;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -257,37 +255,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData() {
-        StreamingOutput stream = new StreamingOutput() {
-            @Override
-            public void write(OutputStream os) throws IOException, WebApplicationException {
-                try {
-                    ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
-                    EntityWriter writer = new EntityWriter(zip);
-                    AtomicInteger errorCounter = new AtomicInteger(0);
-                    storage.exportData(entity -> {
-                        try {
-                            writer.writeEntity(entity);
-                        } catch (Exception e) {
-                            // TODO do something interesting with this
-                            e.printStackTrace();
-                            errorCounter.incrementAndGet();
-                        }
-                        return null;
-                    });
-
-                    // TODO if the errorCounter > 0, then what?
-
-                    zip.flush();
-                    zip.close();
-                } catch (IOException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw new IOException(e);
-                }
-            }
-        };
-
-        return Response.ok(stream).type("application/zip").build();
+        return exporter.exportData();
     }
 
     /**

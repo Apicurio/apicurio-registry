@@ -155,6 +155,7 @@
         <icu4j.version>69.1</icu4j.version>
         <protobuf.version>3.18.1</protobuf.version>
         <xmlsec.version>2.1.7</xmlsec.version>
+        <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Picocli -->
@@ -179,7 +180,7 @@
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.20</lombok.version>
+        <lombok.version>1.18.22</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
@@ -442,6 +443,11 @@
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java-util</artifactId>
                 <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api.grpc</groupId>
+                <artifactId>proto-google-common-protos</artifactId>
+                <version>${protobuf.googleapi.types.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>

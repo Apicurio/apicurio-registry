@@ -635,8 +635,23 @@ public interface RegistryStorage {
     void deleteAllUserData();
 
     /**
+     * Called to create a single-use download "link".  This can then be consumed using
+     * "consumeDownload()".  Used to support browser flows for features like /admin/export.
+     * @param context
+     * @throws RegistryStorageException
+     */
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException;
+
+    /**
      * Called to consume a download from the DB (single-use) and return its context info.
      * @param downloadId
      */
-    public DownloadContextDto consumeDownload(String downloadId);
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException;
+
+    /**
+     * Called to delete any expired rows in the downloads table.  This is basically cleaning up
+     * any single-use download links that were never "clicked".
+     * @throws RegistryStorageException
+     */
+    public void deleteAllExpiredDownloads() throws RegistryStorageException;
 }

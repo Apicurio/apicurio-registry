@@ -64,6 +64,8 @@ public class DownloadsResourceImpl {
             return exporter.exportData();
         }
 
+        // TODO support other types of downloads (e.g. download content by contentId)
+
         throw new DownloadNotFoundException();
     }
 

@@ -37,6 +37,8 @@ import lombok.ToString;
 public class DownloadContextDto {
 
     private DownloadContextType type;
+    private long expires;
+
     private Long globalId;
     private Long contentId;
     private String contentHash;

@@ -31,6 +31,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -41,6 +42,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
@@ -53,6 +55,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
@@ -232,14 +235,30 @@ public class KafkaSqlSubmitter {
         return send(key, value);
     }
 
+
     /* ******************************************************************************************
-     * Empty
+     * Downloads
+     * ****************************************************************************************** */
+
+    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action, DownloadContextDto context) {
+        DownloadKey key = DownloadKey.create(tenantId, downloadId);
+        DownloadValue value = DownloadValue.create(action, context);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action) {
+        return submitDownload(tenantId, downloadId, action, null);
+    }
+
+
+    /* ******************************************************************************************
+     * Global actions
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitGlobalAction(String tenantId, ActionType action) {
         GlobalActionKey key = GlobalActionKey.create(tenantId);
         GlobalActionValue value = GlobalActionValue.create(action);
         return send(key, value);
     }
+
 
     /* ******************************************************************************************
      * Tombstones

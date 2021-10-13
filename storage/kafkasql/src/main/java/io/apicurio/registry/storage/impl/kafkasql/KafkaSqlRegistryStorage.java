@@ -1049,8 +1049,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void deleteAllUserData() throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
-        coordinator.waitForResponse(reqId);
+        // Note: this is OK to do because the only caller of this method is the TenantReaper, which
+        // runs on every node in the cluster.
+        sqlStore.deleteAllUserData();
     }
 
     /**
@@ -1058,8 +1059,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public String createDownload(DownloadContextDto context) throws RegistryStorageException {
-        // FIXME Auto-generated method stub
-        return null;
+        String downloadId = UUID.randomUUID().toString();
+        UUID reqId = ConcurrentUtil.get(submitter.submitDownload(tenantContext.tenantId(), downloadId, ActionType.CREATE, context));
+        return (String) coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -1067,8 +1069,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
-        // FIXME Auto-generated method stub
-        return null;
+        UUID reqId = ConcurrentUtil.get(submitter.submitDownload(tenantContext.tenantId(), downloadId, ActionType.DELETE));
+        return (DownloadContextDto) coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -1076,8 +1078,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
-        // FIXME Auto-generated method stub
-
+        // Note: this is OK to do because the only caller of this method is the DownloadReaper, which
+        // runs on every node in the cluster.
+        sqlStore.deleteAllExpiredDownloads();
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

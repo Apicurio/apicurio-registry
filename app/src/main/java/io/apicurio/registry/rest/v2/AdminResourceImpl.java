@@ -27,8 +27,12 @@ import java.util.zip.ZipInputStream;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.auth.Authorized;
@@ -39,6 +43,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -50,6 +55,8 @@ import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -82,6 +89,12 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DataExporter exporter;
+
+    @Context
+    HttpServletRequest request;
+
+    @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
+    long downloadHrefTtl;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -250,12 +263,23 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#exportData()
+     * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public Response exportData() {
-        return exporter.exportData();
+    public Response exportData(Boolean forBrowser) {
+        if (forBrowser != null && forBrowser) {
+            long expires = System.currentTimeMillis() + (downloadHrefTtl * 1000);
+            DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
+            String downloadId = storage.createDownload(downloadCtx);
+            String downloadHref = createDownloadHref(downloadId);
+            DownloadRef downloadRef = new DownloadRef();
+            downloadRef.setDownloadId(downloadId);
+            downloadRef.setHref(downloadHref);
+            return Response.ok(downloadRef).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } else {
+            return exporter.exportData();
+        }
     }
 
     /**
@@ -318,6 +342,10 @@ public class AdminResourceImpl implements AdminResource {
         mapping.setRole(RoleType.valueOf(dto.getRole()));
         mapping.setPrincipalName(dto.getPrincipalName());
         return mapping;
+    }
+
+    private String createDownloadHref(String downloadId) {
+        return "/apis/registry/v2/downloads/" + downloadId;
     }
 
 }

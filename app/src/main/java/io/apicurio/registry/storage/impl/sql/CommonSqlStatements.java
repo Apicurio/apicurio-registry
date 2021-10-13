@@ -867,7 +867,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertDownload() {
-        return "INSERT INTO download (tenantId, downloadId, context, expires) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO downloads (tenantId, downloadId, expires, context) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -875,7 +875,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectDownloadContext() {
-        return "SELECT d.expires, d.context FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ? AND expires > ?";
+        return "SELECT d.context FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ? AND expires > ?";
     }
 
     /**

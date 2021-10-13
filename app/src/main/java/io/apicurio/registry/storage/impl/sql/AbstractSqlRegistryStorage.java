@@ -2486,6 +2486,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 Optional<String> res = handle.createQuery(sql)
                         .bind(0, tenantContext.tenantId())
                         .bind(1, downloadId)
+                        .bind(2, now)
                         .mapTo(String.class)
                         .findOne();
                 String downloadContext = res.orElseThrow(() -> new DownloadNotFoundException());
@@ -2500,12 +2501,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     throw new DownloadNotFoundException();
                 }
 
-                // Return what we consumed unless it has expired.
-                DownloadContextDto contextDto = mapper.readValue(downloadContext, DownloadContextDto.class);
-                if (now > contextDto.getExpires()) {
-                    throw new DownloadNotFoundException();
-                }
-                return contextDto;
+                // Return what we consumed
+                return mapper.readValue(downloadContext, DownloadContextDto.class);
             });
         } catch (DownloadNotFoundException e) {
             throw e;

@@ -56,7 +56,7 @@ public class DownloadsResourceImpl {
 
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
     @GET
-    @Path("/{downloadId}")
+    @Path("{downloadId}")
     @Produces("*/*")
     public Response download(@PathParam("downloadId") String downloadId) {
         DownloadContextDto downloadContext = storage.consumeDownload(downloadId);

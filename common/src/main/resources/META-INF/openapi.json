@@ -657,6 +657,16 @@
                 "tags": [
                     "Admin"
                 ],
+                "parameters": [
+                    {
+                        "name": "forBrowser",
+                        "description": "Indicates if the operation is done for a browser.  If true, the response will be a JSON payload with a property called `href`.  This `href` will be a single-use, naked download link suitable for use by a web browser to download the content.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -3110,6 +3120,26 @@
                 "type": "string",
                 "example": "\"Artifact description\"",
                 "x-codegen-inline": true
+            },
+            "DownloadRef": {
+                "title": "Root Type for Download",
+                "description": "Models a download \"link\".  Useful for browser use-cases.",
+                "required": [
+                    "downloadId"
+                ],
+                "type": "object",
+                "properties": {
+                    "downloadId": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "downloadId": "247-4987490-297845",
+                    "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
+                }
             }
         },
         "responses": {

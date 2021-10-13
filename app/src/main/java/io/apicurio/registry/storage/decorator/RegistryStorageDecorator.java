@@ -877,4 +877,12 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
         return delegate.consumeDownload(downloadId);
     }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
+     */
+    @Override
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        delegate.deleteAllExpiredDownloads();
+    }
 }

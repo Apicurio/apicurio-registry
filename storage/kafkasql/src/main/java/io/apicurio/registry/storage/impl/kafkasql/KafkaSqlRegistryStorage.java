@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -1050,6 +1051,33 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public void deleteAllUserData() throws RegistryStorageException {
         UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
         coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createDownload(io.apicurio.registry.storage.dto.DownloadContextDto)
+     */
+    @Override
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        // FIXME Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#consumeDownload(java.lang.String)
+     */
+    @Override
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        // FIXME Auto-generated method stub
+        return null;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
+     */
+    @Override
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        // FIXME Auto-generated method stub
+
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

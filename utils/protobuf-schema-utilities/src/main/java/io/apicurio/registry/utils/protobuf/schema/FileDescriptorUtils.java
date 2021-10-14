@@ -1,12 +1,30 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.AnyProto;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.DurationProto;
+import com.google.protobuf.EmptyProto;
 import com.google.protobuf.TimestampProto;
 import com.google.protobuf.WrappersProto;
+import com.google.type.CalendarPeriodProto;
+import com.google.type.ColorProto;
+import com.google.type.DateProto;
+import com.google.type.DayOfWeek;
+import com.google.type.ExprProto;
+import com.google.type.FractionProto;
+import com.google.type.IntervalProto;
+import com.google.type.LatLng;
+import com.google.type.LocalizedTextProto;
+import com.google.type.MoneyProto;
+import com.google.type.MonthProto;
+import com.google.type.PhoneNumberProto;
+import com.google.type.PostalAddressProto;
+import com.google.type.QuaternionProto;
+import com.google.type.TimeOfDayProto;
 import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.EnumConstant;
 import com.squareup.wire.schema.EnumType;
@@ -83,10 +101,32 @@ public class FileDescriptorUtils {
     private static final String OPTIONAL = "optional";
 
     public static FileDescriptor[] baseDependencies() {
+        //Support all the Protobuf WellKnownTypes
+        //and the protos from Google API, https://github.com/googleapis/googleapis
         return new FileDescriptor[] {
-                    TimestampProto.getDescriptor().getFile(),
-                    WrappersProto.getDescriptor().getFile()
-                };
+            TimestampProto.getDescriptor().getFile(),
+            WrappersProto.getDescriptor().getFile(),
+            AnyProto.getDescriptor().getFile(),
+            EmptyProto.getDescriptor().getFile(),
+            DurationProto.getDescriptor().getFile(),
+            TimeOfDayProto.getDescriptor().getFile(),
+            DateProto.getDescriptor().getFile(),
+            CalendarPeriodProto.getDescriptor().getFile(),
+            ColorProto.getDescriptor().getFile(),
+            DayOfWeek.getDescriptor().getFile(),
+            LatLng.getDescriptor().getFile(),
+            FractionProto.getDescriptor().getFile(),
+            MoneyProto.getDescriptor().getFile(),
+            MonthProto.getDescriptor().getFile(),
+            PhoneNumberProto.getDescriptor().getFile(),
+            PostalAddressProto.getDescriptor().getFile(),
+            CalendarPeriodProto.getDescriptor().getFile(),
+            LocalizedTextProto.getDescriptor().getFile(),
+            IntervalProto.getDescriptor().getFile(),
+            ExprProto.getDescriptor().getFile(),
+            QuaternionProto.getDescriptor().getFile(),
+            PostalAddressProto.getDescriptor().getFile()
+        };
     }
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)

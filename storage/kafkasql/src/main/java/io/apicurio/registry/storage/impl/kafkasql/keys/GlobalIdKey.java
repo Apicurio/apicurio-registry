@@ -32,8 +32,9 @@ public class GlobalIdKey extends AbstractMessageKey {
      * @param tenantId
      * @param ruleType
      */
-    public static final GlobalIdKey create() {
+    public static final GlobalIdKey create(String tenantId) {
         GlobalIdKey key = new GlobalIdKey();
+        key.setTenantId(tenantId);
         return key;
     }
 
@@ -58,7 +59,7 @@ public class GlobalIdKey extends AbstractMessageKey {
      */
     @Override
     public String toString() {
-        return "GlobalIdKey []";
+        return String.format("GlobalIdKey(super = %s)", super.toString());
     }
 
 }

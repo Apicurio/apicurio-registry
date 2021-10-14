@@ -66,6 +66,8 @@ public interface Constants {
      */
     String AUTH = "auth";
 
+    String DB_UPGRADE = "dbupgrade";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 
     /**

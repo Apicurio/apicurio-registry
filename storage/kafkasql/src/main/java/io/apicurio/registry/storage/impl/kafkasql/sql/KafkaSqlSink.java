@@ -104,6 +104,7 @@ public class KafkaSqlSink {
 
         try {
             Object result = doProcessMessage(record);
+            log.trace("Processed message key: {} value: {} result: {}", record.key().getType().name(), record.value() != null ? record.value().toString() : "", result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.notifyResponse(requestId, result);
         } catch (RegistryException e) {

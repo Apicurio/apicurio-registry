@@ -1049,9 +1049,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
     @Override
     public void deleteAllUserData() throws RegistryStorageException {
-        // Note: this is OK to do because the only caller of this method is the TenantReaper, which
-        // runs on every node in the cluster.
-        sqlStore.deleteAllUserData();
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
+        coordinator.waitForResponse(reqId);
     }
 
     /**

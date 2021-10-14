@@ -862,4 +862,36 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT COUNT(a.principalId) FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
+     */
+    @Override
+    public String insertDownload() {
+        return "INSERT INTO downloads (tenantId, downloadId, expires, context) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectDownloadContext()
+     */
+    @Override
+    public String selectDownloadContext() {
+        return "SELECT d.context FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ? AND expires > ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteDownload()
+     */
+    @Override
+    public String deleteDownload() {
+        return "DELETE FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteExpiredDownloads()
+     */
+    @Override
+    public String deleteExpiredDownloads() {
+        return "DELETE FROM downloads d WHERE d.expires < ?";
+    }
+
 }

@@ -58,3 +58,7 @@ ALTER TABLE groups ADD PRIMARY KEY (tenantId, groupId);
 
 CREATE TABLE acls (tenantId VARCHAR(128) NOT NULL, principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (tenantId, principalId);
+
+CREATE TABLE downloads (tenantId VARCHAR(128) NOT NULL, downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context VARCHAR(1024));
+ALTER TABLE downloads ADD PRIMARY KEY (tenantId, downloadId);
+CREATE HASH INDEX IDX_down_1 ON downloads(expires);

@@ -104,7 +104,6 @@ public class TenantContextLoader {
      *
      * @param tenantId
      * @param checkTenantAuthorization , enable/disable authorization check using information from a required JWT token
-     * @return
      */
     private RegistryTenantContext loadContext(String tenantId, boolean checkTenantAuthorization) {
         if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
@@ -135,8 +134,8 @@ public class TenantContextLoader {
     private void checkTenantAuthorization(final RegistryTenant tenant) {
         if (authConfig.isAuthEnabled()) {
             if (!isTokenResolvable()) {
-                logger.warn("Tenant cannot be accessed: missing JWT");
-                throw new TenantNotAuthorizedException("JWT not found");
+                logger.debug("Tenant access attempted without JWT token for tenant {} [allowing because some endpoints allow anonymous access]", tenant.getTenantId());
+                return;
             }
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -35,10 +36,12 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import io.apicurio.registry.storage.RegistryStorage;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.System;
 import io.apicurio.registry.content.ContentHandle;
@@ -50,9 +53,11 @@ import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
 import io.apicurio.registry.storage.ContentNotFoundException;
+import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
@@ -63,6 +68,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -121,6 +127,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     private static int DB_VERSION = 2;
     private static final Object dbMutex = new Object();
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+    static {
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
+    }
 
     @Inject
     Logger log;
@@ -2431,6 +2443,89 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             throw new RegistryStorageException(e);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createDownload(io.apicurio.registry.storage.dto.DownloadContextDto)
+     */
+    @Override
+    @Transactional
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        log.debug("Inserting a download.");
+        try {
+            String downloadId = UUID.randomUUID().toString();
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.insertDownload();
+                handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, downloadId)
+                      .bind(2, context.getExpires())
+                      .bind(3, mapper.writeValueAsString(context))
+                      .execute();
+                return downloadId;
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#consumeDownload(java.lang.String)
+     */
+    @Override
+    @Transactional
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        log.debug("Consuming a download ID: {}", downloadId);
+
+        try {
+            return this.handles.withHandle( handle -> {
+                long now = java.lang.System.currentTimeMillis();
+
+                // Select the download context.
+                String sql = sqlStatements.selectDownloadContext();
+                Optional<String> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, downloadId)
+                        .bind(2, now)
+                        .mapTo(String.class)
+                        .findOne();
+                String downloadContext = res.orElseThrow(() -> new DownloadNotFoundException());
+
+                // Attempt to delete the row.
+                sql = sqlStatements.deleteDownload();
+                int rowCount = handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, downloadId)
+                      .execute();
+                if (rowCount == 0) {
+                    throw new DownloadNotFoundException();
+                }
+
+                // Return what we consumed
+                return mapper.readValue(downloadContext, DownloadContextDto.class);
+            });
+        } catch (DownloadNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
+     */
+    @Override
+    @Transactional
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        log.debug("Deleting all expired downloads");
+        long now = java.lang.System.currentTimeMillis();
+        handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.deleteExpiredDownloads();
+            handle.createUpdate(sql)
+                .bind(0, now)
+                .execute();
+            return null;
+        });
     }
 
     @Override

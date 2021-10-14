@@ -506,4 +506,17 @@ public interface SqlStatements {
 
     public String selectRoleMappingCountByPrincipal();
 
+
+    /*
+     * The next few statements support downloads.
+     */
+
+    public String insertDownload();
+
+    public String selectDownloadContext();
+
+    public String deleteDownload();
+
+    public String deleteExpiredDownloads();
+
 }

@@ -67,6 +67,9 @@ public class MessageTypeToValueClass {
                 case GlobalAction:
                     index.put(type, GlobalActionValue.class);
                     break;
+                case Download:
+                    index.put(type, DownloadValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

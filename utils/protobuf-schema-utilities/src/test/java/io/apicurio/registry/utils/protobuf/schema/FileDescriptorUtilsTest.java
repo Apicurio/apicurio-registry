@@ -8,6 +8,8 @@ import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.specified.TestOrderingSyntax2Specified;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.references.TestOrderingSyntax2References;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestOrderingSyntax3;
+import io.apicurio.registry.utils.protobuf.schema.syntax3.WellKnownTypesTestSyntax3;
+import io.apicurio.registry.utils.protobuf.schema.syntax2.WellKnownTypesTestSyntax2;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.references.TestOrderingSyntax3References;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +31,9 @@ public class FileDescriptorUtilsTest {
             TestOrderingSyntax2Specified.getDescriptor(),
             TestOrderingSyntax3.getDescriptor(),
             TestOrderingSyntax2References.getDescriptor(),
-            TestOrderingSyntax3References.getDescriptor()
+            TestOrderingSyntax3References.getDescriptor(),
+            WellKnownTypesTestSyntax3.getDescriptor(),
+            WellKnownTypesTestSyntax2.getDescriptor()
         )
         .map(Descriptors.FileDescriptor::getFile)
         .map(Arguments::of);

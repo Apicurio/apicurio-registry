@@ -297,7 +297,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
-        storage.createRoleMapping(data.getPrincipalId(), data.getRole().name());
+        storage.createRoleMapping(data.getPrincipalId(), data.getRole().name(), data.getPrincipalName());
     }
 
     /**
@@ -348,6 +348,7 @@ public class AdminResourceImpl implements AdminResource {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId(dto.getPrincipalId());
         mapping.setRole(RoleType.valueOf(dto.getRole()));
+        mapping.setPrincipalName(dto.getPrincipalName());
         return mapping;
     }
 

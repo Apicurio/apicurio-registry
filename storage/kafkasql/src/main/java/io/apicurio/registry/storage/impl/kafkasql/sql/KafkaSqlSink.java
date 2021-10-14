@@ -417,7 +417,7 @@ public class KafkaSqlSink {
     private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
         switch (value.getAction()) {
             case CREATE:
-                sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole());
+                sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole(), value.getPrincipalName());
                 return null;
             case UPDATE:
                 sqlStore.updateRoleMapping(key.getPrincipalId(), value.getRole());

@@ -593,8 +593,9 @@ public interface RegistryStorage {
      * Creates a role mapping for a user.
      * @param principalId
      * @param role
+     * @param principalName
      */
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException;
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException;
 
     /**
      * Gets the list of all the role mappings in the registry.

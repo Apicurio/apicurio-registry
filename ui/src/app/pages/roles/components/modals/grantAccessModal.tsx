@@ -50,7 +50,7 @@ export interface GrantAccessModalProps extends PureComponentProps {
     roles: null | RoleMapping[];
     defaultRole?: RoleMapping;
     onClose: () => void;
-    onGrant: (accountId: string, role: string, isUpdate: boolean) => void;
+    onGrant: (principal: Principal, role: string, isUpdate: boolean) => void;
 }
 
 /**
@@ -61,6 +61,7 @@ export interface GrantAccessModalState extends PureComponentState {
     isAccountIDSelectOpen: boolean;
     isValid: boolean;
     accountId: string | undefined;
+    accountName: string | undefined;
     role: string | undefined;
 }
 
@@ -78,11 +79,13 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
             if (this.props.defaultRole) {
                 this.setMultiState({
                     accountId: this.props.defaultRole.principalId,
+                    accountName: this.props.defaultRole.principalName,
                     role: this.props.defaultRole.role
                 });
             } else {
                 this.setMultiState({
                     accountId: "",
+                    accountName: "",
                     role: undefined
                 });
             }
@@ -90,7 +93,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     }
 
     public render(): React.ReactElement {
-        let principals: Principal[] | undefined = Services.getConfigService().principals();
+        const principals: Principal[] | undefined = Services.getConfigService().principals();
 
         return (
             <Modal
@@ -105,8 +108,6 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
-
-
                 <Form>
                     {this.props.serviceRegistryInstance !== undefined ? (<DescriptionList>
                         <DescriptionListGroup>
@@ -132,11 +133,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                         {principals ? <SelectPrincipalAccount
                             id={this.state.accountId}
                             onIdUpdate={(id: string) => {
-                                this.setMultiState({
-                                    accountId: id,
-                                    isValid: this.checkValid(id, this.state.role),
-                                    isAccountIDSelectOpen: false
-                                  });
+                                this.onAccountIDSelect(null, id, false);
                             }}
                             initialOptions={principals? principals: []}/> :
                             this.props.roles !== null ?
@@ -216,7 +213,8 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         return {
             isAccountIDSelectOpen: false,
             isValid: false,
-            accountId: this.props.isUpdateAccess && this.props.roles ? this.props.roles[0].principalId : "",
+            accountId: "",
+            accountName: "",
             role: undefined
         };
     }
@@ -240,14 +238,16 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     };
 
     private onAccountIDSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
-        if (isPlaceholder) this.onAccountIDClearSelection();
-        else {
-          this.setMultiState({
-            accountId: selection,
-            isValid: this.checkValid(selection, this.state.role),
-            isAccountIDSelectOpen: false
-          });
-          console.log('selected:', selection);
+        if (isPlaceholder) {
+            this.onAccountIDClearSelection();
+        }  else {
+            const newState: any = {
+                accountId: selection,
+                accountName: this.getAccountName(selection as string),
+                isValid: this.checkValid(selection, this.state.role),
+                isAccountIDSelectOpen: false
+            };
+            this.setMultiState(newState);
         }
       };
 
@@ -255,15 +255,20 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         this.setSingleState("isAccountIDSelectOpen", isOpen);
       };
 
-    private handleRoleChange = (_isChecked: boolean, event: any): void => {
+    private handleRoleChange = (isChecked: boolean, event: any): void => {
         this.setMultiState({
-            role: event.target.value,
-            isValid: this.checkValid(this.state.accountId, event.target.value)
+            isValid: this.checkValid(this.state.accountId, event.target.value),
+            role: event.target.value
         })
     };
 
     private doGrantAccess = (): void => {
-        this.props.onGrant(this.state.accountId as string,
+        const principal: Principal = {
+            displayName: this.state.accountName,
+            id: this.state.accountId as string,
+            principalType: "USER_ACCOUNT"
+        };
+        this.props.onGrant(principal,
             this.state.role as string,
             this.props.roles?.find(role => role.principalId == this.state.accountId) !== undefined);
         this.reset();
@@ -277,5 +282,17 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
             return false;
         }
         return true;
+    }
+
+    private getAccountName(accountId: string): string | undefined {
+        const principals: Principal[] | undefined = Services.getConfigService().principals();
+        if (principals) {
+            for (const principal of principals) {
+                if (principal.id === accountId) {
+                    return principal.displayName;
+                }
+            }
+        }
+        return undefined;
     }
 }

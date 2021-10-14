@@ -988,11 +988,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.CREATE, role));
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.CREATE, role, principalName));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1042,7 +1042,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RoleMappingNotFoundException();
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.UPDATE, role));
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.UPDATE, role, null));
         coordinator.waitForResponse(reqId);
     }
 

@@ -190,13 +190,13 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Role Mappings
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role) {
+    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role, String principalName) {
         RoleMappingKey key = RoleMappingKey.create(tenantId, principalId);
-        RoleMappingValue value = RoleMappingValue.create(action, role);
+        RoleMappingValue value = RoleMappingValue.create(action, role, principalName);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action) {
-        return submitRoleMapping(tenantId, principalId, action, null);
+        return submitRoleMapping(tenantId, principalId, action, null, null);
     }
 
 

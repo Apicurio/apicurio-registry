@@ -45,7 +45,7 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
 }: EmptyStateProps) => {
   return (
     <Card>
-      <CardTitle>Topic Schemas</CardTitle>
+      <CardTitle>Topic schemas</CardTitle>
       <CardBody>
         <EmptyState variant={EmptyStateVariant.large}>
           <EmptyStateIcon icon={InfoCircleIcon} color="#2B9AF3" />
@@ -59,12 +59,12 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
           </EmptyStateBody>
           <EmptyStateSecondaryActions>
             <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-              {artifactName + "-key"}
+              {artifactName + "-value"}
             </ClipboardCopy>
           </EmptyStateSecondaryActions>
           <EmptyStateSecondaryActions>
             <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-              {artifactName + "-value"}
+              {artifactName + "-key"}
             </ClipboardCopy>
           </EmptyStateSecondaryActions>
           <EmptyStateSecondaryActions>

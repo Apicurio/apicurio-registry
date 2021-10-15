@@ -248,7 +248,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
             rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
-            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content);
+            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content, null);
             return V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical);
@@ -293,7 +293,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
     }
 
@@ -350,7 +350,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
         rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
     }
 

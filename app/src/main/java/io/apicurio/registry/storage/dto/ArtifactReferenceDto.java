@@ -27,31 +27,16 @@ import lombok.ToString;
 @ToString
 public class ArtifactReferenceDto {
 
-    private String tenantId;
     private String groupId;
     private String artifactId;
     private String version;
-    private int versionId;
+    private long globalId;
     private String name;
 
     /**
      * Constructor
      */
     public ArtifactReferenceDto() {
-    }
-
-    /**
-     * @return the tenantId
-     */
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    /**
-     * @param tenantId to be set
-     */
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     /**
@@ -62,7 +47,7 @@ public class ArtifactReferenceDto {
     }
 
     /**
-     * @param groupId to be set
+     * @param groupId to set
      */
     public void setGroupId(String groupId) {
         this.groupId = groupId;
@@ -76,7 +61,7 @@ public class ArtifactReferenceDto {
     }
 
     /**
-     * @param artifactId to be set
+     * @param artifactId to set
      */
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
@@ -90,24 +75,24 @@ public class ArtifactReferenceDto {
     }
 
     /**
-     * @param version to be set
+     * @param version to set
      */
     public void setVersion(String version) {
         this.version = version;
     }
 
     /**
-     * @return versionId
+     * @return globalId
      */
-    public int getVersionId() {
-        return versionId;
+    public long getGlobalId() {
+        return globalId;
     }
 
     /**
-     * @param versionId to be set
+     * @param globalId to set
      */
-    public void setVersionId(int versionId) {
-        this.versionId = versionId;
+    public void setGlobalId(long globalId) {
+        this.globalId = globalId;
     }
 
     /**
@@ -118,7 +103,7 @@ public class ArtifactReferenceDto {
     }
 
     /**
-     * @param name to be set
+     * @param name to set
      */
     public void setName(String name) {
         this.name = name;

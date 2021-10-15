@@ -234,10 +234,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             if (!doesArtifactExist(subject)) {
                 rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
-                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema));
+                //FIXME:References references are not supported for now
+                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
             } else {
                 rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
-                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema));
+                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

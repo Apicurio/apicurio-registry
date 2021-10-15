@@ -16,10 +16,12 @@
  */
 
 import React from "react";
+import { AxiosError } from "axios";
 import { Spinner, Bullseye } from "@patternfly/react-core";
 import { SchemaCard, SchemaCardProps } from "./schemaCard";
 import { Services } from "src/services";
 import { SchemaEmptyState } from "./emptyState";
+import { PermissionDenied } from "./permissionDenied";
 import {
   PureComponent,
   PureComponentProps,
@@ -42,6 +44,7 @@ export interface SchemaMappingProps
 export interface SchemaMappingState extends PureComponentState {
   hasKeySchema: boolean | undefined;
   hasValueSchema: boolean | undefined;
+  hasPermissionDenied: boolean;
 }
 
 export class SchemaMapping extends PureComponent<
@@ -53,7 +56,7 @@ export class SchemaMapping extends PureComponent<
   }
 
   public render(): React.ReactElement {
-    const { hasKeySchema, hasValueSchema } = this.state;
+    const { hasKeySchema, hasValueSchema, hasPermissionDenied } = this.state;
     const { topicName, groupId, version, basename, registryId } = this.props;
 
     if (hasKeySchema === undefined && hasValueSchema === undefined) {
@@ -62,6 +65,9 @@ export class SchemaMapping extends PureComponent<
           <Spinner />
         </Bullseye>
       );
+    }
+    if (hasPermissionDenied) {
+      return <PermissionDenied />;
     }
 
     if (hasKeySchema || hasValueSchema) {
@@ -91,6 +97,7 @@ export class SchemaMapping extends PureComponent<
     return {
       hasKeySchema: undefined,
       hasValueSchema: undefined,
+      hasPermissionDenied: false,
     };
   }
 
@@ -115,27 +122,32 @@ export class SchemaMapping extends PureComponent<
 
     const artifactId1 = topicName + "-key";
     const artifactId2 = topicName + "-value";
-  
 
     return [
       Services.getGroupsService()
         .getArtifactMetaData(groupId, artifactId1, version)
-        .then((data) => {
+        .then(() => {
           this.setSingleState("hasKeySchema", true);
         })
-        .catch((e) => {
-          if (e.error_code == "404") {
+        .catch((e: AxiosError) => {
+          if (e.response?.status === 404) {
             this.setSingleState("hasKeySchema", false);
+          } else if (e.response?.status === 403) {
+            this.setSingleState("hasKeySchema", false);
+            this.setSingleState("hasPermissionDenied", true);
           }
         }),
       Services.getGroupsService()
         .getArtifactMetaData(groupId, artifactId2, version)
-        .then((data) => {
+        .then(() => {
           this.setSingleState("hasValueSchema", true);
         })
-        .catch((e) => {
-          if (e.error_code == "404") {
+        .catch((e: AxiosError) => {
+          if (e.response?.status === 404) {
             this.setSingleState("hasValueSchema", false);
+          } else if (e.response?.status === 403) {
+            this.setSingleState("hasValueSchema", false);
+            this.setSingleState("hasPermissionDenied", true);
           }
         }),
     ];

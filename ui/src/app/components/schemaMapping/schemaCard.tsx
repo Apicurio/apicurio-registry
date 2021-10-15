@@ -50,7 +50,6 @@ export const SchemaCard: React.FC<SchemaCardProps> = ({
       <CardTitle component="h2">Topic schemas</CardTitle>
       <CardBody>
         <DescriptionList
-          className={"pf-c-description-list__RowGap"}
           isHorizontal
           isAutoColumnWidths
           columnModifier={{ lg: "2Col" }}

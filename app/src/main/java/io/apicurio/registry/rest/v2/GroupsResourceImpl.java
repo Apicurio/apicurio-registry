@@ -553,7 +553,8 @@ public class GroupsResourceImpl implements GroupsResource {
             rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
+            //FIXME:References references are not supported for now
+            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, null);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
@@ -613,7 +614,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
+        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, null);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
 
@@ -717,7 +718,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
-        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData);
+        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, null);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
     }
 

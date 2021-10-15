@@ -37,6 +37,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -100,9 +101,9 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
 
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId,
-            String version, ArtifactType artifactType, ContentHandle content)
+                                              String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.createArtifact(groupId, artifactId, version, artifactType, content);
+        ArtifactMetaDataDto meta = delegate.createArtifact(groupId, artifactId, version, artifactType, content, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -112,12 +113,12 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     }
 
     /**
-     * @see io.apicurio.registry.delegate.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.delegate.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.delegate.RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.delegate.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData);
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        ArtifactMetaDataDto meta = delegate.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -160,9 +161,9 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     }
 
     @Override
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, ContentHandle content)
+    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.updateArtifact(groupId, artifactId, version, artifactType, content);
+        ArtifactMetaDataDto meta = delegate.updateArtifact(groupId, artifactId, version, artifactType, content, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
@@ -173,8 +174,8 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
 
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version, ArtifactType artifactType, ContentHandle content,
-            EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto meta = delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData);
+            EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        ArtifactMetaDataDto meta = delegate.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references);
         ArtifactId data = new ArtifactId();
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);

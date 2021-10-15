@@ -21,6 +21,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,7 +60,6 @@ import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
@@ -455,12 +455,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private ArtifactVersionMetaDataDto createArtifactVersion(Handle handle, ArtifactType artifactType,
             boolean firstVersion, String groupId, String artifactId, String version, String name, String description, List<String> labels,
-            Map<String, String> properties, String createdBy, Date createdOn, Long contentId,
+            Map<String, String> properties, String createdBy, Date createdOn, Long contentId, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator) {
 
         ArtifactState state = ArtifactState.ENABLED;
         String labelsStr = SqlUtil.serializeLabels(labels);
         String propertiesStr = SqlUtil.serializeProperties(properties);
+        String referencesStr = SqlUtil.serializeReferences(references);
 
         if (globalIdGenerator == null) {
             globalIdGenerator = new GlobalIdGenerator() {
@@ -493,6 +494,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(10, labelsStr)
                 .bind(11, propertiesStr)
                 .bind(12, contentId)
+                .bind(13, referencesStr)
                 .execute();
         } else {
             handle.createUpdate(sql)
@@ -512,6 +514,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(13, labelsStr)
                 .bind(14, propertiesStr)
                 .bind(15, contentId)
+                .bind(13, referencesStr)
                 .execute();
 
             // If version is null, update the row we just inserted to set the version to the generated versionId
@@ -551,7 +554,19 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             });
         }
 
-        //TODO insert references into the references table
+        //Insert references into the "references" table
+        if (references != null && !references.isEmpty()) {
+            references.forEach(reference -> {
+                String sqli = sqlStatements.insertReference();
+                handle.createUpdate(sqli)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, groupId)
+                        .bind(2, artifactId)
+                        .bind(3, globalId)
+                        .bind(4, name)
+                        .execute();
+            });
+        }
 
         // Update the "latest" column in the artifacts table with the globalId of the new version
         sql = sqlStatements.updateArtifactLatest();
@@ -640,18 +655,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
-    @Override @Transactional
+    @Override
+    @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
+            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
         return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
+            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
 
-        //TODO check references and throw artifact not found exception
+        //Check artifact references first, if there are missing references, we fail with ArtifactNotFound
+        //TODO introduce a new Exception when Reference not found?
+        checkArtifactReferences(references);
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -667,11 +685,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             md = extractMetaData(artifactType, content);
         }
 
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, references, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
+            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator) {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
         try {
@@ -690,7 +708,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 // Then create a row in the content and versions tables (for the content and version meta-data)
                 ArtifactVersionMetaDataDto vmdd = this.createArtifactVersion(handle, artifactType, true, groupId, artifactId, version,
                         metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), createdBy, createdOn,
-                        contentId, globalIdGenerator);
+                        contentId, references, globalIdGenerator);
 
                 // Return the new artifact meta-data
                 ArtifactMetaDataDto amdd = versionToArtifactDto(groupId, artifactId, vmdd);
@@ -705,6 +723,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw new RegistryStorageException(e);
+        }
+    }
+
+    private void checkArtifactReferences(List<ArtifactReferenceDto> references) {
+        //FIXME not the best solution possible since we're executing one query per reference, but works for now
+        for (ArtifactReferenceDto reference : references) {
+            //To test if we can find a reference we look at the artifact metadata by globalId
+            getArtifactMetaData(reference.getGlobalId());
         }
     }
 
@@ -869,32 +895,35 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifact(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, globalIdGenerator);
+            ContentHandle content, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
 
     /**
-     * @see RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, null);
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
+
+        //Check artifact references first and if there are missing references, we fail with ArtifactNotFound
+        checkArtifactReferences(references);
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -910,11 +939,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
 
         return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator);
+                metaData, references, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData,
+            ArtifactType artifactType, long contentId, String createdBy, Date createdOn, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
 
@@ -930,6 +959,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String description = latest.getDescription();
             List<String> labels = latest.getLabels();
             Map<String, String> properties = latest.getProperties();
+            List<ArtifactReferenceDto> newVersionReferences = Collections.emptyList();
 
             // Provided metadata will override inherited values from latest version
             if (metaData.getName() != null) {
@@ -947,7 +977,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
             // Now create the version and return the new version metadata.
             ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, groupId, artifactId, version,
-                    name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
+                    name, description, labels, properties, createdBy, createdOn, contentId, references, globalIdGenerator);
             ArtifactMetaDataDto dto = versionToArtifactDto(groupId, artifactId, versionDto);
             dto.setCreatedOn(latest.getCreatedOn());
             dto.setCreatedBy(latest.getCreatedBy());

@@ -22,6 +22,7 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.utils.StringUtil;
 
 /**
@@ -96,6 +97,39 @@ public class SqlUtil {
                 return null;
             }
             return mapper.readValue(propertiesStr, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Serializes the given collection of references to a string for artifactStore in the DB.
+     * @param references
+     */
+    public static String serializeReferences(List<ArtifactReferenceDto> references) {
+        try {
+            if (references == null || references.isEmpty()) {
+                return null;
+            }
+            //TODO test this properly
+            return mapper.writeValueAsString(references);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Deserialize the references from their string form to a List<ArtifactReferenceDto> form.
+     * @param references
+     */
+    @SuppressWarnings("unchecked")
+    public static List<ArtifactReferenceDto> deserializeReferences(String references) {
+        try {
+            if (StringUtil.isEmpty(references)) {
+                return null;
+            }
+            //TODO test this properly
+            return mapper.readValue(references, List.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

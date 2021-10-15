@@ -37,7 +37,8 @@ import io.apicurio.registry.types.ArtifactType;
     "labels",
     "properties",
     "groupId",
-    "contentId"
+    "contentId",
+    "references"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -59,7 +60,7 @@ public class ArtifactMetaData {
      * (Required)
      * 
      */
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("createdOn")
     private Date createdOn;
     /**
@@ -74,7 +75,7 @@ public class ArtifactMetaData {
      * (Required)
      * 
      */
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("modifiedOn")
     private Date modifiedOn;
     /**
@@ -151,6 +152,12 @@ public class ArtifactMetaData {
     @JsonProperty("contentId")
     @JsonPropertyDescription("")
     private Long contentId;
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    @JsonPropertyDescription("")
+    private List<VersionReference> references = new ArrayList<VersionReference>();
 
     @JsonProperty("name")
     public String getName() {
@@ -434,6 +441,22 @@ public class ArtifactMetaData {
     @JsonProperty("contentId")
     public void setContentId(Long contentId) {
         this.contentId = contentId;
+    }
+
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    public List<VersionReference> getReferences() {
+        return references;
+    }
+
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    public void setReferences(List<VersionReference> references) {
+        this.references = references;
     }
 
 }

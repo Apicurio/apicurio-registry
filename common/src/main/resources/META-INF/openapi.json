@@ -2865,13 +2865,6 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
-                    },
-                    "references": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/VersionReference"
-                        }
                     }
                 },
                 "example": {
@@ -3075,8 +3068,7 @@
                     "state",
                     "globalId",
                     "version",
-                    "contentId",
-                    "references"
+                    "contentId"
                 ],
                 "type": "object",
                 "properties": {
@@ -3130,13 +3122,6 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
-                    },
-                    "references": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/VersionReference"
-                        }
                     }
                 },
                 "example": {
@@ -3155,10 +3140,7 @@
                     "properties": {
 
                     },
-                    "contentId": 62,
-                    "references": {
-
-                    }
+                    "contentId": 62
                 }
             },
             "RuleViolationError": {

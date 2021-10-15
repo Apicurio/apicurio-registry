@@ -204,11 +204,12 @@ public interface RegistryStorage {
      * @param version (optional)
      * @param artifactType
      * @param content
+     * @param references
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException;
+            ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Updates the artifact value by storing the given value and metadata as a new version of the artifact.  Previous value
@@ -220,11 +221,12 @@ public interface RegistryStorage {
      * @param artifactType
      * @param content
      * @param metaData
+     * @param references
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException;
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Get all artifact ids.

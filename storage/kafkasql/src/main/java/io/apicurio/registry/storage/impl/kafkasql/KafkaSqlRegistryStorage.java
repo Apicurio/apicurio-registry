@@ -38,6 +38,7 @@ import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
@@ -378,23 +379,25 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
+
+        //TODO handle references
 
         String contentHash = ensureContent(content, groupId, artifactId, artifactType);
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -474,23 +477,25 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
+
+        //TODO handle references
 
         String contentHash = ensureContent(content, groupId, artifactId, artifactType);
         String createdBy = securityIdentity.getPrincipal().getName();

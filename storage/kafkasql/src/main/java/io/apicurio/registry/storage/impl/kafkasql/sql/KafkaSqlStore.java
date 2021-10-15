@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql.sql;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.util.Date;
+import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -16,6 +17,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.GlobalIdGenerator;
@@ -147,8 +149,9 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
-            EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
+                                                          ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
+                                                          GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         long contentId = this.contentIdFromHash(contentHash);
 
@@ -157,7 +160,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         }
 
         return super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator);
+                metaData, references, globalIdGenerator);
     }
 
     @Transactional

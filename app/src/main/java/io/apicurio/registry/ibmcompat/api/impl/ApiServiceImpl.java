@@ -327,7 +327,7 @@ public class ApiServiceImpl implements ApiService {
             properties.put(SCHEMA_NAME_ADDITIONAL_PROPERTY, schemaName);
             dto.setProperties(properties);
             try {
-                ArtifactMetaDataDto amdd = storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto);
+                ArtifactMetaDataDto amdd = storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto, null);
                 handleArtifactCreation(response, artifactId, amdd);
             } catch (Exception e) {
                 response.resume(e);
@@ -425,7 +425,7 @@ public class ApiServiceImpl implements ApiService {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(newSchemaVersion.getVersion());
             try {
-                ArtifactMetaDataDto amdd = storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto);
+                ArtifactMetaDataDto amdd = storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto, null);
                 handleArtifactCreation(response, schemaid, amdd);
             } catch (Exception e) {
                 response.resume(e);

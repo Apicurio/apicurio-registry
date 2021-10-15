@@ -163,9 +163,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, references) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, references) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -501,6 +501,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String insertProperty() {
         return "INSERT INTO properties (tenantId, globalId, pkey, pvalue) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see SqlStatements#insertReference()
+     */
+    @Override
+    public String insertReference() {
+        return "INSERT INTO references (tenantId, groupId, artifactId, globalId, name) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**

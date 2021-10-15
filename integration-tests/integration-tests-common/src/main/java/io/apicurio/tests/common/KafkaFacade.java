@@ -37,6 +37,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     private KafkaContainer kafkaContainer;
     private EmbeddedKafka embeddedKafka;
+    private boolean sharedKafkaCluster = false;
     private AdminClient client;
 
     private static KafkaFacade instance;
@@ -63,6 +64,9 @@ public class KafkaFacade implements RegistryTestProcess {
         if (embeddedKafka != null) {
             return embeddedKafka.bootstrapServers();
         }
+        if (sharedKafkaCluster) {
+            return System.getenv(Constants.TESTS_SHARED_KAFKA_ENV_VAR);
+        }
         return null;
     }
 
@@ -85,7 +89,7 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     private boolean isRunning() {
-        return kafkaContainer != null || embeddedKafka != null;
+        return kafkaContainer != null || embeddedKafka != null || sharedKafkaCluster;
     }
 
     private boolean isKafkaBasedRegistry() {
@@ -97,9 +101,13 @@ public class KafkaFacade implements RegistryTestProcess {
             throw new IllegalStateException("Kafka cluster is already running");
         }
 
+        String useSharedKafka = System.getenv(Constants.TESTS_SHARED_KAFKA_ENV_VAR);
         String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
 
-        if (noDocker != null && noDocker.equals("true")) {
+        if (useSharedKafka != null && !useSharedKafka.isEmpty()) {
+            LOGGER.info("Using pre-deployed shared kafka cluster");
+            sharedKafkaCluster = true;
+        } else if (noDocker != null && noDocker.equals("true")) {
             LOGGER.info("Starting kafka embedded");
             embeddedKafka = new EmbeddedKafka();
             embeddedKafka.start();
@@ -134,7 +142,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     @Override
     public String getName() {
-        return "kafka-" + kafkaContainer == null ? "embedded" : "container";
+        return "kafka-" + kafkaContainer == null ? embeddedKafka == null ? "pre-deployed" : "embedded" : "container";
     }
 
     @Override
@@ -144,6 +152,7 @@ public class KafkaFacade implements RegistryTestProcess {
             client.close();
             client = null;
         }
+        sharedKafkaCluster = false;
         if (kafkaContainer != null) {
             kafkaContainer.stop();
             kafkaContainer = null;

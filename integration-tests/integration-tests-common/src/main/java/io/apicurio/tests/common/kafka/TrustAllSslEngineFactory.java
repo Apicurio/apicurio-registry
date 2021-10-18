@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.serdes;
+package io.apicurio.tests.common.kafka;
 
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;

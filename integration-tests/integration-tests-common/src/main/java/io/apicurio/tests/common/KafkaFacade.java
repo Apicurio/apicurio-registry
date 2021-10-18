@@ -17,6 +17,7 @@ package io.apicurio.tests.common;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.SslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
@@ -24,8 +25,8 @@ import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.kafka.EmbeddedKafka;
+import io.apicurio.tests.common.kafka.TrustAllSslEngineFactory;
 import io.apicurio.tests.common.utils.RegistryUtils;
-
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -135,6 +136,7 @@ public class KafkaFacade implements RegistryTestProcess {
             properties.put("bootstrap.servers", bootstrapServers());
             properties.put("connections.max.idle.ms", 10000);
             properties.put("request.timeout.ms", 5000);
+            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
             client = AdminClient.create(properties);
         }
         return client;

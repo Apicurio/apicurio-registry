@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.KafkaFacade;
-import io.apicurio.tests.serdes.TrustAllSslEngineFactory;
+import io.apicurio.tests.common.kafka.TrustAllSslEngineFactory;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 

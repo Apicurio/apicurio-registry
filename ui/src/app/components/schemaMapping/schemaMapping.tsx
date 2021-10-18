@@ -16,7 +16,6 @@
  */
 
 import React from "react";
-import { AxiosError } from "axios";
 import { Spinner, Bullseye } from "@patternfly/react-core";
 import { SchemaCard, SchemaCardProps } from "./schemaCard";
 import { Services } from "src/services";
@@ -129,8 +128,8 @@ export class SchemaMapping extends PureComponent<
         .then(() => {
           this.setSingleState("hasKeySchema", true);
         })
-        .catch((e: AxiosError) => {
-          if (e.response?.status === 404) {
+        .catch((e: any) => {
+          if (e.error_code === 404 || e.response?.status === 404) {
             this.setSingleState("hasKeySchema", false);
           } else if (e.response?.status === 403) {
             this.setSingleState("hasKeySchema", false);
@@ -142,8 +141,8 @@ export class SchemaMapping extends PureComponent<
         .then(() => {
           this.setSingleState("hasValueSchema", true);
         })
-        .catch((e: AxiosError) => {
-          if (e.response?.status === 404) {
+        .catch((e: any) => {
+          if (e.error_code === 404 || e.response?.status === 404) {
             this.setSingleState("hasValueSchema", false);
           } else if (e.response?.status === 403) {
             this.setSingleState("hasValueSchema", false);

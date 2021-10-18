@@ -38,12 +38,14 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.config.SslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.KafkaFacade;
+import io.apicurio.tests.serdes.TrustAllSslEngineFactory;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 
@@ -89,6 +91,8 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
+        //ssl trust all
+        props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
 
         return new KafkaProducer<>(props);
     }
@@ -111,6 +115,9 @@ public class SerdesTester<K, P, C> {
         } else {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         }
+        //ssl trust all
+        props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+
         return new KafkaConsumer<>(props);
     }
 

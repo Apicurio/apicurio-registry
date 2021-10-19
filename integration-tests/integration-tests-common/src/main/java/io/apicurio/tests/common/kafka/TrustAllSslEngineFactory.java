@@ -16,9 +16,11 @@
 
 package io.apicurio.tests.common.kafka;
 
+import java.io.IOException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.net.ssl.SSLContext;
@@ -26,8 +28,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.network.Mode;
 import org.apache.kafka.common.security.auth.SslEngineFactory;
 
 /**
@@ -35,37 +35,40 @@ import org.apache.kafka.common.security.auth.SslEngineFactory;
  */
 public class TrustAllSslEngineFactory implements SslEngineFactory {
 
-    private SSLContext sslContext;
-
-    @Override
-    public void close() {
-        this.sslContext = null;
-    }
-
     @Override
     public SSLEngine createClientSslEngine(String peerHost, int peerPort, String endpointIdentification) {
-        return createSslEngine(Mode.CLIENT, peerHost, peerPort, endpointIdentification);
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+                @Override
+                public X509Certificate[] getAcceptedIssuers() { return null; }
+                @Override
+                public void checkClientTrusted(X509Certificate[] certs, String authType) { }
+                @Override
+                public void checkServerTrusted(X509Certificate[] certs, String authType) { }
+            }};
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            SSLEngine sslEngine = sc.createSSLEngine(peerHost, peerPort);
+            sslEngine.setUseClientMode(true);
+            return sslEngine;
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public SSLEngine createServerSslEngine(String peerHost, int peerPort) {
-        return createSslEngine(Mode.SERVER, peerHost, peerPort, null);
+        return null;
     }
 
-    /**
-     * @see org.apache.kafka.common.security.auth.SslEngineFactory#shouldBeRebuilt(java.util.Map)
-     */
     @Override
     public boolean shouldBeRebuilt(Map<String, Object> nextConfigs) {
         return false;
     }
 
-    /**
-     * @see org.apache.kafka.common.security.auth.SslEngineFactory#reconfigurableConfigs()
-     */
     @Override
     public Set<String> reconfigurableConfigs() {
-        return Collections.emptySet();
+        return null;
     }
 
     @Override
@@ -78,61 +81,14 @@ public class TrustAllSslEngineFactory implements SslEngineFactory {
         return null;
     }
 
-    /**
-     * @see org.apache.kafka.common.Configurable#configure(java.util.Map)
-     */
+    @Override
+    public void close() throws IOException {
+
+    }
+
     @Override
     public void configure(Map<String, ?> configs) {
-        this.sslContext = createSSLContext();
-    }
 
-    private SSLEngine createSslEngine(Mode mode, String peerHost, int peerPort, String endpointIdentification) {
-        SSLEngine sslEngine = sslContext.createSSLEngine(peerHost, peerPort);
-
-        if (mode == Mode.SERVER) {
-            sslEngine.setUseClientMode(false);
-        } else {
-            sslEngine.setUseClientMode(true);
-//            SSLParameters sslParams = sslEngine.getSSLParameters();
-//            // SSLParameters#setEndpointIdentificationAlgorithm enables endpoint validation
-//            // only in client mode. Hence, validation is enabled only for clients.
-//            sslParams.setEndpointIdentificationAlgorithm(endpointIdentification);
-//            sslEngine.setSSLParameters(sslParams);
-        }
-        return sslEngine;
-    }
-
-    private SSLContext createSSLContext() {
-        try {
-
-            TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-
-                @Override
-                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-
-                    return null;
-                }
-
-                @Override
-                public void checkClientTrusted(X509Certificate[] certs,
-                        String authType) {
-
-                }
-
-                @Override
-                public void checkServerTrusted(X509Certificate[] certs,
-                        String authType) {
-
-                }
-            } };
-
-            // Install the all-trusting trust manager
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            return sc;
-        } catch (Exception e) {
-            throw new KafkaException(e);
-        }
     }
 
 }

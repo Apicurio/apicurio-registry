@@ -40,15 +40,12 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.KafkaFacade;
-import io.apicurio.tests.common.kafka.TrustAllSslEngineFactory;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 
@@ -80,7 +77,10 @@ public class SerdesTester<K, P, C> {
     }
 
     public Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass, Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        connectionProperties().forEach((k, v) -> {
+            props.putIfAbsent(k, v);
+        });
+
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerClass.getName());
@@ -94,12 +94,6 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
-        //ssl trust all
-        props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
-        props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-//        props.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
-//        props.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
-        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
 
         return new KafkaProducer<>(props);
     }
@@ -109,7 +103,10 @@ public class SerdesTester<K, P, C> {
     }
 
     public Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
-        props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        connectionProperties().forEach((k, v) -> {
+            props.putIfAbsent(k, v);
+        });
+
         props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + topicName);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "500");
@@ -122,12 +119,6 @@ public class SerdesTester<K, P, C> {
         } else {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         }
-        //ssl trust all
-        props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
-        props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-//        props.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
-//        props.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
-        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
 
         return new KafkaConsumer<>(props);
     }
@@ -229,12 +220,15 @@ public class SerdesTester<K, P, C> {
 
     }
 
-    private static String bootstrapServers() {
+    private static Properties connectionProperties() {
         String bootsrapServers = KafkaFacade.getInstance().bootstrapServers();
         if (bootsrapServers == null) {
-            return BOOTSTRAP_SERVERS;
+            Properties props = new Properties();
+            props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+            return props;
+        } else {
+            return KafkaFacade.getInstance().connectionProperties();
         }
-        return bootsrapServers;
     }
 
 }

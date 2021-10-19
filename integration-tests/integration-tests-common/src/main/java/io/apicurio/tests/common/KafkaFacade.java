@@ -73,6 +73,23 @@ public class KafkaFacade implements RegistryTestProcess {
         return null;
     }
 
+    public Properties connectionProperties() {
+        Properties properties = new Properties();
+        properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        properties.put(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
+        properties.put(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        //shared kafka cluster is deployed in k8s/ocp and exposed externally by using SSL
+        if (sharedKafkaCluster) {
+            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+            properties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
+            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
+            properties.put("enable.ssl.certificate.verification", false);
+        }
+        return properties;
+    }
+
     public void startIfNeeded() {
         if (!TestUtils.isExternalRegistry() && isKafkaBasedRegistry() && isRunning()) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed as registry storage");
@@ -134,17 +151,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     private AdminClient adminClient() {
         if (client == null) {
-            Properties properties = new Properties();
-            properties.put("bootstrap.servers", bootstrapServers());
-            properties.put("connections.max.idle.ms", 10000);
-            properties.put("request.timeout.ms", 5000);
-            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
-            properties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-//            properties.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
-//            properties.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
-
-            client = AdminClient.create(properties);
+            client = AdminClient.create(connectionProperties());
         }
         return client;
     }

@@ -175,7 +175,6 @@
         <graphql.version>17.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
@@ -500,12 +499,6 @@
                 <version>${graphql.version}</version>
             </dependency>
 
-            <!-- JSON Schema Validator -->
-            <dependency>
-                <groupId>com.worldturner.medeia</groupId>
-                <artifactId>medeia-validator-jackson</artifactId>
-                <version>${medeia-validator-jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>

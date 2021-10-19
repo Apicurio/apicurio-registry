@@ -20,14 +20,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.worldturner.medeia.api.StreamSchemaSource;
-import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
-import com.worldturner.medeia.schema.validation.SchemaValidator;
 
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
@@ -47,10 +50,10 @@ import io.apicurio.registry.utils.IoUtil;
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  * @author Fabian Martinez
+ * @author Carles Arnal
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<SchemaValidator, T> implements Serializer<T>, SchemaParser<SchemaValidator> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T>, SchemaParser<JsonSchema> {
 
-    protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();
 
     private Boolean validationEnabled;
@@ -61,8 +64,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
     }
 
     public JsonSchemaKafkaSerializer(RegistryClient client,
-            ArtifactResolverStrategy<SchemaValidator> artifactResolverStrategy,
-            SchemaResolver<SchemaValidator, T> schemaResolver) {
+                                     ArtifactResolverStrategy<JsonSchema> artifactResolverStrategy,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -70,7 +73,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
         super(client);
     }
 
-    public JsonSchemaKafkaSerializer(SchemaResolver<SchemaValidator, T> schemaResolver) {
+    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
@@ -109,7 +112,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<SchemaValidator> schemaParser() {
+    public SchemaParser<JsonSchema> schemaParser() {
         return this;
     }
 
@@ -125,8 +128,9 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public SchemaValidator parseSchema(byte[] rawSchema) {
-        return api.loadSchema(new StreamSchemaSource(IoUtil.toStream(rawSchema)));
+    public JsonSchema parseSchema(byte[] rawSchema) {
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        return factory.getSchema(IoUtil.toStream(rawSchema));
     }
 
     //TODO we could implement some way of providing the jsonschema beforehand:
@@ -146,7 +150,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<SchemaValidator> schema, T data, OutputStream out) throws IOException {
+    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
         //TODO add property to specify a jsonschema to allow for auto-register json schemas
         serializeData(null, schema, data, out);
     }
@@ -155,10 +159,10 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<SchemaValidator> schema, T data, OutputStream out) throws IOException {
+    protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
         JsonGenerator generator = mapper.getFactory().createGenerator(out);
         if (isValidationEnabled()) {
-            generator = api.decorateJsonGenerator(schema.getParsedSchema(), generator);
+            validateDataWithSchema(schema, data);
         }
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
@@ -166,4 +170,15 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<Schema
         mapper.writeValue(generator, data);
     }
 
+    private void validateDataWithSchema(ParsedSchema<JsonSchema> schema, T data) throws IOException {
+        final Set<ValidationMessage> validationMessages = schema.getParsedSchema().validate(mapper.readTree(mapper.writeValueAsBytes(data)));
+        if (validationMessages != null && !validationMessages.isEmpty()) {
+            //There are validation failures
+            StringBuilder message = new StringBuilder();
+            for (ValidationMessage validationMessage: validationMessages) {
+                message.append(validationMessage.getMessage()).append(" ");
+            }
+            throw new IOException(String.format("Error validating data against json schema with message: %s", message.toString()));
+        }
+    }
 }

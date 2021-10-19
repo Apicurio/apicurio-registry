@@ -23,7 +23,7 @@ import {
     DescriptionListTerm,
     Form,
     FormGroup,
-    Modal,
+    Modal, Popover,
     Radio,
     Select,
     SelectOption,
@@ -63,6 +63,7 @@ export interface GrantAccessModalState extends PureComponentState {
     accountId: string | undefined;
     accountName: string | undefined;
     role: string | undefined;
+    escapeClosesModal: boolean;
 }
 
 
@@ -97,14 +98,18 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
         return (
             <Modal
-                title="Manage Permissions"
-                description="Manage access to resources in this Service Registry instance by assigning permissions to an account."
+                title="Grant access"
+                description={this.modalDescription()}
                 variant="medium"
                 isOpen={this.props.isOpen}
                 onClose={this.props.onClose}
                 className="grant-access-modal pf-m-redhat-font"
+                onEscapePress={this.escapePressed}
+                onKeyPress={this.onKey}
+                onKeyDown={this.onKey}
+                onKeyUp={this.onKey}
                 actions={[
-                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid}>{this.props.isUpdateAccess ? "Update" : "Create"}</Button>,
+                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid}>Save</Button>,
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
@@ -118,20 +123,27 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                     ) : undefined}
 
                     <FormGroup
-                        label="Account ID"
-                        labelIcon={<Tooltip
-                            position="top"
-                            content={
-                              <div>A service account enables your application or tool to connect securely to your resources. A user account enables users in your organization to access resources.</div>
-                            }
-                          >
-                            <OutlinedQuestionCircleIcon/>
-                          </Tooltip>}
+                        label="Account"
+                        labelIcon={
+                            <Popover aria-label="Account help"
+                                     headerContent={
+                                         <span>Account help</span>
+                                     }
+                                     bodyContent={
+                                         <div>A service account enables your application or tool to connect securely to
+                                             your resources. A user account enables users in your organization to access
+                                             resources.</div>
+                                     }
+                            >
+                                <OutlinedQuestionCircleIcon/>
+                            </Popover>
+                        }
                         isRequired
                         fieldId="grant-access-account-id"
                     >
                         {principals ? <SelectPrincipalAccount
                             id={this.state.accountId}
+                            onToggle={this.onAccountSelectToggle}
                             onIdUpdate={(id: string) => {
                                 this.onAccountIDSelect(null, id, false);
                             }}
@@ -141,15 +153,16 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                                 id="grant-access-principal"
                                 name="grant-access-principal"
                                 variant={SelectVariant.typeahead}
-                                typeAheadAriaLabel="Select an account ID"
+                                typeAheadAriaLabel="Select an account"
                                 onToggle={this.onAccountIDToggle}
                                 onSelect={this.onAccountIDSelect}
                                 onClear={this.onAccountIDClearSelection}
                                 selections={this.state.accountId}
                                 isOpen={this.state.isAccountIDSelectOpen}
                                 isInputValuePersisted={true}
-                                placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account ID"}
+                                placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account"}
                                 maxHeight = {'100px'}
+                                menuAppendTo="parent"
                                 isDisabled={this.props.isUpdateAccess}
                             >
                                 {this.props.roles.map((option, index) => (
@@ -179,7 +192,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                             className="grant-access-radio-button"
                             name="grant-access-role"
                             label="Administrator"
-                            description="Give roles to other principals on this Service Registry instance, configure global rules, and access data import and export features."
+                            description="Assign roles to other accounts on this Service Registry instance, configure global rules, and access data import and export features."
                             value={RoleTypes.ADMIN}
                             onChange={this.handleRoleChange}
                             isChecked={this.state.role == RoleTypes.ADMIN}
@@ -215,7 +228,8 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
             isValid: false,
             accountId: "",
             accountName: "",
-            role: undefined
+            role: undefined,
+            escapeClosesModal: true
         };
     }
 
@@ -295,4 +309,30 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         }
         return undefined;
     }
+
+    private modalDescription() {
+        if (Services.getConfigService().featureMultiTenant()) {
+            return "Manage access to resources in this Service Registry instance by assigning permissions to an account.";
+        } else {
+            return "Manage access to resources in the Registry by assigning permissions to an account.";
+        }
+    }
+
+    private escapePressed = (): void => {
+        if (this.state.escapeClosesModal) {
+            this.props.onClose();
+        }
+    };
+
+    private onAccountSelectToggle = (isOpen: boolean): void => {
+        this.setSingleState("escapeClosesModal", !isOpen);
+    };
+
+    private onKey = (event: any) => {
+        if (event.key === "Enter") {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+    };
+
 }

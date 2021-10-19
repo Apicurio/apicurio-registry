@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -156,13 +155,13 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
-        JsonGenerator generator = mapper.getFactory().createGenerator(out);
+        final byte[] dataBytes = mapper.writeValueAsBytes(data);
         if (isValidationEnabled()) {
-            JsonSchemaValidationUtil.validateDataWithSchema(schema, mapper.writeValueAsBytes(data), mapper);
+            JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);
         }
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
-        mapper.writeValue(generator, data);
+        out.write(dataBytes);
     }
 }

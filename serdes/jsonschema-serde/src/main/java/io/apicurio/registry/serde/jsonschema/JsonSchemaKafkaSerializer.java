@@ -20,12 +20,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -162,23 +160,11 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
         JsonGenerator generator = mapper.getFactory().createGenerator(out);
         if (isValidationEnabled()) {
-            validateDataWithSchema(schema, data);
+            JsonSchemaValidationUtil.validateDataWithSchema(schema, mapper.writeValueAsBytes(data), mapper);
         }
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
         mapper.writeValue(generator, data);
-    }
-
-    private void validateDataWithSchema(ParsedSchema<JsonSchema> schema, T data) throws IOException {
-        final Set<ValidationMessage> validationMessages = schema.getParsedSchema().validate(mapper.readTree(mapper.writeValueAsBytes(data)));
-        if (validationMessages != null && !validationMessages.isEmpty()) {
-            //There are validation failures
-            StringBuilder message = new StringBuilder();
-            for (ValidationMessage validationMessage: validationMessages) {
-                message.append(validationMessage.getMessage()).append(" ");
-            }
-            throw new IOException(String.format("Error validating data against json schema with message: %s", message.toString()));
-        }
     }
 }

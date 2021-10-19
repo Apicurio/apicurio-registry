@@ -21,12 +21,10 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -155,7 +153,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
             JsonParser parser = mapper.getFactory().createParser(data);
 
             if (isValidationEnabled()) {
-                validateDataWithSchema(schema, data);
+                JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
             }
 
             Class<T> messageType = null;
@@ -186,14 +184,6 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    private void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data) throws IOException {
-        final Set<ValidationMessage> validationMessages = schema.getParsedSchema().validate(mapper.readTree(data));
-        if (validationMessages != null && !validationMessages.isEmpty()) {
-            //There are validation failures
-            throw new IOException("Error validation data agaisnt json schema with message: ");
         }
     }
 }

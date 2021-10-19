@@ -15,8 +15,11 @@
  */
 package io.apicurio.tests.common;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
@@ -24,8 +27,8 @@ import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.kafka.EmbeddedKafka;
+import io.apicurio.tests.common.kafka.TrustAllSslEngineFactory;
 import io.apicurio.tests.common.utils.RegistryUtils;
-
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -68,6 +71,23 @@ public class KafkaFacade implements RegistryTestProcess {
             return System.getenv(Constants.TESTS_SHARED_KAFKA_ENV_VAR);
         }
         return null;
+    }
+
+    public Properties connectionProperties() {
+        Properties properties = new Properties();
+        properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        properties.put(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
+        properties.put(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        //shared kafka cluster is deployed in k8s/ocp and exposed externally by using SSL
+        if (sharedKafkaCluster) {
+            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+            properties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
+            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
+            properties.put("enable.ssl.certificate.verification", false);
+        }
+        return properties;
     }
 
     public void startIfNeeded() {
@@ -131,11 +151,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     private AdminClient adminClient() {
         if (client == null) {
-            Properties properties = new Properties();
-            properties.put("bootstrap.servers", bootstrapServers());
-            properties.put("connections.max.idle.ms", 10000);
-            properties.put("request.timeout.ms", 5000);
-            client = AdminClient.create(properties);
+            client = AdminClient.create(connectionProperties());
         }
         return client;
     }

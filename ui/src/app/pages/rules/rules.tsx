@@ -58,8 +58,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                 </PageSection>
                 <PageSection className="ps_rules-description" variant={PageSectionVariants.light}>
                     <TextContent>
-                        Manage the list of Global Rules configured for the Registry below.  Rules can be enabled/disabled
-                        and also individually configured.
+                        Manage the list of global rules for this registry. Rules can be enabled, disabled, and individually configured.
                     </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>

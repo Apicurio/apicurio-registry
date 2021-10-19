@@ -82,7 +82,7 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
                     <PageSection variant={PageSectionVariants.default} isFilled={true}>
                         <Flex>
                             <FlexItem><Spinner size="lg"/></FlexItem>
-                            <FlexItem><span>Loading, please wait...</span></FlexItem>
+                            <FlexItem><span>Loading...</span></FlexItem>
                         </Flex>
                     </PageSection>
                 </React.Fragment>

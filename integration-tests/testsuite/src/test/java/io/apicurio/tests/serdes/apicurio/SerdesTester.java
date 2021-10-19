@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -39,6 +41,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +96,10 @@ public class SerdesTester<K, P, C> {
         }
         //ssl trust all
         props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+        props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+//        props.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
+//        props.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
+        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
 
         return new KafkaProducer<>(props);
     }
@@ -117,6 +124,10 @@ public class SerdesTester<K, P, C> {
         }
         //ssl trust all
         props.putIfAbsent(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+        props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+//        props.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
+//        props.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
+        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
 
         return new KafkaConsumer<>(props);
     }

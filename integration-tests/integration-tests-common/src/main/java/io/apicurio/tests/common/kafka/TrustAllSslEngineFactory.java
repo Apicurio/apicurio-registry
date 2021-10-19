@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -94,11 +93,11 @@ public class TrustAllSslEngineFactory implements SslEngineFactory {
             sslEngine.setUseClientMode(false);
         } else {
             sslEngine.setUseClientMode(true);
-            SSLParameters sslParams = sslEngine.getSSLParameters();
-            // SSLParameters#setEndpointIdentificationAlgorithm enables endpoint validation
-            // only in client mode. Hence, validation is enabled only for clients.
-            sslParams.setEndpointIdentificationAlgorithm(endpointIdentification);
-            sslEngine.setSSLParameters(sslParams);
+//            SSLParameters sslParams = sslEngine.getSSLParameters();
+//            // SSLParameters#setEndpointIdentificationAlgorithm enables endpoint validation
+//            // only in client mode. Hence, validation is enabled only for clients.
+//            sslParams.setEndpointIdentificationAlgorithm(endpointIdentification);
+//            sslEngine.setSSLParameters(sslParams);
         }
         return sslEngine;
     }

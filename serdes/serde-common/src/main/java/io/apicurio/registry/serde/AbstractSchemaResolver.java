@@ -98,6 +98,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
         schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
         schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
+        schemaCache.checkInitialized();
 
         String groupIdOverride = config.getExplicitArtifactGroupId();
         if (groupIdOverride != null) {

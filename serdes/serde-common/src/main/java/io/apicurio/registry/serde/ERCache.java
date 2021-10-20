@@ -86,7 +86,7 @@ public class ERCache<V> {
         this.keyExtractor4 = keyExtractor;
     }
 
-    private void checkInitialized() {
+    public void checkInitialized() {
         boolean initialized = keyExtractor1 != null && keyExtractor2 != null &&
             keyExtractor3 != null && keyExtractor4 != null;
         initialized = initialized && lifetime != null && backoff != null && retries >= 0;
@@ -99,6 +99,11 @@ public class ERCache<V> {
     public V getByArtifactReference(ArtifactReference key, Function<ArtifactReference, V> loaderFunction) {
         WrappedValue<V> value = this.index1.get(key);
         return getValue(value, key, loaderFunction);
+    }
+
+    public boolean containsByArtifactReference(ArtifactReference key) {
+        WrappedValue<V> value = this.index1.get(key);
+        return value != null && !value.isExpired();
     }
 
     public V getByGlobalId(Long key, Function<Long, V> loaderFunction) {
@@ -119,8 +124,6 @@ public class ERCache<V> {
     // === Generic
 
     private <T> V getValue(WrappedValue<V> value, T key, Function<T, V> loaderFunction) {
-        checkInitialized();
-
         V result = value != null ? value.value : null;
 
         if (value == null || value.isExpired()) {
@@ -149,7 +152,6 @@ public class ERCache<V> {
     }
 
     public void clear() {
-        checkInitialized();
         index1.clear();
         index2.clear();
         index3.clear();

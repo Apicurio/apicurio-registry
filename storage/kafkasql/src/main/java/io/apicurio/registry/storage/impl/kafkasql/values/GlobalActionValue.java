@@ -18,6 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.ToString;
 
 /**
  * Value that carries no additional information.
@@ -27,6 +28,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * @author Jakub Senko <jsenko@redhat.com>
  */
 @RegisterForReflection
+@ToString
 public class GlobalActionValue extends AbstractMessageValue {
 
     /**

@@ -303,7 +303,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      *      due to a desire to avoid premature optimization.
      */
     private long nextClusterGlobalId() {
-        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.CREATE));
+        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
 
@@ -315,7 +315,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      *      due to a desire to avoid premature optimization.
      */
     private long nextClusterContentId() {
-        UUID uuid = ConcurrentUtil.get(submitter.submitContentId(ActionType.CREATE));
+        UUID uuid = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
 
@@ -340,7 +340,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
-            CompletableFuture<UUID> future = submitter.submitContent(contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -1129,7 +1129,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
@@ -1149,11 +1149,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group);
     }
     private void resetContentId() {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.RESET));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
     private void resetGlobalId() {
-        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(ActionType.RESET));
+        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
 

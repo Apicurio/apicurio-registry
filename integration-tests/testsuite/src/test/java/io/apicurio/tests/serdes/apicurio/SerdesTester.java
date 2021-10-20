@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -75,7 +77,10 @@ public class SerdesTester<K, P, C> {
     }
 
     public Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass, Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        connectionProperties().forEach((k, v) -> {
+            props.putIfAbsent(k, v);
+        });
+
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + topicName);
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerClass.getName());
@@ -98,7 +103,10 @@ public class SerdesTester<K, P, C> {
     }
 
     public Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
-        props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        connectionProperties().forEach((k, v) -> {
+            props.putIfAbsent(k, v);
+        });
+
         props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + topicName);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "500");
@@ -111,6 +119,7 @@ public class SerdesTester<K, P, C> {
         } else {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         }
+
         return new KafkaConsumer<>(props);
     }
 
@@ -211,12 +220,15 @@ public class SerdesTester<K, P, C> {
 
     }
 
-    private static String bootstrapServers() {
+    private static Properties connectionProperties() {
         String bootsrapServers = KafkaFacade.getInstance().bootstrapServers();
         if (bootsrapServers == null) {
-            return BOOTSTRAP_SERVERS;
+            Properties props = new Properties();
+            props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+            return props;
+        } else {
+            return KafkaFacade.getInstance().connectionProperties();
         }
-        return bootsrapServers;
     }
 
 }

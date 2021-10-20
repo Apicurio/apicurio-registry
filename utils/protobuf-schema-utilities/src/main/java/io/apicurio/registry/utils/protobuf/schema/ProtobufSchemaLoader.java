@@ -84,13 +84,18 @@ public class ProtobufSchemaLoader {
     public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition)
         throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
+
+        //Null package schemas are not supported by Square
+        //Remove once https://github.com/square/wire/issues/2042 is pushed.
+        packageName
+            .orElseThrow(() -> new IllegalArgumentException("Schema cannot be parsed without a package"));
+
         String [] dirs = {};
-        if (packageName.isPresent()) {
-            dirs = packageName.get().split("\\.");
-        }
+        dirs = packageName.get().split("\\.");
+        String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
         try {
             String dirPath = createDirectory(dirs, inMemoryFileSystem);
-            Path path = inMemoryFileSystem.getPath(dirPath, fileName);
+            Path path = inMemoryFileSystem.getPath(dirPath, protoFileName);
             Files.write(path, schemaDefinition.getBytes());
 
             try (SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem)) {
@@ -100,7 +105,7 @@ public class ProtobufSchemaLoader {
                 ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
 
                 if (protoFile == null) {
-                    throw new RuntimeException("Error loading Protobuf File: " + fileName);
+                    throw new RuntimeException("Error loading Protobuf File: " + protoFileName);
                 }
 
                 return new ProtobufSchemaLoaderContext(schema, protoFile);

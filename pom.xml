@@ -148,7 +148,7 @@
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.61</json-schema-validator.version>
+        <json-schema-validator.version>1.0.62</json-schema-validator.version>
         <wire-schema.version>3.7.0</wire-schema.version>
         <wire-compiler.version>3.7.0</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
@@ -157,6 +157,7 @@
         <xmlsec.version>2.1.7</xmlsec.version>
         <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
+        <google.truth.extension.version>1.1.3</google.truth.extension.version>
 
         <!-- Picocli -->
         <picocli.version>4.6.1</picocli.version>
@@ -174,7 +175,6 @@
         <graphql.version>17.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
         <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
@@ -499,12 +499,6 @@
                 <version>${graphql.version}</version>
             </dependency>
 
-            <!-- JSON Schema Validator -->
-            <dependency>
-                <groupId>com.worldturner.medeia</groupId>
-                <artifactId>medeia-validator-jackson</artifactId>
-                <version>${medeia-validator-jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
@@ -615,6 +609,12 @@
                 <groupId>com.github.tomakehurst</groupId>
                 <artifactId>wiremock-jre8</artifactId>
                 <version>${wiremock-jre8.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.truth.extensions</groupId>
+                <artifactId>truth-proto-extension</artifactId>
+                <version>${google.truth.extension.version}</version>
+                <scope>test</scope>
             </dependency>
 
         </dependencies>

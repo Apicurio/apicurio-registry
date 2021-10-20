@@ -20,116 +20,137 @@ import {Divider, Select, SelectGroup, SelectOption, SelectVariant,} from '@patte
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Principal} from '../../../../../services/config';
 
-export interface SelectPrincipalAccountProps extends PureComponentProps{
-  id: string | undefined;
-  onIdUpdate: (id: string) => void;
-  initialOptions: Principal[];
+export interface SelectPrincipalAccountProps extends PureComponentProps {
+    id: string | undefined;
+    onIdUpdate: (id: string) => void;
+    initialOptions: Principal[];
+    onToggle: (isOpen: boolean) => void;
 }
 
-export interface SelectPrincipalAccountState extends PureComponentState{
-  id: string | undefined;
-  isOpen: boolean;
+export interface SelectPrincipalAccountState extends PureComponentState {
+    id: string | undefined;
+    isOpen: boolean;
 }
 
 export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccountProps, SelectPrincipalAccountState> {
 
-  constructor(props: Readonly<SelectPrincipalAccountProps>) {
-    super(props);
-}
+    constructor(props: Readonly<SelectPrincipalAccountProps>) {
+        super(props);
+    }
+
     private onToggle = (isOpen: boolean) => {
-      this.setSingleState("isOpen", isOpen);
+        this.setSingleState("isOpen", isOpen);
+        this.props.onToggle(isOpen);
     };
 
     private clearSelection = () => {
-      this.reset();
+        this.reset();
     };
 
-    private onSelect = (_event:any, selection:any, isPlaceholder:any) => {
-      if (isPlaceholder) {
-        this.clearSelection();
-      } else {
-        this.setMultiState({
-          id: selection,
-          isOpen: false
-        })
-      }
-      this.props.onIdUpdate(selection);
+    private onSelect = (_event: any, selection: any, isPlaceholder: any) => {
+        if (isPlaceholder) {
+            this.clearSelection();
+        } else {
+            this.setSingleState("id", selection);
+            this.onToggle(false);
+        }
+        this.props.onIdUpdate(selection);
     };
 
-  protected initializeState(): SelectPrincipalAccountState {
-    return {
-      id: "",
-      isOpen: false
+    protected initializeState(): SelectPrincipalAccountState {
+        return {
+            id: "",
+            isOpen: false
+        };
+    }
+
+    public reset(): void {
+        this.setMultiState(this.initializeState());
+    }
+
+    public render(): React.ReactElement {
+        const children: React.ReactElement[] = this.filter(null, "");
+
+        return (
+            <Select
+                variant={SelectVariant.typeahead}
+                typeAheadAriaLabel={"Select an account"}
+                onToggle={this.onToggle}
+                onSelect={this.onSelect}
+                onClear={this.clearSelection}
+                selections={this.props.id}
+                isOpen={this.state.isOpen}
+                isInputValuePersisted={true}
+                placeholderText={"Select an account"}
+                isCreatable={false}
+                menuAppendTo="parent"
+                maxHeight={400}
+                isGrouped={true}
+                onFilter={this.filter}
+                children={children}
+            />
+        );
     };
-  }
 
-  public reset(): void {
-    this.setMultiState(this.initializeState());
-  }
-
-  public render(): React.ReactElement {
-    const { initialOptions,
-      id
-    } = this.props;
-
-    return (
-      <Select
-        variant={SelectVariant.typeahead}
-        typeAheadAriaLabel={"Select an account"}
-        onToggle={this.onToggle}
-        onSelect={this.onSelect}
-        onClear={this.clearSelection}
-        selections={id}
-        isOpen={this.state.isOpen}
-        isInputValuePersisted={true}
-        placeholderText={"Select an account"}
-        isCreatable={false}
-        maxHeight={400}
-        isGrouped={true}
-      >
-        {[
-          <SelectGroup
-            label={"Service accounts"}
-            key='service_accounts_group'
-          >
-            {
-            initialOptions
-              .filter(
-                (principal) =>
-                  principal.principalType === "SERVICE_ACCOUNT"
-              )
-              .map((principal, index) => (
+    private filter = (event: any, criteria: string): React.ReactElement[] => {
+        const principalToSelectOption: (p: Principal, index: number) => React.ReactElement = (principal: Principal, index: number): React.ReactElement => {
+            return (
                 <SelectOption
-                  key={index}
-                  value={principal.id}
-                  description={principal.displayName}
+                    key={index}
+                    value={principal.id}
+                    description={principal.displayName}
                 >
-                  {principal.id}
+                    {principal.id}
                 </SelectOption>
-              ))}
-          </SelectGroup>,
-          <Divider key='divider' />,
-          <SelectGroup
-            label={"User accounts"}
-            key='user_accounts_group'
-          >
-            {initialOptions
-              .filter(
-                (principal) =>
-                  principal.principalType === "USER_ACCOUNT"
-              )
-              .map((principal, index) => (
-                <SelectOption
-                  key={index}
-                  value={principal.id}
-                  description={principal.displayName}
-                >
-                  {principal.id}
-                </SelectOption>
-              ))}
-          </SelectGroup>,
-        ]}
-      </Select>
-    );
-  };
+            )
+        };
+
+        const filteredSAs: Principal[] = this.props.initialOptions.filter(
+            (principal) =>
+                principal.principalType === "SERVICE_ACCOUNT"
+        ).filter(
+            (principal) =>
+                principal.id.toLowerCase().includes(criteria.toLowerCase()) ||
+                principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
+        );
+        const filteredUsers: Principal[] = this.props.initialOptions.filter(
+            (principal) =>
+                principal.principalType === "USER_ACCOUNT"
+        ).filter(
+            (principal) =>
+                principal.id.toLowerCase().includes(criteria.toLowerCase()) ||
+                principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
+        );
+
+        let rval: React.ReactElement[] = [];
+
+        if (filteredSAs.length > 0) {
+            rval.push(
+                <SelectGroup label={"Service accounts"} key="service_accounts_group">
+                    {
+                        filteredSAs.map(principalToSelectOption)
+                    }
+                </SelectGroup>,
+            );
+        }
+
+        if (filteredSAs.length > 0 && filteredUsers.length > 0) {
+            rval.push(
+                <Divider key='divider'/>,
+            );
+        }
+
+        if (filteredUsers.length > 0) {
+            rval.push(
+                <SelectGroup label={"User accounts"} key="user_accounts_group">
+                    {
+                        filteredUsers.map(principalToSelectOption)
+                    }
+                </SelectGroup>,
+            );
+        }
+
+        return rval;
+    }
+
 }

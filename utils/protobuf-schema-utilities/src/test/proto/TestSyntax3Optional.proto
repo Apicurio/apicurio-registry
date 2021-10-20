@@ -1,0 +1,42 @@
+syntax = "proto3";
+package io.apicurio.registry.utils.protobuf.schema.syntax3;
+
+message FooBar {
+  string f1 = 1;
+
+  optional string f2 = 2;
+  optional bytes f3 = 3;
+
+  oneof testOneOf1 {
+    int64 of1 = 189;
+    inner in = 190;
+    int64 of2 = 188;
+  }
+  int32 f4 = 4;
+  optional inner f5 = 5;
+
+  message inner {
+    optional string h1 = 10;
+    string h2 = 11;
+    oneof oneof1 {
+      string a = 18;
+      int32 b = 19;
+    }
+    optional Game game = 100;
+    optional string h3 = 12;
+    oneof oneof2 {
+      string c = 21;
+      int32 d = 22;
+    }
+
+    enum Game {
+      REDLIGHT = 0;
+      GREENLIGHT = 24;
+    }
+  }
+
+  oneof testOneOf2 {
+    int64 of3 = 185;
+    int64 of4 = 186;
+  }
+}

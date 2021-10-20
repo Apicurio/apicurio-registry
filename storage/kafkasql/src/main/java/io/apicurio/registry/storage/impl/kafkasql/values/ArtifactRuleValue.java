@@ -19,11 +19,13 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
+@ToString
 public class ArtifactRuleValue extends AbstractMessageValue {
 
     private RuleConfigurationDto config;

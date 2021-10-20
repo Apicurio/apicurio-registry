@@ -1,12 +1,30 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.AnyProto;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.DurationProto;
+import com.google.protobuf.EmptyProto;
 import com.google.protobuf.TimestampProto;
 import com.google.protobuf.WrappersProto;
+import com.google.type.CalendarPeriodProto;
+import com.google.type.ColorProto;
+import com.google.type.DateProto;
+import com.google.type.DayOfWeek;
+import com.google.type.ExprProto;
+import com.google.type.FractionProto;
+import com.google.type.IntervalProto;
+import com.google.type.LatLng;
+import com.google.type.LocalizedTextProto;
+import com.google.type.MoneyProto;
+import com.google.type.MonthProto;
+import com.google.type.PhoneNumberProto;
+import com.google.type.PostalAddressProto;
+import com.google.type.QuaternionProto;
+import com.google.type.TimeOfDayProto;
 import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.EnumConstant;
 import com.squareup.wire.schema.EnumType;
@@ -45,6 +63,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
@@ -83,10 +103,32 @@ public class FileDescriptorUtils {
     private static final String OPTIONAL = "optional";
 
     public static FileDescriptor[] baseDependencies() {
+        //Support all the Protobuf WellKnownTypes
+        //and the protos from Google API, https://github.com/googleapis/googleapis
         return new FileDescriptor[] {
-                    TimestampProto.getDescriptor().getFile(),
-                    WrappersProto.getDescriptor().getFile()
-                };
+            TimestampProto.getDescriptor().getFile(),
+            WrappersProto.getDescriptor().getFile(),
+            AnyProto.getDescriptor().getFile(),
+            EmptyProto.getDescriptor().getFile(),
+            DurationProto.getDescriptor().getFile(),
+            TimeOfDayProto.getDescriptor().getFile(),
+            DateProto.getDescriptor().getFile(),
+            CalendarPeriodProto.getDescriptor().getFile(),
+            ColorProto.getDescriptor().getFile(),
+            DayOfWeek.getDescriptor().getFile(),
+            LatLng.getDescriptor().getFile(),
+            FractionProto.getDescriptor().getFile(),
+            MoneyProto.getDescriptor().getFile(),
+            MonthProto.getDescriptor().getFile(),
+            PhoneNumberProto.getDescriptor().getFile(),
+            PostalAddressProto.getDescriptor().getFile(),
+            CalendarPeriodProto.getDescriptor().getFile(),
+            LocalizedTextProto.getDescriptor().getFile(),
+            IntervalProto.getDescriptor().getFile(),
+            ExprProto.getDescriptor().getFile(),
+            QuaternionProto.getDescriptor().getFile(),
+            PostalAddressProto.getDescriptor().getFile()
+        };
     }
 
     public static FileDescriptor protoFileToFileDescriptor(ProtoFileElement element)
@@ -142,7 +184,7 @@ public class FileDescriptorUtils {
             Type type = schemaContext.getType(protoType);
             if (type instanceof MessageType) {
                 DescriptorProto
-                    message = messageElementToDescriptorProto((MessageType) type, schemaContext);
+                    message = messageElementToDescriptorProto((MessageType) type, schemaContext, element);
                 schema.addMessageType(message);
             } else if (type instanceof EnumType) {
                 EnumDescriptorProto message = enumElementToProto((EnumType) type);
@@ -229,91 +271,20 @@ public class FileDescriptorUtils {
     }
 
     private static DescriptorProto messageElementToDescriptorProto(
-        MessageType messageElem, Schema schema) {
+        MessageType messageElem, Schema schema, ProtoFile element) {
         ProtobufMessage message = new ProtobufMessage();
         message.protoBuilder().setName(messageElem.getType().getSimpleName());
 
         for (Type type : messageElem.getNestedTypes()) {
             if (type instanceof MessageType) {
                 message.protoBuilder().addNestedType(
-                    messageElementToDescriptorProto((MessageType) type, schema));
+                    messageElementToDescriptorProto((MessageType) type, schema, element));
             } else if (type instanceof EnumType) {
                 message.protoBuilder().addEnumType(enumElementToProto((EnumType) type));
             }
         }
 
-        Set<String> added = new LinkedHashSet<>();
-
-        for (OneOf oneof : messageElem.getOneOfs()) {
-            OneofDescriptorProto.Builder oneofBuilder = OneofDescriptorProto.newBuilder().setName(oneof.getName());
-            message.protoBuilder().addOneofDecl(oneofBuilder);
-
-            for (Field oneOfField : oneof.getFields()) {
-                String oneOfJsonName = findOptionString(JSON_NAME_OPTION, oneOfField.getOptions());
-                Boolean oneOfIsDeprecated = findOptionBoolean(DEPRECATED_OPTION, oneOfField.getOptions());
-
-                message.addFieldDescriptorProto(
-                    FieldDescriptorProto.Label.LABEL_OPTIONAL,
-                    null,
-                    String.valueOf(oneOfField.getType()),
-                    oneOfField.getName(),
-                    oneOfField.getTag(),
-                    oneOfField.getDefault(),
-                    oneOfJsonName,
-                    oneOfIsDeprecated,
-                    null,
-                    message.protoBuilder().getOneofDeclCount() - 1);
-
-                added.add(oneOfField.getName());
-            }
-        }
-
-        // Process fields after messages so that any newly created map entry messages are at the end
-        for (Field field : messageElem.getDeclaredFields()) {
-            if (added.contains(field.getName())) {
-                continue;
-            }
-            Field.Label fieldLabel = field.getLabel();
-            //Fields are optional by default in Proto3.
-            String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : OPTIONAL;
-
-            ProtoType protoType = field.getType();
-            String fieldTypeName = String.valueOf(protoType);
-            ProtoType keyType = protoType.getKeyType();
-            ProtoType valueType = protoType.getValueType();
-            // Map fields are only permitted in messages
-            if (protoType.isMap() && keyType != null && valueType != null) {
-                label = "repeated";
-                fieldTypeName = toMapEntry(field.getName());
-                ProtobufMessage protobufMapMessage = new ProtobufMessage();
-                DescriptorProto.Builder mapMessage = protobufMapMessage
-                        .protoBuilder()
-                        .setName(fieldTypeName)
-                        .mergeOptions(DescriptorProtos.MessageOptions.newBuilder()
-                                .setMapEntry(true)
-                                .build());
-
-                protobufMapMessage.addField(null, null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null, null);
-                protobufMapMessage.addField(null, null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null, null);
-                message.protoBuilder().addNestedType(mapMessage.build());
-            }
-
-            String jsonName = field.getDeclaredJsonName();
-            Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
-            Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
-
-            String fieldType = null;
-            Type typeReference = schema.getType(protoType);
-            if (typeReference != null) {
-                if (typeReference instanceof MessageType) {
-                    fieldType = "message";
-                }
-                if (typeReference instanceof EnumType) {
-                    fieldType = "enum";
-                }
-            }
-            message.addField(label, fieldType, fieldTypeName, field.getName(), field.getTag(), field.getDefault(), jsonName, isDeprecated, isPacked, null);
-        }
+        buildFields(messageElem, message, schema, element);
 
         for (ReservedElement reserved : messageElem.toElement().getReserveds()) {
             for (Object elem : reserved.getValues()) {
@@ -365,6 +336,140 @@ public class FileDescriptorUtils {
             message.protoBuilder().mergeOptions(optionsBuilder.build());
         }
         return message.build();
+    }
+
+    private static void buildFields(MessageType messageElem, ProtobufMessage message, Schema schema, ProtoFile element) {
+        final Predicate<Field> isProto3Optional =
+            field ->
+                Field.Label.OPTIONAL.equals(field.getLabel()) && Syntax.PROTO_3.equals(element.getSyntax());
+
+        final List<OneOf> oneOfs = messageElem.getOneOfs();
+        final List<OneOf> proto3OptionalOneOfs =
+            messageElem.getFieldsAndOneOfFields()
+                .stream()
+                .filter(isProto3Optional)
+                .map(FileDescriptorUtils::getProto3OptionalField)
+                .collect(Collectors.toList());
+
+        //Proto3 Optionals are considered as "synthetic-oneofs" by Protobuf compiler.
+        oneOfs.addAll(proto3OptionalOneOfs);
+
+        final Function<String, Optional<OneOf>> findOneOfByFieldName = fieldName -> {
+            for (OneOf oneOf : oneOfs) {
+                if (oneOf.getFields().stream().map(Field::getName).anyMatch(f -> f.equals(fieldName))) {
+                    return Optional.of(oneOf);
+                }
+            }
+            return Optional.empty();
+        };
+
+        //Add all the declared fields first skipping oneOfs.
+        for (final Field field : messageElem.getDeclaredFields()) {
+            final Optional<OneOf> optionalOneOf = findOneOfByFieldName.apply(field.getName());
+            if (!optionalOneOf.isPresent()) {
+                addField(field, message, schema);
+                continue;
+            }
+        }
+
+        final Set<OneOf> addedOneOfs = new LinkedHashSet<>();
+
+        //Add the oneOfs next including Proto3 Optionals.
+        for (final OneOf oneOfField : oneOfs) {
+            if (addedOneOfs.contains(oneOfField)) {
+                continue;
+            }
+
+            Boolean isProto3OptionalField = null;
+            if (proto3OptionalOneOfs.contains(oneOfField)) {
+                isProto3OptionalField = true;
+            }
+            addOneOfField(oneOfField, message, schema, isProto3OptionalField);
+            addedOneOfs.add(oneOfField);
+        }
+    }
+
+    private static void addField(Field field, ProtobufMessage message, Schema schema) {
+        Field.Label fieldLabel = field.getLabel();
+        //Fields are optional by default in Proto3.
+        String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : OPTIONAL;
+
+        ProtoType protoType = field.getType();
+        String fieldTypeName = String.valueOf(protoType);
+        ProtoType keyType = protoType.getKeyType();
+        ProtoType valueType = protoType.getValueType();
+        // Map fields are only permitted in messages
+        if (protoType.isMap() && keyType != null && valueType != null) {
+            label = "repeated";
+            fieldTypeName = toMapEntry(field.getName());
+            ProtobufMessage protobufMapMessage = new ProtobufMessage();
+            DescriptorProto.Builder mapMessage = protobufMapMessage
+                .protoBuilder()
+                .setName(fieldTypeName)
+                .mergeOptions(DescriptorProtos.MessageOptions.newBuilder()
+                    .setMapEntry(true)
+                    .build());
+
+            protobufMapMessage
+                .addField(null, null, keyType.getSimpleName(), KEY_FIELD, 1, null, null, null, null, null, null);
+            protobufMapMessage
+                .addField(null, null, valueType.getSimpleName(), VALUE_FIELD, 2, null, null, null, null, null, null);
+            message.protoBuilder().addNestedType(mapMessage.build());
+        }
+
+        String jsonName = field.getDeclaredJsonName();
+        Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
+        Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
+
+        String fieldType = determineFieldType(field, schema);
+
+        message.addField(label, fieldType, fieldTypeName, field.getName(), field.getTag(), field.getDefault(),
+            jsonName, isDeprecated, isPacked, null, null);
+    }
+
+    private static String determineFieldType(Field field, Schema schema) {
+        ProtoType protoType = field.getType();
+        Type typeReference = schema.getType(protoType);
+        if (typeReference != null) {
+            if (typeReference instanceof MessageType) {
+                return "message";
+            }
+            if (typeReference instanceof EnumType) {
+                return "enum";
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Proto3 optional fields are "synthetic one-ofs" and are written as one-of fields over the wire.
+     * This method generates the synthetic one-of from a Proto3 optional field.
+     */
+    private static OneOf getProto3OptionalField(Field field) {
+        return new OneOf("_" + field.getName(), "", Collections.singletonList(field));
+    }
+
+    private static void addOneOfField(OneOf oneOf, ProtobufMessage message, Schema schema, Boolean isProto3Optional) {
+        OneofDescriptorProto.Builder oneofBuilder = OneofDescriptorProto.newBuilder().setName(oneOf.getName());
+        message.protoBuilder().addOneofDecl(oneofBuilder);
+
+        for (Field oneOfField : oneOf.getFields()) {
+            String oneOfJsonName = findOptionString(JSON_NAME_OPTION, oneOfField.getOptions());
+            Boolean oneOfIsDeprecated = findOptionBoolean(DEPRECATED_OPTION, oneOfField.getOptions());
+
+            message.addFieldDescriptorProto(
+                FieldDescriptorProto.Label.LABEL_OPTIONAL,
+                determineFieldType(oneOfField, schema),
+                String.valueOf(oneOfField.getType()),
+                oneOfField.getName(),
+                oneOfField.getTag(),
+                oneOfField.getDefault(),
+                oneOfJsonName,
+                oneOfIsDeprecated,
+                null,
+                message.protoBuilder().getOneofDeclCount() - 1,
+                isProto3Optional);
+        }
     }
 
     private static EnumDescriptorProto enumElementToProto(EnumType enumElem) {
@@ -516,7 +621,12 @@ public class FileDescriptorUtils {
         }
         List<Map.Entry<String, ImmutableList.Builder<FieldElement>>> oneofs = new ArrayList<>(
                 oneofsMap.entrySet());
+        List<FieldElement> proto3OptionalFields = new ArrayList<>();
         for (FieldDescriptorProto fd : descriptor.getFieldList()) {
+            if (fd.hasProto3Optional()) {
+                proto3OptionalFields.add(toField(file, fd, false));
+                continue;
+            }
             if (fd.hasOneofIndex()) {
                 FieldElement field = toField(file, fd, true);
                 oneofs.get(fd.getOneofIndex()).getValue().add(field);
@@ -525,6 +635,7 @@ public class FileDescriptorUtils {
                 fields.add(field);
             }
         }
+        fields.addAll(proto3OptionalFields);
         for (DescriptorProto nestedDesc : descriptor.getNestedTypeList()) {
             MessageElement nestedMessage = toMessage(file, nestedDesc);
             nested.add(nestedMessage);
@@ -563,7 +674,10 @@ public class FileDescriptorUtils {
         }
         return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
                 reserved.build(), fields.build(),
-                oneofs.stream().map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
+                oneofs.stream()
+                    //Ignore oneOfs with no fields (like Proto3 Optional)
+                    .filter(e -> e.getValue().build().size() != 0)
+                    .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
                 extensions.build(), Collections.emptyList());
     }
 
@@ -638,7 +752,8 @@ public class FileDescriptorUtils {
             case LABEL_REQUIRED:
                 return isProto3 ? null : Field.Label.REQUIRED;
             case LABEL_OPTIONAL:
-                return isProto3 ? null : Field.Label.OPTIONAL;
+                //If it's a Proto3 optional, we have to print the optional label.
+                return isProto3 && !fd.hasProto3Optional() ? null : Field.Label.OPTIONAL;
             case LABEL_REPEATED:
                 return Field.Label.REPEATED;
             default:

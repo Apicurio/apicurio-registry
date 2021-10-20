@@ -36,9 +36,6 @@ public class CustomJWTAuth implements Auth {
         this.organizationId = organizationId;
     }
 
-    /**
-     * @see io.apicurio.registry.auth.Auth#apply(java.util.Map)
-     */
     @Override
     public void apply(Map<String, String> requestHeaders) {
         String token = Jwt.preferredUserName(username)

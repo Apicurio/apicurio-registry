@@ -33,10 +33,13 @@ public enum ActionType {
     CLEAR(4),
     IMPORT(5),
     RESET(6),
+
     /**
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
     DELETE_ALL_USER_DATA(7);
+
+    ;
 
     private final byte ord;
 

@@ -32,6 +32,7 @@ import {ExclamationTriangleIcon} from "@patternfly/react-icons";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-tomorrow";
+import {Services} from "../../../services";
 
 
 export interface PageError {
@@ -51,6 +52,7 @@ export interface ErrorPageState extends PureComponentState {
     isShowDetails: boolean;
     editorWidth: string;
     editorHeight: string;
+    canShowDetails: boolean;
 }
 
 
@@ -69,18 +71,21 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
                             <EmptyStateIcon icon={ExclamationTriangleIcon} />
                             <Title headingLevel="h5" size="lg">{ this.errorMessage() }</Title>
                             <EmptyStateBody>
-                                Something went seriously wrong on the server.  We'll try to provide you with some more information about
-                                the problem (see below) but you might want to try reloading.  If things still don't work then you'll
-                                have to report the problem to an admin.
+                                Try reloading the page. If the issue persists, reach out to your administrator.
                             </EmptyStateBody>
                             <Button variant="primary" onClick={this.reloadPage}>Reload page</Button>
                             <EmptyStateSecondaryActions>
                                 <Button variant="link"
                                         data-testid="error-btn-artifacts"
                                         onClick={this.navigateTo(this.linkTo("/"))}>Back to artifacts</Button>
-                                <Button variant="link"
-                                        data-testid="error-btn-details"
-                                        onClick={this.showDetails}>Show details</Button>
+                                {
+                                    this.state.canShowDetails ?
+                                        <Button variant="link"
+                                                data-testid="error-btn-details"
+                                                onClick={this.showDetails}>Show details</Button>
+                                        :
+                                        <span/>
+                                }
                             </EmptyStateSecondaryActions>
                         </EmptyState>
                         <div className="separator">&nbsp;</div>
@@ -124,7 +129,8 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
         return {
             editorHeight: "250px",
             editorWidth: "100%",
-            isShowDetails: false
+            isShowDetails: false,
+            canShowDetails: !Services.getConfigService().featureMultiTenant()
         };
     }
 

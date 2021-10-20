@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.serde;
 
-import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -73,10 +72,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
 
-        try {
+        if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
-        } catch (ArtifactNotFoundException ex) {
-            // Ignore and continue
         }
 
         if (autoCreateArtifact) {
@@ -152,27 +149,30 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return resolveSchemaByContent(rawSchemaString, parsedSchema, artifactReference);
+        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+
+            VersionMetaData artifactMetadata = client.getArtifactVersionMetaDataByContent(
+                artifactReference.getGroupId(), artifactReference.getArtifactId(), true, IoUtil.toStream(contentKey));
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            loadFromArtifactMetaData(artifactMetadata, result);
+
+            result.rawSchema(parsedSchema.getRawSchema());
+            result.schema(parsedSchema.getParsedSchema());
+
+            return result.build();
+        });
     }
 
     private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
                                                            final ArtifactReference artifactReference) {
-
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(),
-            schemaParser.artifactType(), this.autoCreateBehavior, false, IoUtil.toStream(parsedSchema.getRawSchema()));
+        return schemaCache.getByContent(rawSchemaString, contentKey -> {
 
-        return resolveSchemaByContent(rawSchemaString, parsedSchema, artifactReference);
-    }
-
-    private SchemaLookupResult<S> resolveSchemaByContent(String content, ParsedSchema<S> parsedSchema, ArtifactReference artifactReference) {
-        return schemaCache.getByContent(content, contentKey -> {
-
-            byte[] rawSchema = IoUtil.toBytes(contentKey);
-
-            VersionMetaData artifactMetadata = client.getArtifactVersionMetaDataByContent(
-                artifactReference.getGroupId(), artifactReference.getArtifactId(), true, IoUtil.toStream(rawSchema));
+            ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(),
+                schemaParser.artifactType(), this.autoCreateBehavior, false, IoUtil.toStream(parsedSchema.getRawSchema()));
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 

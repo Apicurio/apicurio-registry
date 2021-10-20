@@ -16,22 +16,12 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Deserializer;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.ParsedSchema;
@@ -41,6 +31,14 @@ import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Deserializer;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -64,7 +62,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     public JsonSchemaKafkaDeserializer(RegistryClient client,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, schemaResolver);
     }
 

@@ -2043,4 +2043,25 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
     }
 
+    @Test
+    public void testCreateArtifactAfterDelete() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact - indicate the type via a header param
+        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+
+        // Delete the artifact
+        given()
+            .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateArtifactAfterDelete/EmptyAPI")
+                .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}")
+            .then()
+                .statusCode(204);
+
+        // Create the same artifact
+        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
+        
+    }
+    
 }

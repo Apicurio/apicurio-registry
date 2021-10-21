@@ -148,7 +148,7 @@
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.62</json-schema-validator.version>
+        <json-schema-validator.version>1.0.63</json-schema-validator.version>
         <wire-schema.version>3.7.0</wire-schema.version>
         <wire-compiler.version>3.7.0</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>

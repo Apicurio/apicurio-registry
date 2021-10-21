@@ -566,7 +566,7 @@ public interface RegistryStorage {
      * @param entities
      * @throws RegistryStorageException
      */
-    public void importData(EntityInputStream entities) throws RegistryStorageException;
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException;
 
     /**
      * Counts the total number of artifacts

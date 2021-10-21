@@ -22,6 +22,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.utils.impexp.EntityType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -2228,13 +2230,24 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     @Transactional
-    public void importData(EntityInputStream entities) throws RegistryStorageException {
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
+        Map<Long, Long> contentIdMapping = new HashMap<>();
         handles.withHandleNoException( handle -> {
             Entity entity = null;
             while ( (entity = entities.nextEntity()) != null ) {
-                if (entity != null) {
-                    importEntity(handle, entity);
+                if(!preserveGlobalId && entity.getEntityType() == EntityType.ArtifactVersion){
+                    ((ArtifactVersionEntity) entity).globalId = -1;
                 }
+                if(!preserveContentId) {
+                    if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                        ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+                        artifactVersionEntity.contentId = computeContentId(handle, artifactVersionEntity.contentId, contentIdMapping);
+                    } else if (entity.getEntityType() == EntityType.Content) {
+                        ContentEntity contentEntity = (ContentEntity) entity;
+                        contentEntity.contentId = computeContentId(handle, contentEntity.contentId, contentIdMapping);
+                    }
+                }
+                importEntity(handle, entity);
             }
 
             // Make sure the contentId sequence is set high enough
@@ -2601,11 +2614,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             log.info("Artifact created successfully.");
         }
 
-        if (!isGlobalIdExists(entity.globalId)) {
+        if (entity.globalId == -1 || !isGlobalIdExists(entity.globalId)) {
+            long globalId = nextGlobalIdIfInvalid(handle, entity.globalId);
             try {
                 String sql = sqlStatements.importArtifactVersion();
                 handle.createUpdate(sql)
-                    .bind(0, entity.globalId)
+                    .bind(0, globalId)
                     .bind(1, tenantContext.tenantId())
                     .bind(2, normalizeGroupId(entity.groupId))
                     .bind(3, entity.artifactId)
@@ -2627,7 +2641,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     entity.labels.forEach(label -> {
                         String sqli = sqlStatements.insertLabel();
                         handle.createUpdate(sqli)
-                              .bind(0, entity.globalId)
+                              .bind(0, globalId)
                               .bind(1, label.toLowerCase())
                               .execute();
                     });
@@ -2638,7 +2652,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     entity.properties.forEach((k,v) -> {
                         String sqli = sqlStatements.insertProperty();
                         handle.createUpdate(sqli)
-                              .bind(0, entity.globalId)
+                              .bind(0, globalId)
                               .bind(1, k.toLowerCase())
                               .bind(2, v.toLowerCase())
                               .execute();
@@ -2649,7 +2663,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     // Update the "latest" column in the artifacts table with the globalId of the new version
                     sql = sqlStatements.updateArtifactLatest();
                     handle.createUpdate(sql)
-                          .bind(0, entity.globalId)
+                          .bind(0, globalId)
                           .bind(1, tenantContext.tenantId())
                           .bind(2, normalizeGroupId(entity.groupId))
                           .bind(3, entity.artifactId)
@@ -2838,5 +2852,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } else {
             return value;
         }
+    }
+
+    private long nextGlobalIdIfInvalid(Handle handle, long globalId) {
+        if(globalId == -1) {
+            return nextGlobalId(handle);
+        }
+        return globalId;
+    }
+
+    private long computeContentId(Handle handle, long contentId, Map<Long, Long> mapping) {
+        return mapping.computeIfAbsent(contentId, (k) -> nextContentId(handle));
     }
 }

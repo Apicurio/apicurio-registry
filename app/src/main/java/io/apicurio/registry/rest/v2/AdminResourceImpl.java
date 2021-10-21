@@ -248,7 +248,7 @@ public class AdminResourceImpl implements AdminResource {
                 zip.close();
             }
         };
-        this.storage.importData(stream);
+        this.storage.importData(stream, true, true);
     }
 
     /**

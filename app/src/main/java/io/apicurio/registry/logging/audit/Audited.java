@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.logging.audit;
 
+import javax.enterprise.util.Nonbinding;
 import javax.interceptor.InterceptorBinding;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -38,5 +39,19 @@ public @interface Audited {
      * @return
      */
     String action() default "";
+
+    /**
+     * If a method parameter value should be recorded to the auditing log,
+     * but there is no extractor defined (e.g. the value is a type without specific meaning, such as a String),
+     * this field can be used by adding two successive values:
+     *
+     * 1. Position of the given parameter, starting at 0, as String. Parameter name is not used,
+     *    in case it is not available via reflection.
+     * 2. Key under which the value of the parameter should be recorded.
+     *
+     * There can be more than one such pair.
+     */
+    @Nonbinding
+    String[] extractParameters() default {};
 
 }

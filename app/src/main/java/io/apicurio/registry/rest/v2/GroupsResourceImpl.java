@@ -81,6 +81,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_CANONICAL;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_DESCRIPTION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_GROUP_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_IF_EXISTS;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
  *
@@ -142,7 +157,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifact(String, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
                                            String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
@@ -167,7 +182,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifact(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
@@ -193,7 +208,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         requireParameter("groupId", groupId);
@@ -247,7 +262,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
         requireParameter("groupId", groupId);
@@ -262,7 +277,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRules(java.lang.String, java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifactRules(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
@@ -292,7 +307,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactRuleConfig(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE_TYPE, "3", KEY_RULE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
         requireParameter("groupId", groupId);
@@ -311,7 +326,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE_TYPE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
         requireParameter("groupId", groupId);
@@ -325,7 +340,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_UPDATE_STATE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
         requireParameter("groupId", groupId);
@@ -407,7 +422,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.EditableMetaData)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_EDITABLE_METADATA})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableMetaData data) {
         requireParameter("groupId", groupId);
@@ -426,7 +441,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
         requireParameter("groupId", groupId);
@@ -440,7 +455,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactVersionState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateState)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_UPDATE_STATE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void updateArtifactVersionState(String groupId, String artifactId, String version, UpdateState data) {
         requireParameter("groupId", groupId);
@@ -483,7 +498,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactsInGroup(java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID})
     @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
     public void deleteArtifactsInGroup(String groupId) {
         requireParameter("groupId", groupId);
@@ -495,7 +510,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
@@ -569,7 +584,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersion(String, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED})
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId,
                                                  String xRegistryVersion, String xRegistryName,

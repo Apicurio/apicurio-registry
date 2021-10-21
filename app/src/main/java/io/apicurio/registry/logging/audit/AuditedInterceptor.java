@@ -17,7 +17,6 @@
 package io.apicurio.registry.logging.audit;
 
 
-import org.slf4j.Logger;
 
 import javax.annotation.Priority;
 import javax.inject.Inject;
@@ -36,14 +35,12 @@ import java.util.Map;
  */
 @Audited
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION)
+@Priority(Interceptor.Priority.APPLICATION - 100)
+// Runs before other application interceptors, e.g. *PermissionInterceptor
 public class AuditedInterceptor {
 
     @Inject
     AuditLogService auditLogService;
-
-    @Inject
-    Logger log;
 
     @AroundInvoke
     public Object auditMethod(InvocationContext context) throws Exception {
@@ -51,10 +48,13 @@ public class AuditedInterceptor {
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
         Map<String, String> metadata = new HashMap<>();
 
-        for (int i = 0; i < context.getMethod().getParameters().length; i++) {
-            Object parameter = context.getParameters()[i];
-            if (parameter != null) {
-                metadata.put("parameter" + i, parameter.toString());
+        final String[] annotationParams = annotation.extractParameters();
+        if (annotationParams.length > 0) {
+            for (int i = 0; i <= annotationParams.length - 2; i += 2) {
+                Object parameterValue = context.getParameters()[Integer.parseInt(annotationParams[i])];
+                if (parameterValue != null) {
+                    metadata.put(annotationParams[i + 1], parameterValue.toString());
+                }
             }
         }
 

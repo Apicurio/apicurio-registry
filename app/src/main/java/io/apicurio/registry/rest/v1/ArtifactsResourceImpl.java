@@ -72,6 +72,16 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_CANONICAL;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_IF_EXISTS;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+
 /**
  * Implements the {@link ArtifactsResource} interface.
  *
@@ -156,7 +166,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactState(java.lang.String, io.apicurio.registry.rest.v1.beans.UpdateState)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_UPDATE_STATE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void updateArtifactState(String artifactId, UpdateState data) {
         Objects.requireNonNull(artifactId);
@@ -177,7 +187,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactVersionState(java.lang.String, java.lang.Integer, io.apicurio.registry.rest.v1.beans.UpdateState)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION, "2", KEY_UPDATE_STATE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void updateArtifactVersionState(String artifactId, Integer version, UpdateState data) {
         Objects.requireNonNull(artifactId);
@@ -212,7 +222,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifact (io.apicurio.registry.types.ArtifactType, java.lang.String, io.apicurio.registry.rest.v1.v1.beans.IfExistsType, java.lang.Boolean, java.io.InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_TYPE, "1", KEY_ARTIFACT_ID, "2", KEY_IF_EXISTS, "3", KEY_CANONICAL})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(ArtifactType xRegistryArtifactType,
             String xRegistryArtifactId, IfExistsType ifExists, Boolean canonical, InputStream data) {
@@ -291,7 +301,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifact(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_ARTIFACT_TYPE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public ArtifactMetaData updateArtifact(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);
@@ -305,7 +315,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifact(java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void deleteArtifact(String artifactId) {
         storage.deleteArtifact(null, artifactId);
@@ -325,7 +335,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifactVersion(java.lang.String, ArtifactType, java.io.InputStream)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_ARTIFACT_TYPE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public VersionMetaData createArtifactVersion(String artifactId, ArtifactType xRegistryArtifactType, InputStream data) {
         Objects.requireNonNull(artifactId);
@@ -387,7 +397,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#createArtifactRule (java.lang.String, io.apicurio.registry.rest.v1.v1.beans.Rule)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_RULE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void createArtifactRule(String artifactId, Rule data) {
         RuleConfigurationDto config = new RuleConfigurationDto();
@@ -399,7 +409,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactRules(java.lang.String)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void deleteArtifactRules(String artifactId) {
         storage.deleteArtifactRules(null, artifactId);
@@ -422,8 +432,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactRuleConfig(java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v1.beans.Rule)
      */
     @Override
-    @Audited
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_RULE_TYPE, "2", KEY_RULE})
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String artifactId, RuleType rule, Rule data) {
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(null, artifactId, rule, dto);
@@ -437,7 +447,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactRule(java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_RULE_TYPE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void deleteArtifactRule(String artifactId, RuleType rule) {
         storage.deleteArtifactRule(null, artifactId, rule);
@@ -478,7 +488,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactMetaData (java.lang.String, io.apicurio.registry.rest.v1.v1.beans.EditableMetaData)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_EDITABLE_METADATA})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void updateArtifactMetaData(String artifactId, EditableMetaData data) {
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
@@ -503,7 +513,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#updateArtifactVersionMetaData(java.lang.String, java.lang.Integer, io.apicurio.registry.rest.v1.beans.EditableMetaData)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION,  "2", KEY_EDITABLE_METADATA})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String artifactId, Integer version, EditableMetaData data) {
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
@@ -518,7 +528,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
      * @see io.apicurio.registry.rest.v1.ArtifactsResource#deleteArtifactVersionMetaData(java.lang.String, java.lang.Integer)
      */
     @Override
-    @Audited
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public void deleteArtifactVersionMetaData(String artifactId, Integer version) {
         storage.deleteArtifactVersionMetaData(null, artifactId, VersionUtil.toString(version));

@@ -16,20 +16,10 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
-
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.ParsedSchema;
@@ -39,6 +29,13 @@ import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -158,13 +155,13 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
-        JsonGenerator generator = mapper.getFactory().createGenerator(out);
+        final byte[] dataBytes = mapper.writeValueAsBytes(data);
         if (isValidationEnabled()) {
-            JsonSchemaValidationUtil.validateDataWithSchema(schema, mapper.writeValueAsBytes(data), mapper);
+            JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);
         }
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
-        mapper.writeValue(generator, data);
+        out.write(dataBytes);
     }
 }

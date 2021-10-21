@@ -169,7 +169,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.16</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.17</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>17.3</graphql.version>

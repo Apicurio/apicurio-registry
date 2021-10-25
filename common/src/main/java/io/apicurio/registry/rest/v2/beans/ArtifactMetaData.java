@@ -157,7 +157,7 @@ public class ArtifactMetaData {
      */
     @JsonProperty("references")
     @JsonPropertyDescription("")
-    private List<VersionReference> references = new ArrayList<VersionReference>();
+    private List<ArtifactReference> references = new ArrayList<ArtifactReference>();
 
     @JsonProperty("name")
     public String getName() {
@@ -447,7 +447,7 @@ public class ArtifactMetaData {
      *
      */
     @JsonProperty("references")
-    public List<VersionReference> getReferences() {
+    public List<ArtifactReference> getReferences() {
         return references;
     }
 
@@ -455,7 +455,7 @@ public class ArtifactMetaData {
      *
      */
     @JsonProperty("references")
-    public void setReferences(List<VersionReference> references) {
+    public void setReferences(List<ArtifactReference> references) {
         this.references = references;
     }
 

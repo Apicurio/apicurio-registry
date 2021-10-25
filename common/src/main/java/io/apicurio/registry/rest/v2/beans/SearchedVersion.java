@@ -133,7 +133,7 @@ public class SearchedVersion {
      */
     @JsonProperty("references")
     @JsonPropertyDescription("")
-    private List<VersionReference> references = new ArrayList<VersionReference>();
+    private List<ArtifactReference> references = new ArrayList<ArtifactReference>();
 
     /**
      * 
@@ -359,7 +359,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("references")
-    public List<VersionReference> getReferences() {
+    public List<ArtifactReference> getReferences() {
         return references;
     }
 
@@ -369,7 +369,7 @@ public class SearchedVersion {
      *
      */
     @JsonProperty("references")
-    public void setReferences(List<VersionReference> references) {
+    public void setReferences(List<ArtifactReference> references) {
         this.references = references;
     }
 

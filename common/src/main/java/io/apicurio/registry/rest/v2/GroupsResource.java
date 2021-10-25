@@ -383,9 +383,6 @@ public interface GroupsResource {
    * * A server error occurred (HTTP error `500`)
    *
    */
-
-  //FIXME:References handle artifact references
-
   @Path("/{groupId}/artifacts")
   @POST
   @Produces("application/json")
@@ -399,7 +396,6 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
-
 
   /**
    * Deletes all of the artifacts that exist in a given group.

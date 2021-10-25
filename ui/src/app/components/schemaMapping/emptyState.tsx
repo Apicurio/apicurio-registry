@@ -30,7 +30,7 @@ import {
   CardTitle,
 } from "@patternfly/react-core";
 import ArrowRightIcon from "@patternfly/react-icons/dist/js/icons/arrow-icon";
-import InfoCircleIcon from "@patternfly/react-icons/dist/js/icons/info-circle-icon";
+import WrenchIcon from "@patternfly/react-icons/dist/js/icons/wrench-icon";
 
 export type EmptyStateProps = {
   artifactName: string;
@@ -48,7 +48,7 @@ export const SchemaEmptyState: React.FC<EmptyStateProps> = ({
       <CardTitle>Topic schemas</CardTitle>
       <CardBody>
         <EmptyState variant={EmptyStateVariant.large}>
-          <EmptyStateIcon icon={InfoCircleIcon} color="#2B9AF3" />
+          <EmptyStateIcon icon={WrenchIcon} />
           <Title headingLevel="h4" size="lg">
             No matching schema exists for the selected instance
           </Title>

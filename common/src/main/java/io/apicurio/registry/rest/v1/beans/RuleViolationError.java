@@ -27,4 +27,11 @@ public class RuleViolationError extends Error {
     public void setCauses(Set<RuleViolationCause> causes) {
         this.causes = causes;
     }
+
+    @Override
+    public String toString() {
+        return "RuleViolationError{" +
+                "causes=" + causes +
+                '}';
+    }
 }

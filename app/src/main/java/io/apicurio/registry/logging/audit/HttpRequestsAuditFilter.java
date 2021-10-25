@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.multitenant.logging.audit;
 
-import io.vertx.core.http.HttpServerRequest;
+package io.apicurio.registry.logging.audit;
 
-import org.slf4j.Logger;
 
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -30,7 +29,6 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.ext.Provider;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.HashMap;
@@ -40,18 +38,14 @@ import java.util.Optional;
 /**
  * Filters REST API requests and responses to generate audit logs for failed requests
  *
- * @author Fabian Martinez
  */
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 @ApplicationScoped
 public class HttpRequestsAuditFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-    @Inject
-    Logger log;
-
     @Context
-    HttpServerRequest request;
+    HttpServletRequest request;
 
     @Inject
     AuditHttpRequestContext auditContext;
@@ -61,14 +55,12 @@ public class HttpRequestsAuditFilter implements ContainerRequestFilter, Containe
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        auditContext.setSourceIp(request.remoteAddress().toString());
+        auditContext.setSourceIp(request.getRemoteAddr());
         auditContext.setForwardedFor(requestContext.getHeaderString(AuditHttpRequestContext.X_FORWARDED_FOR_HEADER));
     }
 
     @Override
-    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
-        throws IOException {
-
+    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
         // check if there is already an audit entry for the logic executed in this request
         if (auditContext.isAuditEntryGenerated()) {
             return;
@@ -82,9 +74,7 @@ public class HttpRequestsAuditFilter implements ContainerRequestFilter, Containe
             metadata.put("response_code", String.valueOf(responseContext.getStatus()));
             metadata.put("user", Optional.ofNullable(requestContext.getSecurityContext()).map(SecurityContext::getUserPrincipal).map(Principal::getName).orElseGet(() -> ""));
 
-            auditLog.log("request", AuditHttpRequestContext.FAILURE, metadata, null);
+            auditLog.log("registry.audit", "request", AuditHttpRequestContext.FAILURE, metadata, null);
         }
-
     }
-
 }

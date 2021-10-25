@@ -63,8 +63,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
     @Inject
-    AuditHttpRequestContext auditContext;
-    @Inject
     AuditLogService auditLog;
 
     private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();;

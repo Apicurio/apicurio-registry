@@ -332,4 +332,20 @@ public class SearchedArtifact {
         this.groupId = groupId;
     }
 
+    @Override
+    public String toString() {
+        return "SearchedArtifact{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdOn=" + createdOn +
+                ", createdBy='" + createdBy + '\'' +
+                ", type=" + type +
+                ", labels=" + labels +
+                ", state=" + state +
+                ", modifiedOn=" + modifiedOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                ", groupId='" + groupId + '\'' +
+                '}';
+    }
 }

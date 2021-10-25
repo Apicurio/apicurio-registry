@@ -382,6 +382,8 @@ public interface GroupsResource {
    * * The content violates one of the configured global rules (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
+   * //FIXME:References handle artifact references
+   *
    */
   @Path("/{groupId}/artifacts")
   @POST

@@ -754,7 +754,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             //FIXME not the best solution possible since we're executing one query per reference, but works for now
             for (ArtifactReferenceDto reference : references) {
                 //To test if we can find a reference we look at the artifact metadata by globalId
-                getArtifactMetaData(reference.getGlobalId());
+                getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
             }
         }
     }

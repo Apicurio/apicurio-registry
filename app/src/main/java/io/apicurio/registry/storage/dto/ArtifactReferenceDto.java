@@ -30,7 +30,6 @@ public class ArtifactReferenceDto {
     private String groupId;
     private String artifactId;
     private String version;
-    private long globalId;
     private String name;
 
     /**
@@ -79,20 +78,6 @@ public class ArtifactReferenceDto {
      */
     public void setVersion(String version) {
         this.version = version;
-    }
-
-    /**
-     * @return globalId
-     */
-    public long getGlobalId() {
-        return globalId;
-    }
-
-    /**
-     * @param globalId to set
-     */
-    public void setGlobalId(long globalId) {
-        this.globalId = globalId;
     }
 
     /**

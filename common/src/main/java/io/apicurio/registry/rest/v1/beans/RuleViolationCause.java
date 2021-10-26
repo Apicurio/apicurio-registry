@@ -40,4 +40,12 @@ public class RuleViolationCause {
     public void setContext(String context) {
         this.context = context;
     }
+
+    @Override
+    public String toString() {
+        return "RuleViolationCause{" +
+                "description='" + description + '\'' +
+                ", context='" + context + '\'' +
+                '}';
+    }
 }

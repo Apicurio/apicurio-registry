@@ -15,55 +15,77 @@
  * limitations under the License.
  */
 
-import React from 'react'
+import React from "react";
 import {
   Card,
   CardTitle,
   CardBody,
   DescriptionList,
   DescriptionListTerm,
-} from '@patternfly/react-core'
-import './schemaCard.css'
-import { MatchingSchemaCard } from './matchingSchemaCard'
-import { NoMatchingSchema } from './noMatchingSchema'
+} from "@patternfly/react-core";
+import "./schemaCard.css";
+import { MatchingSchemaCard } from "./matchingSchemaCard";
+import { NoMatchingSchema } from "./noMatchingSchema";
 
-export type SchemaCardPropsProps = {
-  hasValueSchema: boolean
-  hasKeySchema: boolean
-  topicName: string
-}
+export type SchemaCardProps = {
+  hasValueSchema: boolean | undefined;
+  hasKeySchema: boolean | undefined;
+  topicName: string;
+  groupId: string;
+  version: string;
+  basename: string;
+  registryId: string;
+};
 
-export const SchemaCard: React.FC<SchemaCardPropsProps> = ({
+export const SchemaCard: React.FC<SchemaCardProps> = ({
   hasKeySchema,
   hasValueSchema,
   topicName,
+  version,
+  basename,
+  registryId,
 }) => {
   return (
     <Card>
       <CardTitle component="h2">Topic schemas</CardTitle>
-
       <CardBody>
         <DescriptionList
-          className={'pf-c-description-list__RowGap'}
           isHorizontal
           isAutoColumnWidths
-          columnModifier={{ lg: '2Col' }}
+          columnModifier={{ lg: "2Col" }}
         >
           <DescriptionListTerm>Value schema artifact ID</DescriptionListTerm>
           {hasValueSchema ? (
-            <MatchingSchemaCard topicName={topicName} keySchema={false} />
+            <MatchingSchemaCard
+              topicName={topicName}
+              keySchema={false}
+              routePath={`${basename}/t/${registryId}/artifacts/default/${topicName}-value/versions/${version}`}
+            />
           ) : (
-            <NoMatchingSchema topicName={topicName} keySchema={false} />
+            <NoMatchingSchema
+              title="Value schema"
+              artifactId={`${topicName}-value`}
+              basename={basename}
+              registryId={registryId}
+            />
           )}
-
           <DescriptionListTerm>Key schema artifact ID</DescriptionListTerm>
           {hasKeySchema ? (
-            <MatchingSchemaCard topicName={topicName} keySchema={true}/>
+            <MatchingSchemaCard
+              topicName={topicName}
+              keySchema={true}
+              routePath={`${basename}/t/${registryId}/artifacts/default/${topicName}-key/versions/${version}`}
+            />
           ) : (
-            <NoMatchingSchema topicName={topicName} keySchema={true} />
+            <NoMatchingSchema
+              title="Key schema"
+              artifactId={`${topicName}-key`}
+              basename={basename}
+              registryId={registryId}
+            />
           )}
         </DescriptionList>
       </CardBody>
     </Card>
-  )
-}
+  );
+};

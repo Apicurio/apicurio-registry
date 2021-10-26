@@ -160,6 +160,10 @@ export class ConfigService implements Service {
         };
     }
 
+    public principals() {
+        return this.config.principals;
+    }
+    
     public featureMultiTenant(): boolean {
         return this.features().multiTenant || false;
     }

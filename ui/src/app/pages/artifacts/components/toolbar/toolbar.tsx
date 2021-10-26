@@ -167,7 +167,6 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
     };
 
     private onFilterSubmit = (event: any|undefined): void => {
-        Services.getLoggerService().debug("[ArtifactsPageToolbar] Filter SUBMIT!");
         this.fireOnChange();
         if (event) {
             event.preventDefault();

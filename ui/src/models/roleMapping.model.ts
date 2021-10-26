@@ -28,5 +28,6 @@ export interface RoleMapping {
 
     principalId: string;
     role: string;
+    principalName: string;
 
 }

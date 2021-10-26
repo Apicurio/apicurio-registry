@@ -15,8 +15,11 @@
  */
 package io.apicurio.tests.common;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
@@ -24,8 +27,8 @@ import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.common.kafka.EmbeddedKafka;
+import io.apicurio.tests.common.kafka.TrustAllSslEngineFactory;
 import io.apicurio.tests.common.utils.RegistryUtils;
-
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -37,6 +40,7 @@ public class KafkaFacade implements RegistryTestProcess {
 
     private KafkaContainer kafkaContainer;
     private EmbeddedKafka embeddedKafka;
+    private boolean sharedKafkaCluster = false;
     private AdminClient client;
 
     private static KafkaFacade instance;
@@ -63,7 +67,27 @@ public class KafkaFacade implements RegistryTestProcess {
         if (embeddedKafka != null) {
             return embeddedKafka.bootstrapServers();
         }
+        if (sharedKafkaCluster) {
+            return System.getenv(Constants.TESTS_SHARED_KAFKA_ENV_VAR);
+        }
         return null;
+    }
+
+    public Properties connectionProperties() {
+        Properties properties = new Properties();
+        properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+        properties.put(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
+        properties.put(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        //shared kafka cluster is deployed in k8s/ocp and exposed externally by using SSL
+        if (sharedKafkaCluster) {
+            properties.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, TrustAllSslEngineFactory.class.getName());
+            properties.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG, "");
+//            properties.put(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "");
+            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name);
+            properties.put("enable.ssl.certificate.verification", false);
+        }
+        return properties;
     }
 
     public void startIfNeeded() {
@@ -85,7 +109,7 @@ public class KafkaFacade implements RegistryTestProcess {
     }
 
     private boolean isRunning() {
-        return kafkaContainer != null || embeddedKafka != null;
+        return kafkaContainer != null || embeddedKafka != null || sharedKafkaCluster;
     }
 
     private boolean isKafkaBasedRegistry() {
@@ -97,9 +121,13 @@ public class KafkaFacade implements RegistryTestProcess {
             throw new IllegalStateException("Kafka cluster is already running");
         }
 
+        String useSharedKafka = System.getenv(Constants.TESTS_SHARED_KAFKA_ENV_VAR);
         String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
 
-        if (noDocker != null && noDocker.equals("true")) {
+        if (useSharedKafka != null && !useSharedKafka.isEmpty()) {
+            LOGGER.info("Using pre-deployed shared kafka cluster");
+            sharedKafkaCluster = true;
+        } else if (noDocker != null && noDocker.equals("true")) {
             LOGGER.info("Starting kafka embedded");
             embeddedKafka = new EmbeddedKafka();
             embeddedKafka.start();
@@ -123,18 +151,14 @@ public class KafkaFacade implements RegistryTestProcess {
 
     private AdminClient adminClient() {
         if (client == null) {
-            Properties properties = new Properties();
-            properties.put("bootstrap.servers", bootstrapServers());
-            properties.put("connections.max.idle.ms", 10000);
-            properties.put("request.timeout.ms", 5000);
-            client = AdminClient.create(properties);
+            client = AdminClient.create(connectionProperties());
         }
         return client;
     }
 
     @Override
     public String getName() {
-        return "kafka-" + kafkaContainer == null ? "embedded" : "container";
+        return "kafka-" + kafkaContainer == null ? embeddedKafka == null ? "pre-deployed" : "embedded" : "container";
     }
 
     @Override
@@ -144,6 +168,7 @@ public class KafkaFacade implements RegistryTestProcess {
             client.close();
             client = null;
         }
+        sharedKafkaCluster = false;
         if (kafkaContainer != null) {
             kafkaContainer.stop();
             kafkaContainer = null;

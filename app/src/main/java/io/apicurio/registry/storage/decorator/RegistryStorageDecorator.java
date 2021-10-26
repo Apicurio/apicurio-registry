@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -806,11 +807,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
-        delegate.createRoleMapping(principalId, role);
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
+        delegate.createRoleMapping(principalId, role, principalName);
     }
 
     /**
@@ -859,5 +860,29 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public void deleteAllUserData() {
         delegate.deleteAllUserData();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createDownload(io.apicurio.registry.storage.dto.DownloadContextDto)
+     */
+    @Override
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        return delegate.createDownload(context);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#consumeDownload(java.lang.String)
+     */
+    @Override
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        return delegate.consumeDownload(downloadId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
+     */
+    @Override
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        delegate.deleteAllExpiredDownloads();
     }
 }

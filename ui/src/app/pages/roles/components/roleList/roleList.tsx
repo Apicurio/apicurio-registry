@@ -24,6 +24,7 @@ import { TableComposable, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-tab
 import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import { RoleMapping, RoleTypes } from "../../../../../models";
 import { RoleMappingsEmptyState } from '../empty';
+import {Services} from "../../../../../services";
 
 /**
  * Properties
@@ -53,7 +54,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
     constructor(props: Readonly<RoleListProps>) {
         super(props);
     }
-  
+
     public render(): React.ReactElement {
 
         const roleActions = (role: RoleMapping) => [
@@ -62,7 +63,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
                 onClick: () => { this.props.onEditRoleMapping(role)}
             },
             {
-                title: 'Revoke Access',
+                title: 'Remove',
                 onClick: () => {this.onRevokeRoleMapping(role.principalId)}
             }
         ];
@@ -70,19 +71,26 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         let filteredRoles = this.props.roles.sort((rm1, rm2) => {
             return rm1.principalId.localeCompare(rm2.principalId);
         }).filter((role: RoleMapping)=>{
+            let match: boolean = false;
+            let mustMatch: boolean = false;
             if(this.props.roleFilter.principalId.length > 0) {
-                return role.principalId.includes(this.props.roleFilter.principalId);
-            } 
-            return true;
+                mustMatch = true;
+                match = match || role.principalId.toLowerCase().includes(this.props.roleFilter.principalId.toLowerCase());
+            }
+            if(this.props.roleFilter.principalName.length > 0) {
+                mustMatch = true;
+                match = match || role.principalName.toLowerCase().includes(this.props.roleFilter.principalName.toLowerCase());
+            }
+            return mustMatch ? match : true;
         }).filter((role: RoleMapping)=>{
             if (this.props.roleFilter.role.length > 0) {
                 switch (role.role) {
                     case RoleTypes.DEVELOPER:
-                        return "Manager".includes(this.props.roleFilter.role);
+                        return "Manager" == this.props.roleFilter.role;
                     case RoleTypes.ADMIN:
-                        return "Admin".includes(this.props.roleFilter.role);
+                        return "Administrator" == this.props.roleFilter.role;
                     case RoleTypes.READ_ONLY:
-                        return "Viewer".includes(this.props.roleFilter.role);
+                        return "Viewer" == this.props.roleFilter.role;
                 }
             }
             return true;
@@ -91,7 +99,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
             filteredRoles.length === 0 ?
                 <RoleMappingsEmptyState isFiltered={true}/> :
             <React.Fragment>
-                <TableComposable>
+                <TableComposable className="role-list">
                     <Thead>
                         <Tr>
                             {/* <Th
@@ -113,7 +121,10 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
                                         isSelected: false,
                                     }}
                                 /> */}
-                                <Td>{role.principalId}</Td>
+                                <Td>
+                                    <div className="principal-id">{ role.principalId }</div>
+                                    <div className="principal-name">{ role.principalName }</div>
+                                </Td>
                                 <Td>{this.roleName(role.role)}</Td>
                                 <Td className = "role-list-action-column"
                                     key={`${rowIndex}_2`}
@@ -127,17 +138,17 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
                     </Tbody>
                 </TableComposable>
                 <Modal
-                    title="Revoke Access"
+                    title="Remove role?"
                     variant="small"
                     isOpen={this.state.isRevokeModalOpen}
                     onClose={this.onRevokeModalClose}
                     className="revoke-access-modal pf-m-redhat-font"
                     actions={[
-                        <Button key="revoke" variant="primary" data-testid="modal-btn-revoke" onClick={this.doRevokeAccess}>Revoke</Button>,
+                        <Button key="revoke" variant="primary" data-testid="modal-btn-revoke" onClick={this.doRevokeAccess}>Remove</Button>,
                         <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onRevokeModalClose}>Cancel</Button>
                     ]}
                 >
-                    <p>Do you really want to revoke {this.state.revokingPrincipalId}'s access?</p>
+                    <p>{ this.removeRoleConfirmModalBodyText() }</p>
                 </Modal>
             </React.Fragment>
         );
@@ -156,7 +167,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
             case RoleTypes.DEVELOPER:
                 return "Manager";
             case RoleTypes.ADMIN:
-                return "Admin";
+                return "Administrator";
             case RoleTypes.READ_ONLY:
                 return "Viewer";
         }
@@ -167,7 +178,7 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         this.setMultiState({
             isRevokeModalOpen: true,
             revokingPrincipalId: principalId
-        });    
+        });
     };
 
     private onRevokeModalClose = (): void => {
@@ -179,4 +190,11 @@ export class RoleList extends PureComponent<RoleListProps, RoleListState> {
         this.props.onRevoke(this.state.revokingPrincipalId);
     }
 
+    private removeRoleConfirmModalBodyText() {
+        if (Services.getConfigService().featureMultiTenant()) {
+            return `Do you really want to revoke ${this.state.revokingPrincipalId}'s access?`;
+        } else {
+            return `${this.state.revokingPrincipalId} will no longer have access to this Service Registry instance.`;
+        }
+    }
 }

@@ -32,8 +32,9 @@ public class ContentIdKey extends AbstractMessageKey {
      * @param tenantId
      * @param ruleType
      */
-    public static final ContentIdKey create() {
+    public static final ContentIdKey create(String tenantId) {
         ContentIdKey key = new ContentIdKey();
+        key.setTenantId(tenantId);
         return key;
     }
 
@@ -58,7 +59,7 @@ public class ContentIdKey extends AbstractMessageKey {
      */
     @Override
     public String toString() {
-        return "ContentIdKey []";
+        return String.format("ContentIdKey(super = %s)", super.toString());
     }
 
 }

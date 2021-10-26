@@ -18,13 +18,16 @@ package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@ToString
 public class ContentValue extends AbstractMessageValue {
 
     private String canonicalHash;
+    @ToString.Exclude
     private ContentHandle content;
 
     /**

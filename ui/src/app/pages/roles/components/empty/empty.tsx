@@ -19,6 +19,7 @@ import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, T
 import {PlusCircleIcon} from "@patternfly/react-icons";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {If} from "../../../../components/common/if";
+import {Services} from "../../../../../services";
 
 /**
  * Properties
@@ -50,20 +51,14 @@ export class RoleMappingsEmptyState extends PureComponent<RoleMappingsEmptyState
             <EmptyState variant={EmptyStateVariant.full}>
                 <EmptyStateIcon icon={PlusCircleIcon}/>
                 <Title headingLevel="h5" size="lg">
-                    No Role Mappings
+                    No roles assigned
                 </Title>
                 <If condition={() => this.props.isFiltered === true}>
-                    <EmptyStateBody>
-                        No role mappings match your filter settings.  Change your filter or perhaps create a new
-                        role mapping.
-                    </EmptyStateBody>
+                    <EmptyStateBody>No role mappings match your filter settings.  Change your filter or perhaps create a new role mapping.</EmptyStateBody>
                 </If>
                 <If condition={() => !this.props.isFiltered}>
-                    <EmptyStateBody>
-                        There are currently no role mappings configured for the registry.  Click the "Grant Access"
-                        button above to grant access to a user.
-                    </EmptyStateBody>
-                    <Button variant="primary" data-testid="btn-grant-access" onClick={this.props.onCreateRoleMapping}>Grant Access</Button>
+                    <EmptyStateBody>{ this.emptyStateBodyText() }</EmptyStateBody>
+                    <Button variant="primary" data-testid="btn-grant-access" onClick={this.props.onCreateRoleMapping}>Grant access</Button>
                 </If>
             </EmptyState>
         );
@@ -73,4 +68,11 @@ export class RoleMappingsEmptyState extends PureComponent<RoleMappingsEmptyState
         return {};
     }
 
+    private emptyStateBodyText() {
+        if (Services.getConfigService().featureMultiTenant()) {
+            return "The Service Registry instance owner and organization administrators have access to resources in this instance. Grant other accounts access by assigning roles.";
+        } else {
+            return "There are currently no role mappings configured for the registry.  Click the \"Grant access\" button above to grant access to a user.";
+        }
+    }
 }

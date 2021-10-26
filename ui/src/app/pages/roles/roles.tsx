@@ -20,8 +20,6 @@ import "./roles.css";
 import {
     Button,
     ButtonVariant,
-    Flex,
-    FlexItem,
     InputGroup,
     PageSection,
     PageSectionVariants,
@@ -29,7 +27,6 @@ import {
     SelectOption,
     SelectOptionObject,
     SelectVariant,
-    TextContent,
     TextInput,
     Toolbar,
     ToolbarContent,
@@ -40,7 +37,7 @@ import {
 import { SearchIcon } from "@patternfly/react-icons";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RoleMapping} from "../../../models";
-import {Services} from "../../../services";
+import {Principal, Services} from "../../../services";
 import {GrantAccessModal, RoleList, RoleMappingsEmptyState} from "./components";
 import {PleaseWaitModal, RootPageHeader} from "../../components";
 
@@ -50,7 +47,7 @@ import {PleaseWaitModal, RootPageHeader} from "../../components";
  */
 // tslint:disable-next-line:no-empty-interface
 export interface RolesPageProps extends PageProps {
-
+    principalSelect: any
 }
 
 /**
@@ -65,6 +62,8 @@ export interface RolesPageState extends PageState {
     roleListFilterOpened: boolean;
     roleFilterSelected: string;
     roleFilterTextInputValue: string;
+    roleFilterSelectInputValue: string;
+    roleFilterSelectInputOpened: boolean;
     selectedRole: RoleMapping | undefined;
     isPleaseWaitModalOpen: boolean;
     pleaseWaitMessage: string;
@@ -76,7 +75,6 @@ const roleFilterOptions = ['Account', 'Role'];
  */
 export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
 
-
     constructor(props: Readonly<RolesPageProps>) {
         super(props);
     }
@@ -87,15 +85,6 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                 <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
                     <RootPageHeader tabKey={2} />
                 </PageSection>
-                <PageSection className="ps_roles-description" variant={PageSectionVariants.light}>
-                    <Flex>
-                        <FlexItem>
-                            <TextContent>
-                                Manage access to the registry by granting/revoking roles to specific users.
-                            </TextContent>
-                        </FlexItem>
-                    </Flex>
-                </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
                     {
                         this.state.roles.length === 0 ?
@@ -105,7 +94,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                                 <Toolbar id="toolbar" clearAllFilters={() => {
                                     this.setSingleState("roleFilter", {
                                         principalId: "",
-                                        role: ""
+                                        role: "",
+                                        principalName: ""
                                     });
                                 }}>
                                     <ToolbarContent>
@@ -126,20 +116,43 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                                             </ToolbarItem>
                                             <ToolbarItem>
                                                 <InputGroup>
-                                                    <TextInput value={this.state.roleFilterTextInputValue} name="roleFilterInput" id="roleFilterInput" type="search" aria-label="role filter input" onChange={this.onRoleFilterInputChange} />
+                                                    {
+                                                        this.isRoleFilterSelected() ?
+                                                            <Select
+                                                                variant={SelectVariant.single}
+                                                                aria-label="Role"
+                                                                onToggle={this.onRoleFilterSelectToggle}
+                                                                onSelect={this.onRoleFilterSelectChange}
+                                                                selections={this.state.roleFilterSelectInputValue}
+                                                                isOpen={this.state.roleFilterSelectInputOpened}
+                                                                placeholder="Filter by role"
+                                                            >
+                                                                <SelectOption key={1} value="Administrator" />
+                                                                <SelectOption key={2} value="Manager" />
+                                                                <SelectOption key={3} value="Viewer" />
+                                                            </Select>
+                                                            :
+                                                            <TextInput value={this.state.roleFilterTextInputValue}
+                                                                       placeholder="Filter by account"
+                                                                       name="roleFilterInput" id="roleFilterInput"
+                                                                       type="search" aria-label="role filter input"
+                                                                       onKeyDown={this.onRoleFilterTextInputKeydown}
+                                                                       onChange={this.onRoleFilterInputChange} />
+                                                    }
                                                     <Button variant={ButtonVariant.control} aria-label="search button for search input" onClick={this.onRoleFilterApplyClick}>
                                                         <SearchIcon />
                                                     </Button>
                                                 </InputGroup>
                                             </ToolbarItem>
                                             <ToolbarItem>
-                                                <Button variant="primary" data-testid="btn-grant-access" onClick={this.onCreateRoleMapping}>Grant Access</Button>
+                                                <Button variant="primary" data-testid="btn-grant-access" onClick={this.onCreateRoleMapping}>Grant access</Button>
                                             </ToolbarItem>
                                             <ToolbarFilter chips={this.state.roleFilter.principalId.length > 0 ? [this.state.roleFilter.principalId] : undefined}
                                                 deleteChip={() => {
                                                     this.setSingleState("roleFilter", {
                                                         principalId: "",
-                                                        role: this.state.roleFilter.role
+                                                        role: this.state.roleFilter.role,
+                                                        principalName: ""
                                                     });
                                                 }}
                                                 categoryName="Account"> </ToolbarFilter>
@@ -147,7 +160,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                                                 deleteChip={() => {
                                                     this.setSingleState("roleFilter", {
                                                         principalId: this.state.roleFilter.principalId,
-                                                        role: ""
+                                                        role: "",
+                                                        principalName: this.state.roleFilter.principalName,
                                                     });
                                                 }}
                                                 categoryName="Role"> </ToolbarFilter>
@@ -164,8 +178,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                     onGrant={this.createRoleMapping}
                     roles={this.state.isRoleMappingUpdate ? this.state.roles : null}
                     defaultRole={this.state.selectedRole} />
-                {this.state.isPleaseWaitModalOpen ? <PleaseWaitModal message={this.state.pleaseWaitMessage}
-                    isOpen={this.state.isPleaseWaitModalOpen} /> : <></>}
+                <PleaseWaitModal message={this.state.pleaseWaitMessage}
+                                 isOpen={this.state.isPleaseWaitModalOpen} />
             </React.Fragment>
         );
     }
@@ -179,10 +193,12 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
             isLoading: true,
             selectedRole: undefined,
             roles: [],
-            roleFilter: { principalId: "", role: "" },
+            roleFilter: { principalId: "", role: "", principalName: "" },
             roleListFilterOpened: false,
             roleFilterSelected: roleFilterOptions[0],
-            roleFilterTextInputValue: ""
+            roleFilterTextInputValue: "",
+            roleFilterSelectInputValue: "Administrator",
+            roleFilterSelectInputOpened: false
         };
     }
 
@@ -199,6 +215,9 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
     private onRoleFilterToggle = (isExpanded: boolean): void => {
         this.setSingleState("roleListFilterOpened", isExpanded)
     }
+    private onRoleFilterSelectToggle = (isExpanded: boolean): void => {
+        this.setSingleState("roleFilterSelectInputOpened", isExpanded)
+    }
 
     private onRoleFilterSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         this.setMultiState({
@@ -210,15 +229,38 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
     private onRoleFilterInputChange = (value: string) => {
         this.setSingleState("roleFilterTextInputValue", value)
     }
+    private onRoleFilterTextInputKeydown = (event: any) => {
+        if (event.key === "Enter") {
+            this.onRoleFilterApplyClick();
+        }
+    };
     private onRoleFilterApplyClick = () => {
         let newRoleMappingFilter: RoleMapping = {
             principalId: this.state.roleFilterSelected == roleFilterOptions[0] ? this.state.roleFilterTextInputValue : this.state.roleFilter?.principalId,
-            role: this.state.roleFilterSelected == roleFilterOptions[1] ? this.state.roleFilterTextInputValue : this.state.roleFilter.role
+            role: this.state.roleFilterSelected == roleFilterOptions[1] ? this.state.roleFilterSelectInputValue : this.state.roleFilter.role,
+            principalName: this.state.roleFilterSelected == roleFilterOptions[0] ? this.state.roleFilterTextInputValue : this.state.roleFilter?.principalId
         }
-        this.setSingleState("roleFilter", newRoleMappingFilter);
+        this.setMultiState({
+            roleFilter: newRoleMappingFilter,
+            roleFilterTextInputValue: ""
+        });
     }
     private onCreateRoleMapping = (): void => {
         this.setSingleState("isCreateRoleMappingModalOpen", true);
+    };
+
+    private isAccountFilterSelected(): boolean {
+        return this.state.roleFilterSelected == roleFilterOptions[0];
+    }
+    private isRoleFilterSelected(): boolean {
+        return this.state.roleFilterSelected == roleFilterOptions[1];
+    }
+
+    private onRoleFilterSelectChange = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
+        this.setMultiState({
+            roleFilterSelectInputValue: selection,
+            roleFilterSelectInputOpened: false
+        });
     };
 
     private closeRoleMappingModal = (): void => {
@@ -237,16 +279,18 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         this.onCreateRoleMapping();
     }
 
-    private onUpdateRoleMapping = (principalId: string, role: string): void => {
+    private updateRoleMapping = (principal: Principal, role: string): void => {
         this.pleaseWait(true, "Granting access, please wait...");
-        Services.getAdminService().updateRoleMapping(principalId, role).then((mapping) => {
-            let currentRoleMappings = this.state.roles;
+        Services.getAdminService().updateRoleMapping(principal.id, role).then((mapping) => {
+            const currentRoleMappings = this.state.roles;
             currentRoleMappings.map((role, index) => {
-                if (role.principalId == mapping.principalId) {
-                    currentRoleMappings[index] = mapping;
-                    console.log("found role")
+                if (role.principalId === mapping.principalId) {
+                    currentRoleMappings[index] = {
+                        ...mapping,
+                        principalName: principal.displayName as string
+                    };
                 }
-            })
+            });
 
             this.pleaseWait(false, "");
             this.setSingleState("roles", [
@@ -255,18 +299,26 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         }).catch(e => this.handleServerError(e, "Error updating access."));
     };
 
-    private createRoleMapping = (principalId: string, role: string, isUpdate: boolean): void => {
+    private createRoleMapping = (principal: Principal, role: string, isUpdate: boolean): void => {
         this.closeRoleMappingModal();
         if (isUpdate) {
-            this.onUpdateRoleMapping(principalId, role);
+            this.updateRoleMapping(principal, role);
         } else {
             this.pleaseWait(true, "Granting access, please wait...");
-            Services.getAdminService().createRoleMapping(principalId, role).then((mapping) => {
+            Services.getAdminService().createRoleMapping(principal.id, role, principal.displayName as string).then((mapping) => {
                 this.pleaseWait(false, "");
                 this.setSingleState("roles", [
                     mapping, ...this.state.roles
                 ]);
-            }).catch(e => this.handleServerError(e, "Error granting access."));
+            }).catch(e => {
+                if (e?.error_code === 409) {
+                    // If we get a conflict when trying to create, that means the mapping already exists
+                    // and we should instead update.
+                    this.updateRoleMapping(principal, role);
+                } else {
+                    this.handleServerError(e, "Error granting access.");
+                }
+            });
         }
     };
 

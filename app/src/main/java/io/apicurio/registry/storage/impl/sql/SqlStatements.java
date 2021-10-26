@@ -389,7 +389,12 @@ public interface SqlStatements {
     /**
      * A statement to delete content that is no longer being referenced by an artifact version.
      */
-    String deleteAllOrphanedContent();
+    public String deleteAllOrphanedContent();
+
+    /**
+     * A statement to delete all content owned by a tenantId
+     */
+    public String deleteAllContent();
 
     /**
      * A statement to select the log configuration for a given logger name
@@ -441,10 +446,17 @@ public interface SqlStatements {
      */
     public String selectGroupByGroupId();
 
-    /**
-     * As statement used to get the next generated/sequenced globalId.
+    /*
+     * The next few statements support globalId and contentId management, having into account a multitenant environment
      */
-    public String selectNextGlobalId();
+
+    public String getNextSequenceValue();
+
+    public String selectCurrentSequenceValue();
+
+    public String resetSequenceValue();
+
+    public String insertSequenceValue();
 
     /*
      * The next few statements support exporting data from the DB.
@@ -459,7 +471,6 @@ public interface SqlStatements {
     public String exportArtifactRules();
 
     public String exportArtifactVersions();
-
 
     /*
      * The next few statements support importing data into the DB.
@@ -476,8 +487,6 @@ public interface SqlStatements {
     public String importArtifactVersion();
 
     public String selectMaxContentId();
-
-    public String resetSequence(String sequence);
 
     public String selectMaxGlobalId();
 
@@ -505,5 +514,18 @@ public interface SqlStatements {
     public String updateRoleMapping();
 
     public String selectRoleMappingCountByPrincipal();
+
+
+    /*
+     * The next few statements support downloads.
+     */
+
+    public String insertDownload();
+
+    public String selectDownloadContext();
+
+    public String deleteDownload();
+
+    public String deleteExpiredDownloads();
 
 }

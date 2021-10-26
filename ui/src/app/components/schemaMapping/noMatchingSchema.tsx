@@ -15,54 +15,76 @@
  * limitations under the License.
  */
 
-import React from 'react'
+import React from "react";
+import { Link } from "react-router-dom";
 import {
-  Grid,
-  GridItem,
+  Split,
+  SplitItem,
   Alert,
   AlertVariant,
   DescriptionListDescription,
   Popover,
-} from '@patternfly/react-core'
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons'
+  ClipboardCopy,
+  Button,
+  ButtonVariant,
+  Stack,
+  StackItem,
+} from "@patternfly/react-core";
+import ArrowRightIcon from "@patternfly/react-icons/dist/js/icons/arrow-icon";
+import HelpIcon from "@patternfly/react-icons/dist/js/icons/help-icon";
 
 export type NoMatchingSchemaProps = {
-  topicName: string
-  keySchema: boolean
-}
+  basename: string;
+  registryId: string;
+  artifactId: string;
+  title: string;
+};
 
 export const NoMatchingSchema: React.FC<NoMatchingSchemaProps> = ({
-  topicName,
-  keySchema,
+  basename,
+  registryId,
+  artifactId,
+  title,
 }) => {
   return (
     <DescriptionListDescription>
-      <Grid hasGutter span={2}>
-        <GridItem>
+      <Split hasGutter>
+        <SplitItem>
           <Alert
             className="pf-c-alert pf-m-info pf-m-plain pf-m-inline"
             variant={AlertVariant.info}
             title="No matching schema"
           />
-        </GridItem>
-        <GridItem>
+        </SplitItem>
+        <SplitItem>
           <Popover
+            hasAutoWidth
             aria-label="No schema popover"
-            headerContent={
-              <div>{keySchema ? 'Key schema' : 'Value schema'}</div>
-            }
+            headerContent={title}
             bodyContent={
-              <div>
-                The system couldn't find a matching schema for this topic in the
-                selected Service Registry instance. Please make sure to use the
-                following naming format for the Artifact ID:{topicName+ keySchema?'-key': '-value'}
-              </div>
+              <Stack hasGutter>
+                <StackItem>
+                  The system couldn't find a matching schema for this topic in
+                  the selected Service Registry instance. Please make sure to
+                  use the following naming format for the Artifact ID:
+                </StackItem>
+                <StackItem>
+                  <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                    {artifactId}
+                  </ClipboardCopy>
+                </StackItem>
+                <StackItem>
+                  <Link to={`${basename}/t/${registryId}`}>
+                    Go to Service Registry instance <ArrowRightIcon />
+                  </Link>
+                </StackItem>
+              </Stack>
             }
           >
-            <OutlinedQuestionCircleIcon />
+            <HelpIcon />
           </Popover>
-        </GridItem>
-      </Grid>
+        </SplitItem>
+      </Split>
     </DescriptionListDescription>
-  )
-}
+  );
+};

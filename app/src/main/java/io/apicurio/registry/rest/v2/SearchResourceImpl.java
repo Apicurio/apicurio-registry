@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.v2;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -215,7 +216,7 @@ public class SearchResourceImpl implements SearchResource {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap()); //FIXME:references handle artifact referenes
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

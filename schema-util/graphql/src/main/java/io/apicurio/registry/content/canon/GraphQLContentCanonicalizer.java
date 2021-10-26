@@ -24,6 +24,8 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.SchemaPrinter.Options;
 import io.apicurio.registry.content.ContentHandle;
 
+import java.util.Map;
+
 /**
  * A canonicalizer that handles GraphQL (SDL) formatted content.
  * @author eric.wittmann@gmail.com
@@ -36,10 +38,10 @@ public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
     private static final SchemaPrinter printer = new SchemaPrinter(Options.defaultOptions().includeDirectives(false));
     
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content) {
+    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         try {
             TypeDefinitionRegistry typeRegistry = sparser.parse(content.content());
             String canonicalized = printer.print(schemaGenerator.makeExecutableSchema(typeRegistry, wiring));

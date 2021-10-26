@@ -3105,7 +3105,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap()); //FIXME:references add references when canonicalizing content
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

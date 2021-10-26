@@ -386,7 +386,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
     }
 
     /**
@@ -587,7 +587,7 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
+            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
             //FIXME:References references are not supported for now
@@ -662,7 +662,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, null);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
@@ -766,7 +766,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, null);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);

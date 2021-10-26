@@ -44,7 +44,7 @@ public class ValidityRuleExecutor implements RuleExecutor {
         ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
         ContentValidator validator = provider.getContentValidator();
-        validator.validate(level, context.getUpdatedContent());
+        validator.validate(level, context.getUpdatedContent(), context.getResolvedReferences());
     }
 
 }

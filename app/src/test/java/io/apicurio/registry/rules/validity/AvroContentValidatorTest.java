@@ -23,6 +23,8 @@ import io.apicurio.registry.rules.RuleViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+
 /**
  * Tests the Avro content validator.
  * @author eric.wittmann@gmail.com
@@ -33,7 +35,7 @@ public class AvroContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidAvroSchema() throws Exception {
         ContentHandle content = resourceToContentHandle("avro-valid.json");
         AvroContentValidator validator = new AvroContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
@@ -41,7 +43,7 @@ public class AvroContentValidatorTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("avro-invalid.json");
         AvroContentValidator validator = new AvroContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 

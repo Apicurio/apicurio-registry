@@ -17,6 +17,7 @@
 package io.apicurio.registry.ibmcompat.api.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -316,7 +317,7 @@ public class ApiServiceImpl implements ApiService {
             artifactId = ApiUtil.normalizeSchemaID(schemaName);
         }
         ContentHandle content = ContentHandle.create(schema.getDefinition());
-        rulesService.applyRules(null, artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE);
+        rulesService.applyRules(null, artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
         if (verify) {
             handleVerifiedArtifact(response, content);
         } else {
@@ -418,7 +419,7 @@ public class ApiServiceImpl implements ApiService {
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion newSchemaVersion, boolean verify)
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
         ContentHandle body = ContentHandle.create(newSchemaVersion.getDefinition());
-        rulesService.applyRules(null, schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE);
+        rulesService.applyRules(null, schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
         if (verify) {
             handleVerifiedArtifact(response, body);
         } else {

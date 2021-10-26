@@ -23,6 +23,8 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * Tests the JSON Schema content validator.
  * @author eric.wittmann@gmail.com
@@ -33,7 +35,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidJsonSchema() throws Exception {
         ContentHandle content = resourceToContentHandle("jsonschema-valid.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
@@ -41,7 +43,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("jsonschema-invalid.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 
@@ -49,7 +51,7 @@ public class JsonSchemaContentValidatorTest extends AbstractRegistryTestBase {
     public void testInvalidJsonSchemaVersion() throws Exception {
         ContentHandle content = resourceToContentHandle("jsonschema-valid-d7.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidityLevel.FULL, content);
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
     }
 
 }

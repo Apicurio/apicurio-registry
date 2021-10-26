@@ -23,6 +23,8 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * @author cfoskin@redhat.com
  */
@@ -31,9 +33,9 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle contentA = resourceToContentHandle("xml-schema-valid.xsd");
         XsdContentValidator validator = new XsdContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA, Collections.emptyMap());
         ContentHandle contentB = resourceToContentHandle("xml-schema-invalid-semantics.xsd");
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB, Collections.emptyMap());
     }
 
     @Test
@@ -41,7 +43,7 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("xml-schema-invalid-syntax.xsd");
         XsdContentValidator validator = new XsdContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 
@@ -49,7 +51,7 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("xml-schema-valid.xsd");
         XsdContentValidator validator = new XsdContentValidator();
-        validator.validate(ValidityLevel.FULL, content);
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
     }
 
     @Test
@@ -57,7 +59,7 @@ public class XsdContentValidatorTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("xml-schema-invalid-semantics.xsd");
         XsdContentValidator validator = new XsdContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content);
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
     }
 

@@ -16,22 +16,22 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.OptionalBean;
-import io.apicurio.rest.client.VertxHttpClientProvider;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.quarkus.runtime.configuration.ProfileManager;
-import io.vertx.core.Vertx;
+import java.util.Collections;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
-import java.util.Collections;
-import java.util.Optional;
+
+import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.multitenant.client.TenantManagerClientImpl;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
+import io.apicurio.registry.utils.OptionalBean;
+import io.apicurio.rest.client.JdkHttpClientProvider;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.quarkus.runtime.configuration.ProfileManager;
 
 /**
  * @author Fabian Martinez
@@ -46,9 +46,6 @@ public class TenantManagerClientProducer {
 
     @Inject
     MultitenancyProperties properties;
-
-    @Inject
-    Vertx vertx;
 
     @Produces
     @ApplicationScoped
@@ -80,7 +77,7 @@ public class TenantManagerClientProducer {
 
                 return OptionalBean.of(new TenantManagerClientImpl(
                         properties.getTenantManagerUrl().get(), Collections.emptyMap(),
-                        new OidcAuth(new VertxHttpClientProvider(vertx), properties.getTenantManagerAuthUrl().get(),
+                        new OidcAuth(new JdkHttpClientProvider(), properties.getTenantManagerAuthUrl().get(),
                                 properties.getTenantManagerClientId().get(),
                                 properties.getTenantManagerClientSecret().get(),
                                 Optional.empty()

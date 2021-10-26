@@ -59,6 +59,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -216,11 +217,10 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         ArtifactMetaDataDto res;
         try {
             if (!artifactExists(groupId, schemaId)) {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE);
-                //FIXME:References references are not supported for now
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
                 res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             } else {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE);
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
                 res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             }
         } catch (RuleViolationException ex) {

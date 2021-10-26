@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * Tests the Protobuf content validator.
  * @author eric.wittmann@gmail.com
@@ -32,7 +34,7 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidProtobufSchema() throws Exception {
         ContentHandle content = resourceToContentHandle("protobuf-valid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
@@ -40,7 +42,7 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("protobuf-invalid.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 

@@ -214,7 +214,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 final ArtifactVersionMetaDataDto artifact = storage
                         .getArtifactVersionMetaData(null, subject, v);
                 rulesService.applyRules(null, subject, v, artifact.getType(),
-                        ContentHandle.create(request.getSchema()));
+                        ContentHandle.create(request.getSchema()), Collections.emptyMap()); //FIXME:references handle artifact references
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
@@ -233,11 +233,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         ArtifactMetaDataDto res;
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE);
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
                 //FIXME:References references are not supported for now
                 res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
             } else {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE);
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
                 res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
             }
         } catch (RuleViolationException ex) {

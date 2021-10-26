@@ -26,6 +26,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Map;
+
 /**
  * A content validator implementation for the JsonSchema content type.
  * @author eric.wittmann@gmail.com
@@ -41,10 +43,10 @@ public class JsonSchemaContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 JsonNode node = objectMapper.readTree(artifactContent.bytes());

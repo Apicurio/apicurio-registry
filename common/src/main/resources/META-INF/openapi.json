@@ -2333,7 +2333,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/ArtifactCreateRequest"
+                                "$ref": "#/components/schemas/ContentCreateRequest"
                             }
                         }
                     },
@@ -2448,6 +2448,216 @@
                     "description": "Unique ID of an artifact group.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/withRefs": {
+            "summary": "Manage all the versions with references of an artifact in the registry.",
+            "post": {
+                "requestBody": {
+                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Version",
+                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  It must be unique within the artifact.  If this is not\nprovided, the server will generate a new, unique version number for this new updated content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionMetaData"
+                                }
+                            }
+                        },
+                        "description": "The artifact version was successfully created."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/RuleViolationConflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifactVersionWithRefs",
+                "summary": "Create artifact version",
+                "description": "Creates a new version of the artifact containing references by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request should be the raw content of the new artifact version, the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document) and the collection of references.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/withRefs": {
+            "summary": "Manage a single artifact and its references.",
+            "put": {
+                "requestBody": {
+                    "description": "The new content of the artifact being updated. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Version",
+                        "description": "Specifies the version number of this new version of the artifact content.  This would typically\nbe a simple integer or a SemVer value.  If not provided, the server will assign a version number\nautomatically.",
+                        "schema": {
+                            "$ref": "#/components/schemas/Version"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Name must be ASCII-only string. If this is not\nprovided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Name-Encoded",
+                        "description": "Specifies the artifact name of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the name from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactName"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Description must be ASCII-only string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArtifactDescription"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Description-Encoded",
+                        "description": "Specifies the artifact description of this new version of the artifact content. Value of this must be Base64 encoded string. If this is not provided, the server will extract the description from the artifact content.",
+                        "schema": {
+                            "$ref": "#/components/schemas/EncodedArtifactDescription"
+                        },
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactMetaData"
+                                }
+                            }
+                        },
+                        "description": "When successful, returns the updated artifact metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifactWithRefs",
+                "summary": "Update artifact",
+                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact and the collection of references to other artifacts.  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\nThe type of the content should be compatible with the artifact's type (it would be\nan error to update an `AVRO` artifact with new `OPENAPI` content, for example).\n\nThe update could fail for a number of reasons including:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact."
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
                     },
                     "in": "path",
                     "required": true
@@ -3376,7 +3586,7 @@
                     "name": "foo.bar.Open"
                 }
             },
-            "ArtifactCreateRequest": {
+            "ContentCreateRequest": {
                 "description": "",
                 "required": [
                     "content",

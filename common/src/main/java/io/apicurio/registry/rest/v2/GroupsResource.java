@@ -1,8 +1,8 @@
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactCreateRequest;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -578,5 +578,65 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      ArtifactCreateRequest data);
+      ContentCreateRequest data);
+
+  /**
+   * Creates a new version of the artifact containing references by uploading new content.  The configured rules for
+   * the artifact are applied, and if they all pass, the new content is added as the most recent 
+   * version of the artifact.  If any of the rules fail, an error is returned.
+   *
+   * The body of the request should be the raw content of the new artifact version, the type
+   * of that content should match the artifact's type (for example if the artifact type is `AVRO`
+   * then the content of the request should be an Apache Avro document) and the collection of references.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Provided content (request body) was empty (HTTP error `400`)
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/versions/withRefs")
+  @POST
+  @Produces("application/json")
+  @Consumes("application/json")
+  VersionMetaData createArtifactVersionWithRefs(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      ContentCreateRequest data);
+
+  /**
+   * Updates an artifact by uploading new content.  The body of the request should
+   * be the raw content of the artifact and the collection of references to other artifacts.  This is typically in JSON format for *most*
+   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
+   * The type of the content should be compatible with the artifact's type (it would be
+   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
+   *
+   * The update could fail for a number of reasons including:
+   *
+   * * Provided content (request body) was empty (HTTP error `400`)
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   * When successful, this creates a new version of the artifact, making it the most recent
+   * (and therefore official) version of the artifact.
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/withRefs")
+  @PUT
+  @Produces("application/json")
+  @Consumes("application/json")
+  ArtifactMetaData updateArtifactWithRefs(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      ContentCreateRequest data);
 }

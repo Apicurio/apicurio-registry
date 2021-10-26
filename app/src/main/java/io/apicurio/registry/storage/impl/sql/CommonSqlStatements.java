@@ -163,9 +163,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, references) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, artifactreferences) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, references) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, name, description, createdBy, createdOn, labels, properties, contentId, artifactreferences) VALUES (?, ?, ?, ?, ?, (SELECT MAX(versionId) + 1 FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -212,7 +212,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactVersionMetaDataByContentId() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn, v.references "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn, v.artifactreferences "
                 + "FROM versions v "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.tenantId = ? AND v.contentId = ?";
@@ -265,7 +265,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactMetaData() {
-        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn, v.references "
+        return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn, v.artifactreferences "
                 + "FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
@@ -508,7 +508,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertReference() {
-        return "INSERT INTO references (tenantId, groupId, artifactId, globalId, name) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO artifactreferences (tenantId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**

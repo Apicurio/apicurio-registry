@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * Tests the Kafka Connect content validator.
  * @author eric.wittmann@gmail.com
@@ -32,7 +34,7 @@ public class KafkaConnectContentValidatorTest extends ArtifactUtilProviderTestBa
     public void testValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("kconnect-valid.json");
         KafkaConnectContentValidator validator = new KafkaConnectContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
@@ -40,7 +42,7 @@ public class KafkaConnectContentValidatorTest extends ArtifactUtilProviderTestBa
         ContentHandle content = resourceToContentHandle("kconnect-invalid.json");
         KafkaConnectContentValidator validator = new KafkaConnectContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 

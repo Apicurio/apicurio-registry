@@ -17,6 +17,7 @@
 package io.apicurio.registry.content.canon;
 
 import java.io.IOException;
+import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.xml.security.Init;
@@ -48,10 +49,10 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content) {
+    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
             String canonicalized = IoUtil.toString(canon.canonicalize(content.bytes()));

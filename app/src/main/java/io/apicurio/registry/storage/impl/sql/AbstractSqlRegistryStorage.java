@@ -3092,6 +3092,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         amdd.setType(vmdd.getType());
         amdd.setVersion(vmdd.getVersion());
         amdd.setVersionId(vmdd.getVersionId());
+        amdd.setArtifactReferences(vmdd.getReferences());
         return amdd;
     }
 

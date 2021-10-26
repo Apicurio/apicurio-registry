@@ -118,4 +118,13 @@ public class ArtifactReference {
         this.name = name;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactReference{" +
+                "groupId='" + groupId + '\'' +
+                ", artifactId='" + artifactId + '\'' +
+                ", version='" + version + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }

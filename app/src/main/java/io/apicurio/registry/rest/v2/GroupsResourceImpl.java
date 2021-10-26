@@ -48,6 +48,7 @@ import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -80,9 +81,12 @@ import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
@@ -559,7 +563,6 @@ public class GroupsResourceImpl implements GroupsResource {
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                     String xRegistryName, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
 
-        //FIXME:references do something with the provided references
         requireParameter("groupId", groupId);
 
         maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
@@ -594,11 +597,20 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
+
+            //Transform the given references into dtos
+            final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
+                    .map(V2ApiUtil::referenceToDto)
+                    .collect(Collectors.toList());
+
+            //Try to resolve the new artifact references and possibly the nested ones (if any)
+            final Map<String, ContentHandle> resolvedReferences = resolveReferences(referencesAsDtos);
+
+            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, resolvedReferences);
+
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-            //FIXME:References references are not supported for now
-            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, null);
+            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
@@ -696,6 +708,38 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     private ArtifactType lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(gidOrNull(groupId), artifactId).getType();
+    }
+
+    private Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return Collections.emptyMap();
+        } else {
+            Map<String, ContentHandle> result = new LinkedHashMap<>();
+            resolveReferences(result, references);
+            return result;
+        }
+    }
+
+    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
+        if (references != null && !references.isEmpty()) {
+            for (ArtifactReferenceDto reference : references) {
+                if (reference.getGroupId() == null || reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                    throw new IllegalStateException("Invalid reference: " + reference);
+                } else {
+                    if (!resolvedReferences.containsKey(reference.getName())) {
+                        //TODO improve exception handling
+                        final ArtifactVersionMetaDataDto referencedArtifactMetaData = this.lookupForReference(reference);
+                        final ContentHandle referencedContent = storage.getArtifactByContentId(referencedArtifactMetaData.getContentId());
+                        resolveReferences(resolvedReferences, referencedArtifactMetaData.getReferences());
+                        resolvedReferences.put(reference.getName(), referencedContent);
+                    }
+                }
+            }
+        }
+    }
+
+    private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
+        return storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     /**

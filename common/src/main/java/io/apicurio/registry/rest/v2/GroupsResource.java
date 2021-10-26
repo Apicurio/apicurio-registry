@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactCreateRequest;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -382,8 +383,6 @@ public interface GroupsResource {
    * * The content violates one of the configured global rules (HTTP error `409`)
    * * A server error occurred (HTTP error `500`)
    *
-   * //FIXME:References handle artifact references
-   *
    */
   @Path("/{groupId}/artifacts")
   @POST
@@ -509,4 +508,75 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description") String xRegistryDescription,
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
+
+  /**
+   * Creates a new artifact by posting the artifact content.  The body of the request should
+   * be the raw content of the artifact typically in JSON format for *most* of the supported types, 
+   * but may be in another format for a few (for example, `PROTOBUF`). and a collection of artifact references. 
+   *
+   * The registry attempts to figure out what kind of artifact is being added from the
+   * following supported list:
+   *
+   * * Avro (`AVRO`)
+   * * Protobuf (`PROTOBUF`)
+   * * JSON Schema (`JSON`)
+   * * Kafka Connect (`KCONNECT`)
+   * * OpenAPI (`OPENAPI`)
+   * * AsyncAPI (`ASYNCAPI`)
+   * * GraphQL (`GRAPHQL`)
+   * * Web Services Description Language (`WSDL`)
+   * * XML Schema (`XSD`)
+   *
+   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType` 
+   * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
+   *
+   * ```
+   * Content-Type: application/json; artifactType=AVRO
+   * ```
+   *
+   * An artifact is created using the content provided in the body of the request.  This
+   * content is created under a unique artifact ID that can be provided in the request
+   * using the `X-Registry-ArtifactId` request header.  If not provided in the request,
+   * the server generates a unique ID for the artifact.  It is typically recommended
+   * that callers provide the ID, because this is typically a meaningful identifier, 
+   * and for most use cases should be supplied by the caller.
+   *
+   * Registry will also try to resolve the artifact references.
+   *
+   * If an artifact with the provided artifact ID already exists, the default behavior
+   * is for the server to reject the content with a 409 error.  However, the caller can
+   * supply the `ifExists` query parameter to alter this default behavior. The `ifExists`
+   * query parameter can have one of the following values:
+   *
+   * * `FAIL` (*default*) - server rejects the content with a 409 error
+   * * `UPDATE` - server updates the existing artifact and returns the new metadata
+   * * `RETURN` - server does not create or add content to the server, but instead 
+   * returns the metadata for the existing artifact
+   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the 
+   * provided content if such a version exists, otherwise a new version is created
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * An invalid `ArtifactType` was indicated (HTTP error `400`)
+   * * No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)
+   * * Provided content (request body) was empty (HTTP error `400`)
+   * * An artifact with the provided ID already exists (HTTP error `409`)
+   * * The content violates one of the configured global rules (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/withRefs")
+  @POST
+  @Produces("application/json")
+  @Consumes("application/json")
+  ArtifactMetaData createArtifactWithRefs(@PathParam("groupId") String groupId,
+      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
+      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @QueryParam("ifExists") IfExists ifExists, @QueryParam("canonical") Boolean canonical,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      ArtifactCreateRequest data);
 }

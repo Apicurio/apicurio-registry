@@ -5,7 +5,7 @@
 
 UPDATE apicurio SET prop_value = 5 WHERE prop_name = 'db_version';
 
-CREATE TABLE references (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(64), name VARCHAR(512) NOT NULL);
-ALTER TABLE references ADD PRIMARY KEY (name, tenantId);
+CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
+ALTER TABLE artifactreferences ADD PRIMARY KEY (name, tenantId);
 
-ALTER TABLE versions ADD COLUMN references VARCHAR(512);
+ALTER TABLE versions ADD COLUMN artifactreferences VARCHAR(512);

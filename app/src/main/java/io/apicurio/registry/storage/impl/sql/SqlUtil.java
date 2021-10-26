@@ -16,10 +16,12 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -111,7 +113,6 @@ public class SqlUtil {
             if (references == null || references.isEmpty()) {
                 return null;
             }
-            //TODO test this properly
             return mapper.writeValueAsString(references);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -126,10 +127,9 @@ public class SqlUtil {
     public static List<ArtifactReferenceDto> deserializeReferences(String references) {
         try {
             if (StringUtil.isEmpty(references)) {
-                return null;
+                return Collections.emptyList();
             }
-            //TODO test this properly
-            return mapper.readValue(references, List.class);
+            return mapper.readValue(references, new TypeReference<List<ArtifactReferenceDto>>(){});
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

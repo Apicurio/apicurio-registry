@@ -57,6 +57,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
         dto.setType(ArtifactType.valueOf(rs.getString("type")));
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
         dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
+        dto.setReferences(SqlUtil.deserializeReferences(rs.getString("artifactreferences")));
         return dto;
     }
 

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -38,22 +39,26 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  */
 @ApplicationScoped
 public class RedirectFilter implements Filter {
+    
+    @ConfigProperty(name = "registry.enable-redirects")
+    Boolean redirectsEnabled;
 
     @ConfigProperty(name = "registry.redirects")
     Map<String, String> redirectsConfig;
-    Map<String, String> redirects = null;
-    
-    private Map<String, String> redirects() {
-        if (redirects == null) {
-            redirects = new HashMap<>();
+    Map<String, String> redirects = new HashMap<>();
+
+    @PostConstruct
+    void init() {
+        if (redirectsEnabled != null && redirectsEnabled) {
             redirectsConfig.values().forEach(value -> {
                 String [] split = value.split(",");
-                String key = split[0];
-                String val = split[1];
-                redirects.put(key, val);
+                if (split != null && split.length == 2) {
+                    String key = split[0];
+                    String val = split[1];
+                    redirects.put(key, val);
+                }
             });
         }
-        return redirects;
     }
 
     /**
@@ -70,20 +75,23 @@ public class RedirectFilter implements Filter {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
             throws IOException, ServletException {
-        HttpServletRequest request = (HttpServletRequest) req;
-        HttpServletResponse response = (HttpServletResponse) res;
-
-        String servletPath = request.getServletPath();
-
-        if (servletPath == null || "".equals(servletPath) || "/".equals(servletPath)) {
-            servletPath = "/";
+        if (redirectsEnabled != null && redirectsEnabled) {
+            HttpServletRequest request = (HttpServletRequest) req;
+            HttpServletResponse response = (HttpServletResponse) res;
+    
+            String servletPath = request.getServletPath();
+    
+            if (servletPath == null || "".equals(servletPath) || "/".equals(servletPath)) {
+                servletPath = "/";
+            }
+    
+            if (redirects.containsKey(servletPath)) {
+                System.out.println("=========> REDIRECT TO: " + redirects.get(servletPath));
+                response.sendRedirect(redirects.get(servletPath));
+                return;
+            }
         }
-
-        if (redirects().containsKey(servletPath)) {
-            response.sendRedirect(redirects().get(servletPath));
-        } else {
-            chain.doFilter(request, response);
-        }
+        chain.doFilter(req, res);
     }
 
     /**

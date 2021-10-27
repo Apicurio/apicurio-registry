@@ -17,6 +17,7 @@
 package io.apicurio.registry.mt.limits;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -188,6 +189,14 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         super.deleteArtifactVersion(groupId, artifactId, version);
         limitsService.artifactVersionDeleted(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#resolveReferences(List)
+     */
+    @Override
+    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+        return delegate.resolveReferences(references);
     }
 
     /**

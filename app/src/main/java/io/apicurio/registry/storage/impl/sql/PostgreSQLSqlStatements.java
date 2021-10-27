@@ -67,7 +67,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentHash) DO NOTHING";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentHash) DO NOTHING";
     }
 
     /**
@@ -92,6 +92,14 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     @Override
     public String resetSequenceValue() {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ?";
+    }
+
+    /**
+     * @see SqlStatements#upsertReference()
+     */
+    @Override
+    public String upsertReference() {
+        return "INSERT INTO artifactreferences (tenantId, groupId, artifactId, version, contentId, name) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, name, contentId) DO NOTHING";
     }
 
 }

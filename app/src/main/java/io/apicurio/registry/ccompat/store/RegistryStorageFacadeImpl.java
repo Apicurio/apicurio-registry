@@ -112,7 +112,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             StoredArtifactDto artifactVersion = storage.getArtifactVersion(contentId);
             contentHandle = artifactVersion.getContent();
         } else {
-            contentHandle = storage.getArtifactByContentId(contentId);
+            contentHandle = storage.getArtifactByContentId(contentId).getContent();
             List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
             if (artifacts == null || artifacts.isEmpty()) {
                 //the contentId points to an orphaned content

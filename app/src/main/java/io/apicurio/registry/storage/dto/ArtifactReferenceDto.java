@@ -31,6 +31,7 @@ public class ArtifactReferenceDto {
     private String artifactId;
     private String version;
     private String name;
+    private long contentId;
 
     /**
      * Constructor
@@ -92,5 +93,19 @@ public class ArtifactReferenceDto {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the contentId
+     */
+    public long getContentId() {
+        return contentId;
+    }
+
+    /**
+     * @param contentId
+     */
+    public void setContentId(long contentId) {
+        this.contentId = contentId;
     }
 }

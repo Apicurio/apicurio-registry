@@ -17,7 +17,7 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
         </dependency>
-    
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-client</artifactId>

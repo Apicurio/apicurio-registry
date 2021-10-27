@@ -63,8 +63,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
     @Inject
-    AuditHttpRequestContext auditContext;
-    @Inject
     AuditLogService auditLog;
 
     private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();;
@@ -100,7 +98,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                 });
             }
         };
-        log.info("Setting audit wrapper {}", context.statusCode());
         context.put(QuarkusHttpUser.AUTH_FAILURE_HANDLER, auditWrapper);
 
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);

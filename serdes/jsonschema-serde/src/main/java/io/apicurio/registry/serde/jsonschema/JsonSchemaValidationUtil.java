@@ -42,7 +42,7 @@ public class JsonSchemaValidationUtil {
             for (ValidationMessage validationMessage: validationMessages) {
                 message.append(validationMessage.getMessage()).append(" ");
             }
-            throw new IOException(String.format("Error validating data against json schema with message: %s", message.toString()));
+            throw new IOException(String.format("Error validating data against json schema with message: %s", message));
         }
     }
 }

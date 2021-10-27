@@ -105,4 +105,12 @@ public class RoleMapping {
         this.principalName = principalName;
     }
 
+    @Override
+    public String toString() {
+        return "RoleMapping{" +
+                "principalId='" + principalId + '\'' +
+                ", role=" + role +
+                ", principalName='" + principalName + '\'' +
+                '}';
+    }
 }

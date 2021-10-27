@@ -81,7 +81,6 @@ import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -598,13 +597,14 @@ public class GroupsResourceImpl implements GroupsResource {
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
 
-            //Transform the given references into dtos
+            //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
                     .map(V2ApiUtil::referenceToDto)
+                    .peek(reference -> reference.setContentId(storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()).getContentId()))
                     .collect(Collectors.toList());
 
-            //Try to resolve the new artifact references and possibly the nested ones (if any)
-            final Map<String, ContentHandle> resolvedReferences = resolveReferences(referencesAsDtos);
+            //Try to resolve the new artifact references and the nested ones (if any)
+            final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
             rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, resolvedReferences);
 
@@ -708,38 +708,6 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     private ArtifactType lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(gidOrNull(groupId), artifactId).getType();
-    }
-
-    private Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
-        if (references == null || references.isEmpty()) {
-            return Collections.emptyMap();
-        } else {
-            Map<String, ContentHandle> result = new LinkedHashMap<>();
-            resolveReferences(result, references);
-            return result;
-        }
-    }
-
-    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getGroupId() == null || reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    if (!resolvedReferences.containsKey(reference.getName())) {
-                        //TODO improve exception handling
-                        final ArtifactVersionMetaDataDto referencedArtifactMetaData = this.lookupForReference(reference);
-                        final ContentHandle referencedContent = storage.getArtifactByContentId(referencedArtifactMetaData.getContentId());
-                        resolveReferences(resolvedReferences, referencedArtifactMetaData.getReferences());
-                        resolvedReferences.put(reference.getName(), referencedContent);
-                    }
-                }
-            }
-        }
-    }
-
-    private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
-        return storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     /**

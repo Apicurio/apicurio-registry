@@ -36,7 +36,6 @@ import io.apicurio.registry.types.ArtifactType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.stream.Collectors;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -81,10 +80,6 @@ public final class V2ApiUtil {
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
-        metaData.setReferences(dto.getArtifactReferences()
-                .stream()
-                .map(V2ApiUtil::referenceDtoToReference)
-                .collect(Collectors.toList()));
         return metaData;
     }
 
@@ -116,10 +111,6 @@ public final class V2ApiUtil {
         metaData.setState(dto.getState());
         metaData.setLabels(dto.getLabels());
         metaData.setProperties(dto.getProperties());
-        metaData.setReferences(dto.getReferences()
-                .stream()
-                .map(V2ApiUtil::referenceDtoToReference)
-                .collect(Collectors.toList()));
         return metaData;
     }
 

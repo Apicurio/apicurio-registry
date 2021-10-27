@@ -63,7 +63,7 @@ public class IdsResourceImpl implements IdsResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentById(int contentId) {
-        ContentHandle content = storage.getArtifactByContentId(contentId);
+        ContentHandle content = storage.getArtifactByContentId(contentId).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
     }
@@ -101,9 +101,8 @@ public class IdsResourceImpl implements IdsResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
-        ContentHandle content = storage.getArtifactByContentHash(contentHash);
+        ContentHandle content = storage.getArtifactByContentHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
     }
-
 }

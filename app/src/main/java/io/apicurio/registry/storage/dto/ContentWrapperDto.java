@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,31 +17,50 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.content.ContentHandle;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-/**
- * @author eric.wittmann@gmail.com
- */
-@Value
+@AllArgsConstructor
 @Builder
-public class StoredArtifactDto {
+@EqualsAndHashCode
+@ToString
+public class ContentWrapperDto {
 
-    private Long globalId;
-
-    // TODO add artifactId
-
-    private String version;
-
-    private int versionId;
-
-    private Long contentId;
-
-    // TODO Can the CH be used multiple times?
     private ContentHandle content;
-
     private List<ArtifactReferenceDto> references;
 
+    public ContentWrapperDto() {
+    }
+
+    /**
+     * @return the content handle
+     */
+    public ContentHandle getContent() {
+        return content;
+    }
+
+    /**
+     * @param content
+     */
+    public void setContent(ContentHandle content) {
+        this.content = content;
+    }
+
+    /**
+     * @return the content references
+     */
+    public List<ArtifactReferenceDto> getReferences() {
+        return references;
+    }
+
+    /**
+     * @param references
+     */
+    public void setReferences(List<ArtifactReferenceDto> references) {
+        this.references = references;
+    }
 }

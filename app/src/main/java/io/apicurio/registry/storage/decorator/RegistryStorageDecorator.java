@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -218,7 +219,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @see RegistryStorage#getArtifactByContentId(long)
      */
     @Override
-    public ContentHandle getArtifactByContentId(long contentId)
+    public ContentWrapperDto getArtifactByContentId(long contentId)
         throws ContentNotFoundException, RegistryStorageException {
         return delegate.getArtifactByContentId(contentId);
     }
@@ -231,7 +232,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @see RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
-    public ContentHandle getArtifactByContentHash(String contentHash)
+    public ContentWrapperDto getArtifactByContentHash(String contentHash)
         throws ContentNotFoundException, RegistryStorageException {
         return delegate.getArtifactByContentHash(contentHash);
     }

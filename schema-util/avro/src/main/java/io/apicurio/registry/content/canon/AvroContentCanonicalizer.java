@@ -37,12 +37,12 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
     @Override
     public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         final Schema.Parser parser = new Schema.Parser();
-        final Schema schema = parser.parse(content.content());
         final List<Schema> schemaRefs = new ArrayList<>();
         for (ContentHandle referencedContent : resolvedReferences.values()) {
             Schema schemaRef = parser.parse(referencedContent.content());
             schemaRefs.add(schemaRef);
         }
+        final Schema schema = parser.parse(content.content());
         return ContentHandle.create(schema.toString(schemaRefs, false));
     }
 }

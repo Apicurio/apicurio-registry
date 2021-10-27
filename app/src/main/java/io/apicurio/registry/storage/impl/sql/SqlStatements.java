@@ -365,7 +365,7 @@ public interface SqlStatements {
     /**
      * A statement to insert a row in the "references" table.
      */
-    public String insertReference();
+    public String upsertReference();
 
     /**
      * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).

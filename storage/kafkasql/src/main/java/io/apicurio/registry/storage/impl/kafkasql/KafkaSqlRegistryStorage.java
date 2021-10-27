@@ -41,6 +41,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -464,7 +465,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
      */
     @Override
-    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentId(contentId);
     }
 
@@ -472,7 +473,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
-    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentHash(contentHash);
     }
 
@@ -1165,6 +1166,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         // Note: this is OK to do because the only caller of this method is the DownloadReaper, which
         // runs on every node in the cluster.
         sqlStore.deleteAllExpiredDownloads();
+    }
+
+    @Override
+    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+        return sqlStore.resolveReferences(references);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

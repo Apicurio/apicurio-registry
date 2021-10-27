@@ -18,6 +18,7 @@
 package io.apicurio.registry.storage;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -27,6 +28,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -176,7 +178,7 @@ public interface RegistryStorage {
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
      */
-    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException;
+    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException;
 
     /**
      * Gets some artifact content by the SHA-256 hash of that content.  This method of getting content
@@ -186,7 +188,7 @@ public interface RegistryStorage {
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
      */
-    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException;
+    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException;
 
     /**
      * Get artifact metadata for a given contentId
@@ -660,4 +662,9 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    /**
+     * @return The artifact references resolved as a map containing the reference name as key and the referenced artifact content.
+     */
+    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references);
 }

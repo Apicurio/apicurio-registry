@@ -168,6 +168,7 @@ public class SerdeConfig {
      * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be fetched every time.
      */
     public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
+    public static final long CHECK_PERIOD_MS_DEFAULT = 30000;
 
     /**
      * If a schema can not be retrieved from the Registry, serdes may retry a number of times.

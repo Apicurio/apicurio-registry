@@ -49,7 +49,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
                 .define(FIND_LATEST_ARTIFACT, Type.BOOLEAN, FIND_LATEST_ARTIFACT_DEFAULT, Importance.HIGH, "TODO docs")
 
-                .define(CHECK_PERIOD_MS, Type.LONG, null, Importance.MEDIUM, "TODO docs")
+                .define(CHECK_PERIOD_MS, Type.LONG, CHECK_PERIOD_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
                 .define(RETRY_COUNT, Type.LONG, RETRY_COUNT_DEFAULT, Importance.MEDIUM, "TODO docs")
                 .define(RETRY_BACKOFF_MS, Type.LONG, RETRY_BACKOFF_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
 
@@ -110,12 +110,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
     }
 
     public Duration getCheckPeriod() {
-        Duration checkPeriod = Duration.ZERO; // TODO Use as default value?
-        Object cp = this.get(CHECK_PERIOD_MS);
-        if (cp != null) {
-            checkPeriod = extractDurationMillis(cp, CHECK_PERIOD_MS);
-        }
-        return checkPeriod;
+        return extractDurationMillis(this.get(CHECK_PERIOD_MS), CHECK_PERIOD_MS);
     }
 
     public long getRetryCount() {

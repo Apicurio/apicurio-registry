@@ -54,7 +54,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
-        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences());
         int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }

@@ -71,6 +71,9 @@ public class MessageTypeToKeyClass {
                 case Download:
                     index.put(type, DownloadKey.class);
                     break;
+                case ArtifactReference:
+                    index.put(type, ArtifactReferenceKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

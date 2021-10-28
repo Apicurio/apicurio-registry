@@ -385,7 +385,7 @@ public class KafkaSqlSink {
         switch (value.getAction()) {
             case CREATE:
                 if (!sqlStore.isContentExists(key.getContentHash())) {
-                    sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent());
+                    sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent(), value.getSerializedReferences());
                 }
                 break;
             case IMPORT:

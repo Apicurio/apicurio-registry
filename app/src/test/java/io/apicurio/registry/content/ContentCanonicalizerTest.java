@@ -102,7 +102,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 + "  optional int32 page_number = 2;\n"
                 + "\n"
                 + "  optional int32 result_per_page = 3;\n"
-                + "}";
+                + "}\n";
 
         ContentHandle content = ContentHandle.create(before);
         String actual = canonicalizer.canonicalize(content).content();

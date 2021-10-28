@@ -105,9 +105,9 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(String tenantId, long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
+    public CompletableFuture<UUID> submitContent(String tenantId, long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content, String serializedReferences) {
         ContentKey key = ContentKey.create(tenantId, contentId, contentHash);
-        ContentValue value = ContentValue.create(action, canonicalHash, content);
+        ContentValue value = ContentValue.create(action, canonicalHash, content, serializedReferences);
         return send(key, value);
     }
 

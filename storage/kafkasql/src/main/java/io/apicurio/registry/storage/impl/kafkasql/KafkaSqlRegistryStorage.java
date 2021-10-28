@@ -61,6 +61,7 @@ import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -337,7 +338,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param artifactId
      * @param artifactType
      */
-    private String ensureContent(ContentHandle content, String groupId, String artifactId, ArtifactType artifactType) {
+    private String ensureContent(ContentHandle content, String groupId, String artifactId, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
 
@@ -348,7 +349,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -400,7 +401,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         //TODO handle references
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType);
+        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -498,7 +499,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         //TODO handle references
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType);
+        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -1220,7 +1221,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), ""); //FIXME:references handle references when importing an artifact
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);

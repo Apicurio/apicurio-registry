@@ -30,7 +30,7 @@ import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 public class TenantContextImpl implements TenantContext {
 
     private static final String TENANT_ID_KEY = "tenantId";
-    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null, TenantStatusValue.READY);
+    private static final RegistryTenantContext EMPTY_CONTEXT = new RegistryTenantContext(DEFAULT_TENANT_ID, null, null, TenantStatusValue.READY, null);
 
     private static final ThreadLocal<RegistryTenantContext> CURRENT = ThreadLocal.withInitial(() -> EMPTY_CONTEXT);
 

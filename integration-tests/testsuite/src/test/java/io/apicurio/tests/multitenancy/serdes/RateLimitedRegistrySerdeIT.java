@@ -25,12 +25,14 @@ import java.util.List;
 import io.apicurio.tests.utils.RetryLimitingProxy;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.SerdeConfig;
@@ -73,6 +75,72 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
+    }
+
+    @Test
+    void testRateLimitingProxy() throws Exception {
+        RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+
+        //client connecting directly to registry works
+        assertNotNull(clientTenant.listArtifactsInGroup(null));
+
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
+
+            //client connecting to rate limiting proxy , request 1 should be allowed
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            //client connecting to rate limiting proxy , request 2 should be allowed as well
+            assertNotNull(rateLimitedClient.listGlobalRules());
+
+            //client connecting to rate limiting proxy , from now requests should fail
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listGlobalRules());
+
+        } finally {
+            proxy.stop();
+        }
+    }
+
+    @Test
+    void testRetryLimitingProxy() throws Exception {
+        RetryLimitingProxy proxy = new RetryLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+
+        //client connecting directly to registry works
+        assertNotNull(clientTenant.listArtifactsInGroup(null));
+
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
+
+            //client connecting to retry limiting proxy , request 1
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            //client connecting to retry limiting proxy , request 2
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+
+            //client connecting to retry limiting proxy , from now requests should be allowed
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            assertNotNull(rateLimitedClient.listGlobalRules());
+
+        } finally {
+            proxy.stop();
+        }
     }
 
     @Test

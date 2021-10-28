@@ -31,6 +31,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -41,6 +42,7 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
@@ -53,6 +55,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
@@ -102,8 +105,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContent(long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
-        ContentKey key = ContentKey.create(contentId, contentHash);
+    public CompletableFuture<UUID> submitContent(String tenantId, long contentId, String contentHash, ActionType action, String canonicalHash, ContentHandle content) {
+        ContentKey key = ContentKey.create(tenantId, contentId, contentHash);
         ContentValue value = ContentValue.create(action, canonicalHash, content);
         return send(key, value);
     }
@@ -190,13 +193,13 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Role Mappings
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role) {
+    public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action, String role, String principalName) {
         RoleMappingKey key = RoleMappingKey.create(tenantId, principalId);
-        RoleMappingValue value = RoleMappingValue.create(action, role);
+        RoleMappingValue value = RoleMappingValue.create(action, role, principalName);
         return send(key, value);
     }
     public CompletableFuture<UUID> submitRoleMapping(String tenantId, String principalId, ActionType action) {
-        return submitRoleMapping(tenantId, principalId, action, null);
+        return submitRoleMapping(tenantId, principalId, action, null, null);
     }
 
 
@@ -216,8 +219,8 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Global ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitGlobalId(ActionType action) {
-        GlobalIdKey key = GlobalIdKey.create();
+    public CompletableFuture<UUID> submitGlobalId(String tenantId, ActionType action) {
+        GlobalIdKey key = GlobalIdKey.create(tenantId);
         GlobalIdValue value = GlobalIdValue.create(action);
         return send(key, value);
     }
@@ -226,20 +229,36 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Content ID
      * ****************************************************************************************** */
-    public CompletableFuture<UUID> submitContentId(ActionType action) {
-        ContentIdKey key = ContentIdKey.create();
+    public CompletableFuture<UUID> submitContentId(String tenantId, ActionType action) {
+        ContentIdKey key = ContentIdKey.create(tenantId);
         ContentIdValue value = ContentIdValue.create(action);
         return send(key, value);
     }
 
+
     /* ******************************************************************************************
-     * Empty
+     * Downloads
+     * ****************************************************************************************** */
+
+    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action, DownloadContextDto context) {
+        DownloadKey key = DownloadKey.create(tenantId, downloadId);
+        DownloadValue value = DownloadValue.create(action, context);
+        return send(key, value);
+    }
+    public CompletableFuture<UUID> submitDownload(String tenantId, String downloadId, ActionType action) {
+        return submitDownload(tenantId, downloadId, action, null);
+    }
+
+
+    /* ******************************************************************************************
+     * Global actions
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitGlobalAction(String tenantId, ActionType action) {
         GlobalActionKey key = GlobalActionKey.create(tenantId);
         GlobalActionValue value = GlobalActionValue.create(action);
         return send(key, value);
     }
+
 
     /* ******************************************************************************************
      * Tombstones

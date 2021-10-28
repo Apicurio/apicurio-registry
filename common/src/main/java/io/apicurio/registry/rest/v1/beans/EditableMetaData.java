@@ -90,4 +90,14 @@ public class EditableMetaData {
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
     }
+
+    @Override
+    public String toString() {
+        return "EditableMetaData{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", labels=" + labels +
+                ", properties=" + properties +
+                '}';
+    }
 }

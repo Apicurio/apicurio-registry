@@ -16,6 +16,14 @@
 
 package io.apicurio.registry.mt;
 
+import java.util.Collections;
+import java.util.Optional;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.spi.DeploymentException;
+import javax.inject.Inject;
+
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -24,13 +32,6 @@ import io.apicurio.registry.utils.OptionalBean;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.runtime.configuration.ProfileManager;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Inject;
-import java.util.Collections;
-import java.util.Optional;
 
 /**
  * @author Fabian Martinez

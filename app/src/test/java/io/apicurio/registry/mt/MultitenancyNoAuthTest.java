@@ -141,7 +141,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         try {
             tenantOperations(clientTenant1, cclientTenant1, tenant1BaseUrl);
             try {
-                tenantOperations(clientTenant2, cclientTenant2, tenant1BaseUrl);
+                tenantOperations(clientTenant2, cclientTenant2, tenant2BaseUrl);
             } finally {
                 cleanTenantArtifacts(clientTenant2);
             }

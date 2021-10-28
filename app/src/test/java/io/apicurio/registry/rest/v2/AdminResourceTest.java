@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -517,7 +518,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     void testExport() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        String group = "export-group";
+        String group = "testExport";
 
         // Create 5 artifacts in the UUID group
         for (int idx = 0; idx < 5; idx++) {
@@ -554,6 +555,70 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(contentCounter.get() >= 5);
         Assertions.assertTrue(versionCounter.get() >= 5);
+    }
+
+    @Test
+    void testExportForBrowser() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testExportForBrowser";
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+        }
+
+        // Export data (browser flow).
+        String downloadHref = given()
+            .when()
+                .queryParam("forBrowser", "true")
+                .get("/registry/v2/admin/export")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("downloadId", notNullValue())
+                .body("href", notNullValue())
+                .extract().body().path("href");
+        Assertions.assertTrue(downloadHref.startsWith("/apis/"));
+        downloadHref = downloadHref.substring(5);
+
+        // Follow href in response
+        ValidatableResponse response = given()
+            .when()
+                .get(downloadHref)
+            .then()
+                .statusCode(200);
+        InputStream body = response.extract().asInputStream();
+        ZipInputStream zip = new ZipInputStream(body);
+
+        AtomicInteger contentCounter = new AtomicInteger(0);
+        AtomicInteger versionCounter = new AtomicInteger(0);
+
+        ZipEntry entry = zip.getNextEntry();
+        while (entry != null) {
+            String name = entry.getName();
+
+            if (name.endsWith(".Content.json")) {
+                contentCounter.incrementAndGet();
+            } else if (name.endsWith(".ArtifactVersion.json")) {
+                versionCounter.incrementAndGet();
+            }
+
+            // Next entry.
+            entry = zip.getNextEntry();
+        }
+
+        Assertions.assertTrue(contentCounter.get() >= 5);
+        Assertions.assertTrue(versionCounter.get() >= 5);
+
+        // Try the download href again - should fail with 404 because it was already consumed.
+        given()
+            .when()
+                .get(downloadHref)
+            .then()
+                .statusCode(404);
     }
 
     @Test
@@ -626,6 +691,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("TestUser");
         mapping.setRole(RoleType.DEVELOPER);
+        mapping.setPrincipalName("Foo bar");
         given()
             .when()
                 .contentType(CT_JSON).body(mapping)
@@ -643,6 +709,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("principalId", equalTo("TestUser"))
+                    .body("principalName", equalTo("Foo bar"))
                     .body("role", equalTo("DEVELOPER"));
         });
         TestUtils.retry(() -> {
@@ -653,6 +720,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("[0].principalId", equalTo("TestUser"))
+                    .body("[0].principalName", equalTo("Foo bar"))
                     .body("[0].role", equalTo("DEVELOPER"));
         });
 

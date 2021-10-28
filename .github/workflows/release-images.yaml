@@ -92,54 +92,6 @@ jobs:
         if: ${{ failure() }}
         uses: Co-qn/google-chat-notification@releases/v1
         with:
-          name: ${{ github.workflow }}
+          name: ${{ github.job }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}
-
-  verify-release:
-    runs-on: ubuntu-18.04
-    needs: ["release-images"]   # The Job gets triggered only after the "release-images" job has successfully completed. The job doesn't run in case the "release-images" job fails
-    if: github.repository_owner == 'Apicurio'
-    steps:
-
-      - name: Fetch required Details
-        run: |
-          touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-          echo "BRANCH=$(cat latestRelease.json | jq -r '.target_commitish')" >> $GITHUB_ENV
-
-      - name: Determine Release Type
-        if: "contains(env.RELEASE_VERSION, 'RC')"
-        run: |
-          echo "This is a pre-release. Skipping Image Verification!"
-          exit 0
-
-      - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v2      
-
-      - name: Determine Floating Tag
-        run: |
-          if [[ $BRANCH == 'master' ]]
-          then
-              echo "FLOATING_TAG=latest-release" >> $GITHUB_ENV
-          else
-              echo "FLOATING_TAG=$BRANCH-release" >> $GITHUB_ENV
-          fi
-
-      - name: Verify Docker Release For mem
-        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-mem:${RELEASE_VERSION} apicurio/apicurio-registry-mem:${FLOATING_TAG} 
-     
-      - name: Verify Docker Release For sql
-        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-sql:${RELEASE_VERSION} apicurio/apicurio-registry-sql:${FLOATING_TAG}  
-    
-      - name: Verify Docker Release For kafkasql
-        run: cd apicurio-registry && ./.github/scripts/verify-docker-release.sh apicurio/apicurio-registry-kafkasql:${RELEASE_VERSION} apicurio/apicurio-registry-kafkasql:${FLOATING_TAG}
-
-      - name: Google Chat Notification
-        if: ${{ failure() }}
-        uses: Co-qn/google-chat-notification@releases/v1
-        with:
-          name: ${{ github.workflow }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          status: ${{ job.status }}  

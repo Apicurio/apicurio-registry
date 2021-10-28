@@ -7,10 +7,6 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.apicurio.registry.mt.TenantContextLoader;
-import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
-import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
-import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -18,6 +14,7 @@ import org.slf4j.Logger;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantContextLoader;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
@@ -32,17 +29,22 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.LogConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.RoleMappingKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
@@ -102,6 +104,7 @@ public class KafkaSqlSink {
 
         try {
             Object result = doProcessMessage(record);
+            log.trace("Processed message key: {} value: {} result: {}", record.key().getType().name(), record.value() != null ? record.value().toString() : "", result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.notifyResponse(requestId, result);
         } catch (RegistryException e) {
@@ -168,6 +171,8 @@ public class KafkaSqlSink {
                     return processRoleMapping((RoleMappingKey) key, (RoleMappingValue) value);
                 case GlobalAction:
                     return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
+                case Download:
+                    return processDownload((DownloadKey) key, (DownloadValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -178,11 +183,32 @@ public class KafkaSqlSink {
         }
     }
 
+    /**
+     * Process a Kafka message of type "globalaction".
+     * @param key
+     * @param value
+     */
     private Object processGlobalAction(GlobalActionKey key, GlobalActionValue value) {
         switch (value.getAction()) {
             case DELETE_ALL_USER_DATA:
                 sqlStore.deleteAllUserData();
                 return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "download".
+     * @param key
+     * @param value
+     */
+    private Object processDownload(DownloadKey key, DownloadValue value) {
+        switch (value.getAction()) {
+            case CREATE:
+                return sqlStore.createDownload(value.getDownloadContext());
+            case DELETE:
+                return sqlStore.consumeDownload(key.getDownloadId());
             default:
                 return unsupported(key, value);
         }
@@ -417,7 +443,7 @@ public class KafkaSqlSink {
     private Object processRoleMapping(RoleMappingKey key, RoleMappingValue value) {
         switch (value.getAction()) {
             case CREATE:
-                sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole());
+                sqlStore.createRoleMapping(key.getPrincipalId(), value.getRole(), value.getPrincipalName());
                 return null;
             case UPDATE:
                 sqlStore.updateRoleMapping(key.getPrincipalId(), value.getRole());

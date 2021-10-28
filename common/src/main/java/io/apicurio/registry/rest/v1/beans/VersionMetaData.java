@@ -292,4 +292,20 @@ public class VersionMetaData {
         this.properties = properties;
     }
 
+    @Override
+    public String toString() {
+        return "VersionMetaData{" +
+                "version=" + version +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", labels=" + labels +
+                ", properties=" + properties +
+                ", createdBy='" + createdBy + '\'' +
+                ", createdOn=" + createdOn +
+                ", type=" + type +
+                ", globalId=" + globalId +
+                ", state=" + state +
+                ", id='" + id + '\'' +
+                '}';
+    }
 }

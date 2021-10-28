@@ -283,4 +283,18 @@ public class SearchedVersion {
         this.version = version;
     }
 
+    @Override
+    public String toString() {
+        return "SearchedVersion{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdOn=" + createdOn +
+                ", createdBy='" + createdBy + '\'' +
+                ", type=" + type +
+                ", labels=" + labels +
+                ", state=" + state +
+                ", globalId=" + globalId +
+                ", version=" + version +
+                '}';
+    }
 }

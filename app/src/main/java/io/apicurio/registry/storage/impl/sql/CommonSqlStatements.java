@@ -34,14 +34,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectNextGlobalId()
-     */
-    @Override
-    public String selectNextGlobalId() {
-        return "SELECT nextval('globalidsequence')";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#databaseInitialization()
      */
     @Override
@@ -165,7 +157,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertVersion(boolean)
      */
     @Override
     public String insertVersion(boolean firstVersion) {
@@ -213,7 +205,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionMetaDataByContentHash() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
     }
@@ -222,9 +214,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactVersionMetaDataByContentId() {
         return "SELECT a.*, v.contentId, v.globalId, v.version, v.versionId, v.state, v.name, v.description, v.labels, v.properties, v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
                 + "FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND c.contentId = ?";
+                + "WHERE v.tenantId = ? AND v.contentId = ?";
     }
 
     /**
@@ -233,7 +224,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionMetaDataByCanonicalHash() {
         return "SELECT v.*, a.type FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
     }
@@ -243,7 +234,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v JOIN content c ON v.contentId = c.contentId WHERE v.tenantId = ? AND v.globalId = ?";
+        return "SELECT v.globalId, v.version, v.versionId, v.contentId, c.content FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
+                + "WHERE v.tenantId = ? AND v.globalId = ?";
     }
 
     /**
@@ -252,7 +245,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactVersionContent() {
         return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
@@ -263,7 +256,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectLatestArtifactContent() {
         return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
-                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
     }
 
@@ -283,7 +276,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentIdByHash() {
-        return "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
+        return "SELECT c.contentId FROM content c WHERE c.contentHash = ? AND c.tenantId = ?";
     }
 
     /**
@@ -360,7 +353,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
 
     /**
@@ -368,17 +361,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteLabelsByGlobalId() {
-        return "DELETE FROM labels WHERE globalId = ?";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId = ?";
     }
 
     @Override
     public String deleteLabelsByGroupId() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
     @Override
     public String deleteAllLabels() {
-        return "DELETE FROM labels WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+        return "DELETE FROM labels WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
     }
 
     /**
@@ -386,7 +379,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ? AND artifactId = ?)";
     }
 
     /**
@@ -394,17 +387,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deletePropertiesByGlobalId() {
-        return "DELETE FROM properties WHERE globalId = ?";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId = ?";
     }
 
     @Override
     public String deletePropertiesByGroupId() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ? AND groupId = ?)";
     }
 
     @Override
     public String deleteAllProperties() {
-        return "DELETE FROM properties WHERE globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
+        return "DELETE FROM properties WHERE tenantId = ? AND globalId IN (SELECT globalId FROM versions WHERE tenantId = ?)";
     }
 
     /**
@@ -483,7 +476,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionLabels() {
-        return "DELETE FROM labels l WHERE l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM labels l WHERE l.tenantId = ? AND l.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -491,7 +484,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteVersionProperties() {
-        return "DELETE FROM properties p WHERE p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
+        return "DELETE FROM properties p WHERE p.tenantId = ? AND p.globalId IN (SELECT v.globalId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?)";
     }
 
     /**
@@ -499,7 +492,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertLabel() {
-        return "INSERT INTO labels (globalId, label) VALUES (?, ?)";
+        return "INSERT INTO labels (tenantId, globalId, label) VALUES (?, ?, ?)";
     }
 
     /**
@@ -507,7 +500,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertProperty() {
-        return "INSERT INTO properties (globalId, pkey, pvalue) VALUES (?, ?, ?)";
+        return "INSERT INTO properties (tenantId, globalId, pkey, pvalue) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -579,7 +572,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentCountByHash() {
-        return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ?";
+        return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ? AND c.tenantId = ?";
     }
 
     /**
@@ -588,8 +581,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectContentById() {
         return "SELECT c.content FROM content c "
-                + "JOIN versions v ON v.contentId = c.contentId "
-                + "WHERE v.tenantId = ? AND c.contentId = ?";
+                + "WHERE c.tenantId = ? AND c.contentId = ?";
     }
 
     /**
@@ -598,14 +590,22 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectContentByContentHash() {
         return "SELECT c.content FROM content c "
-                + "JOIN versions v ON v.contentId = c.contentId "
-                + "WHERE v.tenantId = ? AND c.contentHash = ?";
+                + "WHERE c.tenantId = ? AND c.contentHash = ?";
     }
 
     @Override
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
-        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
+
+        return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId AND v.tenantId = c.tenantId)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllContent()
+     */
+    @Override
+    public String deleteAllContent() {
+        return "DELETE FROM content WHERE tenantId = ?";
     }
 
     /**
@@ -703,9 +703,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportContent() {
-        return "SELECT DISTINCT(c.contentId), c.canonicalHash, c.contentHash, c.content FROM content c "
-                + "JOIN versions v ON v.contentId = c.contentId "
-                + "WHERE v.tenantId = ?";
+        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.content FROM content c "
+                + "WHERE c.tenantId = ?";
     }
 
     /**
@@ -746,7 +745,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -771,7 +770,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectMaxContentId() {
-        return "SELECT MAX(contentId) FROM content";
+        return "SELECT MAX(contentId) FROM content WHERE tenantId = ?";
     }
 
     /**
@@ -779,7 +778,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectMaxGlobalId() {
-        return "SELECT MAX(globalId) FROM versions";
+        return "SELECT MAX(globalId) FROM versions WHERE tenantId = ?";
     }
 
     /**
@@ -787,7 +786,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentExists() {
-        return "SELECT COUNT(contentId) FROM content WHERE contentId = ?";
+        return "SELECT COUNT(contentId) FROM content WHERE contentId = ? AND tenantId = ?";
     }
 
     /**
@@ -795,7 +794,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGlobalIdExists() {
-        return "SELECT COUNT(globalId) FROM versions WHERE globalId = ?";
+        return "SELECT COUNT(globalId) FROM versions WHERE globalId = ? AND tenantId = ?";
     }
 
     /**
@@ -803,7 +802,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertRoleMapping() {
-        return "INSERT INTO acls (tenantId, principalId, role) VALUES (?, ?, ?)";
+        return "INSERT INTO acls (tenantId, principalId, role, principalName) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -860,6 +859,54 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectRoleMappingCountByPrincipal() {
         return "SELECT COUNT(a.principalId) FROM acls a WHERE a.tenantId = ? AND a.principalId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
+     */
+    @Override
+    public String selectCurrentSequenceValue() {
+        return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
+    }
+    
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
+     */
+    @Override
+    public String insertDownload() {
+        return "INSERT INTO downloads (tenantId, downloadId, expires, context) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectDownloadContext()
+     */
+    @Override
+    public String selectDownloadContext() {
+        return "SELECT d.context FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ? AND expires > ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteDownload()
+     */
+    @Override
+    public String deleteDownload() {
+        return "DELETE FROM downloads d WHERE d.tenantId = ? AND d.downloadId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteExpiredDownloads()
+     */
+    @Override
+    public String deleteExpiredDownloads() {
+        return "DELETE FROM downloads d WHERE d.expires < ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
+     */
+    @Override
+    public String insertSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
     }
 
 }

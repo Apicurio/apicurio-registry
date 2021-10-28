@@ -83,4 +83,11 @@ public class VersionSearchResults {
         this.versions = versions;
     }
 
+    @Override
+    public String toString() {
+        return "VersionSearchResults{" +
+                "count=" + count +
+                ", versions=" + versions +
+                '}';
+    }
 }

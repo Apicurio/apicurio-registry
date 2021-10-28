@@ -255,7 +255,7 @@ read-only calls to the REST API, the following option must be set to `true`:
 |Java system property
 |Type
 |Default value
-|`REGISTRY_AUTH_ANONYMOUS-READ-ACCESS_ENABLED`
+|`REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
 |`registry.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`

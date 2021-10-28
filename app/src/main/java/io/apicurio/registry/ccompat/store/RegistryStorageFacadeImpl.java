@@ -18,6 +18,7 @@ package io.apicurio.registry.ccompat.store;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -45,7 +47,9 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
@@ -108,18 +112,22 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
         ContentHandle contentHandle;
+        List<ArtifactReferenceDto> references;
         if (cconfig.legacyIdModeEnabled) {
             StoredArtifactDto artifactVersion = storage.getArtifactVersion(contentId);
             contentHandle = artifactVersion.getContent();
+            references = artifactVersion.getReferences();
         } else {
+            ContentWrapperDto contentWrapper = storage.getArtifactByContentId(contentId);
             contentHandle = storage.getArtifactByContentId(contentId).getContent();
+            references = contentWrapper.getReferences();
             List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
             if (artifacts == null || artifacts.isEmpty()) {
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + contentId);
             }
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null));
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null), references);
     }
 
     @Override
@@ -153,7 +161,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Long createSchema(String subject, String schema, String schemaType) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
         try {
@@ -171,7 +179,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             if (schemaType != null && !artifactType.value().equals(schemaType)) {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
-            ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType);
+            ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType, references);
             return cconfig.legacyIdModeEnabled ? artifactMeta.getGlobalId() : artifactMeta.getContentId();
         } catch (InvalidArtifactTypeException ex) {
             //If no artifact type can be inferred, throw invalid schema ex
@@ -207,7 +215,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, String version,
-            SchemaContent request) {
+                                                                     SchemaContent request) {
 
         return parseVersionString(subject, version, v -> {
             try {
@@ -229,16 +237,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
-    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {
+    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references) {
         ArtifactMetaDataDto res;
+        final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
+        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
             if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
-                //FIXME:References references are not supported for now
-                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE, resolvedReferences);
+                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema), parsedReferences);
             } else {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
-                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema), null);
+                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE, resolvedReferences);
+                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema), parsedReferences);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -321,6 +330,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             return true;
         } catch (RuleNotFoundException ignored) {
             return false;
+        }
+    }
+
+    //Parse references and resolve the contentId. This will fail with ArtifactNotFound if a reference cannot be found.
+    private List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references) {
+        if (references != null) {
+            return references.stream()
+                    .map(schemaReference -> new ArtifactReferenceDto(null, schemaReference.getSubject(), schemaReference.getName(), String.valueOf(schemaReference.getVersion()), storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion())).getContentId()))
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
         }
     }
 }

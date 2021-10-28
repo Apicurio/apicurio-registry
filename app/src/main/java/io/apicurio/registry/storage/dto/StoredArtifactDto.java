@@ -42,6 +42,6 @@ public class StoredArtifactDto {
     // TODO Can the CH be used multiple times?
     private ContentHandle content;
 
-    private List<ArtifactReferenceDto> references;
+    private List<ArtifactReferenceDto> references; //TODO create a new class StoredArtifactReference?
 
 }

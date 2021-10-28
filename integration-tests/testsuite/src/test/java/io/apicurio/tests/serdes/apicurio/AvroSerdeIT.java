@@ -48,6 +48,7 @@ import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.KafkaFacade;
@@ -701,6 +702,35 @@ public class AvroSerdeIT extends ApicurioV2BaseIT {
                 })
                 .build()
                 .test();
+
+    }
+
+    @Test
+    void testFirstRequestFailsRateLimited() throws Exception {
+
+        TooManyRequestsMock mock = new TooManyRequestsMock();
+
+        mock.start();
+        try {
+            String topicName = TestUtils.generateSubject();
+            kafkaCluster.createTopic(topicName, 1, 1);
+
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("mygroup", "myrecord", List.of("keyB"));
+
+            new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
+                .withTopic(topicName)
+
+                //mock url that will return 429 status always
+                .withProducerProperty(SerdeConfig.REGISTRY_URL, mock.getMockUrl())
+
+                .withSerializer(AvroKafkaSerializer.class)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .build()
+                .test();
+        } finally {
+            mock.stop();
+        }
 
     }
 

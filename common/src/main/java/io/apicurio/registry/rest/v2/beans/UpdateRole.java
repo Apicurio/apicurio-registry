@@ -52,4 +52,10 @@ public class UpdateRole {
         this.role = role;
     }
 
+    @Override
+    public String toString() {
+        return "UpdateRole{" +
+                "role=" + role +
+                '}';
+    }
 }

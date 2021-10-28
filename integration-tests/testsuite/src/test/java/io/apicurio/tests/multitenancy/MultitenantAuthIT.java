@@ -51,9 +51,6 @@ import io.smallrye.jwt.build.Jwt;
 
 
 /**
- * NOTE! This test is not testing security nor authentication features yet!
- * Once authentication is enabled in our deployments we will enable it for our testing
- *
  * @author Fabian Martinez
  */
 @Tag(Constants.MULTITENANCY)
@@ -90,8 +87,8 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         MultitenancySupport mt = new MultitenancySupport();
 
         String tenantId = UUID.randomUUID().toString();
-        var user1 = new TenantUser(tenantId, "eric", "cool-org");
-        var user2 = new TenantUser(tenantId, "carles", "cool-org");
+        var user1 = new TenantUser(tenantId, "eric", "cool-org", UUID.randomUUID().toString());
+        var user2 = new TenantUser(tenantId, "carles", "cool-org", UUID.randomUUID().toString());
 
         //user1 is the owner of the tenant
         TenantUserClient tenantOwner = mt.createTenant(user1);
@@ -151,11 +148,11 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
 
         MultitenancySupport mt = new MultitenancySupport();
 
-        var user1 = new TenantUser(UUID.randomUUID().toString(), "eric", "org1");
+        var user1 = new TenantUser(UUID.randomUUID().toString(), "eric", "org1", UUID.randomUUID().toString());
         TenantUserClient tenant1User1Client = mt.createTenant(user1);
         tenant1User1Client.client.listArtifactsInGroup(null);
 
-        var user2 = new TenantUser(UUID.randomUUID().toString(), "carles", "org2");
+        var user2 = new TenantUser(UUID.randomUUID().toString(), "carles", "org2", UUID.randomUUID().toString());
         TenantUserClient tenant2User2Client = mt.createTenant(user2);
         tenant2User2Client.client.listArtifactsInGroup(null);
 

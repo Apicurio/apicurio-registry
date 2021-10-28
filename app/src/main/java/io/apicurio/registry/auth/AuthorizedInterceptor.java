@@ -60,6 +60,7 @@ public class AuthorizedInterceptor {
         RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
         if (rbacOpAnnotation != null) {
             if (!authConfig.isApplicationRbacEnabled()) {
+                log.warn("Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
         }

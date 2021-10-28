@@ -101,6 +101,22 @@ objects:
           app: apicurio-registry
           template: multitenant-apicurio-registry
       spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - apicurio-registry
+                  - key: template
+                    operator: In
+                    values:
+                    - multitenant-apicurio-registry
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+              weight: 100
         serviceAccount: ${SERVICE_ACCOUNT_NAME}
         serviceAccountName: ${SERVICE_ACCOUNT_NAME}
         volumes:
@@ -110,11 +126,18 @@ objects:
         - name: envoy-unix-sockets
           emptyDir:
             medium: Memory
+        - name: db-ssl-ca
+          secret:
+            secretName: ${DATABASE_SSL_CA_SECRET_NAME}
 
         containers:
         - name: apicurio-registry
           image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: db-ssl-ca
+            mountPath: /config/db-ssl-ca.pem
+            subPath: ca.pem
           env:
           - name: REGISTRY_ENABLE_MULTITENANCY
             value: "true"
@@ -124,6 +147,16 @@ objects:
             value: ${REGISTRY_QUARKUS_LOG_LEVEL}
           - name: QUARKUS_PROFILE
             value: prod
+          - name: ENABLE_ACCESS_LOG
+            value: ${ENABLE_ACCESS_LOG}
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
 
           - name: DB_HOST
             valueFrom:
@@ -141,7 +174,7 @@ objects:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.name
           - name: REGISTRY_DATASOURCE_URL
-            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
           - name: REGISTRY_DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
@@ -246,6 +279,10 @@ objects:
         - name: tenant-manager
           image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: db-ssl-ca
+            mountPath: /config/db-ssl-ca.pem
+            subPath: ca.pem
           env:
           - name: DB_HOST
             valueFrom:
@@ -263,7 +300,7 @@ objects:
                 name:  ${DATABASE_SECRET_NAME}
                 key:  db.name
           - name: DATASOURCE_URL
-            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
           - name: DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
@@ -283,6 +320,16 @@ objects:
             value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
           - name: TENANT_MANAGER_LOG_LEVEL
             value: ${TENANT_MANAGER_LOG_LEVEL}
+          - name: ENABLE_ACCESS_LOG
+            value: ${ENABLE_ACCESS_LOG}
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
 
           - name: AUTH_ENABLED
             value: ${AUTH_ENABLED}
@@ -388,6 +435,9 @@ parameters:
 - name: TENANT_MANAGER_QUARKUS_LOG_LEVEL
   value: INFO
 
+- name: ENABLE_ACCESS_LOG
+  value: "false"
+
 - name: SERVICE_ACCOUNT_NAME
   displayName: Service Account to use for the deployment
   required: true
@@ -448,6 +498,9 @@ parameters:
 
 - name: DATABASE_SECRET_NAME
   description: Secret name with database connection details
+  required: true
+- name: DATABASE_SSL_CA_SECRET_NAME
+  description: Secret name with database SSL CA
   required: true
 
 - name: AUTH_ENABLED
@@ -521,3 +574,9 @@ parameters:
 - name: ENVOY_CONFIG_CM_NAME
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
+
+- name: ENABLE_SENTRY
+  value: "false"
+- name: SENTRY_DSN_SECRET_NAME
+  description: Secret name containing dsn for connecting to sentry
+  value: sentry-dsn-secret

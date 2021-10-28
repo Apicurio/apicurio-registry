@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.1.0-SNAPSHOT",
+        "version": "2.1.2-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -656,6 +656,16 @@
             "get": {
                 "tags": [
                     "Admin"
+                ],
+                "parameters": [
+                    {
+                        "name": "forBrowser",
+                        "description": "Indicates if the operation is done for a browser.  If true, the response will be a JSON payload with a property called `href`.  This `href` will be a single-use, naked download link suitable for use by a web browser to download the content.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -2320,95 +2330,6 @@
                     }
                 }
             },
-            "VersionMetaData": {
-                "title": "Root Type for ArtifactVersionMetaData",
-                "description": "",
-                "required": [
-                    "createdOn",
-                    "createdBy",
-                    "version",
-                    "type",
-                    "globalId",
-                    "id",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "my-artifact-id",
-                    "version": 1221432,
-                    "type": "PROTOBUF",
-                    "name": "Artifact Name",
-                    "description": "The description of the artifact",
-                    "createdBy": "user1",
-                    "createdOn": "2019-05-17T12:00:00Z",
-                    "globalId": 183282932983,
-                    "contentId": 12347,
-                    "labels": [
-                        "label-1",
-                        "label-2"
-                    ],
-                    "properties": {
-                        "custom-1": "foo",
-                        "custom-2": "bar"
-                    }
-                }
-            },
             "Rule": {
                 "title": "Root Type for Rule",
                 "description": "",
@@ -2561,128 +2482,6 @@
                     }
                 }
             },
-            "SearchedVersion": {
-                "description": "Models a single artifact from the result set returned when searching for artifacts.",
-                "required": [
-                    "createdBy",
-                    "createdOn",
-                    "type",
-                    "state",
-                    "globalId",
-                    "version",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "description": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "version": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "name": "Artifact Version Name",
-                    "description": "Description of the artifact version",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
-                    "type": "AVRO",
-                    "state": "ENABLED",
-                    "createdOn": "2018-02-10T09:30Z",
-                    "createdBy": "some text",
-                    "globalId": 37,
-                    "version": 85,
-                    "properties": {
-
-                    },
-                    "contentId": 62
-                }
-            },
-            "RuleViolationError": {
-                "title": "Root Type for Error",
-                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
-                "type": "object",
-                "allOf": [
-                    {
-                        "required": [
-                            "causes"
-                        ],
-                        "type": "object",
-                        "properties": {
-                            "causes": {
-                                "description": "List of rule violation causes.",
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/components/schemas/RuleViolationCause"
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "$ref": "#/components/schemas/Error"
-                    }
-                ],
-                "example": {
-                    "error_code": 409,
-                    "message": "Artifact failed validation",
-                    "causes": [
-                        {
-                            "description": "API is missing a title",
-                            "context": "/info[title]"
-                        },
-                        {
-                            "description": "Operation IDs must be unique",
-                            "context": "/paths[/invoices]/put[operationId]"
-                        }
-                    ]
-                }
-            },
             "RuleViolationCause": {
                 "title": "Root Type for RuleViolationCause",
                 "description": "",
@@ -2714,186 +2513,6 @@
                 "description": "A single version of an artifact.  Can be provided by the client when creating a new version,\nor it can be server-generated.  The value can be any string unique to the artifact, but it is\nrecommended to use a simple integer or a semver value.",
                 "type": "string",
                 "example": "\"3.1.6\""
-            },
-            "SearchedArtifact": {
-                "description": "Models a single artifact from the result set returned when searching for artifacts.",
-                "required": [
-                    "createdBy",
-                    "createdOn",
-                    "id",
-                    "type",
-                    "state",
-                    "group"
-                ],
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "name": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "description": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "modifiedOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "modifiedBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "Procurement-Invoice",
-                    "name": "Artifact Name",
-                    "description": "Description of the artifact",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
-                    "type": "AVRO",
-                    "state": "ENABLED",
-                    "createdBy": "user1",
-                    "createdOn": "2019-03-22T12:51:19Z"
-                }
-            },
-            "ArtifactMetaData": {
-                "title": "Root Type for ArtifactMetaData",
-                "description": "",
-                "required": [
-                    "id",
-                    "createdBy",
-                    "createdOn",
-                    "modifiedBy",
-                    "modifiedOn",
-                    "version",
-                    "type",
-                    "globalId",
-                    "state",
-                    "group",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "modifiedBy": {
-                        "type": "string"
-                    },
-                    "modifiedOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "version": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "Procurement-Invoice",
-                    "name": "Artifact Name",
-                    "description": "Description of the artifact",
-                    "type": "AVRO",
-                    "version": 18,
-                    "createdBy": "user1",
-                    "createdOn": "2019-03-22T12:51:19Z",
-                    "modifiedBy": "user2",
-                    "modifiedOn": "2019-07-19T15:09:00Z",
-                    "globalId": 12984719247,
-                    "contentId": 82736,
-                    "labels": [
-                        "label-1",
-                        "label-2"
-                    ],
-                    "properties": {
-                        "custom-1": "foo",
-                        "custom-2": "bar"
-                    }
-                }
             },
             "LogConfiguration": {
                 "description": "",
@@ -3020,10 +2639,15 @@
                     "role": {
                         "$ref": "#/components/schemas/RoleType",
                         "description": ""
+                    },
+                    "principalName": {
+                        "description": "A friendly name for the principal.",
+                        "type": "string"
                     }
                 },
                 "example": {
-                    "principalId": "user1",
+                    "principalId": "svc_account_84874587_123484",
+                    "principalName": "famartin-svc-account",
                     "role": "READ_ONLY"
                 }
             },
@@ -3105,6 +2729,459 @@
                 "type": "string",
                 "example": "\"Artifact description\"",
                 "x-codegen-inline": true
+            },
+            "DownloadRef": {
+                "title": "Root Type for Download",
+                "description": "Models a download \"link\".  Useful for browser use-cases.",
+                "required": [
+                    "downloadId"
+                ],
+                "type": "object",
+                "properties": {
+                    "downloadId": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "downloadId": "247-4987490-297845",
+                    "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
+                }
+            },
+            "VersionReference": {
+                "title": "Root Type for ArtifactReference",
+                "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
+                "required": [
+                    "artifactId",
+                    "groupId",
+                    "name",
+                    "globalId"
+                ],
+                "type": "object",
+                "properties": {
+                    "groupId": {
+                        "type": "string"
+                    },
+                    "artifactId": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "globalId": {
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "groupId": "mygroup",
+                    "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                    "version": "versionName",
+                    "globalId": 2,
+                    "name": "foo.bar.Open"
+                }
+            },
+            "ArtifactMetaData": {
+                "title": "Root Type for ArtifactMetaData",
+                "description": "",
+                "required": [
+                    "id",
+                    "createdBy",
+                    "createdOn",
+                    "modifiedBy",
+                    "modifiedOn",
+                    "version",
+                    "type",
+                    "globalId",
+                    "state",
+                    "group",
+                    "contentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "modifiedBy": {
+                        "type": "string"
+                    },
+                    "modifiedOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "version": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "Procurement-Invoice",
+                    "name": "Artifact Name",
+                    "description": "Description of the artifact",
+                    "type": "AVRO",
+                    "version": 18,
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z",
+                    "modifiedBy": "user2",
+                    "modifiedOn": "2019-07-19T15:09:00Z",
+                    "globalId": 12984719247,
+                    "contentId": 82736,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ],
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    }
+                }
+            },
+            "SearchedArtifact": {
+                "description": "Models a single artifact from the result set returned when searching for artifacts.",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "id",
+                    "type",
+                    "state",
+                    "group"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "modifiedOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "modifiedBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "Procurement-Invoice",
+                    "name": "Artifact Name",
+                    "description": "Description of the artifact",
+                    "labels": [
+                        "current",
+                        "internal"
+                    ],
+                    "type": "AVRO",
+                    "state": "ENABLED",
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z"
+                }
+            },
+            "VersionMetaData": {
+                "title": "Root Type for ArtifactVersionMetaData",
+                "description": "",
+                "required": [
+                    "createdOn",
+                    "createdBy",
+                    "version",
+                    "type",
+                    "globalId",
+                    "id",
+                    "contentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "my-artifact-id",
+                    "version": 1221432,
+                    "type": "PROTOBUF",
+                    "name": "Artifact Name",
+                    "description": "The description of the artifact",
+                    "createdBy": "user1",
+                    "createdOn": "2019-05-17T12:00:00Z",
+                    "globalId": 183282932983,
+                    "contentId": 12347,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ],
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    }
+                }
+            },
+            "SearchedVersion": {
+                "description": "Models a single artifact from the result set returned when searching for artifacts.",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "type",
+                    "state",
+                    "globalId",
+                    "version",
+                    "contentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "version": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "name": "Artifact Version Name",
+                    "description": "Description of the artifact version",
+                    "labels": [
+                        "current",
+                        "internal"
+                    ],
+                    "type": "AVRO",
+                    "state": "ENABLED",
+                    "createdOn": "2018-02-10T09:30Z",
+                    "createdBy": "some text",
+                    "globalId": 37,
+                    "version": 85,
+                    "properties": {
+
+                    },
+                    "contentId": 62
+                }
+            },
+            "RuleViolationError": {
+                "title": "Root Type for Error",
+                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+                "type": "object",
+                "allOf": [
+                    {
+                        "required": [
+                            "causes"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "causes": {
+                                "description": "List of rule violation causes.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RuleViolationCause"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/Error"
+                    }
+                ],
+                "example": {
+                    "error_code": 409,
+                    "message": "Artifact failed validation",
+                    "causes": [
+                        {
+                            "description": "API is missing a title",
+                            "context": "/info[title]"
+                        },
+                        {
+                            "description": "Operation IDs must be unique",
+                            "context": "/paths[/invoices]/put[operationId]"
+                        }
+                    ]
+                },
+                "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
             }
         },
         "responses": {

@@ -16,9 +16,9 @@
  */
 
 import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
-import {FederatedPageProps, FederatedUtils} from "../../federated";
+import {FederatedComponentProps, FederatedUtils} from "../../federated";
 
-export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedPageProps {
+export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedComponentProps {
 }
 
 export default class FederatedArtifactsPage extends ArtifactsPage {
@@ -28,7 +28,7 @@ export default class FederatedArtifactsPage extends ArtifactsPage {
     }
 
     protected postConstruct(): void {
-        FederatedUtils.updateConfiguration(this.props as FederatedPageProps);
+        FederatedUtils.updateConfiguration(this.props as FederatedComponentProps);
         super.postConstruct();
     }
 

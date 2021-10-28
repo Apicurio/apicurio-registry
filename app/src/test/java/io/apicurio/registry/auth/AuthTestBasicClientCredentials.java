@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -63,7 +64,7 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 

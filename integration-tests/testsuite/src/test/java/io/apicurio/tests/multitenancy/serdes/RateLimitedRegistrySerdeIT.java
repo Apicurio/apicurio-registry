@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.serdes.apicurio;
+package io.apicurio.tests.multitenancy.serdes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.io.InputStream;
 import java.util.List;
 
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
@@ -39,51 +40,50 @@ import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.ApicurioV2BaseIT;
+import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.KafkaFacade;
+import io.apicurio.tests.multitenancy.MultitenancySupport;
+import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
+import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
 import io.apicurio.tests.utils.RateLimitingProxy;
-import io.apicurio.tests.utils.TooManyRequestsMock;
 
 /**
  * @author Fabian Martinez
  */
-@Tag(Constants.SERDES)
-public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
+@Tag(Constants.MULTITENANCY)
+@DisabledIfEnvironmentVariable(named = Constants.CURRENT_ENV, matches = Constants.CURRENT_ENV_MAS_REGEX)
+public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
     private KafkaFacade kafkaCluster = KafkaFacade.getInstance();
-    private TooManyRequestsMock mock = new TooManyRequestsMock();
-
 
     @BeforeAll
     void setupEnvironment() {
         kafkaCluster.startIfNeeded();
-        mock.start();
     }
 
     @AfterAll
     public void teardown() throws Exception {
         kafkaCluster.stopIfPossible();
-        mock.stop();
     }
 
-    @Test
-    public void testClientRateLimitError() {
+    protected void createArtifact(RegistryClient client, String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {
+        ArtifactMetaData meta = client.createArtifact(groupId, artifactId, null, artifactType, IfExists.FAIL, false, artifact);
 
-        RegistryClient client = RegistryClientFactory.create(mock.getMockUrl());
-
-        Assertions.assertThrows(RateLimitedClientException.class, () -> client.getLatestArtifact("test", "test"));
-
-        Assertions.assertThrows(RateLimitedClientException.class, () -> client.createArtifact(null, "aaa", IoUtil.toStream("{}")));
-
-        Assertions.assertThrows(RateLimitedClientException.class, () -> client.getContentByGlobalId(5));
-
+        TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
+        assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
     }
 
     @Test
     void testFindLatestRateLimited() throws Exception {
 
         RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
         try {
             proxy.start();
 
@@ -93,13 +93,20 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
 
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
 
-            createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
+            createArtifact(clientTenant, topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchemaStream());
 
             new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
                 .withTopic(topicName)
 
                 //url of the proxy
-                .withCommonProperty(SerdeConfig.REGISTRY_URL, proxy.getServerUrl())
+                .withCommonProperty(SerdeConfig.REGISTRY_URL, tenantRateLimitedUrl)
+
+                //add auth properties
+                .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
+
 
                 .withSerializer(AvroKafkaSerializer.class)
                 .withDeserializer(AvroKafkaDeserializer.class)
@@ -124,6 +131,12 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
     void testAutoRegisterRateLimited() throws Exception {
 
         RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
         try {
             proxy.start();
 
@@ -138,7 +151,13 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
                 .withTopic(topicName)
 
                 //url of the proxy
-                .withCommonProperty(SerdeConfig.REGISTRY_URL, proxy.getServerUrl())
+                .withCommonProperty(SerdeConfig.REGISTRY_URL, tenantRateLimitedUrl)
+
+                //add auth properties
+                .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
 
                 .withSerializer(AvroKafkaSerializer.class)
                 .withDeserializer(AvroKafkaDeserializer.class)
@@ -148,8 +167,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
-                        ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-                        registryClient.getContentByGlobalId(meta.getGlobalId());
+                        ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+                        clientTenant.getContentByGlobalId(meta.getGlobalId());
                         return true;
                     });
                 })
@@ -161,10 +180,8 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
                 .test();
 
 
-            //TODO make serdes tester send a second batch, that will test that the cache is used when loaded
-
-            ArtifactMetaData meta = registryClient.getArtifactMetaData(null, artifactId);
-            byte[] rawSchema = IoUtil.toBytes(registryClient.getContentByGlobalId(meta.getGlobalId()));
+            ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+            byte[] rawSchema = IoUtil.toBytes(clientTenant.getContentByGlobalId(meta.getGlobalId()));
 
             assertEquals(new String(avroSchema.generateSchemaBytes()), new String(rawSchema));
 
@@ -172,26 +189,6 @@ public class RateLimitedRegistrySerdeIT extends ApicurioV2BaseIT {
             proxy.stop();
         }
 
-    }
-
-    @Test
-    void testFirstRequestFailsRateLimited() throws Exception {
-        String topicName = TestUtils.generateSubject();
-        kafkaCluster.createTopic(topicName, 1, 1);
-
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("mygroup", "myrecord", List.of("keyB"));
-
-        new WrongConfiguredSerdesTesterBuilder<GenericRecord>()
-            .withTopic(topicName)
-
-            //mock url that will return 429 status always
-            .withProducerProperty(SerdeConfig.REGISTRY_URL, mock.getMockUrl())
-
-            .withSerializer(AvroKafkaSerializer.class)
-            .withStrategy(TopicIdStrategy.class)
-            .withDataGenerator(avroSchema::generateRecord)
-            .build()
-            .test();
     }
 
 }

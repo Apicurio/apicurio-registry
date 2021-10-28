@@ -64,6 +64,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String sql = sqlStatements().selectContentCountByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext().tenantId())
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -113,10 +114,11 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                 byte [] contentBytes = content.bytes();
                 String sql = sqlStatements().importContent();
                 handle.createUpdate(sql)
-                    .bind(0, contentId)
-                    .bind(1, canonicalHash)
-                    .bind(2, contentHash)
-                    .bind(3, contentBytes)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, contentId)
+                    .bind(2, canonicalHash)
+                    .bind(3, contentHash)
+                    .bind(4, contentBytes)
                     .execute();
             }
             return null;
@@ -165,6 +167,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext().tenantId())
                     .mapTo(Long.class)
                     .one();
         });

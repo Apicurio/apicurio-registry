@@ -16,3 +16,4 @@
  */
 
 export * from "./grantAccessModal"
+export * from "./selectPrincipalAccount"

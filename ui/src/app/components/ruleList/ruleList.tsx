@@ -100,7 +100,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                         <DataListItemCells dataListCells={[
                             <DataListCell key="rule-name">
                                 <OkIcon className="rule-icon" />
-                                <span id="validity-rule-name">Validity Rule</span>
+                                <span id="validity-rule-name">Validity rule</span>
                             </DataListCell>,
                             <DataListCell key="rule-description">Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
                         ]}
@@ -123,9 +123,9 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
                         <DataListItemCells dataListCells={[
                             <DataListCell key="rule-name">
                                 <CodeBranchIcon className="rule-icon" />
-                                <span id="compatibility-rule-name">Compatibility Rule</span>
+                                <span id="compatibility-rule-name">Compatibility rule</span>
                             </DataListCell>,
-                            <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (e.g. Backwards Compatibility).</DataListCell>
+                            <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (for example, Backwards Compatibility).</DataListCell>
                         ]}
                         />
                         <IfAuth isDeveloper={true}>

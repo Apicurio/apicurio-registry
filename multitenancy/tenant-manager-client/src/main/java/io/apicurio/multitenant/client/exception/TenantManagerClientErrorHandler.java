@@ -43,11 +43,11 @@ public class TenantManagerClientErrorHandler implements RestClientErrorHandler {
 
     @Override
     public ApicurioRestClientException parseError(Exception e) {
-        throw new UnsupportedOperationException();
+        throw new TenantManagerClientException(e.getMessage());
     }
 
     @Override
     public ApicurioRestClientException parseInputSerializingError(JsonProcessingException e) {
-        throw new UnsupportedOperationException();
+        throw new TenantManagerClientException(e.getMessage());
     }
 }

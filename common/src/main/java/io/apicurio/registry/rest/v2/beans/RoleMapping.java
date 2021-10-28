@@ -16,7 +16,8 @@ import io.apicurio.registry.types.RoleType;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "principalId",
-    "role"
+    "role",
+    "principalName"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -38,6 +39,13 @@ public class RoleMapping {
     @JsonProperty("role")
     @JsonPropertyDescription("")
     private RoleType role;
+    /**
+     * A friendly name for the principal.
+     * 
+     */
+    @JsonProperty("principalName")
+    @JsonPropertyDescription("A friendly name for the principal.")
+    private String principalName;
 
     /**
      * 
@@ -79,4 +87,30 @@ public class RoleMapping {
         this.role = role;
     }
 
+    /**
+     * A friendly name for the principal.
+     * 
+     */
+    @JsonProperty("principalName")
+    public String getPrincipalName() {
+        return principalName;
+    }
+
+    /**
+     * A friendly name for the principal.
+     * 
+     */
+    @JsonProperty("principalName")
+    public void setPrincipalName(String principalName) {
+        this.principalName = principalName;
+    }
+
+    @Override
+    public String toString() {
+        return "RoleMapping{" +
+                "principalId='" + principalId + '\'' +
+                ", role=" + role +
+                ", principalName='" + principalName + '\'' +
+                '}';
+    }
 }

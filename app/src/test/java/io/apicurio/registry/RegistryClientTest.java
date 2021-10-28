@@ -16,8 +16,11 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.logging.audit.MockAuditLogService;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -43,6 +46,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -53,6 +57,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -116,6 +121,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
+
+    @Inject
+    MockAuditLogService auditLogService;
 
     @Test
     public void testCreateArtifact() throws Exception {
@@ -236,6 +244,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testAsyncCRUD() throws Exception {
+        auditLogService.resetAuditLogs();
         //Preparation
         final String groupId = "testAsyncCRUD";
         String artifactId = generateArtifactId();
@@ -267,6 +276,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
             //Assertions
             assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+
+            List<Map<String, String>> auditLogs = auditLogService.getAuditLogs();
+            assertFalse(auditLogs.isEmpty());
+            assertEquals(3, auditLogs.size()); //Expected size 3 since we performed 3 audited operations
 
         } finally {
             clientV2.deleteArtifact(groupId, artifactId);
@@ -1142,6 +1155,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         return created;
     }
 
+    @SuppressWarnings("unused")
     private ArtifactMetaData createOpenAPIYamlArtifact(String groupId, String artifactId) throws Exception {
         final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.OPENAPI, IfExists.FAIL, false, stream);
@@ -1340,6 +1354,23 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertNotNull(clientV2.getLatestArtifact(groupId, artifactId));
 
+    }
+
+    @Test
+    public void testClientRateLimitError() {
+        TooManyRequestsMock mock = new TooManyRequestsMock();
+        mock.start();
+        try {
+            RegistryClient client = RegistryClientFactory.create(mock.getMockUrl());
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getLatestArtifact("test", "test"));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.createArtifact(null, "aaa", IoUtil.toStream("{}")));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getContentByGlobalId(5));
+        } finally {
+            mock.stop();
+        }
     }
 
 }

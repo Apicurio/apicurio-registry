@@ -102,6 +102,20 @@ public class JWKSMockServer {
         this.tokenEndpoint = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
     }
 
+    public void addStubForTenant(String tenantClientId, String tenantClientSecret, String organizationId) {
+        server.stubFor(WireMock.post("/auth/realms/" + realm + "/protocol/openid-connect/token/")
+              .withRequestBody(WireMock.containing("grant_type=client_credentials"))
+              .withRequestBody(WireMock.containing("client_id=" + tenantClientId))
+              .withRequestBody(WireMock.containing("client_secret=" + tenantClientSecret))
+              .willReturn(WireMock.aResponse()
+                      .withHeader("Content-Type", "application/json")
+                      .withBody("{\n" +
+                              "  \"access_token\": \""
+                              + generateJwtToken(tenantClientId, organizationId) + "\",\n" +
+                              "  \"refresh_token\": \"07e08903-1263-4dd1-9fd1-4a59b0db5283\",\n" +
+                              "  \"token_type\": \"bearer\"\n" +
+                              "}")));
+    }
 
     private ResponseDefinitionBuilder wellKnownResponse() {
         return aResponse()
@@ -115,15 +129,18 @@ public class JWKSMockServer {
 
 
     private String getAccessToken(String userName) {
-        return generateJwtToken(userName);
+        return generateJwtToken(userName, null);
     }
 
-    private String generateJwtToken(String userName) {
-        return Jwt.preferredUserName(userName)
+    private String generateJwtToken(String userName, String organizationId) {
+        var b = Jwt.preferredUserName(userName);
+        if (organizationId != null) {
+            b.claim(CustomJWTAuth.RH_ORG_ID_CLAIM, organizationId);
+        }
+        return b
                 .jws()
                 .keyId("1")
                 .sign();
-//                .sign("privateKey.jwk");
     }
 
     public synchronized void stop() {

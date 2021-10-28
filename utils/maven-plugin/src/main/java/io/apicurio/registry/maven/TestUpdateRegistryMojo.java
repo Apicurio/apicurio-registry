@@ -106,4 +106,8 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
         }
         return getContentTypeByExtension(testArtifact.getFile().getName());
     }
+
+    public void setArtifacts(List<TestArtifact> artifacts) {
+        this.artifacts = artifacts;
+    }
 }

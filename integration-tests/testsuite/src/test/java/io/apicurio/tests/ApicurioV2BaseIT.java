@@ -184,7 +184,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
                 .collect(Collectors.toList());
     }
 
-    protected final String resourceToString(String resourceName) {
+    public static String resourceToString(String resourceName) {
         try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
             Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
             return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));

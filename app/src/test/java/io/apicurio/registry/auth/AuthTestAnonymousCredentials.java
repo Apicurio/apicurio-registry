@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
@@ -60,13 +61,13 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test55");
+        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test55", Optional.empty());
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);

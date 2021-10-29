@@ -86,7 +86,6 @@ public class RedirectFilter implements Filter {
             }
     
             if (redirects.containsKey(servletPath)) {
-                System.out.println("=========> REDIRECT TO: " + redirects.get(servletPath));
                 response.sendRedirect(redirects.get(servletPath));
                 return;
             }

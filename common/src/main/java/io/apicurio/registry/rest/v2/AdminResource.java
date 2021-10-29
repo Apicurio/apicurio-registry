@@ -11,6 +11,7 @@ import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -159,7 +160,9 @@ public interface AdminResource {
   @Path("/import")
   @POST
   @Consumes("application/zip")
-  void importData(InputStream data);
+  void importData(@HeaderParam("X-Registry-Preserve-GlobalId") Boolean xRegistryPreserveGlobalId,
+      @HeaderParam("X-Registry-Preserve-ContentId") Boolean xRegistryPreserveContentId,
+      InputStream data);
 
   /**
    * Gets the details of a single role mapping (by principalId).

@@ -25,11 +25,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentById",
@@ -59,11 +59,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByGlobalId",
@@ -93,11 +93,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByHash",
@@ -694,6 +694,25 @@
                 "tags": [
                     "Admin"
                 ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Preserve-GlobalId",
+                        "description": "If this header is set to false, global ids of imported data will be ignored and replaced by next id in global id sequence. This allows to import any data even thought the global ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header",
+                        "required": false
+                    },
+                    {
+                        "name": "X-Registry-Preserve-ContentId",
+                        "description": "If this header is set to false, content ids of imported data will be ignored and replaced by next id in content id sequence. The mapping between content and artifacts will be preserved. This allows to import any data even thought the content ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header"
+                    }
+                ],
                 "responses": {
                     "201": {
                         "description": "Indicates that the import was successful."
@@ -1056,14 +1075,14 @@
                     "Versions"
                 ],
                 "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
-                    },
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
                     }
                 },
                 "operationId": "getArtifactVersion",

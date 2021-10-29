@@ -225,11 +225,11 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#importData(java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.AdminResource#importData(Boolean, Boolean, java.io.InputStream)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void importData(InputStream data) {
+    public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId, InputStream data) {
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
         final EntityReader reader = new EntityReader(zip);
         EntityInputStream stream = new EntityInputStream() {
@@ -248,7 +248,7 @@ public class AdminResourceImpl implements AdminResource {
                 zip.close();
             }
         };
-        this.storage.importData(stream, true, true);
+        this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId), isNullOrTrue(xRegistryPreserveContentId));
     }
 
     /**
@@ -349,6 +349,10 @@ public class AdminResourceImpl implements AdminResource {
         mapping.setPrincipalId(dto.getPrincipalId());
         mapping.setRole(RoleType.valueOf(dto.getRole()));
         return mapping;
+    }
+
+    private static boolean isNullOrTrue(Boolean value){
+        return value == null || value;
     }
 
 }

@@ -153,7 +153,7 @@
         <wire-compiler.version>3.7.0</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>70.1</icu4j.version>
-        <protobuf.version>3.19.0</protobuf.version>
+        <protobuf.version>3.19.1</protobuf.version>
         <xmlsec.version>2.1.7</xmlsec.version>
         <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -169,7 +169,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.17</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.18</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>17.3</graphql.version>

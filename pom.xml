@@ -153,7 +153,7 @@
         <wire-compiler.version>3.7.0</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>70.1</icu4j.version>
-        <protobuf.version>3.19.0</protobuf.version>
+        <protobuf.version>3.19.1</protobuf.version>
         <xmlsec.version>2.1.7</xmlsec.version>
         <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -187,7 +187,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.0.9.Final</apicurio-common-rest-client.version>
-        <sentry.version>1.7.30</sentry.version>
+        <sentry.version>5.3.0</sentry.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>

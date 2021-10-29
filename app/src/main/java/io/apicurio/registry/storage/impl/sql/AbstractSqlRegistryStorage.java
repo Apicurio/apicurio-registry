@@ -2226,25 +2226,32 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
     @Override
     @Transactional
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
         Map<Long, Long> contentIdMapping = new HashMap<>();
-        handles.withHandleNoException( handle -> {
+        handles.withHandleNoException(handle -> {
             Entity entity = null;
-            while ( (entity = entities.nextEntity()) != null ) {
-                if(!preserveGlobalId && entity.getEntityType() == EntityType.ArtifactVersion){
-                    ((ArtifactVersionEntity) entity).globalId = -1;
-                }
-                if(!preserveContentId) {
-                    if (entity.getEntityType() == EntityType.ArtifactVersion) {
-                        ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+            while ((entity = entities.nextEntity()) != null) {
+                if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+                    if (!preserveGlobalId) {
+                        ((ArtifactVersionEntity) entity).globalId = -1;
+                    }
+                    if(!preserveContentId) {
                         artifactVersionEntity.contentId = computeContentId(handle, artifactVersionEntity.contentId, contentIdMapping);
-                    } else if (entity.getEntityType() == EntityType.Content) {
-                        ContentEntity contentEntity = (ContentEntity) entity;
+                    }
+                }
+                if (entity.getEntityType() == EntityType.Content) {
+                    ContentEntity contentEntity = (ContentEntity) entity;
+                    if (!preserveContentId) {
                         contentEntity.contentId = computeContentId(handle, contentEntity.contentId, contentIdMapping);
+                    }
+                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 }
                 importEntity(handle, entity);

@@ -190,7 +190,7 @@
         <sentry.version>1.7.30</sentry.version>
 
         <!-- Search -->
-        <connect.version>2.6.0</connect.version>
+        <connect.version>6.2.1-ce</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>

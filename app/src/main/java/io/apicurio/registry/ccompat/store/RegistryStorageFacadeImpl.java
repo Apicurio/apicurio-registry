@@ -127,7 +127,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new ArtifactNotFoundException("ContentId: " + contentId);
             }
         }
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null), references);
+        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null, storage.resolveReferences(references)), references);
     }
 
     @Override
@@ -175,7 +175,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
         // We validate the schema at creation time by inferring the type from the content
         try {
-            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null);
+            Map<String, ContentHandle> resolvedReferences = resolveReferences(references);
+
+            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null, resolvedReferences);
             if (schemaType != null && !artifactType.value().equals(schemaType)) {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
@@ -185,6 +187,28 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             //If no artifact type can be inferred, throw invalid schema ex
             throw new UnprocessableEntityException(ex.getMessage());
         }
+    }
+
+    private Map<String, ContentHandle> resolveReferences(List<SchemaReference> references) {
+        Map<String, ContentHandle> resolvedReferences = Collections.emptyMap();
+        if (references != null && !references.isEmpty()) {
+            //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
+            final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
+                    .map(schemaReference -> {
+                        final ArtifactReferenceDto artifactReferenceDto = new ArtifactReferenceDto();
+                        artifactReferenceDto.setArtifactId(schemaReference.getSubject());
+                        artifactReferenceDto.setVersion(String.valueOf(schemaReference.getVersion()));
+                        artifactReferenceDto.setName(schemaReference.getName());
+                        artifactReferenceDto.setGroupId(null);
+                        return artifactReferenceDto;
+
+                    })
+                    .peek(reference -> reference.setContentId(storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()).getContentId()))
+                    .collect(Collectors.toList());
+
+            resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        }
+        return resolvedReferences;
     }
 
     @Override
@@ -337,7 +361,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     private List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references) {
         if (references != null) {
             return references.stream()
-                    .map(schemaReference -> new ArtifactReferenceDto(null, schemaReference.getSubject(), schemaReference.getName(), String.valueOf(schemaReference.getVersion()), storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion())).getContentId()))
+                    .map(schemaReference -> new ArtifactReferenceDto(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName(), storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion())).getContentId()))
                     .collect(Collectors.toList());
         } else {
             return Collections.emptyList();

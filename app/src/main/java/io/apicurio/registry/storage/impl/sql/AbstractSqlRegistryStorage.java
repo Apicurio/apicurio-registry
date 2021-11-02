@@ -2772,7 +2772,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
-                if (reference.getGroupId() == null || reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 } else {
                     if (!resolvedReferences.containsKey(reference.getName())) {

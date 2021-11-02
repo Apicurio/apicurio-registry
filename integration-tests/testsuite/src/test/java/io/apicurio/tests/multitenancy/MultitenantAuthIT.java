@@ -93,7 +93,7 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         //user1 is the owner of the tenant
         TenantUserClient tenantOwner = mt.createTenant(user1);
 
-        RegistryClient user2Client = mt.createUserClient(user2, tenantOwner.tenantAppUrl);
+        RegistryClient user2Client = mt.createUserClientCustomJWT(user2, tenantOwner.tenantAppUrl);
 
         try {
             //user1 can access and automatically have admin permissions

@@ -32,13 +32,15 @@ public class RegistryTenantContext {
     private final String tenantOwner;
     private final TenantLimitsConfiguration limitsConfiguration;
     private final TenantStatusValue status;
+    private final String organizationId;
 
-    public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration, TenantStatusValue status) {
+    public RegistryTenantContext(String tenantId, String tenantOwner, TenantLimitsConfiguration limitsConfiguration, TenantStatusValue status, String organizationId) {
         requireNonNull(status);
         this.tenantId = tenantId;
         this.tenantOwner = tenantOwner;
         this.limitsConfiguration = limitsConfiguration;
         this.status = status;
+        this.organizationId = organizationId;
     }
 
     /**
@@ -65,4 +67,9 @@ public class RegistryTenantContext {
     public TenantStatusValue getStatus() {
         return status;
     }
+
+    public String getOrganizationId() {
+        return organizationId;
+    }
+
 }

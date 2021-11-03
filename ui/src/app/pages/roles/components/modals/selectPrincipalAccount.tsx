@@ -19,6 +19,7 @@ import React from 'react';
 import {Divider, Select, SelectGroup, SelectOption, SelectVariant,} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Principal} from '../../../../../services/config';
+import {GrantAccessModalProps} from "./grantAccessModal";
 
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;
@@ -37,6 +38,11 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     constructor(props: Readonly<SelectPrincipalAccountProps>) {
         super(props);
     }
+    protected componentDidUpdate(prevProps: SelectPrincipalAccountProps) {
+        if (this.props.id && this.props.id !== prevProps.id) {
+            this.setSingleState("id", this.props.id);
+        }
+    }
 
     private onToggle = (isOpen: boolean) => {
         this.setSingleState("isOpen", isOpen);
@@ -44,7 +50,10 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     };
 
     private clearSelection = () => {
-        this.reset();
+        this.setMultiState({
+            id: "",
+            isOpen: false
+        });
     };
 
     private onSelect = (_event: any, selection: any, isPlaceholder: any) => {
@@ -64,10 +73,6 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
         };
     }
 
-    public reset(): void {
-        this.setMultiState(this.initializeState());
-    }
-
     public render(): React.ReactElement {
         const children: React.ReactElement[] = this.filter(null, "");
 
@@ -78,7 +83,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 onToggle={this.onToggle}
                 onSelect={this.onSelect}
                 onClear={this.clearSelection}
-                selections={this.props.id}
+                selections={this.state.id}
                 isOpen={this.state.isOpen}
                 isInputValuePersisted={true}
                 placeholderText={"Select an account"}

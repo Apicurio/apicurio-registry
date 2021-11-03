@@ -45,7 +45,7 @@ public class TenantManagerClientProducer {
     RegistryStorage storage;
 
     @Inject
-    MultitenancyProperties properties;
+    MultitenancyConfig properties;
 
     @Produces
     @ApplicationScoped

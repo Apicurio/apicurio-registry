@@ -110,7 +110,7 @@ public class IoUtil {
      */
     public static String toString(InputStream stream) {
         try {
-            return toBaos(stream).toString(StandardCharsets.UTF_8.name());
+            return toBaos(stream).toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {
@@ -147,7 +147,7 @@ public class IoUtil {
     public static InputStream toStream(String content) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }
-    
+
     public static InputStream toStream(byte [] content) {
         return new ByteArrayInputStream(content);
     }

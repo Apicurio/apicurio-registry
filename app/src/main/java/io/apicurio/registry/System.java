@@ -22,7 +22,8 @@ import java.util.Date;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -31,31 +32,18 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class System {
 
     @Inject
-    @ConfigProperty(name = "registry.name")
-    String name;
-
-    @Inject
-    @ConfigProperty(name = "registry.description")
-    String description;
-
-    @Inject
-    @ConfigProperty(name = "registry.version")
-    String version;
-
-    @Inject
-    @ConfigProperty(name = "registry.date")
-    String date;
+    RegistryConfigService configService;
 
     public String getName() {
-        return name;
+        return configService.get(RegistryConfigProperty.REGISTRY_NAME);
     }
 
     public String getDescription() {
-        return description;
+        return configService.get(RegistryConfigProperty.REGISTRY_DESCRIPTION);
     }
 
     public String getVersion() {
-        return this.version;
+        return configService.get(RegistryConfigProperty.REGISTRY_VERSION);
     }
 
     /**
@@ -63,6 +51,7 @@ public class System {
      */
     public Date getDate() {
         try {
+            String date = configService.get(RegistryConfigProperty.REGISTRY_DATE);
             if (date == null) {
                 return new Date();
             } else {

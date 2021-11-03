@@ -1,24 +1,24 @@
 package io.apicurio.registry;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.ZipInputStream;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
 import io.quarkus.runtime.StartupEvent;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-import java.util.zip.ZipInputStream;
 
 @ApplicationScoped
 public class ImportLifecycleBean {
@@ -30,13 +30,13 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
-    @ConfigProperty(name = "registry.import.url")
-    Optional<URL> registryImportUrlProp;
+    @Inject
+    StartupConfig startupConfig;
 
     void onStart(@Observes StartupEvent ev) {
-        if (registryImportUrlProp.isPresent()) {
+        if (startupConfig.hasImportUrl()) {
             log.info("Import URL exists.");
-            final URL registryImportUrl = registryImportUrlProp.get();
+            final URL registryImportUrl = startupConfig.getImportUrl();
             try (final InputStream registryImportZip = new BufferedInputStream(registryImportUrl.openStream())) {
                 log.info("Importing {} on startup.", registryImportUrl);
                 final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);

@@ -24,7 +24,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.MultitenancyConfig;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.identity.SecurityIdentity;
 
@@ -47,7 +47,7 @@ public class AdminOverride {
     TenantContext tenantContext;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     public boolean isAdmin() {
         // When multi-tenancy is enabled, the owner of the tenant is always an admin.
@@ -55,14 +55,14 @@ public class AdminOverride {
             return true;
         }
 
-        if (!authConfig.adminOverrideEnabled) {
+        if (!authConfig.isAdminOverrideEnabled()) {
             return false;
         }
 
-        if ("token".equals(authConfig.adminOverrideFrom)) {
-            if ("role".equals(authConfig.adminOverrideType)) {
+        if ("token".equals(authConfig.getAdminOverrideFrom())) {
+            if ("role".equals(authConfig.getAdminOverrideType())) {
                 return hasAdminRole();
-            } else if ("claim".equals(authConfig.adminOverrideType)) {
+            } else if ("claim".equals(authConfig.getAdminOverrideType())) {
                 return hasAdminClaim();
             }
         }
@@ -78,13 +78,13 @@ public class AdminOverride {
     }
 
     private boolean hasAdminRole() {
-        return securityIdentity.hasRole(authConfig.adminOverrideRole);
+        return securityIdentity.hasRole(authConfig.getAdminOverrideRole());
     }
 
     private boolean hasAdminClaim() {
-        final Optional<Object> claimValue = jsonWebToken.get().claim(authConfig.adminOverrideClaim);
+        final Optional<Object> claimValue = jsonWebToken.get().claim(authConfig.getAdminOverrideClaim());
         if (claimValue.isPresent()) {
-            return authConfig.adminOverrideClaimValue.equals(claimValue.get().toString());
+            return authConfig.getAdminOverrideClaimValue().equals(claimValue.get().toString());
         }
         return false;
     }

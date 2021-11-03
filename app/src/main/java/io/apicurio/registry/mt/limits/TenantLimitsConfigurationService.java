@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.MultitenancyConfig;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
 
@@ -88,7 +88,7 @@ public class TenantLimitsConfigurationService {
     TenantContext tenantContext;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     private boolean isConfigured = true;
     private TenantLimitsConfiguration defaultLimitsConfiguration;

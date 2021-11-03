@@ -31,7 +31,7 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.MultitenancyConfig;
 import io.quarkus.runtime.StartupEvent;
 
 /**
@@ -52,7 +52,7 @@ public class DisabledApisMatcherService {
     private List<Pattern> apisPatterns;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     @Inject
     @ConfigProperty(name = "registry.disable.apis")

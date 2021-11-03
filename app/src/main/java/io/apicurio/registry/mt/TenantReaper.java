@@ -52,7 +52,7 @@ public class TenantReaper {
     Logger log;
 
     @Inject
-    MultitenancyProperties properties;
+    MultitenancyConfig properties;
 
     @Inject
     TenantMetadataService tenantService;

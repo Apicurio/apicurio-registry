@@ -20,8 +20,10 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,103 +34,118 @@ public class AuthConfig {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.auth.enabled", defaultValue = "false")
-    boolean authenticationEnabled;
-
-    @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
-    boolean roleBasedAuthorizationEnabled;
-
-    @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean ownerOnlyAuthorizationEnabled;
-
-    @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
-    boolean ownerOnlyAuthorizationLimitGroupAccess;
-
-    @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
-    boolean anonymousReadAccessEnabled;
-
-    @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
-    String readOnlyRole;
-
-    @ConfigProperty(name = "registry.auth.roles.developer", defaultValue = "sr-developer")
-    String developerRole;
-
-    @ConfigProperty(name = "registry.auth.roles.admin", defaultValue = "sr-admin")
-    String adminRole;
-
-    @ConfigProperty(name = "registry.auth.role-source", defaultValue = "token")
-    String roleSource;
-
-    @ConfigProperty(name = "registry.auth.tenant-owner-is-admin.enabled", defaultValue = "true")
-    boolean tenantOwnerIsAdminEnabled;
-
-    @ConfigProperty(name = "registry.auth.admin-override.enabled", defaultValue = "false")
-    boolean adminOverrideEnabled;
-
-    @ConfigProperty(name = "registry.auth.admin-override.from", defaultValue = "token")
-    String adminOverrideFrom;
-
-    @ConfigProperty(name = "registry.auth.admin-override.type", defaultValue = "role")
-    String adminOverrideType;
-
-    @ConfigProperty(name = "registry.auth.admin-override.role", defaultValue = "sr-admin")
-    String adminOverrideRole;
-
-    @ConfigProperty(name = "registry.auth.admin-override.claim", defaultValue = "org-admin")
-    String adminOverrideClaim;
-
-    @ConfigProperty(name = "registry.auth.admin-override.claim-value", defaultValue = "true")
-    String adminOverrideClaimValue;
+    @Inject
+    RegistryConfigService configService;
 
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
-        log.debug("Auth Enabled: " + authenticationEnabled);
-        log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
-        log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
-        if (roleBasedAuthorizationEnabled) {
-            log.debug("   RBAC Roles: " + readOnlyRole + ", " + developerRole + ", " + adminRole);
-            log.debug("   Role Source: " + roleSource);
+        log.debug("Auth Enabled: " + this.isAuthEnabled());
+        log.debug("Anonymous Read Access Enabled: " + this.isAnonymousReadAccessEnabled());
+        log.debug("RBAC Enabled: " + this.isRbacEnabled());
+        if (this.isRbacEnabled()) {
+            log.debug("   RBAC Roles: " + getReadOnlyRole() + ", " + getDeveloperRole() + ", " + getAdminRole());
+            log.debug("   Role Source: " + getRoleSource());
         }
-        log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
-        log.debug("Tenant Owner is Admin: " + tenantOwnerIsAdminEnabled);
-        log.debug("Admin Override Enabled: " + adminOverrideEnabled);
-        if (adminOverrideEnabled) {
-            log.debug("   Admin Override from: " + adminOverrideFrom);
-            log.debug("   Admin Override type: " + adminOverrideType);
-            log.debug("   Admin Override role: " + adminOverrideRole);
-            log.debug("   Admin Override claim: " + adminOverrideClaim);
-            log.debug("   Admin Override claim-value: " + adminOverrideClaimValue);
+        log.debug("OBAC Enabled: " + isObacEnabled());
+        log.debug("Tenant Owner is Admin: " + this.isTenantOwnerAdminEnabled());
+        log.debug("Admin Override Enabled: " + this.isAdminOverrideEnabled());
+        if (this.isAdminOverrideEnabled()) {
+            log.debug("   Admin Override from: " + getAdminOverrideFrom());
+            log.debug("   Admin Override type: " + getAdminOverrideType());
+            log.debug("   Admin Override role: " + getAdminOverrideRole());
+            log.debug("   Admin Override claim: " + getAdminOverrideClaim());
+            log.debug("   Admin Override claim-value: " + getAdminOverrideClaimValue());
         }
         log.debug("===============================");
     }
 
     public boolean isAuthEnabled() {
-        return this.authenticationEnabled;
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ENABLED, Boolean.class);
     }
 
     public boolean isRbacEnabled() {
-        return this.roleBasedAuthorizationEnabled;
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION, Boolean.class);
     }
 
     public boolean isObacEnabled() {
-        return this.ownerOnlyAuthorizationEnabled;
-    }
-
-    public boolean isTenantOwnerAdminEnabled() {
-        return this.tenantOwnerIsAdminEnabled;
-    }
-
-    public boolean isAdminOverrideEnabled() {
-        return this.adminOverrideEnabled;
-    }
-
-    public String getRoleSource() {
-        return this.roleSource;
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION, Boolean.class);
     }
 
     public boolean isApplicationRbacEnabled() {
-        return this.roleBasedAuthorizationEnabled && "application".equals(getRoleSource());
+        return this.isRbacEnabled() && "application".equals(getRoleSource());
+    }
+
+    public String getRoleSource() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLE_SOURCE);
+    }
+
+    public String getReadOnlyRole() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLES_READONLY);
+    }
+
+    public String getDeveloperRole() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLES_DEVELOPER);
+    }
+
+    public String getAdminRole() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLES_ADMIN);
+    }
+
+    public boolean isAnonymousReadAccessEnabled() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED, Boolean.class);
+    }
+
+    public boolean isTenantOwnerAdminEnabled() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN, Boolean.class);
+    }
+
+    public boolean isAdminOverrideEnabled() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED, Boolean.class);
+    }
+
+    public String getAdminOverrideFrom() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_FROM);
+    }
+
+    public String getAdminOverrideType() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE);
+    }
+
+    public String getAdminOverrideRole() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE);
+    }
+
+    public String getAdminOverrideClaim() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM);
+    }
+
+    public String getAdminOverrideClaimValue() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE);
+    }
+
+    public boolean isOwnerOnlyAuthorizationLimitGroupAccessEnabled() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS, Boolean.class);
+    }
+
+    public boolean isBasicAuthEnabled() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_BASIC_AUTH_CLIENT_CREDENTIALS_ENABLED, Boolean.class);
+    }
+
+    public String getAuthTokenEndpoint() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_TOKEN_ENDPOINT);
+    }
+
+    public String getOidcClientId() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_OIDC_CLIENT_ID);
+    }
+
+    public String getOidcClientSecret() {
+        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_OIDC_CLIENT_SECRECT);
+    }
+
+    public boolean hasOidcClientSecret() {
+        return getOidcClientSecret() != null;
     }
 
 }

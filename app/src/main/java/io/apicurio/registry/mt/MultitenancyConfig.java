@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.mt;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -28,78 +29,49 @@ import java.util.Optional;
  * @author Fabian Martinez
  */
 @ApplicationScoped
-public class MultitenancyProperties {
+public class MultitenancyConfig {
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy", defaultValue = "false")
+    RegistryConfigService configService;
+
     boolean multitenancyEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.authorization.enabled", defaultValue = "true")
     boolean mtAuthorizationEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.context-path.enabled", defaultValue = "true")
     boolean mtContextPathEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "true")
     boolean mtSubdomainEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.request-header.enabled", defaultValue = "true")
     boolean mtRequestHeaderEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.context-path.base-path", defaultValue = "t")
     String nameMultitenancyBasePath;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.subdomain.location", defaultValue = "header")
     String subdomainMultitenancyLocation;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.subdomain.header-name", defaultValue = "Host")
     String subdomainMultitenancyHeaderName;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.local")
     String subdomainMultitenancyPattern;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.request-header.name", defaultValue = "X-Registry-Tenant-Id")
     String tenantIdRequestHeader;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.reaper.every")
     Optional<String> reaperEvery;
-
-    @Inject
-    @ConfigProperty(name = "registry.multitenancy.reaper.period-seconds", defaultValue = "10800")
     Long reaperPeriodSeconds;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.url")
     Optional<String> tenantManagerUrl;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
     Optional<Boolean> tenantManagerAuthEnabled;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.url.configured")
     Optional<String> tenantManagerAuthUrl;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.client-id")
     Optional<String> tenantManagerClientId;
-
-    @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
     Optional<String> tenantManagerClientSecret;
 
     @PostConstruct
     void init() {
+        multitenancyEnabled = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_ENABLED, Boolean.class);
+        mtAuthorizationEnabled = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_AUTHORIZATION_ENABLED, Boolean.class);
+        mtContextPathEnabled = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_CONTEXT_PATH_ENABLED, Boolean.class);
+        mtSubdomainEnabled = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_SUBDOMAIN_ENABLED, Boolean.class);
+        mtRequestHeaderEnabled = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_REQUEST_HEADER_ENABLED, Boolean.class);
+        nameMultitenancyBasePath = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_CONTEXT_PATH_BASE_PATH);
+        subdomainMultitenancyLocation = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_SUBDOMAIN_LOCATION);
+        subdomainMultitenancyHeaderName = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_SUBDOMAIN_HEADER_NAME);
+        subdomainMultitenancyPattern = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_SUBDOMAIN_PATTERN);
+        tenantIdRequestHeader = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_REQUEST_HEADER_NAME);
+        reaperEvery = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_REAPER_EVERY);
+        reaperPeriodSeconds = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_REAPER_PERIOD, Long.class);
+        tenantManagerUrl = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_TENANT_MANAGER_URL);
+        tenantManagerAuthEnabled = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_ENABLED, Boolean.class);
+        tenantManagerAuthUrl = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_URL);
+        tenantManagerClientId = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_CLIENT_ID);
+        tenantManagerClientSecret = configService.getOptional(RegistryConfigProperty.REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_CLIENT_SECRET);
+
         this.reaperEvery.orElseThrow(() -> new IllegalArgumentException("Missing required configuration property 'registry.multitenancy.reaper.every'"));
     }
 

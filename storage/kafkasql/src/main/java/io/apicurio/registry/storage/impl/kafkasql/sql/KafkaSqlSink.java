@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
@@ -41,6 +42,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
@@ -173,6 +175,8 @@ public class KafkaSqlSink {
                     return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
                 case Download:
                     return processDownload((DownloadKey) key, (DownloadValue) value);
+                case Config:
+                    return processConfig((ConfigKey) key, (ConfigValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -209,6 +213,20 @@ public class KafkaSqlSink {
                 return sqlStore.createDownload(value.getDownloadContext());
             case DELETE:
                 return sqlStore.consumeDownload(key.getDownloadId());
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "config".
+     * @param key
+     * @param value
+     */
+    private Object processConfig(ConfigKey key, ConfigValue value) {
+        switch (value.getAction()) {
+            case UPDATE:
+                sqlStore.setConfigProperty(key.getPropertyName(), value.getConfigProperty().getTypedValue());
             default:
                 return unsupported(key, value);
         }

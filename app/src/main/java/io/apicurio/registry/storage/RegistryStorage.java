@@ -17,7 +17,9 @@
 
 package io.apicurio.registry.storage;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -654,4 +656,24 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    /**
+     * Called to load any configuration properties from the config_properties table.
+     */
+    public Map<String, Object> getConfigProperties() throws RegistryStorageException;
+
+    /**
+     * Called to set the value of a single config property.
+     * @param propertyName
+     * @param propertyValue
+     */
+    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException;
+
+    /**
+     * Called to get a list of tenants that have configuration properties modified since the given
+     * timestamp.
+     * @param since
+     */
+    public List<String> getTenantsWithStaleConfigProperties(Instant since);
+
 }

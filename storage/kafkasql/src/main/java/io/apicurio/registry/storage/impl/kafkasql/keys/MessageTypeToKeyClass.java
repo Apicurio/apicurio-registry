@@ -71,6 +71,9 @@ public class MessageTypeToKeyClass {
                 case Download:
                     index.put(type, DownloadKey.class);
                     break;
+                case Config:
+                    index.put(type, ConfigKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

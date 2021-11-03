@@ -21,7 +21,9 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,6 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -68,6 +69,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -125,7 +127,7 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 4;
+    private static int DB_VERSION = 5;
     private static final Object dbMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -150,6 +152,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     System system;
 
     @Inject
+    SqlConfig sqlConfig;
+
+    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -168,12 +173,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         return sqlStatements;
     }
 
-    @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
-    boolean initDB;
-
-    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-    String jdbcUrl;
-
     /**
      * Constructor.
      */
@@ -183,11 +182,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @PostConstruct
     @Transactional
     protected void initialize() {
-        log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + jdbcUrl);
+        log.info("SqlRegistryStorage constructed successfully.  JDBC URL: " + sqlConfig.getJdbcUrl());
 
         synchronized (dbMutex) {
             handles.withHandleNoException((handle) -> {
-                if (initDB) {
+                if (sqlConfig.isSqlInit()) {
                     if (!isDatabaseInitialized(handle)) {
                         log.info("Database not initialized.");
                         initializeDatabase(handle);
@@ -2609,6 +2608,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(0, tenantContext.tenantId())
                 .execute();
 
+            // Delete all config properties
+
+            sql = sqlStatements.deleteAllConfigProperties();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
+
             return null;
         });
 
@@ -2889,6 +2895,79 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(1, tenantContext.tenantId())
                     .mapTo(Integer.class)
                     .one() > 0;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
+     */
+    @Override @Transactional
+    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+        log.debug("Getting all config properties.");
+        List<ConfigPropertyDto> properties = handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectConfigProperties();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(new RowMapper<ConfigPropertyDto>() {
+                        @Override
+                        public ConfigPropertyDto map(ResultSet rs) throws SQLException {
+                            return ConfigPropertyDto.builder()
+                                .name(rs.getString("pname"))
+                                .type(rs.getString("ptype"))
+                                .value(rs.getString("pvalue"))
+                                .build();
+                        }
+                    })
+                    .list();
+        });
+        Map<String, Object> rval = new HashMap<>();
+        properties.forEach(propertyDto -> {
+            rval.put(propertyDto.getName(), propertyDto.getTypedValue());
+        });
+        return rval;
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override @Transactional
+    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
+        log.debug("Getting all tenant IDs with stale config properties.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectTenantIdsByConfigModifiedOn();
+            return handle.createQuery(sql)
+                    .bind(0, since.toEpochMilli())
+                    .mapTo(String.class)
+                    .list();
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     */
+    @Override @Transactional
+    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
+        log.debug("Setting a config property with name: {}  and value: {}", propertyName, propertyValue);
+        this.handles.withHandleNoException( handle -> {
+            // First delete the property row from the table
+            String sql = sqlStatements.deleteConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .execute();
+
+            // Then create the row again with the new value (only if the value is not null)
+            if (propertyValue != null) {
+                sql = sqlStatements.insertConfigProperty();
+                handle.createUpdate(sql)
+                      .bind(0, tenantContext.tenantId())
+                      .bind(1, propertyName)
+                      .bind(2, propertyValue.getClass().getSimpleName())
+                      .bind(3, propertyValue.toString())
+                      .bind(4, java.lang.System.currentTimeMillis())
+                      .execute();
+            }
+            return null;
         });
     }
 

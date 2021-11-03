@@ -41,7 +41,7 @@ public class FacadeConverter {
 
     public Schema convert(String subject, StoredArtifactDto storedArtifact) {
         return new Schema(
-                convertUnsigned(cconfig.legacyIdModeEnabled ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
+                convertUnsigned(cconfig.isLegacyIdEnabled() ? storedArtifact.getGlobalId() : storedArtifact.getContentId()),
                 subject,
                 convertUnsigned(storedArtifact.getVersionId()),
                 storedArtifact.getContent().content()

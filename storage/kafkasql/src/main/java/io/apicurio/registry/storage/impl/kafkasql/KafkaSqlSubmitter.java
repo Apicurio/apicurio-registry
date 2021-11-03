@@ -24,13 +24,12 @@ import java.util.concurrent.CompletableFuture;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
-import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -40,9 +39,11 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GroupKey;
@@ -53,9 +54,11 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ConfigValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GroupValue;
@@ -256,6 +259,17 @@ public class KafkaSqlSubmitter {
     public CompletableFuture<UUID> submitGlobalAction(String tenantId, ActionType action) {
         GlobalActionKey key = GlobalActionKey.create(tenantId);
         GlobalActionValue value = GlobalActionValue.create(action);
+        return send(key, value);
+    }
+
+
+    /* ******************************************************************************************
+     * Config property actions
+     * ****************************************************************************************** */
+    public <T> CompletableFuture<UUID> submitConfigProperty(String tenantId, String propertyName, ActionType action,
+            T propertyValue) {
+        ConfigKey key = ConfigKey.create(tenantId, propertyName);
+        ConfigValue value = ConfigValue.create(action, ConfigPropertyDto.create(propertyName, propertyValue));
         return send(key, value);
     }
 

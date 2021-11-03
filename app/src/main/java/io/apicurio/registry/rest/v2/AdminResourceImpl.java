@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.rest.v2;
 
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOGGER;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -32,8 +41,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import io.apicurio.registry.logging.audit.Audited;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.auth.Authorized;
@@ -41,9 +48,11 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -67,15 +76,6 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOGGER;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -86,6 +86,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     Logger log;
+
+    @Inject
+    RestConfig restConfig;
 
     @Inject
     @Current
@@ -102,9 +105,6 @@ public class AdminResourceImpl implements AdminResource {
 
     @Context
     HttpServletRequest request;
-
-    @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
-    long downloadHrefTtl;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -287,7 +287,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
         if (forBrowser != null && forBrowser) {
-            long expires = System.currentTimeMillis() + (downloadHrefTtl * 1000);
+            long expires = System.currentTimeMillis() + (restConfig.getDownloadHrefTtl() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);

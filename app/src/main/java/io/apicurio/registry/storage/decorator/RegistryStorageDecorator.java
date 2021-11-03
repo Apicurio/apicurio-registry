@@ -48,7 +48,9 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -884,5 +886,29 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
         delegate.deleteAllExpiredDownloads();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
+     */
+    @Override
+    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+        return delegate.getConfigProperties();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     */
+    @Override
+    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
+        delegate.setConfigProperty(propertyName, propertyValue);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
+        return delegate.getTenantsWithStaleConfigProperties(since);
     }
 }

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.auth;
 
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
@@ -30,8 +31,6 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
@@ -44,30 +43,22 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
-    @ConfigProperty(name = "registry.auth.token.endpoint")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.auth.client-secret")
-    Optional<String> clientSecret;
-
-    @ConfigProperty(name = "quarkus.oidc.client-id")
-    String clientId;
-
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
+    @Inject
+    AuthConfig authConfig;
 
     private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (authEnabled) {
-            if (clientSecret.isEmpty()) {
+        if (authConfig.isAuthEnabled()) {
+            if (!authConfig.hasOidcClientSecret()) {
                 //if no secret is present, try to authenticate with oidc provider
                 return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
             } else {
                 final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
                 if (credentialsFromContext != null) {
-                    String jwtToken = new OidcAuth(authServerUrl, clientId, clientSecret.get(), Optional.empty()).obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                    String jwtToken = new OidcAuth(authConfig.getAuthTokenEndpoint(), authConfig.getOidcClientId(), authConfig.getOidcClientSecret(), Optional.empty())
+                            .obtainAccessTokenWithBasicCredentials(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
 
                     if (jwtToken != null) {
                         //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager

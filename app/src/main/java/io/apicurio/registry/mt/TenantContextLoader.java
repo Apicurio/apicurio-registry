@@ -56,7 +56,7 @@ public class TenantContextLoader {
     AuthConfig authConfig;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     @Inject
     TenantMetadataService tenantMetadataService;

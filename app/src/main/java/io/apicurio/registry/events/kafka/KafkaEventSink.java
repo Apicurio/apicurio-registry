@@ -16,11 +16,9 @@
 package io.apicurio.registry.events.kafka;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -28,9 +26,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Serdes;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
 import io.apicurio.registry.events.EventSink;
+import io.apicurio.registry.events.EventsConfig;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
 import io.apicurio.registry.utils.kafka.ProducerActions;
@@ -53,19 +52,10 @@ public class KafkaEventSink implements EventSink {
     )
     Properties producerProperties;
 
+    @Inject
+    EventsConfig eventsConfig;
+
     private ProducerActions<String, byte[]> producer;
-    private Integer partition;
-
-    @ConfigProperty(name = "registry.events.kafka.topic")
-    Optional<String> eventsTopic;
-
-    @ConfigProperty(name = "registry.events.kafka.topic-partition")
-    Optional<Integer> eventsTopicPartition;
-
-    @PostConstruct
-    void init() {
-        partition = eventsTopicPartition.orElse(null);
-    }
 
     @Override
     public String name() {
@@ -74,7 +64,7 @@ public class KafkaEventSink implements EventSink {
 
     @Override
     public boolean isConfigured() {
-        return eventsTopic.isPresent();
+        return eventsConfig.hasTopic();
     }
 
     @Override
@@ -102,8 +92,8 @@ public class KafkaEventSink implements EventSink {
 
         getProducer()
             .apply(new ProducerRecord<String, byte[]>(
-                    eventsTopic.get(),
-                    partition, //partition is optional and can be null
+                    eventsConfig.getTopic(),
+                    eventsConfig.getTopicPartition(), //partition is optional and can be null
                     key,
                     message.body().getBytes(),
                     headers));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
+package io.apicurio.registry;
 
+import java.net.URL;
+
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import org.slf4j.Logger;
 
 import io.apicurio.registry.config.RegistryConfigProperty;
 import io.apicurio.registry.config.RegistryConfigService;
@@ -26,13 +31,24 @@ import io.apicurio.registry.config.RegistryConfigService;
  * @author eric.wittmann@gmail.com
  */
 @Singleton
-public class CCompatConfig {
+public class StartupConfig {
+
+    @Inject
+    Logger log;
 
     @Inject
     RegistryConfigService configService;
 
-    public boolean isLegacyIdEnabled() {
-        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION, Boolean.class);
+    @PostConstruct
+    void onConstruct() {
+    }
+
+    public URL getImportUrl() {
+        return configService.get(RegistryConfigProperty.REGISTRY_IMPORT_URL, URL.class);
+    }
+
+    public boolean hasImportUrl() {
+        return getImportUrl() != null;
     }
 
 }

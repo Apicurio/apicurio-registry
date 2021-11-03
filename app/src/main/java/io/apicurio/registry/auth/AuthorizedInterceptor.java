@@ -66,7 +66,7 @@ public class AuthorizedInterceptor {
         }
 
         // If authentication is not enabled, just do it.
-        if (!authConfig.authenticationEnabled) {
+        if (!authConfig.isAuthEnabled()) {
             return context.proceed();
         }
 
@@ -84,7 +84,7 @@ public class AuthorizedInterceptor {
 
             // Anonymous users are allowed to perform read-only operations, but only if
             // registry.auth.anonymous-read-access.enabled is set to 'true'
-            if (authConfig.anonymousReadAccessEnabled && annotation.level() == AuthorizedLevel.Read) {
+            if (authConfig.isAnonymousReadAccessEnabled() && annotation.level() == AuthorizedLevel.Read) {
                 log.trace("Anonymous user is being granted access to read-only operation.");
                 return context.proceed();
             }
@@ -104,13 +104,13 @@ public class AuthorizedInterceptor {
         }
 
         // If RBAC is enabled, apply role based rules
-        if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
+        if (authConfig.isRbacEnabled() && !rbac.isAuthorized(context)) {
             log.warn("RBAC enabled and required role missing.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
+        if (authConfig.isObacEnabled() && !obac.isAuthorized(context)) {
             log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }

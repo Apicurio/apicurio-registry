@@ -42,7 +42,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isAdmin() {
-        return hasRole(authConfig.adminRole);
+        return hasRole(authConfig.getAdminRole());
     }
 
     /**
@@ -50,7 +50,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isDeveloper() {
-        return hasRole(authConfig.developerRole);
+        return hasRole(authConfig.getDeveloperRole());
     }
 
     /**
@@ -58,7 +58,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isReadOnly() {
-        return hasRole(authConfig.readOnlyRole);
+        return hasRole(authConfig.getReadOnlyRole());
     }
 
 }

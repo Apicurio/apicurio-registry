@@ -1298,6 +1298,36 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactVersionState();
     }
 
+    @Test
+    public void testConfigProperties() throws Exception {
+        Map<String, Object> properties = storage().getConfigProperties();
+        Assertions.assertNotNull(properties);
+        Assertions.assertTrue(properties.isEmpty());
+
+        storage().setConfigProperty("registry.test.property-string", "test-value");
+        storage().setConfigProperty("registry.test.property-boolean", true);
+        storage().setConfigProperty("registry.test.property-long", 12345L);
+
+        properties = storage().getConfigProperties();
+        Assertions.assertNotNull(properties);
+        Assertions.assertFalse(properties.isEmpty());
+        Assertions.assertEquals(3, properties.size());
+        Assertions.assertTrue(properties.containsKey("registry.test.property-string"));
+        Assertions.assertTrue(properties.containsKey("registry.test.property-boolean"));
+        Assertions.assertTrue(properties.containsKey("registry.test.property-long"));
+        Assertions.assertEquals("test-value", properties.get("registry.test.property-string"));
+        Assertions.assertTrue((Boolean) properties.get("registry.test.property-boolean"));
+        Assertions.assertEquals(12345L, properties.get("registry.test.property-long"));
+    }
+
+    @Test
+    public void testMultiTenant_ConfigProperties() throws Exception {
+        tenantCtx.setContext(tenantId1);
+        this.testConfigProperties();
+        tenantCtx.setContext(tenantId2);
+        this.testConfigProperties();
+    }
+
     private static String generateString(int size) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < size; i++) {

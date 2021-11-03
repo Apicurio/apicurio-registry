@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
+package io.apicurio.registry.storage;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
-import io.apicurio.registry.config.RegistryConfigProperty;
-import io.apicurio.registry.config.RegistryConfigService;
+import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.quarkus.test.junit.QuarkusTest;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@Singleton
-public class CCompatConfig {
+@QuarkusTest
+public class InMemoryRegistryStorageTest extends AbstractRegistryStorageTest {
 
     @Inject
-    RegistryConfigService configService;
+    InMemoryRegistryStorage storage;
 
-    public boolean isLegacyIdEnabled() {
-        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION, Boolean.class);
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
+     */
+    @Override
+    protected RegistryStorage storage() {
+        return storage;
     }
 
 }

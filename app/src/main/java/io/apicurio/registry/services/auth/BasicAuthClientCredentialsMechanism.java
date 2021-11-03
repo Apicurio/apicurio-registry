@@ -16,6 +16,22 @@
 
 package io.apicurio.registry.services.auth;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
 import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.registry.logging.audit.AuditLogService;
@@ -33,20 +49,6 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
 
 @Alternative
 @Priority(1)
@@ -56,14 +58,8 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     @Inject
     CustomAuthenticationMechanism customAuthenticationMechanism;
 
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
-
-    @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
-    boolean fakeBasicAuthEnabled;
-
-    @ConfigProperty(name = "registry.auth.token.endpoint")
-    String authServerUrl;
+    @Inject
+    AuthConfig authConfig;
 
     @Inject
     AuditLogService auditLog;
@@ -73,9 +69,9 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        if (authEnabled) {
+        if (authConfig.isAuthEnabled()) {
             setAuditLogger(context);
-            if (fakeBasicAuthEnabled) {
+            if (authConfig.isBasicAuthEnabled()) {
                 final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
                 if (null != clientCredentials) {
                     try {
@@ -143,7 +139,7 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        final String jwtToken = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight(), Optional.empty()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        final String jwtToken = new OidcAuth(authConfig.getAuthTokenEndpoint(), clientCredentials.getLeft(), clientCredentials.getRight(), Optional.empty()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

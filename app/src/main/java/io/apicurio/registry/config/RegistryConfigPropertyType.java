@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,13 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.store;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import io.apicurio.registry.config.RegistryConfigProperty;
-import io.apicurio.registry.config.RegistryConfigService;
+package io.apicurio.registry.config;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@Singleton
-public class CCompatConfig {
+public enum RegistryConfigPropertyType {
 
-    @Inject
-    RegistryConfigService configService;
-
-    public boolean isLegacyIdEnabled() {
-        return configService.get(RegistryConfigProperty.REGISTRY_AUTH_ROLE_BASED_AUTHORIZATION, Boolean.class);
-    }
+    ReadOnly, Editable
 
 }

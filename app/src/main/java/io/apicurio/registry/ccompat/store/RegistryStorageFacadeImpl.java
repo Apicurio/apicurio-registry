@@ -85,7 +85,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<SubjectVersion> getSubjectVersions(int contentId) {
-        if (cconfig.legacyIdModeEnabled) {
+        if (cconfig.isLegacyIdEnabled()) {
             ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(contentId);
             return Collections.singletonList(converter.convert(artifactMetaData.getId(), artifactMetaData.getVersionId()));
         }
@@ -108,7 +108,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
         ContentHandle contentHandle;
-        if (cconfig.legacyIdModeEnabled) {
+        if (cconfig.isLegacyIdEnabled()) {
             StoredArtifactDto artifactVersion = storage.getArtifactVersion(contentId);
             contentHandle = artifactVersion.getContent();
         } else {
@@ -159,7 +159,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             ContentHandle content = ContentHandle.create(schema);
             // Don't canonicalize the content when getting it - Confluent does not.
             ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
-            return cconfig.legacyIdModeEnabled ? dto.getGlobalId() : dto.getContentId();
+            return cconfig.isLegacyIdEnabled() ? dto.getGlobalId() : dto.getContentId();
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
@@ -171,7 +171,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
             }
             ArtifactMetaDataDto artifactMeta = createOrUpdateArtifact(subject, schema, artifactType);
-            return cconfig.legacyIdModeEnabled ? artifactMeta.getGlobalId() : artifactMeta.getContentId();
+            return cconfig.isLegacyIdEnabled() ? artifactMeta.getGlobalId() : artifactMeta.getContentId();
         } catch (InvalidArtifactTypeException ex) {
             //If no artifact type can be inferred, throw invalid schema ex
             throw new UnprocessableEntityException(ex.getMessage());

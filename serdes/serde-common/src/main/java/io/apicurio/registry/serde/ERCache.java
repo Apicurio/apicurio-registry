@@ -124,7 +124,7 @@ public class ERCache<V> {
     // === Generic
 
     private <T> V getValue(WrappedValue<V> value, T key, Function<T, V> loaderFunction) {
-        V result = value != null ? value.value : null;
+        V result = value != null ? value.getValue() : null;
 
         if (value == null || value.isExpired()) {
             // With retry
@@ -145,10 +145,10 @@ public class ERCache<V> {
     }
 
     private void reindex(WrappedValue<V> newValue) {
-        Optional.ofNullable(keyExtractor1.apply(newValue.value)).ifPresent(k -> index1.put(k, newValue));
-        Optional.ofNullable(keyExtractor2.apply(newValue.value)).ifPresent(k -> index2.put(k, newValue));
-        Optional.ofNullable(keyExtractor3.apply(newValue.value)).ifPresent(k -> index3.put(k, newValue));
-        Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> index4.put(k, newValue));
+        Optional.ofNullable(keyExtractor1.apply(newValue.getValue())).ifPresent(k -> index1.put(k, newValue));
+        Optional.ofNullable(keyExtractor2.apply(newValue.getValue())).ifPresent(k -> index2.put(k, newValue));
+        Optional.ofNullable(keyExtractor3.apply(newValue.getValue())).ifPresent(k -> index3.put(k, newValue));
+        Optional.ofNullable(keyExtractor4.apply(newValue.getValue())).ifPresent(k -> index4.put(k, newValue));
     }
 
     public void clear() {

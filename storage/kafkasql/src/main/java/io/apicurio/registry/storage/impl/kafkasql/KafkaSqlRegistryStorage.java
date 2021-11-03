@@ -89,6 +89,7 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -1080,6 +1081,31 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         // Note: this is OK to do because the only caller of this method is the DownloadReaper, which
         // runs on every node in the cluster.
         sqlStore.deleteAllExpiredDownloads();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
+     */
+    @Override
+    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+        return sqlStore.getConfigProperties();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
+        return sqlStore.getTenantsWithStaleConfigProperties(since);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     */
+    @Override
+    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(tenantContext.tenantId(), propertyName, ActionType.UPDATE, propertyValue));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.MultitenancyConfig;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantIdResolver;
 import io.apicurio.registry.services.DisabledApisMatcherService;
@@ -62,7 +62,7 @@ public class RegistryApplicationServletFilter implements Filter {
     Logger log;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     @Inject
     TenantIdResolver tenantIdResolver;

@@ -16,17 +16,19 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.utils.tests.TestUtils;
-
-import org.junit.jupiter.api.Assertions;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
+
+import org.junit.jupiter.api.Assertions;
+
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.utils.tests.TestUtils;
+import junit.framework.AssertionFailedError;
 
 /**
  * Abstract base class for all registry tests.
@@ -67,5 +69,24 @@ public abstract class AbstractRegistryTestBase {
 
     protected final ContentHandle resourceToContentHandle(String resourceName) {
         return ContentHandle.create(resourceToString(resourceName));
+    }
+
+    public static void assertMultilineTextEquals(String expected, String actual) {
+        Assertions.assertEquals(normalizeMultilineText(expected), normalizeMultilineText(actual));
+    }
+
+    private static String normalizeMultilineText(String text) {
+        try (BufferedReader reader = new BufferedReader(new StringReader(text))) {
+            String line = reader.readLine();
+            StringBuilder builder = new StringBuilder();
+            while (line != null) {
+                builder.append(line);
+                builder.append("\n");
+                line = reader.readLine();
+            }
+            return builder.toString();
+        } catch (IOException e) {
+            throw new AssertionFailedError(e.getMessage());
+        }
     }
 }

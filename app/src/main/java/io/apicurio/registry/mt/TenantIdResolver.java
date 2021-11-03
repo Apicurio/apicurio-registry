@@ -45,7 +45,7 @@ public class TenantIdResolver {
     Logger log;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtProperties;
 
     @Inject
     TenantContext tenantContext;

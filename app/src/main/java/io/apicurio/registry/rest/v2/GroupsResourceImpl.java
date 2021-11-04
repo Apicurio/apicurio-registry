@@ -137,7 +137,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
-    public Response getLatestArtifact(String groupId, String artifactId) {
+    public Response getLatestArtifact(String groupId, String artifactId, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -161,10 +161,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ContentHandle contentToReturn = artifact.getContent();
 
-       /* if (dereference) {
+        if (dereference) {
             contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
         }
-        */
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
         return builder.build();
@@ -404,11 +403,11 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.lang.Boolean)
      */
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String version) {
+    public Response getArtifactVersion(String groupId, String artifactId, String version, Boolean dereference) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
@@ -431,7 +430,12 @@ public class GroupsResourceImpl implements GroupsResource {
             contentType = ArtifactMediaTypes.XML;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
+        ContentHandle contentToReturn = artifact.getContent();
+        if (dereference) {
+            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+        }
+
+        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
         return builder.build();
     }

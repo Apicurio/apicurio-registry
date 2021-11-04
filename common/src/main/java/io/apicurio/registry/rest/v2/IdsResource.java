@@ -26,8 +26,7 @@ public interface IdsResource {
   @Path("/contentIds/{contentId}/")
   @GET
   @Produces("*/*")
-  Response getContentById(@PathParam("contentId") int contentId,
-      @QueryParam("dereference") Boolean dereference);
+  Response getContentById(@PathParam("contentId") int contentId);
 
   /**
    * Gets the content for an artifact version in the registry using its globally unique
@@ -59,6 +58,5 @@ public interface IdsResource {
   @Path("/contentHashes/{contentHash}/")
   @GET
   @Produces("*/*")
-  Response getContentByHash(@PathParam("contentHash") String contentHash,
-      @QueryParam("dereference") Boolean dereference);
+  Response getContentByHash(@PathParam("contentHash") String contentHash);
 }

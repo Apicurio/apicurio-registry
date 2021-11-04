@@ -63,6 +63,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
@@ -127,8 +128,11 @@ public class GroupsResourceImpl implements GroupsResource {
     @Context
     HttpServletRequest request;
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
      */
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
@@ -154,7 +158,13 @@ public class GroupsResourceImpl implements GroupsResource {
             contentType = ArtifactMediaTypes.XML;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
+        ContentHandle contentToReturn = artifact.getContent();
+
+       /* if (dereference) {
+            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+        }
+        */
+        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
         return builder.build();
     }

@@ -31,5 +31,5 @@ public interface ContentDereferencer {
      * Called to dereference the given content to its dereferenced form
      * @param content
      */
-    public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences);
+    ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences);
 }

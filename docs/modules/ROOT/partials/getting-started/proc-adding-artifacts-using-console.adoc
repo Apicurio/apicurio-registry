@@ -1,45 +1,63 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
-[id="adding-artifacts-using-console"]
+[id="adding-artifacts-using-console_{context}"]
 = Adding artifacts using the {registry} web console
 
-You can use the {registry} web console to upload event schema and API design artifacts to the registry. For more details on the artifact types that you can upload, see {registry-reference}. This section shows simple examples of uploading {registry} artifacts, applying artifact rules, and adding new artifact versions.
+[role="_abstract"]
+You can use the {registry} web console to upload event schema and API design artifacts to the registry. 
+This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
 
 .Prerequisites
 
-* {registry} must be installed and running in your environment.
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} must be installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You must have access to the {registry} web console
+endif::[]
 
 .Procedure
 
 . Connect to the {registry} web console on:
 +
-`*\http://MY_REGISTRY_URL/ui*`
-
+`*{registry-url}*`
+ifdef::rh-openshift-sr[]
+. Click your existing {registry} instance, or click *Create {registry} instance* to provision a new one. 
+endif::[]
 . Click *Upload artifact*, and specify the following:
 ** *Group & ID*: Use the default empty settings to automatically generate an ID and `default` group, or enter an optional artifact group or ID.
 ** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the drop-down, for example, *Avro Schema* or *OpenAPI*.
 +
-NOTE:  The {registry} server cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
+NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
 ** *Artifact*: Drag and drop or click *Browse* to upload a file, for example, `my-schema.json` or `my-openapi.json`.
 
-. Click *Upload* and view the *Artifact Details*:
+. Click *Upload* and view the *Artifact Details*. This example shows an Avro schema artifact:
 +
 .Artifact Details in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-web-console-artifact.png[Artifact Details in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console-artifact.png[Artifact Details in Registry web console]
+endif::[]
 +
-** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. Click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
-** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
+** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. 
++
+Click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
+** *Documentation* (OpenAPI artifacts only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content.
-
-. In *Content Rules*, click *Enable* to configure a *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see {registry-reference}.
 
 . Click *Upload new version* to add a new artifact version, and drag and drop or click *Browse* to upload the file, for example, `my-schema.json` or `my-openapi.json`.
 
-. To delete an artifact, click the trash icon next to *Upload new version*.
+. To delete an artifact, click the delete button next to *Upload new version*.
 +
 WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone. Artifact versions are immutable and cannot be deleted individually.
 
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
 .Additional resources
-* xref:browsing-artifacts-using-console[]
-* xref:configuring-rules-using-console[]
+* xref:browsing-artifacts-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+* {registry-reference}
+endif::[]

@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to install {registry} on OpenShift Container Platform:
 
-* xref:installing-registry-operatorhub[]
+* xref:installing-registry-operatorhub_{context}[]
 
 .Prerequisites
 ifdef::apicurio-registry[]

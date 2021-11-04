@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="registry-kafka-topic-names"]
+[id="registry-kafka-topic-names_{context}"]
 
 [role="_abstract"]
 = Kafka topic name configuration

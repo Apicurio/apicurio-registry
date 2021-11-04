@@ -1,8 +1,8 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-types-serde-{context}']
-= Using different client serializer/deserializer types
+[id='registry-serdes-types-serde_{context}']
+= How to configure different client serializer/deserializer types
 
 [role="_abstract"]
 When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf. The following sections explain how to configure Kafka applications to use each type. 

@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-[id="registry-liveness-env-vars"]
+[id="registry-liveness-env-vars_{context}"]
 = Environment variables for {registry} health checks
 
 This section describes the available environment variables for {registry} health checks on OpenShift. These include liveness and readiness probes to monitor the health of the {registry} server on OpenShift. For an example procedure, see xref:configuring-liveness-readiness-probes[].
@@ -75,6 +75,6 @@ If these operations take more time than the configured timeout, this is counted 
 
 
 .Additional resources
-* xref:configuring-liveness-readiness-probes[]
+* xref:configuring-liveness-readiness-probes_{context}[]
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
 //* TBD

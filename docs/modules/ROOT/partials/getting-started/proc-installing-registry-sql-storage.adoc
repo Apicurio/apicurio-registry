@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-sql-storage"]
+[id="installing-registry-sql-storage_{context}"]
 = Installing {registry} with SQL database storage
 
 [role="_abstract"]
@@ -25,8 +25,11 @@ For more details, see https://www.postgresql.org/docs/12/server-start.html
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-sql
+$ docker pull apicurio/apicurio-registry-sql:VERSION
 ----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-sql/tags.
+
 . Run the container image and specify the database connection URL and credentials for the PostgreSQL server as environment variables: 
 +
 [source,bash]
@@ -35,7 +38,7 @@ $ docker run -it -p 8080:8080 \
 -e "REGISTRY_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
 -e "REGISTRY_DATASOURCE_USERNAME=apicurio-registry" \
 -e "REGISTRY_DATASOURCE_PASSWORD=password" \
-apicurio/apicurio-registry-sql:latest
+apicurio/apicurio-registry-sql:VERSION
 ----
 
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:

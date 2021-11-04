@@ -70,10 +70,4 @@ public class UpdateState {
         this.state = state;
     }
 
-    @Override
-    public String toString() {
-        return "UpdateState{" +
-                "state=" + state +
-                '}';
-    }
 }

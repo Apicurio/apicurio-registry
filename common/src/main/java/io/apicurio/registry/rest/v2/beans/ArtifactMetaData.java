@@ -153,7 +153,7 @@ public class ArtifactMetaData {
     @JsonPropertyDescription("")
     private Long contentId;
     /**
-     *
+     * 
      */
     @JsonProperty("references")
     @JsonPropertyDescription("")
@@ -444,7 +444,7 @@ public class ArtifactMetaData {
     }
 
     /**
-     *
+     * 
      */
     @JsonProperty("references")
     public List<ArtifactReference> getReferences() {
@@ -452,32 +452,11 @@ public class ArtifactMetaData {
     }
 
     /**
-     *
+     * 
      */
     @JsonProperty("references")
     public void setReferences(List<ArtifactReference> references) {
         this.references = references;
     }
 
-    @Override
-    public String toString() {
-        return "ArtifactMetaData{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", modifiedBy='" + modifiedBy + '\'' +
-                ", modifiedOn=" + modifiedOn +
-                ", id='" + id + '\'' +
-                ", version='" + version + '\'' +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                ", groupId='" + groupId + '\'' +
-                ", contentId=" + contentId +
-                ", references=" + references +
-                '}';
-    }
 }

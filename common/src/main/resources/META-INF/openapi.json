@@ -21,6 +21,17 @@
                 "tags": [
                     "Artifacts"
                 ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
@@ -55,6 +66,16 @@
                 "tags": [
                     "Artifacts"
                 ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
@@ -88,6 +109,16 @@
             "get": {
                 "tags": [
                     "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -1100,6 +1131,16 @@
                 "tags": [
                     "Versions"
                 ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
@@ -1747,6 +1788,17 @@
             "get": {
                 "tags": [
                     "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
                 ],
                 "responses": {
                     "200": {

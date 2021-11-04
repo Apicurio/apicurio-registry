@@ -8,13 +8,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 This chapter explains how to install and configure your chosen registry storage option: 
 
 .Kafka storage
-* xref:installing-kafka-streams-operatorhub[]
-* xref:setting-up-kafka-streams-storage[]
-* xref:registry-kafka-topic-names[]
+* xref:installing-kafka-streams-operatorhub_{context}[]
+* xref:setting-up-kafka-streams-storage_{context}[]
+* xref:registry-kafka-topic-names_{context}[]
 
 .PostgreSQL database storage
-* xref:installing-postgresql-operatorhub[]
-* xref:setting-up-postgresql-storage[]
+* xref:installing-postgresql-operatorhub_{context}[]
+* xref:setting-up-postgresql-storage_{context}[]
 
 .Prerequisites
 * {installing-the-registry-openshift}

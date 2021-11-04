@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="setting-up-kafka-streams-storage"]
+[id="setting-up-kafka-streams-storage_{context}"]
 = Configuring {registry} with Kafka storage on OpenShift
 
 [role="_abstract"]
@@ -12,7 +12,7 @@ You can install {registry} in an existing Kafka cluster or create a new Kafka cl
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See {installing-the-registry-openshift}.
-* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub[].
+* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub_{context}[].
 
 .Procedure
 

@@ -1,11 +1,11 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-[id="registry-rule-maturity-matrix"]
+[id="registry-rule-maturity-matrix_{context}"]
 = {registry} content rule maturity
 
-Not all content rules are fully implemented for every artifact type supported by {registry}.
-The following table shows the current maturity level for each rule and artifact type.
+[role="_abstract"]
+Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
 
 .{registry} content rule maturity matrix
 [%header,cols=3*] 

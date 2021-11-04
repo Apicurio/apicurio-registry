@@ -1,0 +1,52 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+[id="creating-access-token-for-registry-rest-api_{context}"]
+= Creating an access token for {registry} REST API commands
+
+[role="_abstract"]
+This section shows a curl-based example of how to create an OAuth Bearer access token for use with the {registry} core REST API. You can do this using the OpenShift Application Services authentication server and your service account credentials.
+
+.Prerequisites
+
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have access to the {registry} web console
+endif::[]
+
+.Procedure
+
+. Create your service account credentials using the web console: 
+https://console.redhat.com/beta/application-services/service-accounts
+
+. Copy the generated *Client ID* and *Client Secret* to a secure location.
+
+. Create an OAuth Bearer token using your service account client ID and secret:  
++
+[source,bash]
+----
+$ curl -X POST \
+  -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET" \ 
+  https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token
+----
++
+.  Copy the access token generated in the response to a secure location:
++
+[source,bash]
+----
+{"access_token":"eyJhbG........a3BQ","expires_in":300,"refresh_expires_in":0,"token_type":"bearer","not-before-policy":0,"scope":"profile email"}
+----
+
+. Set an `ACCESS_TOKEN` environment variable to the contents of this generated access token:
++
+[source,bash]
+----
+export ACCESS_TOKEN=VALUE
+----
+
+
+//[role="_additional-resources"]
+//.Additional resources
+//* For more detail, see .. 

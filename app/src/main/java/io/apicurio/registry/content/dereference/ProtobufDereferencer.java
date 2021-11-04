@@ -16,9 +16,15 @@
 
 package io.apicurio.registry.content.dereference;
 
+import com.google.protobuf.Descriptors;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author carnalca@redhat.com
@@ -27,6 +33,18 @@ public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        return null;
+        final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.content());
+        final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> ProtobufFile.toProtoFileElement(e.getValue().content())
+                )));
+
+        try {
+            return ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

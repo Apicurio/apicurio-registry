@@ -76,12 +76,17 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int, java.lang.Boolean)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public Response getContentByGlobalId(int globalId, Boolean dereference) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
-        if(ArtifactState.DISABLED.equals(metaData.getState())) {
+        if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
+
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
+        }
+
         StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
 
         // protobuf - the content-type will be different for protobuf artifacts

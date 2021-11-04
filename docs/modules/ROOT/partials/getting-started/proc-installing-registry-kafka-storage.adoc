@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-kafka-storage"]
+[id="installing-registry-kafka-storage_{context}"]
 ifdef::apicurio-registry[]
 = Installing {registry} with Apache Kafka storage
 endif::[]
@@ -17,7 +17,7 @@ This topic explains how to install and run {registry} with Kafka storage from a 
 
 * You must have Docker installed and the Docker daemon running.
 ifdef::apicurio-registry[]
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafka.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql.
 endif::[] 
 * Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system. 
 * You must already have your Kafka broker running. For example: 
@@ -36,8 +36,11 @@ ifdef::apicurio-registry[]
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-kafkasql 
+$ docker pull apicurio/apicurio-registry-kafkasql:VERSION 
 ----
++ 
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql/tags.
+
 . Run the container image and specify the following environment variable for your Kafka system: 
 +
 ** `KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s). 

@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="setting-up-postgresql-storage"]
+[id="setting-up-postgresql-storage_{context}"]
 
 = Configuring {registry} with PostgreSQL database storage on OpenShift
 
@@ -11,7 +11,7 @@ This section explains how to configure storage for {registry} on OpenShift using
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See {installing-the-registry-openshift}.
-* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub[].
+* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[].
 
 .Procedure
 

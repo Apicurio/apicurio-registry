@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-in-memory-storage"]
+[id="installing-registry-in-memory-storage_{context}"]
 = Installing {registry} with in-memory storage
 
 [role="_abstract"]
@@ -20,13 +20,16 @@ NOTE: The in-memory storage option is suitable for development only. All data is
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-mem
+$ docker pull apicurio/apicurio-registry-mem:VERSION
 ----
++ 
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-mem/tags.
+
 . Run the container image: 
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:latest
+$ docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:VERSION
 ----
 
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:

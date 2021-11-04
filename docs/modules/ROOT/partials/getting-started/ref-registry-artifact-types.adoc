@@ -1,10 +1,12 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-[id="registry-artifact-types"]
+[id="registry-artifact-types_{context}"]
 
 = {registry} artifact types
-You can store and manage the following artifact types in {registry}:
+
+[role="_abstract"]
+You can store and manage a wide range of schema and API artifact types in {registry}.
 
 .{registry} artifact types
 [%header,cols=2*] 

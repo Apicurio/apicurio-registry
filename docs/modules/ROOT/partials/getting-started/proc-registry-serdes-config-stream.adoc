@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-config-stream-{context}']
+[id='registry-serdes-config-stream_{context}']
 = Using a schema from a Kafka Streams application
 
 [role="_abstract"]

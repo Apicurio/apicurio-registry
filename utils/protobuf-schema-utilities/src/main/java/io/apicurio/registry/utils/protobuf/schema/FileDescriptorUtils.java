@@ -83,7 +83,7 @@ import static com.google.protobuf.DescriptorProtos.OneofDescriptorProto;
 import static com.google.protobuf.DescriptorProtos.ServiceDescriptorProto;
 
 /**
- * @author Fabian Martinez, Ravindranath Kakarla
+ * @author Fabian Martinez, Ravindranath Kakarla, Carles Arnal
  */
 public class FileDescriptorUtils {
 
@@ -683,6 +683,16 @@ public class FileDescriptorUtils {
 
     private static Boolean findOptionBoolean(String name, Options options) {
         return findOption(name, options).map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
+    }
+
+    public static ProtoFileElement fileDescriptorWithDepsToProtoFile(
+            FileDescriptor file, Map<String, ProtoFileElement> dependencies
+    ) {
+        for (FileDescriptor dependency : file.getDependencies()) {
+            String depName = dependency.getName();
+            dependencies.put(depName, fileDescriptorWithDepsToProtoFile(dependency, dependencies));
+        }
+        return fileDescriptorToProtoFile(file.toProto());
     }
 
     public static ProtoFileElement fileDescriptorToProtoFile(FileDescriptorProto file) {

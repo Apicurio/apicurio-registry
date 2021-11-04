@@ -140,6 +140,10 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
+        }
+
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -414,6 +418,10 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
+
+        if (dereference == null) {
+            dereference = Boolean.FALSE;
+        }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, version);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {

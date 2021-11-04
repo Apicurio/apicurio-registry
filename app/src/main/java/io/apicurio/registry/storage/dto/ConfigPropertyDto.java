@@ -44,11 +44,13 @@ public class ConfigPropertyDto {
     private String type;
     private String value;
 
+    // TODO move this logic to the registry config service instead?  lets the storage only deal with strings
     public Object getTypedValue() {
         if (value == null) {
             return null;
         }
 
+        // TODO use the full canonical class name instead?
         if ("String".equals(type)) {
             return value;
         }

@@ -80,12 +80,14 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
     @SuppressWarnings("unchecked")
     public <T> T get(RegistryConfigProperty property, Class<T> propertyType) {
         // Possibly check the tenant property cache for a value.  If found return it.
+        // TODO should we validate the type of the property value against the propertyType above rather than just blindly casting it?
         T rval = property.isEditable() ? (T) tenantPropertyCache().get(property) : null;
 
         // If not found, check for a global property.
         if (rval == null) {
             rval = (T) globalPropertyCache.computeIfAbsent(property, (key) -> {
                 Optional<? extends Object> value = ConfigProvider.getConfig().getOptionalValue(property.propertyName(), propertyType);
+                // TODO can this be simplified to use orElse() etc?
                 if (value.isPresent()) {
                     return (T) value.get();
                 } else {
@@ -146,7 +148,7 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
     private void refresh() {
         Instant now = Instant.now();
         if (lastRefresh != null) {
-            List<String> tenantIds = storage.getTenantsWithStaleConfigProperties(now);
+            List<String> tenantIds = storage.getTenantsWithStaleConfigProperties(lastRefresh);
             tenantIds.forEach(tenantId -> invalidateTenantCache(tenantId));
         }
         lastRefresh = now;
@@ -156,6 +158,7 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
      * @param tenantId
      */
     private void invalidateTenantCache(String tenantId) {
+        // TODO implement this!
 
     }
 

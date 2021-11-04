@@ -49,10 +49,4 @@ public class LogConfiguration {
         this.level = level;
     }
 
-    @Override
-    public String toString() {
-        return "LogConfiguration{" +
-                "level=" + level +
-                '}';
-    }
 }

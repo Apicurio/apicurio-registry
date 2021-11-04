@@ -86,14 +86,4 @@ public class UserInfo {
         this.viewer = viewer;
     }
 
-    @Override
-    public String toString() {
-        return "UserInfo{" +
-                "username='" + username + '\'' +
-                ", displayName='" + displayName + '\'' +
-                ", admin=" + admin +
-                ", developer=" + developer +
-                ", viewer=" + viewer +
-                '}';
-    }
 }

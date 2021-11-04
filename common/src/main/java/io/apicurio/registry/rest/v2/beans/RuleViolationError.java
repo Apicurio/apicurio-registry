@@ -160,14 +160,4 @@ public class RuleViolationError
         this.name = name;
     }
 
-    @Override
-    public String toString() {
-        return "RuleViolationError{" +
-                "causes=" + causes +
-                ", message='" + message + '\'' +
-                ", errorCode=" + errorCode +
-                ", detail='" + detail + '\'' +
-                ", name='" + name + '\'' +
-                '}';
-    }
 }

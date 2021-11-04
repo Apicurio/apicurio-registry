@@ -170,7 +170,8 @@ public interface GroupsResource {
   @GET
   @Produces("*/*")
   Response getArtifactVersion(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @PathParam("version") String version);
+      @PathParam("artifactId") String artifactId, @PathParam("version") String version,
+      @QueryParam("dereference") Boolean dereference);
 
   /**
    * Updates the state of a specific version of an artifact.  For example, you can use 
@@ -420,7 +421,7 @@ public interface GroupsResource {
   @GET
   @Produces("*/*")
   Response getLatestArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId);
+      @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
 
   /**
    * Updates an artifact by uploading new content.  The body of the request should

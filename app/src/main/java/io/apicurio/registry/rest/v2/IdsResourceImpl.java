@@ -40,6 +40,7 @@ import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -52,6 +53,9 @@ public class IdsResourceImpl implements IdsResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     private void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
@@ -69,11 +73,11 @@ public class IdsResourceImpl implements IdsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int, java.lang.Boolean)
      */
     @Override
     @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public Response getContentByGlobalId(int globalId) {
+    public Response getContentByGlobalId(int globalId, Boolean dereference) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if(ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
@@ -90,7 +94,12 @@ public class IdsResourceImpl implements IdsResource {
             contentType = ArtifactMediaTypes.GRAPHQL;
         }
 
-        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
+        ContentHandle contentToReturn = artifact.getContent();
+        if (dereference) {
+            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
+        }
+
+        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);
         return builder.build();
     }

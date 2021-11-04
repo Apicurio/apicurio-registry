@@ -21,6 +21,8 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.dereference.AvroDereferencer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.logging.Logged;
@@ -65,4 +67,8 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
         return extractor;
     }
 
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return new AvroDereferencer();
+    }
 }

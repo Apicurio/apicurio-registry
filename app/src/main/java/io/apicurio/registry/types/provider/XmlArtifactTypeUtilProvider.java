@@ -20,6 +20,7 @@ import javax.enterprise.context.ApplicationScoped;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.logging.Logged;
@@ -76,4 +77,8 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
         return NoopContentExtractor.INSTANCE;
     }
 
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return null;
+    }
 }

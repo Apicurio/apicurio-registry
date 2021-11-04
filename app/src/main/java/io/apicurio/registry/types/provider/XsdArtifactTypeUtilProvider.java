@@ -21,6 +21,7 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.logging.Logged;
@@ -80,4 +81,8 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
         return extractor;
     }
 
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return null;
+    }
 }

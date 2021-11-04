@@ -21,6 +21,8 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.JsonContentExtractor;
 import io.apicurio.registry.logging.Logged;
@@ -63,5 +65,10 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ContentExtractor createContentExtractor() {
         return extractor;
+    }
+
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return new JsonSchemaDereferencer();
     }
 }

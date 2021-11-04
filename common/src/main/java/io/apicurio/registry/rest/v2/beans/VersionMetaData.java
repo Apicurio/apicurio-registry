@@ -375,22 +375,4 @@ public class VersionMetaData {
         this.contentId = contentId;
     }
 
-    @Override
-    public String toString() {
-        return "VersionMetaData{" +
-                "version='" + version + '\'' +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                ", id='" + id + '\'' +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                ", groupId='" + groupId + '\'' +
-                ", contentId=" + contentId +
-                '}';
-    }
 }

@@ -78,11 +78,4 @@ public class NamedLogConfiguration {
         this.level = level;
     }
 
-    @Override
-    public String toString() {
-        return "NamedLogConfiguration{" +
-                "name='" + name + '\'' +
-                ", level=" + level +
-                '}';
-    }
 }

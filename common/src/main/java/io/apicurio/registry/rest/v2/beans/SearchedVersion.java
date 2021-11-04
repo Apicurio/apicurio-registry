@@ -127,9 +127,9 @@ public class SearchedVersion {
     @JsonPropertyDescription("")
     private Long contentId;
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("references")
     @JsonPropertyDescription("")
@@ -354,9 +354,9 @@ public class SearchedVersion {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("references")
     public List<ArtifactReference> getReferences() {
@@ -364,30 +364,13 @@ public class SearchedVersion {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("references")
     public void setReferences(List<ArtifactReference> references) {
         this.references = references;
     }
 
-    @Override
-    public String toString() {
-        return "SearchedVersion{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdOn=" + createdOn +
-                ", createdBy='" + createdBy + '\'' +
-                ", type=" + type +
-                ", labels=" + labels +
-                ", state=" + state +
-                ", globalId=" + globalId +
-                ", version='" + version + '\'' +
-                ", properties=" + properties +
-                ", contentId=" + contentId +
-                ", references=" + references +
-                '}';
-    }
 }

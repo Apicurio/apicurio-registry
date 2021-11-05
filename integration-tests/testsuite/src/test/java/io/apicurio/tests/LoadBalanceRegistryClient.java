@@ -664,6 +664,14 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#importData(java.io.InputStream, boolean, boolean)
+     */
+    @Override
+    public void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
+        getTarget().importData(data, preserveGlobalIds, preserveContentIds);
+    }
+
+    /**
      * @see io.apicurio.registry.rest.client.RegistryClient#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
      */
     @Override

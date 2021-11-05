@@ -68,6 +68,7 @@ import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
@@ -935,18 +936,35 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
     @Override
-    public void importData(EntityInputStream entities) throws RegistryStorageException {
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
+        Map<Long, Long> contentIdMapping = new HashMap<>();
         try {
             Entity entity = null;
-            while ( (entity = entities.nextEntity()) != null ) {
-                if (entity != null) {
-                    importEntity(entity);
+            while ((entity = entities.nextEntity()) != null) {
+                if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+                    if (!preserveGlobalId) {
+                        ((ArtifactVersionEntity) entity).globalId = -1;
+                    }
+                    if(!preserveContentId) {
+                        artifactVersionEntity.contentId = computeContentId(artifactVersionEntity.contentId, contentIdMapping);
+                    }
                 }
+                if (entity.getEntityType() == EntityType.Content) {
+                    ContentEntity contentEntity = (ContentEntity) entity;
+                    if (!preserveContentId) {
+                        contentEntity.contentId = computeContentId(contentEntity.contentId, contentIdMapping);
+                    }
+                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                    }
+                }
+                importEntity(entity);
             }
-
             // Because importing just pushes a bunch of Kafka messages, we may need to
             // wait for a few seconds before we send the reset messages.  Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
@@ -959,7 +977,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             // Make sure the globalId sequence is set high enough
             resetGlobalId();
         } catch (IOException e) {
-            throw new RegistryStorageException(e);
+            throw new RegistryStorageException("Failed to import data", e);
         }
     }
 
@@ -1142,5 +1160,16 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());
             return content;
         }
+    }
+
+    private long nextGlobalIdIfInvalid(long globalId) {
+        if(globalId == -1) {
+            return sqlStore.nextGlobalId();
+        }
+        return globalId;
+    }
+
+    private long computeContentId(long contentId, Map<Long, Long> mapping) {
+        return mapping.computeIfAbsent(contentId, (k) -> sqlStore.nextContentId());
     }
 }

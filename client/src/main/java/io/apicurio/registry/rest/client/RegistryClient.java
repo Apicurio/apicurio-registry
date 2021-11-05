@@ -192,6 +192,8 @@ public interface RegistryClient {
 
     void importData(InputStream data);
 
+    void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds);
+
     List<RoleMapping> listRoleMappings();
 
     void createRoleMapping(RoleMapping data);

@@ -17,12 +17,30 @@
 package io.apicurio.tests.migration;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipOutputStream;
 
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.impexp.EntityWriter;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -93,6 +111,182 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             assertTrue(dest.getArtifactRuleConfig("avro-schemas", "avro-0", RuleType.VALIDITY).getConfig().equals("SYNTAX_ONLY"));
             assertTrue(dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig().equals("BACKWARD"));
         });
+    }
+
+    @Test
+    public void testDoNotPreserveIdsImport() throws Exception {
+        RegistryClient source = RegistryClientFactory.create(registryFacade.getSourceRegistryUrl());
+        RegistryClient dest = RegistryClientFactory.create(registryFacade.getDestRegistryUrl());
+
+        Map<String, String> artifacts = new HashMap<>();
+
+        // Fill the source registry with data
+        JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
+        for (int idx = 0; idx < 50; idx++) {
+            String artifactId = idx + "-" + UUID.randomUUID().toString();
+            String content = IoUtil.toString(jsonSchema.getSchemaStream());
+            var amd = source.createArtifact("default", artifactId, IoUtil.toStream(content));
+            retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
+            artifacts.put("default:" + artifactId, content);
+        }
+
+        for (int idx = 0; idx < 15; idx++) {
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
+            String artifactId = "avro-" + idx;
+            String content = IoUtil.toString( avroSchema.generateSchemaStream());
+            var amd = source.createArtifact("avro-schemas", artifactId, IoUtil.toStream(content));
+            retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
+            artifacts.put("avro-schemas:" + artifactId, content);
+
+            String content2 = IoUtil.toString( avroSchema.generateSchemaStream());
+            var vmd = source.updateArtifact("avro-schemas", artifactId, IoUtil.toStream(content2));
+            retry(() -> source.getContentByGlobalId(vmd.getGlobalId()));
+            artifacts.put("avro-schemas:" + artifactId, content2);
+        }
+
+        Rule rule = new Rule();
+        rule.setType(RuleType.VALIDITY);
+        rule.setConfig("SYNTAX_ONLY");
+        source.createArtifactRule("avro-schemas", "avro-0", rule);
+
+        rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        source.createGlobalRule(rule);
+
+        //Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)
+        for (int idx = 0; idx < 15; idx++) {
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
+            String artifactId = "avro-" + idx;
+            String content = IoUtil.toString( avroSchema.generateSchemaStream());
+            var amd = dest.createArtifact("avro-schemas", artifactId, IoUtil.toStream(content));
+            retry(() -> dest.getContentByGlobalId(amd.getGlobalId()));
+            artifacts.put("avro-schemas:" + artifactId, content);
+        }
+
+        for (int idx = 0; idx < 50; idx++) {
+            String artifactId = idx + "-" + UUID.randomUUID().toString();
+            String content = IoUtil.toString( jsonSchema.getSchemaStream());
+            var amd = dest.createArtifact("default", artifactId, IoUtil.toStream(content));
+            retry(() -> dest.getContentByGlobalId(amd.getGlobalId()));
+            artifacts.put("default:" + artifactId, content);
+        }
+
+        // Import the data
+        dest.importData(source.exportData(), false, false);
+
+        // Check that the import was successful
+        retry(() -> {
+            for(var entry : artifacts.entrySet()) {
+                String groupId = entry.getKey().split(":")[0];
+                String artifactId = entry.getKey().split(":")[1];
+                String content = entry.getValue();
+                var registryContent = dest.getLatestArtifact(groupId, artifactId);
+                assertNotNull(registryContent);
+                assertEquals(content, IoUtil.toString(registryContent));
+            }
+
+            assertEquals("SYNTAX_ONLY", dest.getArtifactRuleConfig("avro-schemas", "avro-0", RuleType.VALIDITY).getConfig());
+            assertEquals("BACKWARD", dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig());
+        });
+    }
+
+    @Test
+    public void testGeneratingCanonicalHashOnImport() throws Exception {
+        RegistryClient dest = RegistryClientFactory.create(registryFacade.getDestRegistryUrl());
+
+        Map<String, String> artifacts = new HashMap<>();
+
+        JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
+        for(int i = 0; i < 20; i++) {
+            String artifactId = i + "-" + UUID.randomUUID();
+            String content = IoUtil.toString(jsonSchema.getSchemaStream());
+            artifacts.put(artifactId, content);
+        }
+        dest.importData(generateExportedZip(artifacts), false, false);
+
+        retry(() -> {
+            for(var entry : artifacts.entrySet()) {
+                String groupId = "default";
+                String artifactId = entry.getKey();
+                String content = entry.getValue();
+
+                /*
+                TODO: Check if the canonical hash is generated correctly.
+                      The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
+                 */
+
+                var registryContent = dest.getLatestArtifact(groupId, artifactId);
+                assertNotNull(registryContent);
+                assertEquals(content, IoUtil.toString(registryContent));
+            }
+        });
+
+    }
+
+    public InputStream generateExportedZip(Map<String, String> artifacts) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            ZipOutputStream zip = new ZipOutputStream(outputStream, StandardCharsets.UTF_8);
+            EntityWriter writer = new EntityWriter(zip);
+
+            Map<String, Long> contentIndex = new HashMap<>();
+
+            AtomicInteger globalIdSeq = new AtomicInteger(1);
+            AtomicInteger contentIdSeq = new AtomicInteger(1);
+
+            for (var entry : artifacts.entrySet()) {
+                String artifactId = entry.getKey();
+                String content = entry.getValue();
+                byte[] contentBytes = IoUtil.toBytes(content);
+                String contentHash = DigestUtils.sha256Hex(contentBytes);
+
+                ArtifactType artifactType = ArtifactType.JSON;
+
+                Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
+                    ContentEntity contentEntity = new ContentEntity();
+                    contentEntity.contentId = contentIdSeq.getAndIncrement();
+                    contentEntity.contentHash = contentHash;
+                    contentEntity.canonicalHash = null;
+                    contentEntity.contentBytes = contentBytes;
+                    contentEntity.artifactType = artifactType;
+
+                    try {
+                        writer.writeEntity(contentEntity);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    return contentEntity.contentId;
+                });
+
+                ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
+                versionEntity.artifactId = artifactId;
+                versionEntity.artifactType = artifactType;
+                versionEntity.contentId = contentId;
+                versionEntity.createdBy = "integration-tests";
+                versionEntity.createdOn = System.currentTimeMillis();
+                versionEntity.description = null;
+                versionEntity.globalId = globalIdSeq.getAndIncrement();
+                versionEntity.groupId = null;
+                versionEntity.isLatest = true;
+                versionEntity.labels = null;
+                versionEntity.name = null;
+                versionEntity.properties = null;
+                versionEntity.state = ArtifactState.ENABLED;
+                versionEntity.version = "1";
+                versionEntity.versionId = 1;
+
+                writer.writeEntity(versionEntity);
+            }
+
+            zip.flush();
+            zip.close();
+
+            return new ByteArrayInputStream(outputStream.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

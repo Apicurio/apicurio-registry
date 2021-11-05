@@ -150,7 +150,7 @@
         <avro.version>1.10.2</avro.version>
         <json-schema-validator.version>1.0.63</json-schema-validator.version>
         <wire-schema.version>3.7.1</wire-schema.version>
-        <wire-compiler.version>3.7.0</wire-compiler.version>
+        <wire-compiler.version>3.7.1</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>70.1</icu4j.version>
         <protobuf.version>3.19.1</protobuf.version>
@@ -423,6 +423,13 @@
                 <groupId>com.squareup.wire</groupId>
                 <artifactId>wire-compiler</artifactId>
                 <version>${wire-compiler.version}</version>
+                <!-- Excluding as the latest version is not present and this is not required -->
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.squareup.wire</groupId>
+                        <artifactId>wire-grpc-client</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.google.jimfs</groupId>

@@ -1,9 +1,9 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-concepts-constants-{context}']
-= {registry} serializer/deserializer configuration
-
+[id='registry-serdes-concepts-constants_{context}']
+= {registry} serializer/deserializer configuration in client applications
+ 
 [role="_abstract"]
 You can configure specific client serializer/deserializer (SerDe) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
 
@@ -30,7 +30,8 @@ The setting should not be used with the `ID_HANDLER` option.
 [role="_additional-resources"]
 .Additional resources
 
-* For more details and security configuration options, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 
+** For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
+
 
 [discrete]
 == Configuration for SerDe lookup strategies
@@ -49,7 +50,8 @@ public class SerdeConfig {
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see xref:registry-serdes-concepts-strategy-registry[]
+* For more details on look up strategies, see {kafka-client-serdes}
+* For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
 
 [discrete]
 == Configuration for Kafka converters
@@ -67,16 +69,16 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 [role="_additional-resources"]
 .Additional resources
 
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/2.0.x/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class] 
 
 [discrete]
 == Configuration for different schema types
 
 For details on how to configure SerDe for different schema technologies, see the following: 
 
-* xref:registry-serdes-types-avro-registry[]
-* xref:registry-serdes-types-json-registry[]
-* xref:registry-serdes-types-protobuf-registry[]
+* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-types-json_registry[]
+* xref:registry-serdes-types-protobuf_registry[]
 
 
 

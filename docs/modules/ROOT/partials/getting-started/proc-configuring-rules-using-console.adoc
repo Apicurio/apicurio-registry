@@ -1,37 +1,56 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
-[id="configuring-rules-using-console"]
+[id="configuring-rules-using-console_{context}"]
 = Configuring content rules using the {registry} web console
 
-You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules. For more details, see {registry-rules}.
-
-This section shows a simple example of configuring global and artifact rules. For details on the different rule types and associated configuration settings that you can select, see {registry-reference}.  
+[role="_abstract"]
+You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules. This section shows a simple example of configuring global and artifact rules.
 
 .Prerequisites
 
-* {registry} must be installed and running in your environment.
-* For artifact rules, artifacts must have been added to the registry using the {registry} web console, REST API commands, Maven plug-in, or a Java client application. 
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have access to the {registry} web console
+endif::[]
+* Artifacts have been added to the registry using the {registry} web console, REST API, command line, Maven plug-in, or a Java client application. 
 
 .Procedure
 
 . Connect to the {registry} web console on: 
 +
-`*\http://MY_REGISTRY_URL/ui*`
-
+`*{registry-url}*`
+ifdef::rh-openshift-sr[]
+. Click your existing {registry} instance. 
+endif::[]
 . For artifact rules, browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific artifact *Name*, *Group*, *Description*, or *Labels*.  
 
 . Click *View artifact* to view the *Artifact Details*.
 
-. In *Content Rules*, click *Enable* to configure an artifact *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see {registry-reference}.
+. In *Content Rules*, click *Enable* to configure an artifact *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
 +
 .Configure content rules in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-web-console-rules.png[Configure rules in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console-rules.png[Configure rules in Registry web console]
+endif::[]
 +
-. For global rules, click *Manage global rules* at the top right of the toolbar, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. For more details, see {registry-reference}.
+ifdef::apicurio-registry,rh-service-registry[]
+. For global rules, click *Manage global rules* at the top right of the toolbar, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
+endif::[]
+ifdef::rh-openshift-sr[]
+. For global rules, click the *Global Rules* tab at the top left of your {registry} instance, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
+endif::[]
 
 . To disable an artifact rule or global rule, click the trash icon next to the rule. 
 
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
 .Additional resources
-
-* xref:adding-artifacts-using-console[]
+* xref:adding-artifacts-using-console_{context}[]
+* {registry-reference}
+endif::[]

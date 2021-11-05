@@ -1,10 +1,10 @@
 // Metadata created by nebel
 
-[id="registry-demo"]
+[id="registry-demo_{context}"]
 = {registry} demonstration examples
 
 [role="_abstract"]
-{registry} provides open source example applications that demonstrate how to use the registry in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDe) classes. These Java classes fetch the schema from the registry for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
+{registry} provides open source example applications that demonstrate how to use the registry in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDes) classes. These Java classes fetch the schema from the registry for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
 
 These example applications include the following:
 
@@ -18,4 +18,6 @@ These example applications include the following:
 * Mix Avro schemas 
 * Cloud Events 
 
-For more details, see link:https://github.com/Apicurio/apicurio-registry-examples[]
+[role="_additional-resources"]
+.Additional resources
+* For more details, see link:https://github.com/Apicurio/apicurio-registry-examples[]

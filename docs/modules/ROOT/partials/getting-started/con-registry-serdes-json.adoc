@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-types-json-{context}']
+[id='registry-serdes-types-json_{context}']
 = Configure JSON Schema SerDe with {registry}
 
 [role="_abstract"]

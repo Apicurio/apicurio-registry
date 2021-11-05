@@ -1,15 +1,19 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="writing-registry-client"]
-= Writing {registry} client applications
+[id="writing-registry-client_{context}"]
+= Writing {registry} Java client applications
 
 [role="_abstract"]
 This section explains how to manage artifacts stored in {registry} using a Java client application. 
 
 .Prerequisites
-* See {registry-overview}
-* {registry} must be installed and running in your environment
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have a service account with the correct access permissions for {registry} instances
+endif::[]
 
 .Procedure
 . Add the following dependency to your Maven project:
@@ -33,18 +37,25 @@ public class ClientExample {
 
      public static void main(String[] args) throws Exception {
         // Create a registry client
-        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v2"; <1>
-        RegistryClient client = RegistryClientFactory.create(registryUrl); <2>
+        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v2"; 
+        RegistryClient client = RegistryClientFactory.create(registryUrl); 
     }
 }
 ----
-<1> If you specify an example registry URL of `https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v2`.
-<2> For more options when creating a {registry} client, see the Java client configuration in the next section.
++
+* If you specify an example registry URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v2`.
+* For more options when creating a {registry} client, see the Java client configuration in the next section.
 
-. When the client is created, you can use all the operations from the {registry} REST API through the client. For more details, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+When the client is created, you can use all the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
 
 [role="_additional-resources"]
 .Additional resources
-* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry-examples[Registry REST client demonstration example].
+* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry-examples[Registry REST client demonstration example]
 
-* For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}
+* For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see 
+ifdef::apicurio-registry,rh-service-registry[]
+{kafka-client-serdes}
+endif::[]
+ifdef::rh-openshift-sr[]
+link:https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q3/html/service_registry_user_guide/using-kafka-client-serdes[Red Hat Integration Service Registry Kafka client SerDes]
+endif::[]

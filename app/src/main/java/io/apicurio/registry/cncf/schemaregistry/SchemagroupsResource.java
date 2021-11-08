@@ -21,7 +21,7 @@ import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
-@Path("/cncf/v0/schemagroups")
+@Path("/apis/cncf/v0/schemagroups")
 public interface SchemagroupsResource {
   /**
    * Get all schema groups in namespace.

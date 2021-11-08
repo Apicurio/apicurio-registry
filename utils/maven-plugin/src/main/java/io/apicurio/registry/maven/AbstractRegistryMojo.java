@@ -17,6 +17,9 @@
 
 package io.apicurio.registry.maven;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.auth.Auth;
 import io.apicurio.registry.auth.BasicAuth;
 import io.apicurio.registry.auth.KeycloakAuth;
@@ -28,7 +31,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 
+import java.io.File;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Base class for all Registry Mojo's.
@@ -37,6 +42,23 @@ import java.util.Collections;
  * @author Ales Justin
  */
 public abstract class AbstractRegistryMojo extends AbstractMojo {
+
+    public static class FileArtifact<T> {
+        public FileArtifact(List<T> artifacts) {
+            this.artifacts = artifacts;
+        }
+
+        @JsonProperty
+        List<T> artifacts;
+
+        public List<T> getArtifacts() {
+            return artifacts;
+        }
+
+        public void setArtifacts(List<T> artifacts) {
+            this.artifacts = artifacts;
+        }
+    }
 
     /**
      * The registry's url.
@@ -79,6 +101,20 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         }
         return client;
     }
+
+    public <T> FileArtifact<T> parseArtifacts(final String configPath, Class<T> clazz) throws MojoExecutionException {
+        final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        List<T> artifacts = null;
+        FileArtifact<T> fileArtifacts=null;
+        try {
+            artifacts = mapper.readValue(new File(configPath), (Class<List<T>>) (Object) List.class);
+            fileArtifacts = new FileArtifact(artifacts);
+        } catch (Exception ex) {
+            throw new MojoExecutionException("Error while parsing artifacts config file");
+        }
+        return fileArtifacts;
+    }
+
 
     protected void setClient(RegistryClient client) {
         AbstractRegistryMojo.client = client;

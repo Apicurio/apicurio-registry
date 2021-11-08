@@ -17,12 +17,11 @@
 
 package io.apicurio.registry.maven;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.List;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -39,13 +38,19 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     /**
      * The list of artifacts to register.
      */
-    @Parameter(required = true)
     List<RegisterArtifact> artifacts;
+    /**
+     * Alternatively provide a configuration file with the artifacts information
+     */
+    String artifactsConfigPath;
 
     /**
      * Validate the configuration.
      */
     protected void validate() throws MojoExecutionException {
+        if(artifacts==null && artifactsConfigPath != null){
+            artifacts=parseArtifacts(artifactsConfigPath,RegisterArtifact.class).getArtifacts();
+        }
         if (artifacts == null || artifacts.isEmpty()) {
             getLog().warn("No artifacts are configured for registration.");
         } else {
@@ -75,6 +80,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 throw new MojoExecutionException("Invalid configuration of the Register Artifact(s) mojo. See the output log for details.");
             }
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        RegisterRegistryMojo rm = new RegisterRegistryMojo();
+        String path="/Users/vitorfernandes/work/third/apicurio-registry/utils/maven-plugin/src/main/java/io/apicurio/registry/maven/artifacts.yaml";
+        FileArtifact<RegisterArtifact> ra= rm.parseArtifacts(path,RegisterArtifact.class);
+        System.out.println(ra);
     }
 
     @Override

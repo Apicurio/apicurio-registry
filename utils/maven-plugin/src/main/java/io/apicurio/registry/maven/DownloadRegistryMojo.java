@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -37,13 +38,20 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     /**
      * Set of artifact ids to download.
      */
-    @Parameter(required = true)
     List<DownloadArtifact> artifacts;
+
+    /**
+     * Alternatively provide a configuration file with the artifacts information
+     */
+    String artifactsConfigPath;
 
     /**
      * Validate the configuration.
      */
     protected void validate() throws MojoExecutionException {
+        if(artifacts==null && artifactsConfigPath != null){
+            artifacts=parseArtifacts(artifactsConfigPath,DownloadArtifact.class).getArtifacts();
+        }
         if (artifacts == null || artifacts.isEmpty()) {
             getLog().warn("No artifacts are configured for download.");
         } else {

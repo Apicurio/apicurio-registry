@@ -93,7 +93,7 @@
         <module>common</module>
         <module>app</module>
         <module>cli</module>
-        <module>ui</module>
+        <!--<module>ui</module>-->
         <module>utils/converter</module>
         <module>utils/kafka</module>
         <module>utils/maven-plugin</module>

@@ -1,0 +1,14 @@
+- groupId: group
+  artifactId: artifact
+  version: 123
+  type: PROTOBUF
+  file: /Users/vitorfernandes/work/third/apicurio-registry/utils/maven-plugin/src/main/java/io/apicurio/registry/maven/artifacts.yaml
+  ifExists: UPDATE
+  canonicalize: false
+- groupId: group
+  artifactId: artifact
+  version: 123
+  type: PROTOBUF
+  file: /Users/vitorfernandes/work/third/apicurio-registry/utils/maven-plugin/src/main/java/io/apicurio/registry/maven/artifacts.yaml
+  ifExists: UPDATE
+  canonicalize: false

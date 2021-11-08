@@ -1,0 +1,58 @@
+[id="registry-cloud-events_{context}"]
+= Configuring {registry} event sourcing
+
+You can configure {registry} to send events when changes are made to the registry. For example, {registry} can trigger events when schema and API artifacts are created, updated, deleted, and so on. You can configure {registry} to send events to your applications and to third-party integrations in this way.
+
+There are different protocols available for transporting the events. The currently implemented protocols are HTTP and Apache Kafka. However, regardless of the protocol, the events are sent using the CNCF CloudEvents specification.
+
+All of the event types are defined in `io.apicurio.registry.events.dto.RegistryEventType`. For example, the event types include:
+
+* `io.apicurio.registry.artifact-created`
+* `io.apicurio.registry.artifact-updated`
+* `io.apicurio.registry.artifact-rule-created`
+* `io.apicurio.registry.global-rule-created`
+
+You can configure cloud events in {registry} using Java system properties or equivalent environment variables.
+
+.Prerequisites
+
+* You must have an application that you want to send {registry} cloud events to. For example, this can be a custom application or a third-party application.
+
+[discrete]
+== Configuring {registry} event sourcing using HTTP
+
+The example in this section shows a custom application running at `\http://my-app-host:8888/events`. 
+
+.Procedure
+
+. When using the HTTP protocol, set your {registry} configuration to send events to a your application as follows:
+
+** `registry.events.sink.my-custom-consumer=http://my-app-host:8888/events`
+
+. If required, you can configure multiple event consumers as follows:
+** `registry.events.sink.my-custom-consumer=http://my-app-host:8888/events`
+** `registry.events.sink.other-consumer=http://my-consumer.com/events`
+
+
+[discrete]
+== Configuring {registry} event sourcing using Apache Kafka
+
+The example in this section shows a Kafka topic named `my-registry-events` running on `my-kafka-host:9092`. 
+
+.Procedure
+
+. When using the Kafka protocol, set your Kafka topic as follows:
+** `registry.events.kafka.topic=my-registry-events`
+
+. You can set the configuration for the Kafka producer using the `KAFKA_BOOTSTRAP_SERVERS` environment variable:
+** `KAFKA_BOOTSTRAP_SERVERS=my-kafka-host:9092`
++
+Alternatively, you can set the properties for the kafka producer using the `registry.events.kafka.config` prefix, for example:
+`registry.events.kafka.config.bootstrap.servers=my-kafka-host:9092`
+
+. If required, you can also set the Kafka topic partition to use to produce events:
+** `registry.events.kafka.topic-partition=1`
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the link:https://cloudevents.io/[CNCF CloudEvents specification]

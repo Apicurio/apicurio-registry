@@ -8,11 +8,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter provides details on the supported artifact types, states, metadata, and content rules that are stored in {registry}.
 
-* xref:registry-artifact-types[]
-* xref:registry-artifact-states[]
-* xref:registry-artifact-metadata[]
-* xref:registry-rule-types[]
-* xref:registry-rule-maturity-matrix[]
+* xref:registry-artifact-types_{context}[]
+* xref:registry-artifact-states_{context}[]
+* xref:registry-artifact-metadata_{context}[]
+* xref:registry-rule-types_{context}[]
+* xref:registry-rule-maturity-matrix_{context}[]
 
 [role="_additional-resources"]
 .Additional resources

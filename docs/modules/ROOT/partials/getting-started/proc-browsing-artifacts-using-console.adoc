@@ -1,36 +1,51 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
-[id="browsing-artifacts-using-console"]
+[id="browsing-artifacts-using-console_{context}"]
 = Viewing artifacts using the {registry} web console
 
-You can use the {registry} web console to browse the event schema and API design artifacts stored in the registry. This section shows simple examples of viewing {registry} artifacts, groups, versions, and artifact rules. For more details on the artifact types stored in the registry, see {registry-reference}. 
+[role="_abstract"]
+You can use the {registry} web console to browse the event schema and API design artifacts stored in the registry. This section shows simple examples of viewing {registry} artifacts, groups, versions, and artifact rules. 
 
 .Prerequisites
 
-* {registry} must be installed and running in your environment. 
-* Artifacts must have been added to the registry using the {registry} web console, REST API commands, Maven plug-in, or a Java client application. 
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} must be installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You must have access to the {registry} web console
+endif::[]
+* Artifacts must have been added to the registry using the {registry} web console, REST API, command line, Maven plug-in, or a Java client application. 
 
 .Procedure
 
 . Connect to the {registry} web console on: 
 +
-`*\http://MY_REGISTRY_URL/ui*`
-
+`*{registry-url}*`
+ifdef::rh-openshift-sr[]
+. Click your existing {registry} instance. 
+endif::[]
 . Browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific *Name*, *Group*, *Description*, or *Labels*.  
 +
 .Browse artifacts in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-web-console.png[Browse artifacts in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console.png[Browse artifacts in Registry web console]
+endif::[]
 +
-. Click *View artifact* to view the *Artifact Details*:
+. Click an artifact to view the *Artifact Details*:
 
-** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. Click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
+** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. Also displays artifact *Content Rules* that you can enable and configure.
 ** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 
 . Select to view a different artifact *Version* from the drop-down, if additional versions have been added.
 
-.Additional resources
-
-* xref:adding-artifacts-using-console[]
-* xref:configuring-rules-using-console[]
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
+* xref:adding-artifacts-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+* {registry-reference}
+endif::[]

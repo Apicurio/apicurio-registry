@@ -7,9 +7,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to manage schema and API artifacts stored in the registry using the {registry} Maven plug-in:
 
-* xref:adding-artifacts-using-maven-plugin[]
-* xref:downloading-artifacts-using-maven-plugin[]
-* xref:testing-artifacts-using-maven-plugin[]
+* xref:adding-artifacts-using-maven-plugin_{context}[]
+* xref:downloading-artifacts-using-maven-plugin_{context}[]
+* xref:testing-artifacts-using-maven-plugin_{context}[]
 
 .Prerequisites
 * See {registry-overview}

@@ -1,6 +1,6 @@
 // Metadata created by nebel
 
-[id="registry-artifacts"]
+[id="registry-artifacts_{context}"]
 = Schema and API artifacts and groups in {registry} 
 
 [role="_abstract"]
@@ -27,7 +27,8 @@ The items stored in {registry}, such as event schemas and API designs, are known
 
 When a schema or API design is added as an artifact in the registry, client applications can then use that schema or API design to validate that the client messages conform to the correct data structure at runtime. 
 
-{registry} supports a wide range of message payload formats for standard event schemas and API specifications. For example, supported formats include Apache Avro, Google Protobuf, GraphQL, AsyncAPI, OpenAPI, and others. For more details, see {registry-reference}. 
+{registry} supports a wide range of message payload formats for standard event schemas and API specifications. For example, supported formats include Apache Avro, Google Protobuf, GraphQL, AsyncAPI, OpenAPI, and others. 
+
 
 [discrete]
 == Schema and API groups
@@ -38,7 +39,7 @@ You can create optional artifact groups when adding your schemas and API designs
 
 Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, and AsyncAPI schema and API artifacts all in the same group.    
 
-You can create schema and API artifacts and optional groups using the {registry} web console, core REST API, Maven plug-in, or Java client application.  The following simple example shows using the REST API: 
+You can create schema and API artifacts and optional groups using the {registry} web console, core REST API, command line, Maven plug-in, or Java client application. The following simple example shows using the registry core REST API: 
 
 [source,bash]
 ----
@@ -49,11 +50,12 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
   https://my-registry.example.com/apis/registry/v2/groups/my-group/artifacts
 ----
 
-This example adds an Avro schema with an artifact ID of `share-price` in an artifact group named `my-group`.
+This example creates an artifact group named `my-group` and adds an Avro schema with an artifact ID of `share-price`.
 
-NOTE: Specifying a group is optional when using the {registry} web console, where a `default` group is automatically created. When using the v2 REST API or Maven plug-in, you can specify the `default` group in the API path if you do not want to create a unique group.   
+NOTE: Specifying a group is optional when using the {registry} web console, where a `default` group is automatically created. When using the REST API or Maven plug-in, you can specify the `default` group in the API path if you do not want to create a unique group.   
 
 [role="_additional-resources"]
 .Additional resources
 
-* For more details on schemas and groups, see the link:https://github.com/cloudevents/spec/blob/master/schemaregistry/schemaregistry.md[Cloud Native Computing Foundation (CNCF) Schema Registry API Version 0.1].
+* For more details on schemas and groups, see the link:https://github.com/cloudevents/spec/blob/master/schemaregistry/schemaregistry.md[Cloud Native Computing Foundation (CNCF) Schema Registry API]
+* For details on the {registry} core REST API, see the {registry-rest-api}

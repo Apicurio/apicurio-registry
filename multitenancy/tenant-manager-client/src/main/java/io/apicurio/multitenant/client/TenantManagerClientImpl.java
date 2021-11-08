@@ -15,43 +15,39 @@
  */
 package io.apicurio.multitenant.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
+import io.apicurio.multitenant.api.datamodel.SortBy;
+import io.apicurio.multitenant.api.datamodel.SortOrder;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+import io.apicurio.multitenant.client.exception.TenantManagerClientErrorHandler;
+import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.rest.client.JdkHttpClient;
+import io.apicurio.rest.client.VertxHttpClient;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.request.Request;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.util.IoUtil;
+import io.vertx.core.Vertx;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.multitenant.client.exception.TenantManagerClientException;
-import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
-import io.apicurio.multitenant.api.beans.RegistryTenantList;
-import io.apicurio.multitenant.api.beans.SortBy;
-import io.apicurio.multitenant.api.beans.SortOrder;
-import io.apicurio.multitenant.api.beans.TenantStatusValue;
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.message.BasicNameValuePair;
-import org.keycloak.common.VerificationException;
+import static io.apicurio.rest.client.request.Operation.DELETE;
+import static io.apicurio.rest.client.request.Operation.GET;
+import static io.apicurio.rest.client.request.Operation.POST;
+import static io.apicurio.rest.client.request.Operation.PUT;
 
 /**
  * @author Fabian Martinez
@@ -59,25 +55,31 @@ import org.keycloak.common.VerificationException;
 public class TenantManagerClientImpl implements TenantManagerClient {
 
     private static final String TENANTS_API_BASE_PATH = "api/v1/tenants";
+    private static final String TENANTS_API_BASE_PATH_TENANT_PARAM = "api/v1/tenants/%s";
 
-    private final HttpClient client;
+    private final ApicurioHttpClient client;
     private final ObjectMapper mapper;
-    private final String endpoint;
-    private final Auth auth;
 
     public TenantManagerClientImpl(String endpoint) {
-        this(endpoint, null);
-
+        this(endpoint, Collections.emptyMap(), null);
     }
 
-    public TenantManagerClientImpl(String endpoint, Auth auth) {
-        if (!endpoint.endsWith("/")) {
-            endpoint += "/";
+    public TenantManagerClientImpl(String baseUrl, Map<String, Object> configs, Auth auth) {
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
         }
-        this.endpoint = endpoint;
-        this.client = HttpClient.newHttpClient();
-        this.mapper = new ObjectMapper();
-        this.auth = auth;
+        final String endpoint = baseUrl;
+        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.client = new JdkHttpClient(endpoint, configs, auth, new TenantManagerClientErrorHandler());
+    }
+
+    public TenantManagerClientImpl(Vertx vertx, String baseUrl, Map<String, Object> configs, Auth auth) {
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
+        final String endpoint = baseUrl;
+        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.client = new VertxHttpClient(vertx, endpoint, configs, auth, new AuthErrorHandler());
     }
 
     @Override
@@ -87,149 +89,82 @@ public class TenantManagerClientImpl implements TenantManagerClient {
 
     @Override
     public RegistryTenantList listTenants(TenantStatusValue status, Integer offset, Integer limit, SortOrder order, SortBy orderby) {
-        try {
-            final Map<String, String> headers = prepareRequestHeaders();
 
-            Map<String, List<String>> queryParams = new HashMap<>();
-            if (status != null) {
-                queryParams.put("status", Arrays.asList(status.value()));
-            }
-            if (offset != null) {
-                queryParams.put("offset", Arrays.asList(String.valueOf(offset)));
-            }
-            if (limit != null) {
-                queryParams.put("limit", Arrays.asList(String.valueOf(limit)));
-            }
-            if (order != null) {
-                queryParams.put("order", Arrays.asList(order.value()));
-            }
-            if (orderby != null) {
-                queryParams.put("orderby", Arrays.asList(orderby.value()));
-            }
-
-            HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(buildURI(endpoint + TENANTS_API_BASE_PATH, queryParams, Collections.emptyList()))
-                    .GET();
-
-            headers.forEach(req::header);
-
-            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
-            if (res.statusCode() == 200) {
-                return this.mapper.readValue(res.body(), new TypeReference<RegistryTenantList>() {
-                });
-            }
-            throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException | URISyntaxException e) {
-            throw new TenantManagerClientException(e);
+        Map<String, List<String>> queryParams = new HashMap<>();
+        if (status != null) {
+            queryParams.put("status", Arrays.asList(status.value()));
         }
+        if (offset != null) {
+            queryParams.put("offset", Arrays.asList(String.valueOf(offset)));
+        }
+        if (limit != null) {
+            queryParams.put("limit", Arrays.asList(String.valueOf(limit)));
+        }
+        if (order != null) {
+            queryParams.put("order", Arrays.asList(order.value()));
+        }
+        if (orderby != null) {
+            queryParams.put("orderby", Arrays.asList(orderby.value()));
+        }
+
+        return client.sendRequest(new Request.RequestBuilder<RegistryTenantList>()
+                .operation(GET)
+                .path(TENANTS_API_BASE_PATH)
+                .queryParams(queryParams)
+                .responseType(new TypeReference<RegistryTenantList>() {
+                })
+                .build());
     }
 
     @Override
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest) {
         try {
-            final Map<String, String> headers = prepareRequestHeaders();
-            HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH))
-                    .header("Content-Type", "application/json")
-                    .POST(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(tenantRequest)));
-
-            headers.forEach(req::header);
-            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
-            if (res.statusCode() == 201) {
-                return this.mapper.readValue(res.body(), RegistryTenant.class);
-            }
-            throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
-            throw new TenantManagerClientException(e);
+            return client.sendRequest(new Request.RequestBuilder<RegistryTenant>()
+                    .operation(POST)
+                    .path(TENANTS_API_BASE_PATH)
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(tenantRequest)))
+                    .responseType(new TypeReference<RegistryTenant>() {
+                    })
+                    .build());
+        } catch (JsonProcessingException e) {
+            throw new TenantManagerClientException(e.getMessage());
         }
     }
 
     @Override
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest) {
         try {
-            final Map<String, String> headers = prepareRequestHeaders();
-            HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                    .header("Content-Type", "application/json")
-                    .PUT(BodyPublishers.ofByteArray(this.mapper.writeValueAsBytes(updateRequest)));
+            client.sendRequest(new Request.RequestBuilder<Void>()
+                    .operation(PUT)
+                    .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
+                    .pathParams(Collections.singletonList(tenantId))
+                    .data(IoUtil.toStream(mapper.writeValueAsBytes(updateRequest)))
+                    .responseType(new TypeReference<Void>() {
+                    }).build());
 
-            headers.forEach(req::header);
-            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
-            if (res.statusCode() == 204) {
-                return;
-            }
-            throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
-            throw new TenantManagerClientException(e);
+        } catch (IOException e) {
+            throw new TenantManagerClientException(e.getMessage());
         }
     }
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
-        try {
-            final Map<String, String> headers = prepareRequestHeaders();
-            HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                    .GET();
-            headers.forEach(req::header);
-
-            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
-            if (res.statusCode() == 200) {
-                return this.mapper.readValue(res.body(), RegistryTenant.class);
-            } else if (res.statusCode() == 404) {
-                throw new RegistryTenantNotFoundException(res.toString());
-            }
-            throw new TenantManagerClientException(res.toString());
-        } catch (IOException | InterruptedException | VerificationException e) {
-            throw new TenantManagerClientException(e);
-        }
+        return client.sendRequest(new Request.RequestBuilder<RegistryTenant>()
+                .operation(GET)
+                .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
+                .pathParams(Collections.singletonList(tenantId))
+                .responseType(new TypeReference<RegistryTenant>() {
+                }).build());
     }
 
     @Override
     public void deleteTenant(String tenantId) {
-        try {
-            final Map<String, String> headers = prepareRequestHeaders();
-            HttpRequest.Builder req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint + TENANTS_API_BASE_PATH + "/" + tenantId))
-                    .DELETE();
-            headers.forEach(req::header);
+        client.sendRequest(new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
+                .pathParams(Collections.singletonList(tenantId))
+                .responseType(new TypeReference<Void>() {
+                }).build());
 
-            HttpResponse<InputStream> res = client.send(req.build(), BodyHandlers.ofInputStream());
-            if (res.statusCode() != 204) {
-                throw new TenantManagerClientException(res.toString());
-            }
-        } catch (IOException | InterruptedException | VerificationException e) {
-            throw new TenantManagerClientException(e);
-        }
-    }
-
-    private Map<String, String> prepareRequestHeaders() throws VerificationException {
-        final Map<String, String> headers = new HashMap<>();
-        if (null != auth) {
-            headers.put("Authorization", auth.obtainAuthorizationValue());
-        }
-        return headers;
-    }
-
-    private URI buildURI(String basePath, Map<String, List<String>> queryParams, List<String> pathParams) throws URISyntaxException {
-        Object[] encodedPathParams = pathParams
-                .stream()
-                .map(this::encodeURIComponent)
-                .toArray();
-        final URIBuilder uriBuilder = new URIBuilder(String.format(basePath, encodedPathParams));
-        final List<NameValuePair> queryParamsExpanded = new ArrayList<>();
-        //Iterate over query params list so we can add multiple query params with the same key
-        queryParams.forEach((key, paramList) -> paramList
-                .forEach(value -> queryParamsExpanded.add(new BasicNameValuePair(key, value))));
-        uriBuilder.setParameters(queryParamsExpanded);
-        return uriBuilder.build();
-    }
-
-    private String encodeURIComponent(String value) {
-        try {
-            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-        } catch (UnsupportedEncodingException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 }

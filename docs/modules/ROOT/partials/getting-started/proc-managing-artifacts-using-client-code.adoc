@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="managing-artifacts-using-client-code"]
+[id="managing-artifacts-using-client-code_{context}"]
 = Managing artifacts using a {registry} client application
 
 You can also manage artifacts stored in {registry} using a Java client application. You create, read, update, or delete artifacts stored in the registry using the {registry} Java client classes.  

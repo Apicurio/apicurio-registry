@@ -22,11 +22,13 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @RegisterForReflection
+@ToString
 public class GroupValue extends AbstractMessageValue {
 
     private String description;

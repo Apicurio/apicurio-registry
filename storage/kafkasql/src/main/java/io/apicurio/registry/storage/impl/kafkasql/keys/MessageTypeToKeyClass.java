@@ -65,6 +65,12 @@ public class MessageTypeToKeyClass {
                 case RoleMapping:
                     index.put(type, RoleMappingKey.class);
                     break;
+                case GlobalAction:
+                    index.put(type, GlobalActionKey.class);
+                    break;
+                case Download:
+                    index.put(type, DownloadKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

@@ -36,6 +36,7 @@ import {SearchedVersion} from "../../../../../models";
  * Properties
  */
 export interface ArtifactVersionPageHeaderProps extends PureComponentProps {
+    title: string;
     groupId: string;
     artifactId: string;
     onDeleteArtifact: () => void;
@@ -66,7 +67,7 @@ export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPage
             <Flex className="example-border">
                 <FlexItem>
                     <TextContent>
-                        <Text component={TextVariants.h1}>Artifact Details</Text>
+                        <Text component={TextVariants.h1}>{ this.props.title }</Text>
                     </TextContent>
                 </FlexItem>
                 <FlexItem align={{ default : 'alignRight' }}>
@@ -74,8 +75,8 @@ export class ArtifactVersionPageHeader extends PureComponent<ArtifactVersionPage
                                      groupId={this.props.groupId} artifactId={this.props.artifactId} />
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
-                            <Button id="upload-version-button" variant="secondary" data-testid="header-btn-upload-version" onClick={this.props.onUploadVersion}>Upload new version</Button>
-                            <Button id="delete-artifact-button" variant="danger" data-testid="header-btn-delete" onClick={this.props.onDeleteArtifact}><TrashIcon /></Button>
+                            <Button id="delete-artifact-button" variant="secondary" data-testid="header-btn-delete" onClick={this.props.onDeleteArtifact}>Delete</Button>
+                            <Button id="upload-version-button" variant="primary" data-testid="header-btn-upload-version" onClick={this.props.onUploadVersion}>Upload new version</Button>
                         </IfFeature>
                     </IfAuth>
                 </FlexItem>

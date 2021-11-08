@@ -52,9 +52,17 @@ export interface GetTokenAuthConfig extends AuthConfig {
     getToken: () => Promise<string>;
 }
 
+export interface Principal {
+    principalType: "USER_ACCOUNT" | "SERVICE_ACCOUNT";
+    id: string;
+    displayName?: string;
+    emailAddress?: string;
+}
+
 export interface ConfigType {
     artifacts: ArtifactsConfig;
     auth: KeycloakJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
+    principals?: Principal[];
     features?: FeaturesConfig;
     ui: UiConfig;
 }

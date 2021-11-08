@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.1.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -49,15 +49,16 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-import-export</artifactId>
+            <artifactId>apicurio-common-rest-client-vertx</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-auth</artifactId>
+            <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
-	<dependency>
+	    <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
         </dependency>
@@ -97,10 +98,6 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-kotlin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-context-propagation</artifactId>
         </dependency>
 
@@ -112,6 +109,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-agroal</artifactId>
+        </dependency>
+
+        <!-- Sentry -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry</artifactId>
         </dependency>
 
         <!-- Third Party Libraries -->
@@ -166,7 +169,7 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-json</artifactId>
         </dependency>
-        
+
         <!-- GraphQL -->
         <dependency>
             <groupId>com.graphql-java</groupId>
@@ -205,6 +208,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-apicurio-registry-avro</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -212,16 +220,6 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-client-vertx</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -434,7 +432,7 @@
                 </plugins>
             </build>
         </profile>
-        
+
         <profile>
             <id>native</id>
             <activation>
@@ -468,6 +466,6 @@
                 <quarkus.package.type>native</quarkus.package.type>
             </properties>
         </profile>
-        
+
     </profiles>
 </project>

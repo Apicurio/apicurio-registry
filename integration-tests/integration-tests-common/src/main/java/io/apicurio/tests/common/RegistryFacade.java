@@ -44,11 +44,13 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.common.auth.JWKSMockServer;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -63,6 +65,7 @@ public class RegistryFacade {
     private LinkedList<RegistryTestProcess> processes = new LinkedList<>();
 
     private KeycloakContainer keycloakContainer;
+    private JWKSMockServer keycloakMock;
 
     private String tenantManagerUrl = "http://localhost:8585";
 
@@ -154,6 +157,10 @@ public class RegistryFacade {
         return Arrays.asList("http://localhost:" + TestUtils.getRegistryPort(), "http://localhost:" + c2port, "http://localhost:" + c3port);
     }
 
+    public JWKSMockServer getMTOnlyKeycloakMock() {
+        return this.keycloakMock;
+    }
+
     public boolean isRunning() {
         return !processes.isEmpty();
     }
@@ -175,9 +182,8 @@ public class RegistryFacade {
         }
 
         LOGGER.info("Deploying registry using storage {}, test profile {}", RegistryUtils.REGISTRY_STORAGE.name(), RegistryUtils.TEST_PROFILE);
-        Map<String, String> appEnv = new HashMap<>();
-        appEnv.put("LOG_LEVEL", "DEBUG");
-        appEnv.put("REGISTRY_LOG_LEVEL", "DEBUG");
+
+        Map<String, String> appEnv = initRegistryAppEnv();
 
         if (RegistryUtils.TEST_PROFILE.contains(Constants.MIGRATION)) {
             Map<String, String> registry1Env = new HashMap<>(appEnv);
@@ -186,6 +192,11 @@ public class RegistryFacade {
             Map<String, String> registry2Env = new HashMap<>(appEnv);
             deployStorage(registry2Env);
             runRegistry(registry2Env, "node-2", String.valueOf(TestUtils.getRegistryPort() + 1));
+
+        } else if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
+
+            runMultitenancySetup(appEnv);
+
         } else {
 
             deployStorage(appEnv);
@@ -206,12 +217,7 @@ public class RegistryFacade {
                 runRegistry(node3Env, "node-3" ,String.valueOf(c3port));
 
             } else {
-                if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
-                    appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
-                    //TODO when auth is enabled in staging run tests with auth enabled
-//                    runKeycloak(appEnv);
-                    runTenantManager(appEnv);
-                } else if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
+                if (Constants.AUTH.equals(RegistryUtils.TEST_PROFILE)) {
                     runKeycloak(appEnv);
                 }
 
@@ -219,6 +225,45 @@ public class RegistryFacade {
             }
         }
 
+    }
+
+    public Map<String, String> initRegistryAppEnv() {
+        Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "TRACE");
+
+        loadProvidedAppEnv(appEnv);
+
+        return appEnv;
+    }
+
+    public void runMultitenancySetup(Map<String, String> appEnv) throws Exception {
+
+        runMultitenancyInfra(appEnv);
+
+        runRegistry(appEnv, "default", "8081");
+
+    }
+
+    public void runMultitenancyInfra(Map<String, String> appEnv) throws Exception {
+        deployStorage(appEnv);
+
+        appEnv.put("REGISTRY_ENABLE_MULTITENANCY", "true");
+        appEnv.put("REGISTRY_MULTITENANCY_REAPER_EVERY", "3s");
+        appEnv.put("REGISTRY_MULTITENANCY_REAPER_PERIOD_SECONDS", "5");
+
+        //auth is always enabled in multitenancy tests
+        runKeycloakMock(appEnv);
+
+        runTenantManager(appEnv);
+
+        TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
+                Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
+
+        TestUtils.waitFor("Tenant Manager reports is ready",
+                Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
+                () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", false, "Tenant Manager"),
+                () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", true, "Tenant Manager"));
     }
 
     private void deployStorage(Map<String, String> appEnv) throws Exception {
@@ -274,16 +319,6 @@ public class RegistryFacade {
 
             TestUtils.waitFor("Registry reports is ready",
                     Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_READY, () -> TestUtils.isReady(false), () -> TestUtils.isReady(true));
-
-            if (Constants.MULTITENANCY.equals(RegistryUtils.TEST_PROFILE)) {
-                TestUtils.waitFor("Cannot connect to Tenant Manager on " + this.tenantManagerUrl + " in timeout!",
-                        Constants.POLL_INTERVAL, Constants.TIMEOUT_FOR_REGISTRY_START_UP, () -> TestUtils.isReachable("localhost", 8585, "Tenant Manager"));
-
-                TestUtils.waitFor("Tenant Manager reports is ready",
-                        Constants.POLL_INTERVAL, Duration.ofSeconds(25).toMillis(),
-                        () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", false, "Tenant Manager"),
-                        () -> TestUtils.isReady(this.tenantManagerUrl, "/q/health/ready", true, "Tenant Manager"));
-            }
         }
 
     }
@@ -293,6 +328,13 @@ public class RegistryFacade {
         appEnv.put("DATASOURCE_URL", registryAppEnv.get("REGISTRY_DATASOURCE_URL"));
         appEnv.put("DATASOURCE_USERNAME", registryAppEnv.get("REGISTRY_DATASOURCE_USERNAME"));
         appEnv.put("DATASOURCE_PASSWORD", registryAppEnv.get("REGISTRY_DATASOURCE_PASSWORD"));
+
+        //auth is always enabled in multitenancy tests
+        appEnv.put("AUTH_ENABLED", "true");
+        appEnv.put("KEYCLOAK_URL", registryAppEnv.get("KEYCLOAK_URL"));
+        appEnv.put("KEYCLOAK_REALM", registryAppEnv.get("KEYCLOAK_REALM"));
+        appEnv.put("KEYCLOAK_API_CLIENT_ID", registryAppEnv.get("KEYCLOAK_API_CLIENT_ID"));
+        appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
 
         appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
         appEnv.put("LOG_LEVEL", "DEBUG");
@@ -366,6 +408,54 @@ public class RegistryFacade {
         });
     }
 
+    private void runKeycloakMock(Map<String, String> appEnv) throws Exception {
+        keycloakMock = new JWKSMockServer();
+        keycloakMock.start();
+
+        appEnv.put("AUTH_ENABLED", "true");
+        appEnv.put("ROLE_BASED_AUTHZ_ENABLED", "true");
+        appEnv.put("ROLE_BASED_AUTHZ_SOURCE", "application");
+
+        appEnv.put("KEYCLOAK_URL", keycloakMock.authServerUrl);
+        appEnv.put("KEYCLOAK_REALM", keycloakMock.realm);
+        appEnv.put("KEYCLOAK_API_CLIENT_ID", keycloakMock.clientId);
+        appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
+
+        appEnv.put("TENANT_MANAGER_AUTH_URL", keycloakMock.authServerUrl);
+        appEnv.put("TENANT_MANAGER_REALM", keycloakMock.realm);
+        appEnv.put("TENANT_MANAGER_CLIENT_ID", keycloakMock.clientId);
+        appEnv.put("TENANT_MANAGER_CLIENT_SECRET", keycloakMock.clientSecret);
+
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return "keycloak-mock";
+            }
+
+            @Override
+            public void close() throws Exception {
+                keycloakMock.stop();
+            }
+
+            @Override
+            public String getStdOut() {
+                return "";
+            }
+
+            @Override
+            public String getStdErr() {
+                return "";
+            }
+
+            @Override
+            public boolean isContainer() {
+                return false;
+            }
+
+        });
+    }
+
     private void runKeycloak(Map<String, String> appEnv) throws Exception {
 
         keycloakContainer = new KeycloakContainer()
@@ -381,7 +471,6 @@ public class RegistryFacade {
         appEnv.put("KEYCLOAK_REALM", "registry");
         appEnv.put("KEYCLOAK_API_CLIENT_ID", "registry-api");
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
-        appEnv.put("ROLES_ENABLED", "true");
 
 
         processes.add(new RegistryTestProcess() {
@@ -415,11 +504,47 @@ public class RegistryFacade {
     }
 
     @SuppressWarnings("rawtypes")
-    private void setupSQLStorage(Map<String, String> appEnv) throws Exception {
+    public void setupSQLStorage(Map<String, String> appEnv) throws Exception {
 
-        String noDocker = System.getenv("NO_DOCKER");
+        String noDocker = System.getenv(Constants.NO_DOCKER_ENV_VAR);
+        String currentEnv = System.getenv("CURRENT_ENV");
 
-        if (noDocker != null && noDocker.equals("true")) {
+        if (currentEnv != null && "mas".equals(currentEnv)) {
+
+            //postgresql running in a pre-deployed container
+
+            appEnv.put("REGISTRY_DATASOURCE_URL", "jdbc:postgresql://localhost:5432/test");
+            appEnv.put("REGISTRY_DATASOURCE_USERNAME", "test");
+            appEnv.put("REGISTRY_DATASOURCE_PASSWORD", "test");
+
+            processes.add(new RegistryTestProcess() {
+
+                @Override
+                public String getName() {
+                    return "container-postgresql";
+                }
+
+                @Override
+                public void close() throws Exception {
+                }
+
+                @Override
+                public String getStdOut() {
+                    return "";
+                }
+
+                @Override
+                public String getStdErr() {
+                    return "";
+                }
+
+                @Override
+                public boolean isContainer() {
+                    return false;
+                }
+            });
+
+        } else if (noDocker != null && noDocker.equals("true")) {
             EmbeddedPostgres database = EmbeddedPostgres.start();
 
 
@@ -558,7 +683,7 @@ public class RegistryFacade {
         processes.add(kafkaFacade);
     }
 
-    private void runRegistry(Map<String, String> appEnv, String nameSuffix, String port) throws IOException {
+    public void runRegistry(Map<String, String> appEnv, String nameSuffix, String port) throws IOException {
         appEnv.put("QUARKUS_HTTP_PORT", port);
         if (RegistryUtils.DEPLOY_NATIVE_IMAGES.equals("true")) {
             runRegistryNativeImage(appEnv, nameSuffix);
@@ -566,7 +691,7 @@ public class RegistryFacade {
         }
         String path = getJarPath();
         Exec executor = new Exec();
-        LOGGER.info("Starting Registry app from: {}", path);
+        LOGGER.info("Starting Registry app from: {} env: {}", path, appEnv);
         CompletableFuture.supplyAsync(() -> {
             try {
 
@@ -612,6 +737,48 @@ public class RegistryFacade {
             }
 
         });
+    }
+
+    public void runContainer(Map<String, String> appEnv, String name, GenericContainer container) {
+        container.withEnv(appEnv);
+        container.start();
+        processes.add(new RegistryTestProcess() {
+
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public void close() throws Exception {
+                container.stop();
+            }
+
+            @Override
+            public String getStdOut() {
+                return container.getLogs(OutputType.STDOUT);
+            }
+
+            @Override
+            public String getStdErr() {
+                return container.getLogs(OutputType.STDERR);
+            }
+
+            @Override
+            public boolean isContainer() {
+                return true;
+            }
+
+        });
+    }
+
+    public void stopContainer(Path logsPath, String name) throws Exception {
+        var process = processes.stream()
+            .filter(p -> p.getName().equals(name))
+            .findFirst()
+            .get();
+        stopAndCollectProcessLogs(logsPath, process);
+        processes.remove(process);
     }
 
     private void runRegistryNativeImage(Map<String, String> appEnv, String nameSuffix) throws IOException {
@@ -781,41 +948,46 @@ public class RegistryFacade {
 
     public void stopAndCollectLogs(Path logsPath) throws IOException {
         LOGGER.info("Stopping registry");
-        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
         if (logsPath != null) {
             Files.createDirectories(logsPath);
         }
 
         processes.descendingIterator().forEachRemaining(p -> {
-            //registry and tenant manager processes are not a container and have to be stopped before being able to read log output
-            if (!p.isContainer()) {
-                try {
-                    p.close();
-                    Thread.sleep(3000);
-                } catch (Exception e) {
-                    LOGGER.error("error stopping registry", e);
-                }
-            }
-            if (logsPath != null) {
-                Path filePath = logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log");
-                LOGGER.info("Storing registry logs to " + filePath.toString());
-                TestUtils.writeFile(filePath, p.getStdOut());
-                String stdErr = p.getStdErr();
-                if (stdErr != null && !stdErr.isEmpty()) {
-                    TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stderr.log"), stdErr);
-                }
-            }
-            if (!p.getName().equals("registry")) {
-                try {
-                    p.close();
-                } catch (Exception e) {
-                    LOGGER.error("error stopping registry", e);
-                }
-            }
+            stopAndCollectProcessLogs(logsPath, p);
         });
         processes.clear();
+    }
+
+    private void stopAndCollectProcessLogs(Path logsPath, RegistryTestProcess p) {
+        //registry and tenant manager processes are not a container and have to be stopped before being able to read log output
+        if (!p.isContainer()) {
+            try {
+                p.close();
+                Thread.sleep(3000);
+            } catch (Exception e) {
+                LOGGER.error("error stopping registry", e);
+            }
+        }
+        if (logsPath != null) {
+            final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
+
+            Path filePath = logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log");
+            LOGGER.info("Storing registry logs to " + filePath.toString());
+            TestUtils.writeFile(filePath, p.getStdOut());
+            String stdErr = p.getStdErr();
+            if (stdErr != null && !stdErr.isEmpty()) {
+                TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stderr.log"), stdErr);
+            }
+        }
+        if (!p.getName().equals("registry")) {
+            try {
+                p.close();
+            } catch (Exception e) {
+                LOGGER.error("error stopping registry", e);
+            }
+        }
     }
 
     private String getMandatoryExternalRegistryEnvVar(String envVar, String localValue) {
@@ -828,6 +1000,23 @@ public class RegistryFacade {
         } else {
             return localValue;
         }
+    }
+
+    /**
+     * Reads environment variables with the prefix TEST_APP_ENV
+     */
+    private void loadProvidedAppEnv(Map<String, String> appEnv) {
+
+        String envPrefix = "TEST_APP_ENV_";
+
+        System.getenv()
+            .entrySet()
+            .stream()
+            .filter(env -> env.getKey().startsWith(envPrefix))
+            .forEach(env -> {
+                appEnv.put(env.getKey().substring(envPrefix.length()), env.getValue());
+            });
+
     }
 
 }

@@ -16,7 +16,18 @@
 
 package io.apicurio.registry.rest;
 
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.mt.TenantIdResolver;
+import io.apicurio.registry.services.DisabledApisMatcherService;
+import io.apicurio.registry.services.http.ErrorHttpResponse;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import org.slf4j.Logger;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -28,17 +39,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
-import org.slf4j.Logger;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.mt.MultitenancyProperties;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.mt.TenantIdResolver;
-import io.apicurio.registry.services.DisabledApisMatcherService;
-import io.apicurio.registry.services.http.ErrorHttpResponse;
-import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import java.io.IOException;
 
 /**
  *
@@ -46,7 +47,7 @@ import io.apicurio.registry.services.http.RegistryExceptionMapperService;
  *
  * Multitenancy: the registry can accept per-tenant URLs, accepting requests like /t/{tenantId}/...rest of the api...
  *
- * Disable APIs: it's possible to provide a list of regular expresions for disable API paths.
+ * Disable APIs: it's possible to provide a list of regular expresions to disable API paths.
  * The list of regular expressions will be applied to all incoming requests, if any of them match the request will get a 404 response.
  * Note: this is implemented in a servlet to be able to disable the web UI (/ui), because the web is served with Servlets
  *
@@ -86,12 +87,18 @@ public class RegistryApplicationServletFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         String requestURI = req.getRequestURI();
         if (requestURI != null) {
-            //TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
+            // TODO ensure tenant is authenticated at this point, because tenantIdResolver will fetch tenant's configuration from tenant-manager
             boolean tenantResolved = false;
             try {
-                tenantResolved = tenantIdResolver.resolveTenantId(requestURI, () -> req.getHeader(Headers.TENANT_ID),
+                tenantResolved = tenantIdResolver.resolveTenantId(
+                        // Request URI
+                        requestURI,
+                        // Function to get an HTTP request header value
+                        (headerName) -> req.getHeader(headerName),
+                        // Function to get the serverName from the HTTP request
+                        () -> req.getServerName(),
+                        // Handler/callback to do some URL rewriting only if needed
                         (tenantId) -> {
-
                             String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
                             if (actualUri.length() == 0) {
                                 actualUri = "/";
@@ -100,7 +107,6 @@ public class RegistryApplicationServletFilter implements Filter {
                             log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
 
                             rewriteContext.append(actualUri);
-
                         });
             } catch (Throwable e) {
                 ErrorHttpResponse res = exceptionMapper.mapException(e);
@@ -124,9 +130,9 @@ public class RegistryApplicationServletFilter implements Filter {
             }
 
             if (mtProperties.isMultitenancyEnabled()
-                    && !tenantResolved
-                    && disabledApisMatcherService.isApiRequest(evaluatedURI)) {
-                log.warn("Request {} is rejected because no tenant info found, direct access to apis is disabled when multitenancy is enabled", requestURI);
+                    && disabledApisMatcherService.isApiRequest(evaluatedURI)
+                    && (!tenantResolved || tenantContext.getTenantStatus() != TenantStatusValue.READY)) {
+                log.warn("Request {} is rejected because the tenant could not be found, and direct access to apis is disabled in a multitenant deployment", requestURI);
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

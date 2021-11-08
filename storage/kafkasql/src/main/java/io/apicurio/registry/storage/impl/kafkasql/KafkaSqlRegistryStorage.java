@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -302,7 +303,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      *      due to a desire to avoid premature optimization.
      */
     private long nextClusterGlobalId() {
-        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Create));
+        UUID uuid = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
 
@@ -314,7 +315,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      *      due to a desire to avoid premature optimization.
      */
     private long nextClusterContentId() {
-        UUID uuid = ConcurrentUtil.get(submitter.submitContentId(ActionType.Create));
+        UUID uuid = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.CREATE));
         return (long) coordinator.waitForResponse(uuid);
     }
 
@@ -339,7 +340,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
-            CompletableFuture<UUID> future = submitter.submitContent(contentId, contentHash, ActionType.Create, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -377,7 +378,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         long globalId = nextClusterGlobalId();
 
         UUID uuid = ConcurrentUtil.get(
-                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Create,
+                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.CREATE,
                         globalId, artifactType, contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(uuid);
     }
@@ -391,7 +392,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, ActionType.DELETE));
         List<String> versionIds = (List<String>) coordinator.waitForResponse(reqId);
 
         // Add tombstone messages for all version metda-data updates
@@ -413,7 +414,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.Delete, true));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.DELETE, true));
         coordinator.waitForResponse(reqId);
 
         // TODO could possibly add tombstone messages for *all* artifacts that were deleted (version meta-data and artifact rules)
@@ -473,7 +474,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         long globalId = nextClusterGlobalId();
 
         UUID reqId = ConcurrentUtil.get(
-                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Update,
+                submitter.submitArtifact(tenantContext.tenantId(), groupId, artifactId, version, ActionType.UPDATE,
                         globalId, artifactType, contentHash, createdBy, createdOn, metaData));
         return (ArtifactMetaDataDto) coordinator.waitForResponse(reqId);
     }
@@ -529,7 +530,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId, metaDataDto.getVersion(),
-                ActionType.Update, metaDataDto.getState(), metaData));
+                ActionType.UPDATE, metaDataDto.getState(), metaData));
         coordinator.waitForResponse(reqId);
     }
 
@@ -552,7 +553,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
 
         UUID reqId = ConcurrentUtil.get(
-                submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.Create, config));
+                submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.CREATE, config));
         coordinator.waitForResponse(reqId);
     }
 
@@ -565,9 +566,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, RuleType.COMPATIBILITY, ActionType.Delete);
+        submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, RuleType.COMPATIBILITY, ActionType.DELETE);
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, RuleType.VALIDITY, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, RuleType.VALIDITY, ActionType.DELETE));
         try {
             coordinator.waitForResponse(reqId);
         } catch (RuleNotFoundException e) {
@@ -594,7 +595,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.Update, config));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.UPDATE, config));
         coordinator.waitForResponse(reqId);
     }
 
@@ -608,7 +609,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), groupId, artifactId, rule, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 
@@ -662,7 +663,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public void deleteArtifactVersion(String groupId, String artifactId, String version) throws ArtifactNotFoundException,
             VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Delete));
+            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.DELETE));
             coordinator.waitForResponse(reqId);
 
             // Add a tombstone message for this version's metadata
@@ -680,7 +681,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, ArtifactStateExt.ACTIVE_STATES, value -> {
             UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                    version, ActionType.Update, value.getState(), metaData));
+                    version, ActionType.UPDATE, value.getState(), metaData));
             return coordinator.waitForResponse(reqId);
         });
     }
@@ -692,7 +693,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         handleVersion(groupId, artifactId, version, null, value -> {
-            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.Clear));
+            UUID reqId = ConcurrentUtil.get(submitter.submitVersion(tenantContext.tenantId(), groupId, artifactId, version, ActionType.CLEAR));
             return coordinator.waitForResponse(reqId);
         });
     }
@@ -731,7 +732,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config) throws RuleAlreadyExistsException, RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Create, config));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.CREATE, config));
         coordinator.waitForResponse(reqId);
     }
 
@@ -740,9 +741,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
-        submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.COMPATIBILITY, ActionType.Delete);
+        // TODO This should use "DELETE FROM" instead of being rule specific
+        submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.COMPATIBILITY, ActionType.DELETE);
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.VALIDITY, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), RuleType.VALIDITY, ActionType.DELETE));
         try {
             coordinator.waitForResponse(reqId);
         } catch (RuleNotFoundException e) {
@@ -767,7 +769,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Update, config));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.UPDATE, config));
         coordinator.waitForResponse(reqId);
     }
 
@@ -780,7 +782,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RuleNotFoundException(rule);
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), rule, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 
@@ -788,7 +790,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         artifactStateEx.applyState(
             s ->  {
                 UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId,
-                        version, ActionType.Update, newState, metaData));
+                        version, ActionType.UPDATE, newState, metaData));
                 coordinator.waitForResponse(reqId);
             },
             currentState,
@@ -848,7 +850,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     public void removeLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
         LogConfigurationDto dto = new LogConfigurationDto();
         dto.setLogger(logger);
-        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.Delete, dto));
+        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.DELETE, dto));
         coordinator.waitForResponse(reqId);
     }
 
@@ -857,7 +859,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void setLogConfiguration(LogConfigurationDto logConfiguration) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.Update, logConfiguration));
+        UUID reqId = ConcurrentUtil.get(submitter.submitLogConfig(tenantContext.tenantId(), ActionType.UPDATE, logConfiguration));
         coordinator.waitForResponse(reqId);
     }
 
@@ -879,7 +881,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.Create, group));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.CREATE, group));
         coordinator.waitForResponse(reqId);
     }
 
@@ -888,7 +890,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.Update, group));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.UPDATE, group));
         coordinator.waitForResponse(reqId);
     }
 
@@ -897,7 +899,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.Delete, false));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), groupId, ActionType.DELETE, false));
         coordinator.waitForResponse(reqId);
     }
 
@@ -926,7 +928,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#exportData(java.util.function.BiFunction)
+     * @see io.apicurio.registry.storage.RegistryStorage#exportData(Function)
      */
     @Override
     public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
@@ -987,11 +989,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Create, role));
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.CREATE, role, principalName));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1004,7 +1006,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RoleMappingNotFoundException();
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Delete));
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.DELETE));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1041,8 +1043,43 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new RoleMappingNotFoundException();
         }
 
-        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.Update, role));
+        UUID reqId = ConcurrentUtil.get(submitter.submitRoleMapping(tenantContext.tenantId(), principalId, ActionType.UPDATE, role, null));
         coordinator.waitForResponse(reqId);
+    }
+
+    @Override
+    public void deleteAllUserData() throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalAction(tenantContext.tenantId(),  ActionType.DELETE_ALL_USER_DATA));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createDownload(io.apicurio.registry.storage.dto.DownloadContextDto)
+     */
+    @Override
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        String downloadId = UUID.randomUUID().toString();
+        UUID reqId = ConcurrentUtil.get(submitter.submitDownload(tenantContext.tenantId(), downloadId, ActionType.CREATE, context));
+        return (String) coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#consumeDownload(java.lang.String)
+     */
+    @Override
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitDownload(tenantContext.tenantId(), downloadId, ActionType.DELETE));
+        return (DownloadContextDto) coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
+     */
+    @Override
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        // Note: this is OK to do because the only caller of this method is the DownloadReaper, which
+        // runs on every node in the cluster.
+        sqlStore.deleteAllExpiredDownloads();
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {
@@ -1078,7 +1115,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
     protected void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
-        submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.Import, config);
+        submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
     }
     protected void importArtifactVersion(ArtifactVersionEntity entity) {
         EditableArtifactMetaDataDto metaData = EditableArtifactMetaDataDto.builder()
@@ -1087,16 +1124,16 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 .labels(entity.labels)
                 .properties(entity.properties)
                 .build();
-        submitter.submitArtifact(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.version, ActionType.Import,
+        submitter.submitArtifact(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
                 entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(entity.contentId, entity.contentHash, ActionType.Import, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
-        submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.Import, config);
+        submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.IMPORT, config);
     }
     protected void importGroup(GroupEntity entity) {
         GroupEntity e = entity;
@@ -1109,14 +1146,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         group.setModifiedBy(e.modifiedBy);
         group.setModifiedOn(e.modifiedOn);
         group.setProperties(e.properties);
-        submitter.submitGroup(tenantContext.tenantId(), ActionType.Import, group);
+        submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group);
     }
     private void resetContentId() {
-        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(ActionType.Reset));
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
     private void resetGlobalId() {
-        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(ActionType.Reset));
+        UUID reqId = ConcurrentUtil.get(submitter.submitContentId(tenantContext.tenantId(), ActionType.RESET));
         coordinator.waitForResponse(reqId);
     }
 

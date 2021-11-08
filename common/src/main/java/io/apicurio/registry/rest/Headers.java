@@ -31,6 +31,11 @@ public interface Headers {
     String TENANT_ID = "X-Registry-Tenant-Id";
     String ARTIFACT_TYPE = "X-Registry-ArtifactType";
     String DEPRECATED = "X-Registry-Deprecated";
+    String NAME = "X-Registry-Name";
+    String NAME_ENCODED = "X-Registry-Name-Encoded";
+    String DESCRIPTION = "X-Registry-Description";
+    String DESCRIPTION_ENCODED = "X-Registry-Description-Encoded";
+    String CONTENT_TYPE = "Content-Type";
 
     default void checkIfDeprecated(
         Supplier<ArtifactState> stateSupplier,

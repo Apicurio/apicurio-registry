@@ -4,6 +4,7 @@ import {Service} from "../baseService";
 import {AxiosRequestConfig} from "axios";
 import {LoggerService} from "../logger";
 import {UsersService} from "../users";
+import {Services} from "../services";
 
 const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId"];
 const KC_INIT_OPTIONS: string[] = [
@@ -113,7 +114,11 @@ export class AuthService implements Service {
 
     public doLogin = () => this.keycloak.login;
 
-    public doLogout = () =>  this.keycloak.logout;
+    public doLogout = () =>  {
+        this.keycloak.logout({
+            redirectUri: window.location.href
+        });
+    }
 
     public getToken = () => this.keycloak.token;
 

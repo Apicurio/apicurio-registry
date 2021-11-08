@@ -17,7 +17,20 @@ java -jar target/apicurio-registry-utils-exportV1-2.0.0-SNAPSHOT-runner.jar http
 ```
 It will create a `registry-export.zip` in the current directory.
 
-You can configure the client used to connect to the registry API like this:
+### Feature flags
+
+This tool provides flags for specific features:
+
+***Note: if used, flags have to be provided in the order they are documented here***
+
++ `--match-content-id` This flag will make the globalId and contentId of all artifacts to match. Useful for confluent compatibility.
+i.e:
+```
+java -jar target/apicurio-registry-utils-exportV1-2.0.0-SNAPSHOT-runner.jar http://localhost:8080/api --match-content-id
+```
+
++ `--client-props <config-key>=<config-value>` This flag allows to pass config values to the underlying rest client.
+i.e: You can configure the client used to connect to the registry API like this:
 ```
 java -jar target/apicurio-registry-utils-exportV1-2.0.0-SNAPSHOT-runner.jar http://localhost:8080/api --client-props apicurio.registry.request.headers.x-custom-header=testvalue
 ```

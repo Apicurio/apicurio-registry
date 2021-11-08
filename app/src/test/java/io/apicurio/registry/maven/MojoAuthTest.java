@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -33,17 +33,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.DOCKER)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
+    @ConfigProperty(name = "registry.auth.token.endpoint")
+    String authServerUrlConfigured;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
     Boolean authEnabled;
@@ -65,7 +63,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
@@ -74,11 +72,10 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.authServerUrl = authServerUrl;
-        registerRegistryMojo.realm = realm;
-        registerRegistryMojo.clientId = adminClientId;
-        registerRegistryMojo.clientSecret = clientSecret;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
+        registerRegistryMojo.setClientId(adminClientId);
+        registerRegistryMojo.setClientSecret(clientSecret);
 
         super.testRegister(registerRegistryMojo, "testRegister");
     }
@@ -90,9 +87,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setClient(null);
 
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.username = testUsername;
-        registerRegistryMojo.password = testPassword;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setUsername(testUsername);
+        registerRegistryMojo.setPassword(testPassword);
 
         super.testRegister(registerRegistryMojo, "testBasicAuth");
     }

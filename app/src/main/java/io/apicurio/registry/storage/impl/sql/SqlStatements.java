@@ -232,6 +232,11 @@ public interface SqlStatements {
     public String deleteArtifactRules();
 
     /**
+     * A statement to delete all rules for a all artifacts.
+     */
+    String deleteAllArtifactRules();
+
+    /**
      * A statement to delete all rules for all artifacts in a groupId.
      */
     public String deleteArtifactRulesByGroupId();
@@ -257,6 +262,11 @@ public interface SqlStatements {
     public String deleteLabelsByGroupId();
 
     /**
+     * A statement to delete all labels for all versions for all artifacts
+     */
+    String deleteAllLabels();
+
+    /**
      * A statement to delete all properties for all versions for a single artifact.
      */
     public String deleteProperties();
@@ -272,6 +282,11 @@ public interface SqlStatements {
     public String deletePropertiesByGroupId();
 
     /**
+     * A statement to delete all properties for all versions for all artifacts
+     */
+    public String deleteAllProperties();
+
+    /**
      * A statement to delete all versions for a single artifact.
      */
     public String deleteVersions();
@@ -282,6 +297,11 @@ public interface SqlStatements {
     public String deleteVersionsByGroupId();
 
     /**
+     * A statement to delete all versions for all artifacts.
+     */
+    String deleteAllVersions();
+
+    /**
      * A statement to delete a single row from the artifacts table by artifactId.
      */
     public String deleteArtifact();
@@ -290,6 +310,11 @@ public interface SqlStatements {
      * A statement to delete a all artifacts from the artifacts table by groupId.
      */
     public String deleteArtifactsByGroupId();
+
+    /**
+     * A statement to delete a all artifacts.
+     */
+    String deleteAllArtifacts();
 
     /**
      * A statement to get all artifacts IDs.
@@ -362,6 +387,16 @@ public interface SqlStatements {
     public String selectContentByContentHash();
 
     /**
+     * A statement to delete content that is no longer being referenced by an artifact version.
+     */
+    public String deleteAllOrphanedContent();
+
+    /**
+     * A statement to delete all content owned by a tenantId
+     */
+    public String deleteAllContent();
+
+    /**
      * A statement to select the log configuration for a given logger name
      */
     public String selectLogConfigurationByLogger();
@@ -397,6 +432,11 @@ public interface SqlStatements {
     public String deleteGroup();
 
     /**
+     * A statement used to delete all rows from the groups table.
+     */
+    public String deleteAllGroups();
+
+    /**
      * A statement used to select all rows from groups table.
      */
     public String selectGroups();
@@ -406,10 +446,17 @@ public interface SqlStatements {
      */
     public String selectGroupByGroupId();
 
-    /**
-     * As statement used to get the next generated/sequenced globalId.
+    /*
+     * The next few statements support globalId and contentId management, having into account a multitenant environment
      */
-    public String selectNextGlobalId();
+
+    public String getNextSequenceValue();
+
+    public String selectCurrentSequenceValue();
+
+    public String resetSequenceValue();
+
+    public String insertSequenceValue();
 
     /*
      * The next few statements support exporting data from the DB.
@@ -424,7 +471,6 @@ public interface SqlStatements {
     public String exportArtifactRules();
 
     public String exportArtifactVersions();
-
 
     /*
      * The next few statements support importing data into the DB.
@@ -442,8 +488,6 @@ public interface SqlStatements {
 
     public String selectMaxContentId();
 
-    public String resetSequence(String sequence);
-
     public String selectMaxGlobalId();
 
     public String selectContentExists();
@@ -459,6 +503,8 @@ public interface SqlStatements {
 
     public String deleteRoleMapping();
 
+    String deleteAllRoleMappings();
+
     public String selectRoleMappingByPrincipalId();
 
     public String selectRoleByPrincipalId();
@@ -468,5 +514,18 @@ public interface SqlStatements {
     public String updateRoleMapping();
 
     public String selectRoleMappingCountByPrincipal();
+
+
+    /*
+     * The next few statements support downloads.
+     */
+
+    public String insertDownload();
+
+    public String selectDownloadContext();
+
+    public String deleteDownload();
+
+    public String deleteExpiredDownloads();
 
 }

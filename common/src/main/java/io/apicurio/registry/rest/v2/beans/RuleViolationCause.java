@@ -47,4 +47,11 @@ public class RuleViolationCause {
         this.context = context;
     }
 
+    @Override
+    public String toString() {
+        return "RuleViolationCause{" +
+                "description='" + description + '\'' +
+                ", context='" + context + '\'' +
+                '}';
+    }
 }

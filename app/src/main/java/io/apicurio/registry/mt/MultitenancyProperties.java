@@ -16,12 +16,13 @@
 
 package io.apicurio.registry.mt;
 
-import java.util.Optional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * @author Fabian Martinez
@@ -30,28 +31,64 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class MultitenancyProperties {
 
     @Inject
-    @ConfigProperty(name = "registry.enable.multitenancy")
+    @ConfigProperty(name = "registry.enable.multitenancy", defaultValue = "false")
     boolean multitenancyEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.auth.enabled")
-    boolean authEnabled;
+    @ConfigProperty(name = "registry.multitenancy.authorization.enabled", defaultValue = "true")
+    boolean mtAuthorizationEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.base.path")
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.enabled", defaultValue = "true")
+    boolean mtContextPathEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "true")
+    boolean mtSubdomainEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.enabled", defaultValue = "true")
+    boolean mtRequestHeaderEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.context-path.base-path", defaultValue = "t")
     String nameMultitenancyBasePath;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.location", defaultValue = "header")
+    String subdomainMultitenancyLocation;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.header-name", defaultValue = "Host")
+    String subdomainMultitenancyHeaderName;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.pattern", defaultValue = "(\\w[\\w\\d\\-]*)\\.localhost\\.local")
+    String subdomainMultitenancyPattern;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.types.request-header.name", defaultValue = "X-Registry-Tenant-Id")
+    String tenantIdRequestHeader;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.reaper.every")
+    Optional<String> reaperEvery;
+
+    @Inject
+    @ConfigProperty(name = "registry.multitenancy.reaper.period-seconds", defaultValue = "10800")
+    Long reaperPeriodSeconds;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.url")
     Optional<String> tenantManagerUrl;
 
     @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.url")
-    Optional<String> tenantManagerAuthUrl;
+    @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
+    Optional<Boolean> tenantManagerAuthEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.tenant.manager.auth.realm")
-    Optional<String> tenantManagerAuthRealm;
+    @ConfigProperty(name = "registry.tenant.manager.auth.url.configured")
+    Optional<String> tenantManagerAuthUrl;
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.client-id")
@@ -61,11 +98,44 @@ public class MultitenancyProperties {
     @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
     Optional<String> tenantManagerClientSecret;
 
+    @PostConstruct
+    void init() {
+        this.reaperEvery.orElseThrow(() -> new IllegalArgumentException("Missing required configuration property 'registry.multitenancy.reaper.every'"));
+    }
+
     /**
      * @return the multitenancyEnabled
      */
     public boolean isMultitenancyEnabled() {
         return multitenancyEnabled;
+    }
+
+    /**
+     * @return true if multitenancy authorization is enabled
+     */
+    public boolean isMultitenancyAuthorizationEnabled() {
+        return mtAuthorizationEnabled;
+    }
+
+    /**
+     * @return true if multitenancy context paths are enabled
+     */
+    public boolean isMultitenancyContextPathEnabled() {
+        return mtContextPathEnabled;
+    }
+
+    /**
+     * @return true if multitenancy subdomains are enabled
+     */
+    public boolean isMultitenancySubdomainEnabled() {
+        return mtSubdomainEnabled;
+    }
+
+    /**
+     * @return true if multitenancy request headers are enabled
+     */
+    public boolean isMultitenancyRequestHeaderEnabled() {
+        return mtRequestHeaderEnabled;
     }
 
     /**
@@ -76,6 +146,38 @@ public class MultitenancyProperties {
     }
 
     /**
+     * @return the subdomain location (e.g. "header" or "serverName")
+     */
+    public String getSubdomainMultitenancyLocation() {
+        return subdomainMultitenancyLocation;
+    }
+
+    /**
+     * @return the subdomain header name (when the location is "header")
+     */
+    public String getSubdomainMultitenancyHeaderName() {
+        return subdomainMultitenancyHeaderName;
+    }
+
+    /**
+     * @return the subdomain pattern
+     */
+    public String getSubdomainMultitenancyPattern() {
+        return subdomainMultitenancyPattern;
+    }
+
+    /**
+     * @return the HTTP request header containing a tenant ID
+     */
+    public String getTenantIdRequestHeader() {
+        return tenantIdRequestHeader;
+    }
+
+    public Duration getReaperPeriod() {
+        return Duration.ofSeconds(reaperPeriodSeconds);
+    }
+
+    /**
      * @return the tenantManagerUrl
      */
     public Optional<String> getTenantManagerUrl() {
@@ -83,10 +185,10 @@ public class MultitenancyProperties {
     }
 
     /**
-     * @return if auth is enabled
+     * @return true if tenant management authentication is enabled
      */
-    public boolean isAuthEnabled() {
-        return authEnabled;
+    public boolean isTenantManagerAuthEnabled() {
+        return tenantManagerAuthEnabled.orElse(Boolean.FALSE);
     }
 
     /**
@@ -94,13 +196,6 @@ public class MultitenancyProperties {
      */
     public Optional<String> getTenantManagerAuthUrl() {
         return tenantManagerAuthUrl;
-    }
-
-    /**
-     * @return the tenant manager auth realm
-     */
-    public Optional<String> getTenantManagerAuthRealm() {
-        return tenantManagerAuthRealm;
     }
 
     /**

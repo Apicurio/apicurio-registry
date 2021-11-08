@@ -28,6 +28,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
@@ -55,6 +56,9 @@ public class TenantContextLoader {
     AuthConfig authConfig;
 
     @Inject
+    MultitenancyProperties mtProperties;
+
+    @Inject
     TenantMetadataService tenantMetadataService;
 
     @Inject
@@ -74,34 +78,69 @@ public class TenantContextLoader {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
-    public RegistryTenantContext loadContext(String tenantId) {
+    /**
+     * Used for user requests where there is a JWT token in the request
+     * This method enforces authorization and uses JWT token information to verify if the tenant
+     * is authorized to access the organization indicated in the JWT
+     * @param tenantId
+     * @return
+     */
+    public RegistryTenantContext loadRequestContext(String tenantId) {
+        return loadContext(tenantId, mtProperties.isMultitenancyAuthorizationEnabled());
+    }
+
+    /**
+     * Used for internal stuff where there isn't a JWT token from the user request available
+     * This won't perform any authorization check.
+     * @param tenantId
+     * @return
+     */
+    public RegistryTenantContext loadBatchJobContext(String tenantId) {
+        return loadContext(tenantId, false);
+    }
+
+    /**
+     * Loads the tenant context from the cache or computes it
+     *
+     * @param tenantId
+     * @param checkTenantAuthorization , enable/disable authorization check using information from a required JWT token
+     */
+    private RegistryTenantContext loadContext(String tenantId, boolean checkTenantAuthorization) {
         if (tenantId.equals(TenantContext.DEFAULT_TENANT_ID)) {
             return defaultTenantContext();
         }
         RegistryTenantContext context = contextsCache.compute(tenantId, k -> {
             RegistryTenant tenantMetadata = tenantMetadataService.getTenant(tenantId);
-            checkTenantAuthorization(tenantMetadata);
             TenantLimitsConfiguration limitsConfiguration = limitsConfigurationService.fromTenantMetadata(tenantMetadata);
-            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration);
+            return new RegistryTenantContext(tenantId, tenantMetadata.getCreatedBy(), limitsConfiguration, tenantMetadata.getStatus(), String.valueOf(tenantMetadata.getOrganizationId()));
         });
+        if (checkTenantAuthorization) {
+            checkTenantAuthorization(context);
+        }
         return context;
     }
 
     public RegistryTenantContext defaultTenantContext() {
         if (defaultTenantContext == null) {
-            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant());
+            defaultTenantContext = new RegistryTenantContext(TenantContext.DEFAULT_TENANT_ID, null, limitsConfigurationService.defaultConfigurationTenant(), TenantStatusValue.READY, null);
         }
         return defaultTenantContext;
     }
 
-    private void checkTenantAuthorization(final RegistryTenant tenant) {
+    public void invalidateTenantInCache(String tenantId) {
+        contextsCache.remove(tenantId);
+    }
+
+    private void checkTenantAuthorization(final RegistryTenantContext tenant) {
         if (authConfig.isAuthEnabled()) {
             if (!isTokenResolvable()) {
-                throw new TenantNotAuthorizedException("JWT not found");
+                logger.debug("Tenant access attempted without JWT token for tenant {} [allowing because some endpoints allow anonymous access]", tenant.getTenantId());
+                return;
             }
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
-            if (accessedOrganizationId.isPresent() && !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+            if (accessedOrganizationId.isEmpty() || !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+                logger.warn("User not authorized to access tenant {}", tenant.getTenantId());
                 throw new TenantNotAuthorizedException("Tenant not authorized");
             }
         }
@@ -111,7 +150,11 @@ public class TenantContextLoader {
         return jsonWebToken.isResolvable() && jsonWebToken.get().getRawToken() != null;
     }
 
-    private boolean tenantCanAccessOrganization(RegistryTenant tenant, String accessedOrganizationId) {
+    private boolean tenantCanAccessOrganization(RegistryTenantContext tenant, String accessedOrganizationId) {
         return tenant == null || accessedOrganizationId.equals(tenant.getOrganizationId());
+    }
+
+    public void invalidateTenantCache() {
+        contextsCache.clear();
     }
 }

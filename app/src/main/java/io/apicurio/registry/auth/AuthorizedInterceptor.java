@@ -60,6 +60,7 @@ public class AuthorizedInterceptor {
         RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
         if (rbacOpAnnotation != null) {
             if (!authConfig.isApplicationRbacEnabled()) {
+                log.warn("Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
         }
@@ -70,16 +71,30 @@ public class AuthorizedInterceptor {
         }
 
         log.trace("Authentication enabled, protected resource: " + context.getMethod());
-        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
 
-        // If authentication is enabled, but the securityIdentity is not set, then we have an authentication failure.
+        // If the securityIdentity is not set (or is anonymous)...
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
             Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-            if (annotation.level() != AuthorizedLevel.None) {
-                log.trace("Authentication credentials missing and required for protected endpoint.");
-                throw new UnauthorizedException("User is not authenticated.");
+
+            // Anonymous users are allowed to perform "None" operations.
+            if (annotation.level() == AuthorizedLevel.None) {
+                log.trace("Anonymous user is being granted access to unprotected operation.");
+                return context.proceed();
             }
+
+            // Anonymous users are allowed to perform read-only operations, but only if
+            // registry.auth.anonymous-read-access.enabled is set to 'true'
+            if (authConfig.anonymousReadAccessEnabled && annotation.level() == AuthorizedLevel.Read) {
+                log.trace("Anonymous user is being granted access to read-only operation.");
+                return context.proceed();
+            }
+
+            // Otherwise just fail - auth was enabled but no credentials provided.
+            log.warn("Authentication credentials missing and required for protected endpoint.");
+            throw new UnauthorizedException("User is not authenticated.");
         }
+
+        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
 
         // If the user is an admin (via the admin-override check) then there's no need to
         // check rbac or obac.
@@ -90,13 +105,13 @@ public class AuthorizedInterceptor {
 
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
-            log.trace("RBAC enabled and required role missing.");
+            log.warn("RBAC enabled and required role missing.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
         if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
-            log.trace("OBAC enabled and operation not permitted due to wrong owner.");
+            log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 

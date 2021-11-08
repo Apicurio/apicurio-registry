@@ -18,7 +18,6 @@
 import React from "react";
 import "./artifacts.css";
 import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
-import {ArtifactsPageHeader} from "./components/pageheader";
 import {ArtifactList} from "./components/artifactList";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar} from "./components/toolbar";
@@ -29,6 +28,7 @@ import {If} from "../../components/common/if";
 import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services} from "../../../services";
 import {SearchedArtifact} from "../../../models";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
+import {RootPageHeader} from "../../components";
 
 
 /**
@@ -48,6 +48,7 @@ export interface ArtifactsPageState extends PageState {
     isUploadFormValid: boolean;
     isInvalidContentModalOpen: boolean;
     isPleaseWaitModalOpen: boolean;
+    isSearching: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
@@ -66,8 +67,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
-                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light}>
-                    <ArtifactsPageHeader onUploadArtifact={this.onUploadArtifact}/>
+                <PageSection className="ps_artifacts-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={0} />
                 </PageSection>
                 <If condition={this.showToolbar}>
                     <PageSection variant={PageSectionVariants.light} padding={{default : "noPadding"}}>
@@ -75,22 +76,22 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                               paging={this.state.paging}
                                               onPerPageSelect={this.onPerPageSelect}
                                               onSetPage={this.onSetPage}
+                                              onUploadArtifact={this.onUploadArtifact}
                                               onChange={this.onFilterChange}/>
                     </PageSection>
                 </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
-                        this.isLoading() ?
+                        this.state.isSearching ?
                             <Flex>
                                 <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
+                                <FlexItem><span>Searching...</span></FlexItem>
                             </Flex>
-                        : this.artifactsCount() === 0 ?
+                        :
+                        this.artifactsCount() === 0 ?
                             <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
-                            <React.Fragment>
-                                <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
-                            </React.Fragment>
+                            <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
                     }
                 </PageSection>
                 <Modal
@@ -126,6 +127,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             isInvalidContentModalOpen: false,
             isLoading: true,
             isPleaseWaitModalOpen: false,
+            isSearching: false,
             isUploadFormValid: false,
             isUploadModalOpen: false,
             paging: {
@@ -152,7 +154,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     private onArtifactsLoaded(results: ArtifactsSearchResults): void {
         this.setMultiState({
-            isLoading: false,
+            isSearching: false,
             results
         });
     }
@@ -201,7 +203,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     private onFilterChange = (criteria: GetArtifactsCriteria): void => {
         this.setMultiState({
             criteria,
-            isLoading: true
+            isSearching: true
         }, () => {
             this.search();
         });
@@ -226,7 +228,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             pageSize: perPage ? perPage : this.state.paging.pageSize
         };
         this.setMultiState({
-            isLoading: true,
+            isSearching: true,
             paging
         }, () => {
             this.search();
@@ -239,7 +241,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             pageSize: newPerPage
         };
         this.setMultiState({
-            isLoading: true,
+            isSearching: true,
             paging
         }, () => {
             this.search();
@@ -263,7 +265,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private handleInvalidContentError(error: any): void {
-        Services.getLoggerService().info("INVALID CONTENT ERROR", error);
+        Services.getLoggerService().info("[ArtifactsPage] Invalid content error:", error);
         this.setMultiState({
             invalidContentError: error,
             isInvalidContentModalOpen: true
@@ -275,8 +277,10 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private showToolbar = (): boolean => {
-        const hasCriteria: boolean = this.state.criteria && this.state.criteria.value != null && this.state.criteria.value != "";
-        return hasCriteria || this.results().count > 0;
+        if (this.state.isLoading) {
+            return false;
+        }
+        return true;
     }
 
 }

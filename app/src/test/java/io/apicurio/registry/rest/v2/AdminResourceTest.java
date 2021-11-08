@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -447,10 +448,6 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("level", is(level.value()));
-
-            String actualLevel = Logger.getLogger(testLoggerName).getLevel().getName();
-            assertEquals(level.value(), actualLevel,
-                    "Log value for logger " + testLoggerName + " was NOT set to '" + level.value() + "' it was '" + actualLevel + "', even though the server reported it was.");
         };
 
         Consumer<LogLevel> verifyLevel = (level) -> {
@@ -491,31 +488,37 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         System.out.println("Going to test log level change from " + defaultLogLevel + " to " + firstLevel.name() + " and then to " + secondLevel.name());
 
         setLog.accept(firstLevel);
-        verifyLogLevel(testLoggerName, firstLevel);
-        verifyLevel.accept(firstLevel);
+        TestUtils.retry(() -> {
+            verifyLogLevel(testLoggerName, firstLevel);
+            verifyLevel.accept(firstLevel);
+        });
 
         setLog.accept(secondLevel);
-        verifyLogLevel(testLoggerName, secondLevel);
-        verifyLevel.accept(secondLevel);
+        TestUtils.retry(() -> {
+            verifyLogLevel(testLoggerName, secondLevel);
+            verifyLevel.accept(secondLevel);
+        });
 
         clearLogConfig(testLoggerName);
 
-        Response res = given()
-            .when()
-                .pathParam("logger", testLoggerName)
-                .get("/registry/v2/admin/loggers/{logger}")
-            .thenReturn();
+        TestUtils.retry(() -> {
+            Response res = given()
+                    .when()
+                        .pathParam("logger", testLoggerName)
+                        .get("/registry/v2/admin/loggers/{logger}")
+                    .thenReturn();
 
-        assertEquals(200, res.statusCode());
-        NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
+                assertEquals(200, res.statusCode());
+                NamedLogConfiguration cfg = res.getBody().as(NamedLogConfiguration.class);
 
-        assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
+                assertEquals(cfg.getLevel().value(), Logger.getLogger(testLoggerName).getLevel().getName());
+        });
     }
 
     @Test
     void testExport() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
-        String group = "export-group";
+        String group = "testExport";
 
         // Create 5 artifacts in the UUID group
         for (int idx = 0; idx < 5; idx++) {
@@ -552,6 +555,70 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(contentCounter.get() >= 5);
         Assertions.assertTrue(versionCounter.get() >= 5);
+    }
+
+    @Test
+    void testExportForBrowser() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testExportForBrowser";
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+        }
+
+        // Export data (browser flow).
+        String downloadHref = given()
+            .when()
+                .queryParam("forBrowser", "true")
+                .get("/registry/v2/admin/export")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("downloadId", notNullValue())
+                .body("href", notNullValue())
+                .extract().body().path("href");
+        Assertions.assertTrue(downloadHref.startsWith("/apis/"));
+        downloadHref = downloadHref.substring(5);
+
+        // Follow href in response
+        ValidatableResponse response = given()
+            .when()
+                .get(downloadHref)
+            .then()
+                .statusCode(200);
+        InputStream body = response.extract().asInputStream();
+        ZipInputStream zip = new ZipInputStream(body);
+
+        AtomicInteger contentCounter = new AtomicInteger(0);
+        AtomicInteger versionCounter = new AtomicInteger(0);
+
+        ZipEntry entry = zip.getNextEntry();
+        while (entry != null) {
+            String name = entry.getName();
+
+            if (name.endsWith(".Content.json")) {
+                contentCounter.incrementAndGet();
+            } else if (name.endsWith(".ArtifactVersion.json")) {
+                versionCounter.incrementAndGet();
+            }
+
+            // Next entry.
+            entry = zip.getNextEntry();
+        }
+
+        Assertions.assertTrue(contentCounter.get() >= 5);
+        Assertions.assertTrue(versionCounter.get() >= 5);
+
+        // Try the download href again - should fail with 404 because it was already consumed.
+        given()
+            .when()
+                .get(downloadHref)
+            .then()
+                .statusCode(404);
     }
 
     @Test
@@ -624,6 +691,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("TestUser");
         mapping.setRole(RoleType.DEVELOPER);
+        mapping.setPrincipalName("Foo bar");
         given()
             .when()
                 .contentType(CT_JSON).body(mapping)
@@ -641,6 +709,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("principalId", equalTo("TestUser"))
+                    .body("principalName", equalTo("Foo bar"))
                     .body("role", equalTo("DEVELOPER"));
         });
         TestUtils.retry(() -> {
@@ -651,6 +720,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body("[0].principalId", equalTo("TestUser"))
+                    .body("[0].principalName", equalTo("Foo bar"))
                     .body("[0].role", equalTo("DEVELOPER"));
         });
 

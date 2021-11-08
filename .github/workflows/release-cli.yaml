@@ -2,7 +2,7 @@ name: Release CLI
 
 on:
   release:
-    types: [released]
+    types: [released, prereleased]
 
   workflow_dispatch:
     inputs:
@@ -18,16 +18,16 @@ on:
   
 
 jobs:
-  build-linux-cli:
+  release-linux-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-linux-cli == 'true')
     runs-on: ubuntu-latest
     steps:
     - name: Fetch required Details
       run: |
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-          echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
+        touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
+        echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+        echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
     
     - name: Log Environment Variables
       run: |
@@ -62,7 +62,7 @@ jobs:
       run: gu install native-image
 
     - name: Get maven wrapper
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       run: cd registry && ./mvnw -pl cli -am install
@@ -102,22 +102,22 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}
 
 
 
-  build-macos-cli:
+  release-macos-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-macos-cli == 'true')
     runs-on: macos-latest
     steps:
     - name: Fetch required Details
       run: |
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-          echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
+        touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
+        echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+        echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
     
     - name: Echo Environment Variables
       run: |
@@ -152,7 +152,7 @@ jobs:
       run: gu install native-image
 
     - name: Get maven wrapper
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       run: cd registry && ./mvnw -pl cli -am install
@@ -179,23 +179,23 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}
 
 
 
-  build-win64-cli:
+  release-win64-cli:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'release' || github.event.inputs.release-win64-cli == 'true')
     runs-on: windows-2019
     steps:
     - name: Fetch required Details
       shell: bash
       run: |
-          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
-          echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
-          echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
+        touch latestRelease.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases | jq '.[0]' > latestRelease.json
+        echo "RELEASE_VERSION=$(cat latestRelease.json | jq -r '.name')" >> $GITHUB_ENV
+        echo "SOURCE_CODE_URL=$(cat latestRelease.json | jq -r '.zipball_url')" >> $GITHUB_ENV
+        echo "UPLOAD_URL=$(cat latestRelease.json | jq -r '.upload_url')" >> $GITHUB_ENV
           
     - name: Echo Environment Variables
       shell: bash
@@ -244,7 +244,7 @@ jobs:
 
     - name: Get maven wrapper
       shell: bash
-      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: cd registry && mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
     - name: Build jvm jar
       shell: cmd
@@ -277,6 +277,6 @@ jobs:
       if: ${{ failure() }}
       uses: Co-qn/google-chat-notification@releases/v1
       with:
-        name: ${{ github.workflow }}
+        name: ${{ github.job }}
         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         status: ${{ job.status }}

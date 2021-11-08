@@ -208,7 +208,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
             // This is OK - when it happens just move on and create
         }
 
-        ArtifactType artifactType = ArtifactTypeUtil.discoverType(content, request.getContentType());
+        ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, null, request.getContentType());
 
         //spec says: The ´Content-Type´ for the payload MUST be preserved by the registry and returned when the schema is requested, independent of the format identifier.
         EditableArtifactMetaDataDto metadata = new EditableArtifactMetaDataDto();

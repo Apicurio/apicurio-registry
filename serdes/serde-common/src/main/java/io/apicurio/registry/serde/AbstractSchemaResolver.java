@@ -16,16 +16,6 @@
 
 package io.apicurio.registry.serde;
 
-import java.io.InputStream;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.kafka.common.header.Headers;
-
-import io.apicurio.registry.auth.Auth;
-import io.apicurio.registry.auth.BasicAuth;
-import io.apicurio.registry.auth.KeycloakAuth;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -34,19 +24,25 @@ import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.utils.Utils;
-import io.apicurio.registry.utils.CheckPeriodCache;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import org.apache.kafka.common.header.Headers;
+
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Default implemntation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
-public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T>{
+public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
-    protected final Map<Long, SchemaLookupResult<S>> schemaCacheByGlobalId = new ConcurrentHashMap<>();
-    protected final Map<String, Long> globalIdCacheByContent = new ConcurrentHashMap<>();
-    protected CheckPeriodCache<ArtifactReference, Long> globalIdCacheByArtifactReference = new CheckPeriodCache<>(0);
+    protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
 
     protected SchemaParser<S> schemaParser;
     protected RegistryClient client;
@@ -72,10 +68,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             }
 
             String authServerURL = config.getAuthServiceUrl();
+            String tokenEndpoint = config.getTokenEndpoint();
 
             try {
-                if (authServerURL != null) {
-                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL);
+                if (authServerURL != null || tokenEndpoint != null) {
+                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL, tokenEndpoint);
                 } else {
                     String username = config.getAuthUsername();
 
@@ -93,25 +90,15 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         Object ais = config.getArtifactResolverStrategy();
         Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
 
-        long checkPeriod = 0;
-        Object cp = config.getCheckPeriodMs();
-        if (cp != null) {
-            long checkPeriodParam;
-            if (cp instanceof Number) {
-                checkPeriodParam = ((Number) cp).longValue();
-            } else if (cp instanceof String) {
-                checkPeriodParam = Long.parseLong((String) cp);
-            } else if (cp instanceof Duration) {
-                checkPeriodParam = ((Duration) cp).toMillis();
-            } else {
-                throw new IllegalArgumentException("Check period config param type unsupported (must be a Number, String, or Duration): " + cp);
-            }
-            if (checkPeriodParam < 0) {
-                throw new IllegalArgumentException("Check period must be non-negative: " + checkPeriodParam);
-            }
-            checkPeriod = checkPeriodParam;
-        }
-        globalIdCacheByArtifactReference = new CheckPeriodCache<>(checkPeriod);
+        schemaCache.configureLifetime(config.getCheckPeriod());
+        schemaCache.configureRetryBackoff(config.getRetryBackoff());
+        schemaCache.configureRetryCount(config.getRetryCount());
+
+        schemaCache.configureArtifactReferenceKeyExtractor(SchemaLookupResult::toArtifactReference);
+        schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
+        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
+        schemaCache.checkInitialized();
 
         String groupIdOverride = config.getExplicitArtifactGroupId();
         if (groupIdOverride != null) {
@@ -177,11 +164,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
-        return schemaCacheByGlobalId.computeIfAbsent(globalId, k -> {
+        return schemaCache.getByGlobalId(globalId, globalIdKey -> {
             //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = client.getContentByGlobalId(globalId);
+            InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);
@@ -189,14 +176,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
             return result
-              //FIXME it's impossible to retrieve this info with only the globalId
+                //FIXME it's impossible to retrieve this info with only the globalId
 //                  .groupId(null)
 //                  .artifactId(null)
 //                  .version(0)
-                  .globalId(globalId)
-                  .rawSchema(schema)
-                  .schema(parsed)
-                  .build();
+                .globalId(globalIdKey)
+                .rawSchema(schema)
+                .schema(parsed)
+                .build();
         });
     }
 
@@ -205,17 +192,32 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void reset() {
-        this.schemaCacheByGlobalId.clear();
-        this.globalIdCacheByContent.clear();
-        this.globalIdCacheByArtifactReference.clear();
+        this.schemaCache.clear();
     }
 
-    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl) {
+    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
+        Auth auth;
+        if (authServerUrl != null) {
+            auth = configureAuthWithRealm(config, authServerUrl);
+        } else {
+            auth = configureAuthWithUrl(config, tokenEndpoint);
+        }
+        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+    }
+
+    private OidcAuth configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
             throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
         }
+
+        final String tokenEndpoint =  authServerUrl + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
+
+        return configureAuthWithUrl(config, tokenEndpoint);
+    }
+
+    private OidcAuth configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
@@ -227,9 +229,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        Auth auth = new KeycloakAuth(authServerUrl, realm, clientId, clientSecret);
-
-        return RegistryClientFactory.create(registryUrl, config.originals(), auth);
+        return new OidcAuth(tokenEndpoint, clientId, clientSecret, Optional.empty());
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

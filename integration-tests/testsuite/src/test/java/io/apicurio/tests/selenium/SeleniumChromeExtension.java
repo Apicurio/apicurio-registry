@@ -88,7 +88,7 @@ public class SeleniumChromeExtension implements BeforeTestExecutionCallback, Aft
             Testcontainers.exposeHostPorts(TestUtils.getRegistryPort());
             uiUrl = TestUtils.getRegistryUIUrl().replace("localhost", "host.testcontainers.internal");
             chrome = new BrowserWebDriverContainer()
-                .withCapabilities(new ChromeOptions());
+                .withCapabilities(buildChromeOptions());
             chrome.start();
             driver = chrome.getWebDriver();
         }
@@ -109,10 +109,14 @@ public class SeleniumChromeExtension implements BeforeTestExecutionCallback, Aft
     public static RemoteWebDriver getRemoteChromeDriver() throws Exception {
         String seleniumHost =  System.getenv().getOrDefault("SELENIUM_HOST", "localhost");
         String seleniumPort = System.getenv().getOrDefault("SELENIUM_PORT", "80");
+        return getRemoteDriver(seleniumHost, seleniumPort, buildChromeOptions());
+    }
+
+    private static ChromeOptions buildChromeOptions() {
         ChromeOptions options = new ChromeOptions();
         options.setAcceptInsecureCerts(true);
         options.addArguments("test-type", "--headless", "--no-sandbox", "--disable-dev-shm-usage", "--disable-extensions");
-        return getRemoteDriver(seleniumHost, seleniumPort, options);
+        return options;
     }
 
     private static RemoteWebDriver getRemoteDriver(String host, String port, Capabilities options) throws Exception {

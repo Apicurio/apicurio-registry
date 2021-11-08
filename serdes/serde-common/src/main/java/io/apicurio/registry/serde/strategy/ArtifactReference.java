@@ -24,6 +24,7 @@ import io.apicurio.registry.serde.config.IdOption;
  * reference to an artifact in a group. Optionally it can reference to a specific version.
  *
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public class ArtifactReference {
 
@@ -133,18 +134,12 @@ public class ArtifactReference {
      */
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((artifactId == null) ? 0 : artifactId.hashCode());
-        result = prime * result + ((contentId == null) ? 0 : contentId.hashCode());
-        result = prime * result + ((globalId == null) ? 0 : globalId.hashCode());
-        result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
-        result = prime * result + ((version == null) ? 0 : version.hashCode());
-        return result;
+        return globalId == null ? 0 : globalId.hashCode();
     }
 
     /**
-     * @see java.lang.Object#equals(java.lang.Object)
+     * Logical equality. Two artifact references are equal, if they
+     * MUST refer to the same artifact.
      */
     @Override
     public boolean equals(Object obj) {
@@ -155,32 +150,53 @@ public class ArtifactReference {
         if (getClass() != obj.getClass())
             return false;
         ArtifactReference other = (ArtifactReference) obj;
-        if (artifactId == null) {
-            if (other.artifactId != null)
+
+        boolean match1 = false;
+        if(globalId != null  && other.globalId != null) {
+            if (!globalId.equals(other.globalId)) {
                 return false;
-        } else if (!artifactId.equals(other.artifactId))
-            return false;
-        if (contentId == null) {
-            if (other.contentId != null)
+            } else {
+                match1 = true;
+            }
+        }
+
+        boolean match2 = false;
+        if(contentId != null  && other.contentId != null) {
+            if (!contentId.equals(other.contentId)) {
                 return false;
-        } else if (!contentId.equals(other.contentId))
-            return false;
-        if (globalId == null) {
-            if (other.globalId != null)
+            } else {
+                match2 = true;
+            }
+        }
+
+        boolean match3 = false;
+        if(groupId != null  && other.groupId != null) {
+            if (!groupId.equals(other.groupId)) {
                 return false;
-        } else if (!globalId.equals(other.globalId))
-            return false;
-        if (groupId == null) {
-            if (other.groupId != null)
+            } else {
+                match3 = true;
+            }
+        }
+
+        boolean match4 = false;
+        if(artifactId != null  && other.artifactId != null) {
+            if (!artifactId.equals(other.artifactId)) {
                 return false;
-        } else if (!groupId.equals(other.groupId))
-            return false;
-        if (version == null) {
-            if (other.version != null)
+            } else {
+                match4 = true;
+            }
+        }
+
+        boolean match5 = false;
+        if(version != null  && other.version != null) {
+            if (!version.equals(other.version)) {
                 return false;
-        } else if (!version.equals(other.version))
-            return false;
-        return true;
+            } else {
+                match5 = true;
+            }
+        }
+
+        return match1 || match2 || (match3 && match4 && match5);
     }
 
     /**

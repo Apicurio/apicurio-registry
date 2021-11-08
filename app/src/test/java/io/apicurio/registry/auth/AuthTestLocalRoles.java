@@ -19,8 +19,12 @@ package io.apicurio.registry.auth;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -29,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -56,11 +59,9 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
             "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
             "} ";
 
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
+    @ConfigProperty(name = "registry.auth.token.endpoint")
+    String authServerUrlConfigured;
 
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
 
     String noRoleClientId = "registry-api-no-role";
     String noRolePrincipalId = "service-account-registry-api-no-role";
@@ -77,16 +78,16 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth authAdmin = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
         RegistryClient clientAdmin = createClient(authAdmin);
 
-        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
         RegistryClient client = createClient(auth);
 
         // User is authenticated but no roles assigned yet - operations should fail.

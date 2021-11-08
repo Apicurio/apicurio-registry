@@ -16,3 +16,4 @@
  */
 
 export * from "./header";
+export * from "./pageheader";

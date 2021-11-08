@@ -6,13 +6,16 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-Client applications can use Registry REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+Client applications can use Registry REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Registry REST API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules stored in the registry. For detailed information, see the {registry-rest-api}.
 
 This chapter describes the {registry} core REST API and shows how to use it to manage schema and API artifacts stored in the registry:
 
-* xref:managing-artifacts-using-rest-api[]
-* xref:managing-artifact-versions-using-rest-api[]
-* xref:exporting-importing-using-rest-api[]
+ifdef::rh-openshift-sr[]
+* xref:creating-access-token-for-registry-rest-api_{context}[]
+endif::[]
+* xref:managing-artifacts-using-rest-api_{context}[]
+* xref:managing-artifact-versions-using-rest-api_{context}[]
+* xref:exporting-importing-using-rest-api_{context}[]
 
 .Prerequisites
 * {registry-overview}
@@ -22,6 +25,9 @@ This chapter describes the {registry} core REST API and shows how to use it to m
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
+ifdef::rh-openshift-sr[]
+include::{mod-loc}getting-started/proc-creating-access-token-rest-api.adoc[leveloffset=+1]
+endif::[]
 include::{mod-loc}getting-started/proc-managing-artifacts-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-managing-artifact-versions-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-exporting-importing-using-rest-api.adoc[leveloffset=+1]

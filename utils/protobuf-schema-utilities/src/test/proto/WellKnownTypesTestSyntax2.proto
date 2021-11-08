@@ -1,0 +1,51 @@
+syntax = "proto2";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax2;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/duration.proto";
+import "google/type/money.proto";
+import "google/type/date.proto";
+import "google/type/timeofday.proto";
+import "google/type/calendar_period.proto";
+import "google/type/color.proto";
+import "google/type/latlng.proto";
+import "google/type/fraction.proto";
+import "google/type/dayofweek.proto";
+import "google/type/phone_number.proto";
+import "google/type/postal_address.proto";
+import "google/type/localized_text.proto";
+import "google/type/month.proto";
+import "google/type/interval.proto";
+import "google/type/expr.proto";
+import "google/type/quaternion.proto";
+
+message WellKnownTypesSyntax3 {
+  required int32 a = 100;
+  optional google.protobuf.Timestamp f1 = 1;
+  required google.protobuf.StringValue f2 = 2;
+  optional google.protobuf.FloatValue f3 = 3;
+  required google.protobuf.Empty f4 = 4;
+  required google.protobuf.Duration f5 = 5;
+  required google.type.Money f6 = 6;
+  required google.type.Date f7 = 7;
+  optional google.type.TimeOfDay f8 = 8;
+  required google.type.CalendarPeriod f9 = 9;
+  optional google.type.Color f10 = 10;
+  optional google.type.DayOfWeek f11 = 11;
+  required float floating = 102;
+  optional google.type.LatLng f12 = 12;
+  required google.type.Fraction f13 = 13;
+  required google.type.Month f14 = 14;
+  optional google.type.PhoneNumber f15 = 15;
+  optional google.type.PostalAddress f16 = 16;
+  optional google.type.LocalizedText f17 = 17;
+  repeated google.protobuf.Any f18 = 18;
+  repeated google.type.Interval f19 = 19;
+  optional google.type.Expr f20 = 20;
+  repeated string bg = 101;
+  repeated google.type.Quaternion f21 = 21;
+}

@@ -65,7 +65,7 @@ public class UsersResourceImpl implements UsersResource {
     public UserInfo getCurrentUserInfo() {
         UserInfo info = new UserInfo();
         info.setUsername(securityIdentity.getPrincipal().getName());
-        info.setDisplayName(securityIdentity.getPrincipal().getName()); // TODO need a better implementation of this
+        info.setDisplayName(securityIdentity.getPrincipal().getName()); // TODO need a better implementation of this, maybe use claims first_name and last_name
         if (authConfig.isRbacEnabled()) {
             info.setAdmin(rbac.isAdmin());
             info.setDeveloper(rbac.isDeveloper());

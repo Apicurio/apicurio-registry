@@ -90,7 +90,11 @@ public class RegistryUITester {
     }
 
     public UploadArtifactDialog openUploadArtifactDialog() {
-        selenium.clickOnItem(artifactsListPage.getUploadArtifactOpenDialogButton());
+        var btn = artifactsListPage.getEmptyUploadArtifactOpenDialogButton();
+        if (btn == null) {
+            btn = artifactsListPage.getTopUploadArtifactOpenDialogButton();
+        }
+        selenium.clickOnItem(btn);
         return artifactsListPage.getUploadArtifactDialogPage();
     }
 

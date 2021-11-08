@@ -17,6 +17,5 @@
 
 export * from "./artifactList";
 export * from "./empty";
-export * from "./pageheader";
 export * from "./toolbar";
 export * from "./uploadForm";

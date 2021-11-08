@@ -63,7 +63,7 @@ class AllArtifactTypesIT extends BaseIT {
             // Test update (invalid content)
             //WARNING, we are not 100% compliant  with the old API, before this and many other errors were a 400 error code, now they are 409
             //example https://github.com/Apicurio/apicurio-registry/blob/1.3.2.Final/tests/src/test/java/io/apicurio/tests/smokeTests/apicurio/AllArtifactTypesIT.java
-            assertWebError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("This is not valid content")));
+            assertWebError(409, () -> client.testUpdateArtifact(artifactId, atype, IoUtil.toStream("{\"This is not a valid content.")));
 
             // Update artifact (valid v2 content)
             ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream(v2Content));
@@ -76,7 +76,7 @@ class AllArtifactTypesIT extends BaseIT {
             assertNotNull(byContent.getVersion());
 
             // Update artifact (invalid content)
-            assertWebError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content.")));
+            assertWebError(409, () -> ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("{\"This is not a valid content.")));
 
             // Override Validation rule for the artifact
             rule.setConfig("NONE");
@@ -86,7 +86,7 @@ class AllArtifactTypesIT extends BaseIT {
             TestUtils.retry(() -> client.getArtifactRuleConfig(artifactId, rule.getType()));
 
             // Update artifact (invalid content) - should work now
-            ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("This is not valid content."));
+            ArtifactMetaData amd2 = ArtifactUtils.updateArtifact(client, atype, artifactId, IoUtil.toStream("{\"This is not a valid content."));
             // Make sure artifact is fully registered
             TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd2.getGlobalId()));
         } catch (Exception e) {

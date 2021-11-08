@@ -77,4 +77,11 @@ public class ArtifactSearchResults {
         this.count = count;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactSearchResults{" +
+                "artifacts=" + artifacts +
+                ", count=" + count +
+                '}';
+    }
 }

@@ -37,7 +37,7 @@ import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 public class TenantLimitsService {
 
     //FIXME improve error messages
-    private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of uploaded schemas exceeded";
+    private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded";
     private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded";
     private static final String MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG = "Maximum number of versions exceeded for this artifact";
     private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name lenght exceeded";

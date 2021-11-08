@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.1.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -78,7 +78,7 @@
             <timezone>+1</timezone>
         </developer>
         <developer>
-            <name>Fabian Martinez</name>
+            <name>Fabian Martinez Gonzalez</name>
             <id>famartinrh</id>
             <email>famartin@redhat.com</email>
             <organization>Red Hat</organization>
@@ -86,6 +86,16 @@
                 <role>Developer</role>
             </roles>
             <timezone>+1</timezone>
+        </developer>
+        <developer>
+            <name>Rishab Prasad</name>
+            <id>riprasad</id>
+            <email>riprasad@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+4</timezone>
         </developer>
     </developers>
 
@@ -99,7 +109,6 @@
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>utils/importexport</module>
-        <module>utils/exportV1</module>
         <module>utils/protobuf-schema-utilities</module>
         <module>schema-compatibility/json</module>
         <module>schema-compatibility/protobuf</module>
@@ -111,9 +120,7 @@
         <module>storage</module>
         <module>distro</module>
         <module>docs</module>
-        <module>rest-client/client</module>
-        <module>rest-client/client-vertx-impl</module>
-        <module>rest-client/client-common</module>
+        <module>client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
     </modules>
@@ -134,21 +141,26 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.13.2.Final</quarkus.version>
+        <quarkus.version>2.2.3.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.1.0</jandex.version>
+        <jandex.version>1.1.1</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.10.2</avro.version>
-        <json-schema-validator.version>1.0.57</json-schema-validator.version>
-        <wire-schema.version>3.7.0</wire-schema.version>
-        <protobuf.version>3.17.3</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <json-schema-validator.version>1.0.63</json-schema-validator.version>
+        <wire-schema.version>3.7.1</wire-schema.version>
+        <wire-compiler.version>3.7.0</wire-compiler.version>
+        <jimfs.version>1.1</jimfs.version>
+        <icu4j.version>70.1</icu4j.version>
+        <protobuf.version>3.19.1</protobuf.version>
+        <xmlsec.version>2.1.7</xmlsec.version>
+        <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
+        <google.truth.extension.version>1.1.3</google.truth.extension.version>
 
         <!-- Picocli -->
-        <picocli.version>4.6.1</picocli.version>
+        <picocli.version>4.6.2</picocli.version>
 
         <!-- Confluent API / client -->
         <confluent.version>6.1.1</confluent.version>
@@ -157,33 +169,31 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.13</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.18</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>16.2</graphql.version>
+        <graphql.version>17.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
-        <org.everit.json.schema.version>1.13.0</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.4</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.12.4</jackson-dataformat-yaml.version>
+        <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
+        <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.20</lombok.version>
+        <lombok.version>1.18.22</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <keycloak.version>11.0.3</keycloak.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.0.2.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.0.9.Final</apicurio-common-rest-client.version>
+        <sentry.version>1.7.30</sentry.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
-        
+
         <!-- Specifications -->
-        <annotation-api.version>1.3.2</annotation-api.version>
-        <cdi-api.version>2.0</cdi-api.version>
+        <annotation-api.version>1.3.5</annotation-api.version>
         
         <!-- Gatling -->
         <version.gatling>3.6.1</version.gatling>
@@ -191,13 +201,13 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.6</scala.version>
+        <scala.version>2.13.7</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.javadoc.plugin>3.3.0</version.javadoc.plugin>
+        <version.javadoc.plugin>3.3.1</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.0</version.jar.plugin>
@@ -210,18 +220,19 @@
         <version.frontend-maven.plugin>1.12.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.44</version.puppycrawl>
+        <version.puppycrawl>8.45.1</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.16.0</test-containers.version>
-        <keycloak.testcontainers.version>1.7.1</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>14.0.0</keycloak-admin-client.version>
-        <embedded-postgres.version>1.3.0</embedded-postgres.version>
-        <strimzi.version>0.24.0</strimzi.version>
+        <test-containers.version>1.16.2</test-containers.version>
+        <keycloak.testcontainers.version>1.8.1</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>15.0.2</keycloak-admin-client.version>
+        <embedded-postgres.version>1.3.1</embedded-postgres.version>
+        <strimzi.version>0.25.0</strimzi.version>
+        <wiremock-jre8.version>2.31.0</wiremock-jre8.version>
     </properties>
 
     <dependencyManagement>
@@ -250,11 +261,6 @@
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-client-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-client-vertx</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -357,6 +363,21 @@
                 <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-vertx</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-jdk</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-common</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
 
             <!-- Quarkus Dependencies -->
             <dependency>
@@ -399,6 +420,21 @@
                 <version>${wire-schema.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-compiler</artifactId>
+                <version>${wire-compiler.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.jimfs</groupId>
+                <artifactId>jimfs</artifactId>
+                <version>${jimfs.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ibm.icu</groupId>
+                <artifactId>icu4j</artifactId>
+                <version>${icu4j.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf.version}</version>
@@ -407,6 +443,11 @@
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java-util</artifactId>
                 <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api.grpc</groupId>
+                <artifactId>proto-google-common-protos</artifactId>
+                <version>${protobuf.googleapi.types.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -434,9 +475,9 @@
                 <version>${httpclient.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-common-rest-client-auth</artifactId>
-                <version>${apicurio-common-rest-client.version}</version>
+                <groupId>io.sentry</groupId>
+                <artifactId>sentry</artifactId>
+                <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
             </dependency>
 
             <!-- Picocli -->
@@ -458,12 +499,6 @@
                 <version>${graphql.version}</version>
             </dependency>
 
-            <!-- JSON Schema Validator -->
-            <dependency>
-                <groupId>com.worldturner.medeia</groupId>
-                <artifactId>medeia-validator-jackson</artifactId>
-                <version>${medeia-validator-jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
@@ -490,18 +525,6 @@
                 <groupId>io.gatling.highcharts</groupId>
                 <artifactId>gatling-charts-highcharts</artifactId>
                 <version>${version.gatling}</version>
-            </dependency>
-
-            <!-- Specifications -->
-            <dependency>
-                <groupId>javax.annotation</groupId>
-                <artifactId>javax.annotation-api</artifactId>
-                <version>${annotation-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.enterprise</groupId>
-                <artifactId>cdi-api</artifactId>
-                <version>${cdi-api.version}</version>
             </dependency>
 
             <!-- Tests -->
@@ -581,6 +604,17 @@
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-admin-client</artifactId>
                 <version>${keycloak-admin-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>${wiremock-jre8.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.truth.extensions</groupId>
+                <artifactId>truth-proto-extension</artifactId>
+                <version>${google.truth.extension.version}</version>
+                <scope>test</scope>
             </dependency>
 
         </dependencies>
@@ -685,7 +719,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.5.3</version>
+                    <version>4.5.4</version>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
                         <args>
@@ -771,9 +805,9 @@
                 <configuration>
                     <additionalDependencies>
                         <additionalDependency>
-                            <groupId>org.jboss.spec.javax.annotation</groupId>
-                            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
-                            <version>1.0.1.Final</version>
+                            <groupId>jakarta.annotation</groupId>
+                            <artifactId>jakarta.annotation-api</artifactId>
+                            <version>${annotation-api.version}</version>
                         </additionalDependency>
                     </additionalDependencies>
                     <failOnError>false</failOnError>

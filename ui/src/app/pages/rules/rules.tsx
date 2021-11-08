@@ -17,12 +17,12 @@
 
 import React from "react";
 import "./rules.css";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner, TextContent} from '@patternfly/react-core';
+import {PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {RulesPageHeader} from "./components/pageheader";
 import {RuleList} from "../../components/ruleList";
 import {Rule} from "../../../models";
 import {Services} from "../../../services";
+import {RootPageHeader} from "../../components";
 
 
 /**
@@ -53,30 +53,21 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
-                <PageSection className="ps_rules-header" variant={PageSectionVariants.light}>
-                    <RulesPageHeader />
+                <PageSection className="ps_rules-header" variant={PageSectionVariants.light} padding={{ default : "noPadding" }}>
+                    <RootPageHeader tabKey={1} />
                 </PageSection>
                 <PageSection className="ps_rules-description" variant={PageSectionVariants.light}>
                     <TextContent>
-                        Manage the list of Global Rules configured for the Registry below.  Rules can be enabled/disabled
-                        and also individually configured.
+                        Manage the list of global rules for this registry. Rules can be enabled, disabled, and individually configured.
                     </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
-                    {
-                        this.isLoading() ?
-                            <Flex>
-                                <FlexItem><Spinner size="lg"/></FlexItem>
-                                <FlexItem><span>Loading, please wait...</span></FlexItem>
-                            </Flex>
-                            :
-                            <React.Fragment>
-                                <RuleList rules={this.rules()}
-                                          onEnableRule={this.doEnableRule}
-                                          onDisableRule={this.doDisableRule}
-                                          onConfigureRule={this.doConfigureRule} />
-                            </React.Fragment>
-                    }
+                    <React.Fragment>
+                        <RuleList rules={this.rules()}
+                                  onEnableRule={this.doEnableRule}
+                                  onDisableRule={this.doDisableRule}
+                                  onConfigureRule={this.doConfigureRule} />
+                    </React.Fragment>
                 </PageSection>
             </React.Fragment>
         );

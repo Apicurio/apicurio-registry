@@ -19,7 +19,6 @@ package io.apicurio.registry.auth;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.rest.client.exception.NotAuthorizedException;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -27,6 +26,10 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileBasicClientCredentials;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -36,6 +39,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -44,11 +48,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.DOCKER)
 public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.keycloak.url")
+    @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
 
     String noRoleClientId = "registry-api-no-role";
 
@@ -63,7 +64,7 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1", Optional.empty());
         return this.createClient(auth);
     }
 

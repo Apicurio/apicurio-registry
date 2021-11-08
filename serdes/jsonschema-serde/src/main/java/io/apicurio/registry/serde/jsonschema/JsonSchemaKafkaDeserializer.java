@@ -16,22 +16,12 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Deserializer;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.worldturner.medeia.api.StreamSchemaSource;
-import com.worldturner.medeia.api.jackson.MedeiaJacksonApi;
-import com.worldturner.medeia.schema.validation.SchemaValidator;
-
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.ParsedSchema;
@@ -41,15 +31,23 @@ import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Deserializer;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  * @author Fabian Martinez
+ * @author Carles Arnal
  */
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<SchemaValidator, T> implements Deserializer<T>, SchemaParser<SchemaValidator> {
+public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T>, SchemaParser<JsonSchema> {
 
-    protected static MedeiaJacksonApi api = new MedeiaJacksonApi();
     protected static ObjectMapper mapper = new ObjectMapper();
 
     private Boolean validationEnabled;
@@ -64,7 +62,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
     }
 
     public JsonSchemaKafkaDeserializer(RegistryClient client,
-            SchemaResolver<SchemaValidator, T> schemaResolver) {
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, schemaResolver);
     }
 
@@ -72,7 +70,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
         super(client);
     }
 
-    public JsonSchemaKafkaDeserializer(SchemaResolver<SchemaValidator, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
@@ -108,7 +106,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<SchemaValidator> schemaParser() {
+    public SchemaParser<JsonSchema> schemaParser() {
         return this;
     }
 
@@ -124,15 +122,16 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public SchemaValidator parseSchema(byte[] rawSchema) {
-        return api.loadSchema(new StreamSchemaSource(IoUtil.toStream(rawSchema)));
+    public JsonSchema parseSchema(byte[] rawSchema) {
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        return factory.getSchema(IoUtil.toStream(rawSchema));
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected T readData(ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
+    protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(null, schema, buffer, start, length);
     }
 
@@ -140,11 +139,11 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
      * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected T readData(Headers headers, ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
+    protected T readData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(headers, schema, buffer, start, length);
     }
 
-    private T internalReadData(Headers headers, ParsedSchema<SchemaValidator> schema, ByteBuffer buffer, int start, int length) {
+    private T internalReadData(Headers headers, ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         byte[] data = new byte[length];
         System.arraycopy(buffer.array(), start, data, 0, length);
 
@@ -152,7 +151,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
             JsonParser parser = mapper.getFactory().createParser(data);
 
             if (isValidationEnabled()) {
-                parser = api.decorateJsonParser(schema.getParsedSchema(), parser);
+                JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
             }
 
             Class<T> messageType = null;
@@ -185,5 +184,4 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Sc
             throw new UncheckedIOException(e);
         }
     }
-
 }

@@ -80,7 +80,7 @@ jobs:
     - name: Install native-image
       run: gu install native-image
     - name: Get maven wrapper
-      run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+      run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
     - name: Set version
       run: ./mvnw versions:set -DnewVersion="${{ github.event.release.tag_name }}"
     - name: Build jvm jar

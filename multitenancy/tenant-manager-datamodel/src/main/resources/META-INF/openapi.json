@@ -531,7 +531,8 @@
                     "TO_BE_DELETED",
                     "DELETED"
                 ],
-                "type": "string"
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
             "RegistryTenantList": {
                 "description": "Describes the response received when searching for tenants.",
@@ -552,7 +553,8 @@
                         "description": "The total number of items that matched the query that produced the result set (may be \nmore than the number of items in the result set).",
                         "type": "integer"
                     }
-                }
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
             "SortOrder": {
                 "description": "The order in which the list entries will be sorted",
@@ -560,7 +562,8 @@
                     "asc",
                     "desc"
                 ],
-                "type": "string"
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             },
             "SortBy": {
                 "description": "The name of the field that will be used for sorting",
@@ -569,7 +572,8 @@
                     "createdOn",
                     "tenantId"
                 ],
-                "type": "string"
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
             }
         },
         "responses": {

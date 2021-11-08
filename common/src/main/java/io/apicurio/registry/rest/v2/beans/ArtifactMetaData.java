@@ -436,4 +436,24 @@ public class ArtifactMetaData {
         this.contentId = contentId;
     }
 
+    @Override
+    public String toString() {
+        return "ArtifactMetaData{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdBy='" + createdBy + '\'' +
+                ", createdOn=" + createdOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                ", modifiedOn=" + modifiedOn +
+                ", id='" + id + '\'' +
+                ", version='" + version + '\'' +
+                ", type=" + type +
+                ", globalId=" + globalId +
+                ", state=" + state +
+                ", labels=" + labels +
+                ", properties=" + properties +
+                ", groupId='" + groupId + '\'' +
+                ", contentId=" + contentId +
+                '}';
+    }
 }

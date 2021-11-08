@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.1.3-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>apicurio-registry-integration-tests-testsuite</artifactId>
@@ -17,8 +17,8 @@
         <groups></groups>
         <skipTests>true</skipTests>
         
-        <junit.version>5.7.2</junit.version>
-        <junit.platform-launcher.version>1.7.2</junit.platform-launcher.version>
+        <junit.version>5.8.1</junit.version>
+        <junit.platform-launcher.version>1.8.1</junit.platform-launcher.version>
 
         <kafka.version>2.3.0</kafka.version>
         <hamcrest.version>2.2</hamcrest.version>
@@ -56,6 +56,11 @@
                 </exclusion>
             </exclusions>
 
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-rest-client-vertx</artifactId>
         </dependency>
 
         <!-- Third Party Libraries -->
@@ -117,6 +122,20 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.wire</groupId>
+            <artifactId>wire-schema</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.wire</groupId>
+            <artifactId>wire-compiler</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
+        <dependency>
+            <groupId>com.google.jimfs</groupId>
+            <artifactId>jimfs</artifactId>
         </dependency>
 
         <dependency>
@@ -196,6 +215,7 @@
                         <project.version>${project.version}</project.version>
                         <test.storage>${test.storage}</test.storage>
                         <groups>${groups}</groups>
+                        <smallrye.jwt.sign.key.location>privateKey.jwk</smallrye.jwt.sign.key.location>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -235,6 +255,14 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>( smoke | serdes | acceptance | ui ) &amp; !multitenancy</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>ci</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>( smoke | serdes | acceptance ) &amp; !multitenancy</groups>
             </properties>
         </profile>
 
@@ -299,6 +327,14 @@
             <properties>
                 <skipTests>false</skipTests>
                 <groups>auth</groups>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>dbupgrade</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>dbupgrade</groups>
             </properties>
         </profile>
 

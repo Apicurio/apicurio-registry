@@ -69,7 +69,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <div className="title-and-type">
                         <Split>
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                            <SplitItem className="title" isFilled={true}>{this.nameOrId()}</SplitItem>
+                            <SplitItem className="title" isFilled={true}>Version Metadata</SplitItem>
                             <SplitItem className="actions">
                                 <IfAuth isDeveloper={true}>
                                     <IfFeature feature="readOnly" isNot={true}>
@@ -83,8 +83,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             </SplitItem>
                         </Split>
                     </div>
-                    <div className="description">{this.description()}</div>
                     <div className="metaData">
+                        <div className="metaDataItem">
+                            <span className="label">Name</span>
+                            <span className="value">{this.props.artifact.name}</span>
+                        </div>
                         <If condition={this.isArtifactInGroup}>
                             <div className="metaDataItem">
                                 <span className="label">Group</span>
@@ -107,7 +110,16 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <span className="label">Modified</span>
                             <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
                         </div>
+                        <div className="metaDataItem">
+                            <span className="label">Global ID</span>
+                            <span className="value">{this.props.artifact.globalId}</span>
+                        </div>
+                        <div className="metaDataItem">
+                            <span className="label">Content ID</span>
+                            <span className="value">{this.props.artifact.contentId}</span>
+                        </div>
                     </div>
+                    <div className="description">{this.description()}</div>
                     <div className="labels">
                         {
                             this.labels().map( label =>
@@ -120,7 +132,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 data-testid="artifact-btn-download"
                                 title="Download artifact content"
                                 onClick={this.props.onDownloadArtifact}
-                                variant="primary"><DownloadIcon /> Download</Button>
+                                variant="secondary"><DownloadIcon /> Download</Button>
                     </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">

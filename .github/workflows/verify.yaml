@@ -41,7 +41,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build and Test All Variants
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
@@ -98,7 +98,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
@@ -107,7 +107,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-tenant-manager
+          make build-sql-native build-tenant-manager-native
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -119,7 +119,7 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run UI tests - only PRs
+      - name: Run UI tests
         run: ./mvnw verify -Pintegration-tests -Pui -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
       - name: Run Legacy Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
@@ -139,7 +139,7 @@ jobs:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-tenant-manager-image
+          make build-sql-native-image build-tenant-manager-native-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
@@ -151,7 +151,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-tenant-manager-image
+          make push-sql-native-image push-tenant-manager-native-image
 
       - name: List All The Images
         run: docker images

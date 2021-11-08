@@ -101,9 +101,15 @@ public class SerdeConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
+     * The URL of the Token Endpoint. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry and AUTH_SERVICE_URL is not specified.
+     */
+    public static final String AUTH_TOKEN_ENDPOINT = "apicurio.auth.service.token.endpoint";
+
+    /**
      * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry.
      */
     public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
+    public static final String AUTH_SERVICE_URL_TOKEN_ENDPOINT = "/realms/%s/protocol/openid-connect/token";
 
     /**
      * The Realm of the Auth Service.
@@ -162,6 +168,23 @@ public class SerdeConfig {
      * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be fetched every time.
      */
     public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
+    public static final long CHECK_PERIOD_MS_DEFAULT = 30000;
+
+    /**
+     * If a schema can not be retrieved from the Registry, serdes may retry a number of times.
+     * This configuration option controls the number of retries before failing.
+     * Valid values are non-negative integers.
+     */
+    public static final String RETRY_COUNT = "apicurio.registry.retry-count";
+    public static final long RETRY_COUNT_DEFAULT = 3;
+
+    /**
+     * If a schema can not be be retrieved from the Registry, serdes may retry a number of times.
+     * This configuration option controls the delay between the retry attempts, in milliseconds.
+     * Valid values are non-negative integers.
+     */
+    public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
+    public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
      * Configures the serdes to use the specified {@link IdOption} as the identifier for the artifacts.

@@ -12,3 +12,7 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     display: flex;
     flex-direction: column;
 }
+
+#artifact-page-tabs > ul > li:first-child {
+    margin-left: 20px;
+}

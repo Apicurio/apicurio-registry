@@ -128,4 +128,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         }
 
     }
+
+    public void setArtifacts(List<DownloadArtifact> artifacts) {
+        this.artifacts = artifacts;
+    }
 }

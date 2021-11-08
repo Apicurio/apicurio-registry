@@ -41,18 +41,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-integration-tests-
 
-      - name: Set test profile to acceptance
-        if: github.ref != 'refs/heads/master'
-        run: |
-          echo "test_profile=acceptance" >> $GITHUB_ENV
+      # - name: Set test profile to acceptance
+      #   if: github.ref != 'refs/heads/master'
+      #   run: |
+      #     echo "test_profile=acceptance" >> $GITHUB_ENV
 
-      - name: Set test profile to all
-        if: github.ref == 'refs/heads/master'
+      # Run all tests always: serdes, acceptance and smoke. Things like UI , multitenancy or auth , are tested in it's own run.
+      - name: Set test profile to ci
         run: |
-          echo "test_profile=all" >> $GITHUB_ENV
+          echo "test_profile=ci" >> $GITHUB_ENV
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all 
@@ -60,8 +60,7 @@ jobs:
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
 
-      - name: Run UI tests - only PRs
-        if: github.ref != 'refs/heads/master'
+      - name: Run UI tests
         run: ./mvnw verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       
       - name: Run Integration Tests - sql
@@ -82,10 +81,16 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - sql dbupgrade
+        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
       - name: Run Legacy Tests - kafkasql
+        env:
+          TEST_APP_ENV_ENABLE_CCOMPAT_LEGACY_ID_MODE: "true"
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Legacy Tests - sql
+        env:
+          TEST_APP_ENV_ENABLE_CCOMPAT_LEGACY_ID_MODE: "true"
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Collect logs

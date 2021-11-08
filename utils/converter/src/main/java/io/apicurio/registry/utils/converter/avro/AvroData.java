@@ -32,6 +32,7 @@ import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.avro.util.internal.JacksonUtils;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.cache.SynchronizedCache;
@@ -1348,8 +1349,13 @@ public class AvroData {
                     break;
                 }
                 case INT64: {
-                    Long longValue = (Long) value; // Validate type
-                    converted = value;
+                    long longValue;
+                    if (value instanceof Integer) { // Convert up
+                        longValue = ((Integer) value).longValue();
+                    } else { // Validate type
+                        longValue = (Long) value;
+                    }
+                    converted = longValue;
                     break;
                 }
                 case FLOAT32: {
@@ -1788,7 +1794,7 @@ public class AvroData {
         }
 
         if (fieldDefaultVal == null) {
-            fieldDefaultVal = schema.getObjectProp(CONNECT_DEFAULT_VALUE_PROP);
+            fieldDefaultVal = JacksonUtils.toJsonNode(schema.getObjectProp(CONNECT_DEFAULT_VALUE_PROP));
         }
         if (fieldDefaultVal != null) {
             builder.defaultValue(

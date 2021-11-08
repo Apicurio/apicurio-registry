@@ -1,10 +1,11 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="configuring-liveness-readiness-probes"]
+[id="configuring-liveness-readiness-probes_{context}"]
 
 = Configuring {registry} health checks on OpenShift
 
+[role="_abstract"]
 You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
 
 * _Liveness probes_ test if the application can make progress. If the application cannot make progress, OpenShift automatically restarts the failing Pod. 
@@ -43,7 +44,8 @@ endif::[]
 +
 Alternatively, you can perform these steps using the OpenShift `oc` command. For more details, see the link:https://docs.openshift.com/container-platform/{registry-ocp-version}/cli_reference/openshift_cli/getting-started-cli.html[OpenShift CLI documentation]. 
 
+[role="_additional-resources"]
 .Additional resources
-* xref:registry-liveness-env-vars[]
+* xref:registry-liveness-env-vars_{context}[]
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
 //* TBD

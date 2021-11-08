@@ -16,8 +16,11 @@
 
 package io.apicurio.registry;
 
+import io.apicurio.registry.logging.audit.MockAuditLogService;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -36,21 +39,25 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -80,11 +87,164 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);
 
+    private static final String ARTIFACT_OPENAPI_YAML_CONTENT = "openapi: \"3.0.2\"\n" +
+            "info:\n" +
+            "  description: \"Description\"\n" +
+            "  version: \"1.0.0\"\n" +
+            "  title: \"OpenAPI\"\n" +
+            "paths:";
+    private static final String UPDATED_OPENAPI_YAML_CONTENT = "openapi: \"3.0.2\"\n" +
+            "info:\n" +
+            "  description: \"Description v2\"\n" +
+            "  version: \"2.0.0\"\n" +
+            "  title: \"OpenAPI\"\n" +
+            "paths:";
+
+    private static final String ARTIFACT_OPENAPI_JSON_CONTENT = "{\n" +
+            "  \"openapi\" : \"3.0.2\",\n" +
+            "  \"info\" : {\n" +
+            "    \"description\" : \"Description\",\n" +
+            "    \"version\" : \"1.0.0\",\n" +
+            "    \"title\" : \"OpenAPI\"\n" +
+            "  },\n" +
+            "  \"paths\" : null\n" +
+            "}";
+    private static final String UPDATED_OPENAPI_JSON_CONTENT = "{\n" +
+            "  \"openapi\" : \"3.0.2\",\n" +
+            "  \"info\" : {\n" +
+            "    \"description\" : \"Description v2\",\n" +
+            "    \"version\" : \"2.0.0\",\n" +
+            "    \"title\" : \"OpenAPI\"\n" +
+            "  },\n" +
+            "  \"paths\" : null\n" +
+            "}";
+
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
     private static final String UPDATED_CONTENT = "{\"name\":\"ibm\"}";
 
+    @Inject
+    MockAuditLogService auditLogService;
+
+    @Test
+    public void testCreateArtifact() throws Exception {
+        //Preparation
+        final String groupId = "testCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "testCreateArtifactName";
+        final String description = "testCreateArtifactDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+        waitForArtifact(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals(name, created.getName());
+        assertEquals(description, created.getDescription());
+        assertEquals(ARTIFACT_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+    @Test
+    public void testCreateYamlArtifact() throws Exception {
+        //Preparation
+        final String groupId = "testCreateYamlArtifact";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "testCreateYamlArtifactName";
+        final String description = "testCreateYamlArtifactDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.OPENAPI, IfExists.FAIL, false, name, description, ContentTypes.APPLICATION_YAML, stream);
+        waitForArtifact(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals(name, created.getName());
+        assertEquals(description, created.getDescription());
+        assertEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+
+    @Test
+    public void testCreateArtifactVersion() throws Exception {
+        //Preparation
+        final String groupId = "testCreateArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        final String version = "2";
+        final String name = "testCreateArtifactVersionName";
+        final String description = "testCreateArtifactVersionDescription";
+
+        createArtifact(groupId, artifactId);
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(UPDATED_CONTENT.getBytes(StandardCharsets.UTF_8));
+        VersionMetaData versionMetaData = clientV2.createArtifactVersion(groupId, artifactId, version, name, description, stream);
+        waitForVersion(groupId, artifactId, 2);
+
+        ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(versionMetaData);
+        assertEquals(version, versionMetaData.getVersion());
+        assertEquals(name, versionMetaData.getName());
+        assertEquals(description, versionMetaData.getDescription());
+
+        assertNotNull(amd);
+        assertEquals(version, amd.getVersion());
+        assertEquals(name, amd.getName());
+        assertEquals(description, amd.getDescription());
+
+        assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
+    @Test
+    public void testCreateYamlArtifactVersion() throws Exception {
+        //Preparation
+        final String groupId = "testCreateYamlArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        final String version = "2";
+        final String name = "testCreateYamlArtifactVersionName";
+        final String description = "testCreateYamlArtifactVersionDescription";
+
+        createOpenAPIArtifact(groupId, artifactId); // Create first version of the openapi artifact using JSON
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
+        VersionMetaData versionMetaData = clientV2.createArtifactVersion(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
+        waitForVersion(groupId, artifactId, 2);
+
+        ArtifactMetaData amd = clientV2.getArtifactMetaData(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(versionMetaData);
+        assertEquals(version, versionMetaData.getVersion());
+        assertEquals(name, versionMetaData.getName());
+        assertEquals(description, versionMetaData.getDescription());
+
+        assertNotNull(amd);
+        assertEquals(version, amd.getVersion());
+        assertEquals(name, amd.getName());
+        assertEquals(description, amd.getDescription());
+
+        assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+    }
+
     @Test
     public void testAsyncCRUD() throws Exception {
+        auditLogService.resetAuditLogs();
         //Preparation
         final String groupId = "testAsyncCRUD";
         String artifactId = generateArtifactId();
@@ -116,6 +276,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
             //Assertions
             assertEquals(UPDATED_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+
+            List<Map<String, String>> auditLogs = auditLogService.getAuditLogs();
+            assertFalse(auditLogs.isEmpty());
+            assertEquals(3, auditLogs.size()); //Expected size 3 since we performed 3 audited operations
 
         } finally {
             clientV2.deleteArtifact(groupId, artifactId);
@@ -723,13 +887,48 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         createArtifact(groupId, artifactId);
         final String updatedContent = "{\"name\":\"ibm\"}";
+        final String version = "3";
+        final String name = "testUpdateArtifactName";
+        final String description = "testUpdateArtifactDescription";
 
         final InputStream stream = IoUtil.toStream(updatedContent.getBytes(StandardCharsets.UTF_8));
         //Execution
-        clientV2.updateArtifact(groupId, artifactId, stream);
+        clientV2.updateArtifact(groupId, artifactId, version, name, description, stream);
 
         //Assertions
         assertEquals(updatedContent, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+
+        ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
+        assertNotNull(artifactMetaData);
+        assertEquals(version, artifactMetaData.getVersion());
+        assertEquals(name, artifactMetaData.getName());
+        assertEquals(description, artifactMetaData.getDescription());
+    }
+
+    @Test
+    public void testUpdateYamlArtifact() throws Exception {
+
+        //Preparation
+        final String groupId = "testUpdateYamlArtifact";
+        final String artifactId = generateArtifactId();
+
+        createOpenAPIArtifact(groupId, artifactId); // Create first version of the openapi artifact using json
+        final String version = "3";
+        final String name = "testUpdateYamlArtifactName";
+        final String description = "testUpdateYamlArtifactDescription";
+
+        final InputStream stream = IoUtil.toStream(UPDATED_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
+        //Execution
+        clientV2.updateArtifact(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
+
+        //Assertions
+        assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+
+        ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
+        assertNotNull(artifactMetaData);
+        assertEquals(version, artifactMetaData.getVersion());
+        assertEquals(name, artifactMetaData.getName());
+        assertEquals(description, artifactMetaData.getDescription());
     }
 
     @Test
@@ -866,6 +1065,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
     public void testDefaultGroup() throws Exception {
         String nullDefaultGroup = null;
         String artifactId1 = "testDefaultGroup-" + UUID.randomUUID().toString();
@@ -926,6 +1126,39 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     private ArtifactMetaData createArtifact(String groupId, String artifactId) throws Exception {
         final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
         final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.JSON, IfExists.FAIL, false, stream);
+        waitForArtifact(groupId, artifactId);
+
+        assertNotNull(created);
+        if (groupId == null || groupId.equals("default")) {
+            assertNull(created.getGroupId());
+        } else {
+            assertEquals(groupId, created.getGroupId());
+        }
+        assertEquals(artifactId, created.getId());
+
+        return created;
+    }
+
+    private ArtifactMetaData createOpenAPIArtifact(String groupId, String artifactId) throws Exception {
+        final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_JSON_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.OPENAPI, IfExists.FAIL, false, stream);
+        waitForArtifact(groupId, artifactId);
+
+        assertNotNull(created);
+        if (groupId == null || groupId.equals("default")) {
+            assertNull(created.getGroupId());
+        } else {
+            assertEquals(groupId, created.getGroupId());
+        }
+        assertEquals(artifactId, created.getId());
+
+        return created;
+    }
+
+    @SuppressWarnings("unused")
+    private ArtifactMetaData createOpenAPIYamlArtifact(String groupId, String artifactId) throws Exception {
+        final InputStream stream = IoUtil.toStream(ARTIFACT_OPENAPI_YAML_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, null, ArtifactType.OPENAPI, IfExists.FAIL, false, stream);
         waitForArtifact(groupId, artifactId);
 
         assertNotNull(created);
@@ -1103,4 +1336,41 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         latch.await();
     }
+
+    @Test
+    public void testForceArtifactType() throws Exception {
+        var artifactContent = resourceToInputStream("sample.wsdl");
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactContent);
+
+        this.waitForArtifact(groupId, artifactId);
+
+        var meta = clientV2.getArtifactMetaData(groupId, artifactId);
+
+        assertEquals(ArtifactType.AVRO, meta.getType());
+
+        assertNotNull(clientV2.getLatestArtifact(groupId, artifactId));
+
+    }
+
+    @Test
+    public void testClientRateLimitError() {
+        TooManyRequestsMock mock = new TooManyRequestsMock();
+        mock.start();
+        try {
+            RegistryClient client = RegistryClientFactory.create(mock.getMockUrl());
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getLatestArtifact("test", "test"));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.createArtifact(null, "aaa", IoUtil.toStream("{}")));
+
+            Assertions.assertThrows(RateLimitedClientException.class, () -> client.getContentByGlobalId(5));
+        } finally {
+            mock.stop();
+        }
+    }
+
 }

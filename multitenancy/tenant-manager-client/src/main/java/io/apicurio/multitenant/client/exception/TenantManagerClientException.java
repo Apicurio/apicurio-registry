@@ -15,31 +15,16 @@
  */
 package io.apicurio.multitenant.client.exception;
 
+import io.apicurio.rest.client.error.ApicurioRestClientException;
+
 /**
  * @author Fabian Martinez
  */
-public class TenantManagerClientException extends RuntimeException {
+public class TenantManagerClientException extends ApicurioRestClientException {
 
     private static final long serialVersionUID = 1L;
-
-    public TenantManagerClientException() {
-        super();
-    }
-
-    public TenantManagerClientException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public TenantManagerClientException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public TenantManagerClientException(String message) {
         super(message);
     }
-
-    public TenantManagerClientException(Throwable cause) {
-        super(cause);
-    }
-
 }

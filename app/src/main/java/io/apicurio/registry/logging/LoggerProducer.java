@@ -16,15 +16,14 @@
 
 package io.apicurio.registry.logging;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class LoggerProducer {
 
-    private final Map<Class<?>, Logger> loggers = new HashMap<>();
+    private final Map<Class<?>, Logger> loggers = new ConcurrentHashMap<>();
 
     /**
      * @param targetClass

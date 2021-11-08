@@ -28,8 +28,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
  * @author Carles Arnal 'carles.arnal@redhat.com'
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @EqualsAndHashCode
 @ToString
@@ -43,4 +41,17 @@ public class SchemaInfo {
     @JsonProperty("schemaType")
     @Builder.Default
     private String schemaType = "AVRO";
+
+
+    public SchemaInfo(String schema, String schemaType) {
+        this.schema = schema;
+        this.schemaType = schemaType;
+    }
+
+    public SchemaInfo(String schema) {
+        this.schema = schema;
+    }
+
+    public SchemaInfo() {
+    }
 }

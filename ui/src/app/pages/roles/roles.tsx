@@ -190,7 +190,6 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
             isPleaseWaitModalOpen: false,
             isRoleMappingUpdate: false,
             pleaseWaitMessage: "",
-            isLoading: true,
             selectedRole: undefined,
             roles: [],
             roleFilter: { principalId: "", role: "", principalName: "" },

@@ -75,7 +75,6 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     protected initializePageState(): RulesPageState {
         return {
-            isLoading: true,
             rules: null
         };
     }

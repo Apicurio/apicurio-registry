@@ -7,6 +7,7 @@ import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestSyntax2JavaPackage;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestSyntax2OneOfs;
+import io.apicurio.registry.utils.protobuf.schema.syntax2.options.example.TestOrderingSyntax2OptionsExampleName;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.references.TestOrderingSyntax2References;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.specified.TestOrderingSyntax2Specified;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestOrderingSyntax3;
@@ -15,6 +16,7 @@ import io.apicurio.registry.utils.protobuf.schema.syntax3.TestSyntax3OneOfs;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestSyntax3Optional;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.WellKnownTypesTestSyntax3;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.WellKnownTypesTestSyntax2;
+import io.apicurio.registry.utils.protobuf.schema.syntax3.options.TestOrderingSyntax3Options;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.references.TestOrderingSyntax3References;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,8 +36,10 @@ public class FileDescriptorUtilsTest {
         return
             Stream.of(
             TestOrderingSyntax2.getDescriptor(),
+            TestOrderingSyntax2OptionsExampleName.getDescriptor(),
             TestOrderingSyntax2Specified.getDescriptor(),
             TestOrderingSyntax3.getDescriptor(),
+            TestOrderingSyntax3Options.getDescriptor(),
             TestOrderingSyntax2References.getDescriptor(),
             TestOrderingSyntax3References.getDescriptor(),
             WellKnownTypesTestSyntax3.getDescriptor(),

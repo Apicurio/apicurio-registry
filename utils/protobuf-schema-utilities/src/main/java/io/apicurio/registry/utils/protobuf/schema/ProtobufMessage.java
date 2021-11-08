@@ -81,12 +81,14 @@ public class ProtobufMessage {
             String jsonName,
             Boolean isDeprecated,
             Boolean isPacked,
+            DescriptorProtos.FieldOptions.CType ctype,
+            DescriptorProtos.FieldOptions.JSType jsType,
             Integer oneOfIndex,
             Boolean isProto3Optional
         ) {
         descriptorProtoBuilder.addField(
                 buildFieldDescriptorProto(label, type, typeName, name, num, defaultVal, jsonName, isDeprecated,
-                        isPacked, oneOfIndex, isProto3Optional)
+                        isPacked, ctype, jsType, oneOfIndex, isProto3Optional)
         );
     }
 
@@ -99,6 +101,8 @@ public class ProtobufMessage {
                                                                  String jsonName,
                                                                  Boolean isDeprecated,
                                                                  Boolean isPacked,
+                                                                 DescriptorProtos.FieldOptions.CType ctype,
+                                                                 DescriptorProtos.FieldOptions.JSType jsType,
                                                                  Integer oneOfIndex,
                                                                  Boolean isProto3Optional) {
         FieldDescriptorProto.Builder fieldBuilder = FieldDescriptorProto.newBuilder();
@@ -145,6 +149,18 @@ public class ProtobufMessage {
         if (isPacked != null) {
             DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
             optionsBuilder.setPacked(isPacked);
+            fieldBuilder.mergeOptions(optionsBuilder.build());
+        }
+
+        if (ctype != null) {
+            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            optionsBuilder.setCtype(ctype);
+            fieldBuilder.mergeOptions(optionsBuilder.build());
+        }
+
+        if (jsType != null) {
+            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            optionsBuilder.setJstype(jsType);
             fieldBuilder.mergeOptions(optionsBuilder.build());
         }
 

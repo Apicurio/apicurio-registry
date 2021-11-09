@@ -10,5 +10,6 @@
 * xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * xref:getting-started/assembly-using-the-registry-client.adoc[]
 * xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
+* xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
 * xref:getting-started/assembly-registry-reference.adoc[]
-* link:https://www.apicur.io/registry/docs/apicurio-registry-operator/1.1.0-dev/index.html[Apicurio Registry Operator documentation]
+* link:https://www.apicur.io/registry/docs/apicurio-registry-operator/1.0.0/index.html[Apicurio Registry Operator documentation]

@@ -436,7 +436,7 @@ parameters:
   value: INFO
 
 - name: ENABLE_ACCESS_LOG
-  value: false
+  value: "false"
 
 - name: SERVICE_ACCOUNT_NAME
   displayName: Service Account to use for the deployment

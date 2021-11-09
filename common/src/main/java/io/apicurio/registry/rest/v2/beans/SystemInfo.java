@@ -76,4 +76,13 @@ public class SystemInfo {
         this.builtOn = builtOn;
     }
 
+    @Override
+    public String toString() {
+        return "SystemInfo{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", version='" + version + '\'' +
+                ", builtOn=" + builtOn +
+                '}';
+    }
 }

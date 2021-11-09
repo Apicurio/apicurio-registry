@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 // assembly-using-kafka-client-serdes
 
-[id='registry-serdes-concepts-strategy-{context}']
+[id='registry-serdes-concepts-strategy_{context}']
 = Strategies to look up a schema in {registry}
 
 [role="_abstract"]
@@ -29,7 +29,7 @@ Which lookup strategy you use depends on how and where you store your schema. Fo
 
 
 [discrete]
-== ArtifaceResolverStrategy interface
+== ArtifactResolverStrategy interface
 
 The artifact resolver strategy provides a way to map the Kafka topic and message information to an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
 
@@ -56,12 +56,12 @@ The default schema resolver can look up an existing artifact version, or it can 
 
 [discrete]
 [id='configuring-globalid-strategy-{context}']
-== Strategies to return a global ID
+== Configuration for registry lookup options
 
 When using the `DefaultSchemaResolver`, you can configure its behavior using application properties. The following table shows some commonly used examples: 
 
-.{registry} global ID configuration options
-[%header,cols="5,2,5,2"] 
+.{registry} lookup configuration options
+[%header,cols="5,3,5,2"] 
 
 |===
 |Property
@@ -77,7 +77,7 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 |`apicurio.registry.use-id`
 |`String`
 |Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema.
-|`-`
+|None
 
 |`apicurio.registry.auto-register`
 |`boolean`
@@ -87,14 +87,6 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 |`apicurio.registry.check-period-ms` 
 |`String`
 |Specify how long to cache the global ID in milliseconds. If not configured, the global ID is fetched every time.  
-|`-`
+|None
 
 |===
-
-TIP: You can configure application properties as Java system properties or include them in the Quarkus
-`application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
-
-[role="_additional-resources"]
-.Additional resources 
-
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/serde-common/src/main/java/io/apicurio/registry/serde/SerdeConfig.java[SerdeConfig Java class] 

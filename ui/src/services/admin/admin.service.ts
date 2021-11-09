@@ -82,11 +82,11 @@ export class AdminService extends BaseService {
         return this.httpGet<RoleMapping>(endpoint);
     }
 
-    public createRoleMapping(principalId: string, role: string): Promise<RoleMapping> {
-        this.logger.info("[AdminService] Creating a role mapping:", principalId, role);
+    public createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping> {
+        this.logger.info("[AdminService] Creating a role mapping:", principalId, role, principalName);
 
         const endpoint: string = this.endpoint("/v2/admin/roleMappings");
-        const body: RoleMapping = { principalId, role };
+        const body: RoleMapping = { principalId, role, principalName };
         return this.httpPost(endpoint, body).then(() => {
             return body;
         });
@@ -100,7 +100,7 @@ export class AdminService extends BaseService {
         });
         const body: any = { role };
         return this.httpPut<any>(endpoint, body).then(() => {
-            return { principalId, role };
+            return { principalId, role, principalName: principalId };
         });
     }
 

@@ -22,14 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.InputStream;
 import java.util.List;
 
+import io.apicurio.tests.utils.RetryLimitingProxy;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.SerdeConfig;
@@ -72,6 +75,72 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
+    }
+
+    @Test
+    void testRateLimitingProxy() throws Exception {
+        RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+
+        //client connecting directly to registry works
+        assertNotNull(clientTenant.listArtifactsInGroup(null));
+
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
+
+            //client connecting to rate limiting proxy , request 1 should be allowed
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            //client connecting to rate limiting proxy , request 2 should be allowed as well
+            assertNotNull(rateLimitedClient.listGlobalRules());
+
+            //client connecting to rate limiting proxy , from now requests should fail
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listGlobalRules());
+
+        } finally {
+            proxy.stop();
+        }
+    }
+
+    @Test
+    void testRetryLimitingProxy() throws Exception {
+        RetryLimitingProxy proxy = new RetryLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+
+        //client connecting directly to registry works
+        assertNotNull(clientTenant.listArtifactsInGroup(null));
+
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            RegistryClient rateLimitedClient = mt.createUserClient(tenant.user, tenantRateLimitedUrl);
+
+            //client connecting to retry limiting proxy , request 1
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+            //client connecting to retry limiting proxy , request 2
+            Assertions.assertThrows(RateLimitedClientException.class, () -> rateLimitedClient.listArtifactsInGroup(null));
+
+            //client connecting to retry limiting proxy , from now requests should be allowed
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            assertNotNull(rateLimitedClient.listArtifactsInGroup(null));
+            assertNotNull(rateLimitedClient.listGlobalRules());
+
+        } finally {
+            proxy.stop();
+        }
     }
 
     @Test
@@ -191,4 +260,67 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
 
     }
 
+    @Test
+    void testRetryRateLimited() throws Exception {
+
+        RetryLimitingProxy proxy = new RetryLimitingProxy(3, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+
+        MultitenancySupport mt = new MultitenancySupport();
+        var tenant = mt.createTenant();
+        RegistryClient clientTenant = tenant.client;
+        String tenantRateLimitedUrl = proxy.getServerUrl() + "/t/" + tenant.user.tenantId;
+
+        try {
+            proxy.start();
+
+            String topicName = TestUtils.generateTopic();
+            //because of using TopicIdStrategy
+            String artifactId = topicName + "-value";
+            kafkaCluster.createTopic(topicName, 1, 1);
+
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1", List.of("key1"));
+
+            new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+                .withTopic(topicName)
+
+                //url of the proxy
+                .withCommonProperty(SerdeConfig.REGISTRY_URL, tenantRateLimitedUrl)
+
+                //add auth properties
+                .withCommonProperty(SerdeConfig.AUTH_TOKEN_ENDPOINT, tenant.tokenEndpoint)
+                //making use of tenant owner is admin feature
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_ID, tenant.user.principalId)
+                .withCommonProperty(SerdeConfig.AUTH_CLIENT_SECRET, tenant.user.principalPassword)
+
+                .withSerializer(AvroKafkaSerializer.class)
+                .withDeserializer(AvroKafkaDeserializer.class)
+                .withStrategy(TopicIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord)
+                .withDataValidator(avroSchema::validateRecord)
+                .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+                .withAfterProduceValidator(() -> {
+                    return TestUtils.retry(() -> {
+                        ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+                        clientTenant.getContentByGlobalId(meta.getGlobalId());
+                        return true;
+                    });
+                })
+
+                // make serdes tester send multiple message batches, that will test that the cache is used when loaded
+                .withMessages(4, 5)
+
+                .build()
+                .test();
+
+
+            ArtifactMetaData meta = clientTenant.getArtifactMetaData(null, artifactId);
+            byte[] rawSchema = IoUtil.toBytes(clientTenant.getContentByGlobalId(meta.getGlobalId()));
+
+            assertEquals(new String(avroSchema.generateSchemaBytes()), new String(rawSchema));
+
+        } finally {
+            proxy.stop();
+        }
+
+    }
 }

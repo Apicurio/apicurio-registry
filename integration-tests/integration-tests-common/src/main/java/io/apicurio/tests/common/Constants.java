@@ -24,8 +24,8 @@ import java.time.Duration;
  */
 public interface Constants {
     long POLL_INTERVAL = Duration.ofSeconds(1).toMillis();
-    long TIMEOUT_FOR_REGISTRY_START_UP = Duration.ofSeconds(15).toMillis();
-    long TIMEOUT_FOR_REGISTRY_READY = Duration.ofSeconds(25).toMillis();
+    long TIMEOUT_FOR_REGISTRY_START_UP = Duration.ofSeconds(25).toMillis();
+    long TIMEOUT_FOR_REGISTRY_READY = Duration.ofSeconds(30).toMillis();
     long TIMEOUT_GLOBAL = Duration.ofSeconds(30).toMillis();
 
     /**
@@ -66,6 +66,12 @@ public interface Constants {
      */
     String AUTH = "auth";
 
+    /**
+     * Tag for sql storage db schema upgrade tests. Consists of one test that deploys an older version of the registry, populates the db, and then deploys the latest version of the registry.
+     * Used to test the db schema upgrade process.
+     */
+    String DB_UPGRADE = "dbupgrade";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 
     /**
@@ -73,7 +79,15 @@ public interface Constants {
      */
     public static final String NO_DOCKER_ENV_VAR = "NO_DOCKER";
 
+    /**
+     * Current CI environment running the testsuite
+     */
     public static final String CURRENT_ENV = "CURRENT_ENV";
     public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
+
+    /**
+     * Env var used by the e2e testsuite to provide an already deployed kafka cluster in kubernetes in order to use it in the tests
+     */
+    public static final String TESTS_SHARED_KAFKA_ENV_VAR = "TESTS_SHARED_KAFKA";
 
 }

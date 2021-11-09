@@ -101,13 +101,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @BeforeEach
     protected void setTenantIds() throws Exception {
-        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
+        tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
         RegistryTenant rt1 = new RegistryTenant();
         rt1.setTenantId(tenantId1.getTenantId());
         rt1.setStatus(tenantId1.getStatus());
         tms.createTenant(rt1);
 
-        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY);
+        tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
         RegistryTenant rt2 = new RegistryTenant();
         rt2.setTenantId(tenantId2.getTenantId());
         rt2.setStatus(tenantId2.getStatus());
@@ -999,7 +999,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ArtifactMetaDataDto artifactDto2 = storage().createArtifactWithMetadata(
             group2, artifactId2, null, ArtifactType.OPENAPI, content, EditableArtifactMetaDataDto.builder().name("test").build());
         storage().createGlobalRule(RuleType.VALIDITY, RuleConfigurationDto.builder().configuration("FULL").build());
-        storage().createRoleMapping(principal, role);
+        storage().createRoleMapping(principal, role, null);
 
         // Verify data exists
 

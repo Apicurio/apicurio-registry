@@ -2,7 +2,7 @@
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-postgresql-operatorhub"]
+[id="installing-postgresql-operatorhub_{context}"]
 = Installing a PostgreSQL database from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 

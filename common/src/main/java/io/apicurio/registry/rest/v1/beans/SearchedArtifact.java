@@ -315,4 +315,19 @@ public class SearchedArtifact {
         this.modifiedBy = modifiedBy;
     }
 
+    @Override
+    public String toString() {
+        return "SearchedArtifact{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdOn=" + createdOn +
+                ", createdBy='" + createdBy + '\'' +
+                ", type=" + type +
+                ", labels=" + labels +
+                ", state=" + state +
+                ", modifiedOn=" + modifiedOn +
+                ", modifiedBy='" + modifiedBy + '\'' +
+                '}';
+    }
 }

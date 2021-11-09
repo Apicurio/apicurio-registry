@@ -71,4 +71,11 @@ public class Rule {
         this.type = type;
     }
 
+    @Override
+    public String toString() {
+        return "Rule{" +
+                "config='" + config + '\'' +
+                ", type=" + type +
+                '}';
+    }
 }

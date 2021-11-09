@@ -344,4 +344,20 @@ public class SearchedVersion {
         this.contentId = contentId;
     }
 
+    @Override
+    public String toString() {
+        return "SearchedVersion{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", createdOn=" + createdOn +
+                ", createdBy='" + createdBy + '\'' +
+                ", type=" + type +
+                ", labels=" + labels +
+                ", state=" + state +
+                ", globalId=" + globalId +
+                ", version='" + version + '\'' +
+                ", properties=" + properties +
+                ", contentId=" + contentId +
+                '}';
+    }
 }

@@ -17,6 +17,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 /**
@@ -152,7 +153,7 @@ public interface AdminResource {
   @Path("/export")
   @GET
   @Produces("application/zip")
-  Response exportData();
+  Response exportData(@QueryParam("forBrowser") Boolean forBrowser);
 
   /**
    * Imports registry data that was previously exported using the `/admin/export` operation.

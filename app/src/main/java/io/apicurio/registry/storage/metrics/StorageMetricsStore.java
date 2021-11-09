@@ -22,8 +22,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -50,8 +52,7 @@ public class StorageMetricsStore {
     Logger log;
 
     @Inject
-    @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")
-    Long limitsCheckPeriod;
+    RegistryConfigService configService;
 
     @Inject
     TenantContext tenantContext;
@@ -73,6 +74,7 @@ public class StorageMetricsStore {
     }
 
     public void onStart(@Observes StartupEvent ev) {
+        long limitsCheckPeriod = configService.get(RegistryConfigProperty.REGISTRY_STORAGE_METRICS_CACHE_CHECK_PERIOD, Long.class);
         totalSchemasCounters = new CheckPeriodCache<>(limitsCheckPeriod);
         artifactsCounters = new CheckPeriodCache<>(limitsCheckPeriod);
         artifactVersionsCounters = new CheckPeriodCache<>(limitsCheckPeriod);

@@ -22,12 +22,13 @@ import io.apicurio.multitenant.api.datamodel.SortBy;
 import io.apicurio.multitenant.api.datamodel.SortOrder;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -70,10 +71,10 @@ public class TenantReaper {
     @Inject
     OptionalBean<TenantManagerClient> tenantManagerClient;
 
-    Instant next;
+    @Inject
+    RegistryConfigService configService;
 
-    @ConfigProperty(name = "registry.multitenancy.reaper.max-tenants-reaped", defaultValue = "100")
-    int maxTenantsReaped;
+    Instant next;
 
     @PostConstruct
     void init() {
@@ -129,6 +130,7 @@ public class TenantReaper {
     void reap() {
         List<RegistryTenant> page;
         int tenantsProcessed = 0;
+        int maxTenantsReaped = configService.get(RegistryConfigProperty.REGISTRY_MULTITENANCY_REAPER_MAX_TENANTS_REAPED, Integer.class);
         do {
             RegistryTenantList tenants = tenantManagerClient.get().listTenants(
                 TenantStatusValue.TO_BE_DELETED,

@@ -22,6 +22,7 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -33,22 +34,28 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
+
 
 /**
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
 public class RedirectFilter implements Filter {
-    
-    @ConfigProperty(name = "registry.enable-redirects")
-    Boolean redirectsEnabled;
+
+    @Inject
+    RegistryConfigService configService;
 
     @ConfigProperty(name = "registry.redirects")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
 
+    Boolean redirectsEnabled;
+
     @PostConstruct
     void init() {
+        redirectsEnabled = configService.get(RegistryConfigProperty.REGISTRY_ENABLE_REDIRECTS, Boolean.class);
         if (redirectsEnabled != null && redirectsEnabled) {
             redirectsConfig.values().forEach(value -> {
                 String [] split = value.split(",");
@@ -78,13 +85,13 @@ public class RedirectFilter implements Filter {
         if (redirectsEnabled != null && redirectsEnabled) {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
-    
+
             String servletPath = request.getServletPath();
-    
+
             if (servletPath == null || "".equals(servletPath) || "/".equals(servletPath)) {
                 servletPath = "/";
             }
-    
+
             if (redirects.containsKey(servletPath)) {
                 System.out.println("=========> REDIRECT TO: " + redirects.get(servletPath));
                 response.sendRedirect(redirects.get(servletPath));

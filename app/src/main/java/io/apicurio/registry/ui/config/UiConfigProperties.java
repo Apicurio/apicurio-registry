@@ -24,8 +24,8 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.utils.RegistryProperties;
 import org.slf4j.Logger;
 
@@ -40,19 +40,11 @@ public class UiConfigProperties {
     Logger log;
 
     @Inject
-    @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
+    RegistryConfigService configService;
+
     boolean featureReadOnly;
-
-    @Inject
-    @ConfigProperty(name = "registry.ui.config.uiContextPath", defaultValue = "/ui/")
     String uiContextPath;
-
-    @Inject
-    @ConfigProperty(name = "registry.ui.config.apiUrl")
     String apiUrl;
-
-    @Inject
-    @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
     boolean tenantEnabled;
 
     private final Map<String, Object> keycloakConfig;
@@ -68,6 +60,11 @@ public class UiConfigProperties {
 
     @PostConstruct
     void onConstruct() {
+        featureReadOnly = configService.get(RegistryConfigProperty.REGISTRY_UI_FEATURES_READONLY, Boolean.class);
+        uiContextPath = configService.get(RegistryConfigProperty.REGISTRY_UI_CONFIG_UI_CONTEXT_PATH);
+        apiUrl = configService.get(RegistryConfigProperty.REGISTRY_UI_CONFIG_API_URL);
+        tenantEnabled = configService.get(RegistryConfigProperty.REGISTRY_OIDC_TENANT_ENABLED, Boolean.class);
+
         log.debug("============> kcProperties  " + keycloakConfig);
         log.debug("============> tenantEnabled  " + tenantEnabled);
         log.debug("============> featureReadOnly  " + featureReadOnly);

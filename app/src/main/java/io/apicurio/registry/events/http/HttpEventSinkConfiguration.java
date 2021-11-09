@@ -22,9 +22,10 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.utils.RegistryProperties;
 
 /**
@@ -33,11 +34,12 @@ import io.apicurio.registry.utils.RegistryProperties;
 @ApplicationScoped
 public class HttpEventSinkConfiguration {
 
-    @ConfigProperty(name = "registry.events.ksink")
-    Optional<String> ksink;
+    @Inject
+    RegistryConfigService configService;
 
     @Produces
     public HttpSinksConfiguration sinkConfig(@RegistryProperties(value = {"registry.events.sink"}) Properties properties) {
+        Optional<String> ksink = configService.getOptional(RegistryConfigProperty.REGISTRY_EVENTS_KSINK);
         List<HttpSinkConfiguration> httpSinks = properties.stringPropertyNames().stream()
             .map(key -> new HttpSinkConfiguration(key, properties.getProperty(key)))
             .collect(Collectors.toList());

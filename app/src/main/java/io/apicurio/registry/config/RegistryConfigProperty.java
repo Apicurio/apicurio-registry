@@ -16,10 +16,13 @@
 
 package io.apicurio.registry.config;
 
+import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 public enum RegistryConfigProperty {
+
 
     ////////////////////////////////////////////////////////////////////////////////
     // The following are Startup/Init related properties.
@@ -29,16 +32,146 @@ public enum RegistryConfigProperty {
      * A URL of an Apicurio Registry import file that will be imported on startup.
      */
     REGISTRY_IMPORT_URL("registry.import.url", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * The name of the registry - typically just "apicurio-registry".
+     */
     REGISTRY_NAME("registry.name", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * Friendly description of the registry.
+     */
     REGISTRY_DESCRIPTION("registry.description", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * The registry version.
+     */
     REGISTRY_VERSION("registry.version", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * When this version of the registry was built.
+     */
     REGISTRY_DATE("registry.date", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * Whether to enable configured redirects.
+     */
+    REGISTRY_ENABLE_REDIRECTS("registry.enable-redirects", RegistryConfigPropertyType.ReadOnly, true),
+    /**
+     * Whether to enable Sentry integration.
+     */
+    REGISTRY_ENABLE_SENTRY("registry.enable.sentry", RegistryConfigPropertyType.ReadOnly, false),
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // The following are Storage related properties.
+    ////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * What DB is being used - typically postgresql or h2.
+     */
+    REGISTRY_QUARKUS_DB_KIND("quarkus.datasource.db-kind", RegistryConfigPropertyType.ReadOnly, "postgresql"),
+    /**
+     * TODO document this
+     */
+    REGISTRY_STORAGE_METRICS_CACHE_CHECK_PERIOD("registry.storage.metrics.cache.check-period", RegistryConfigPropertyType.ReadOnly, 30000L),
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // The following are Readiness related properties.
+    ////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Maximum number of exceptions raised by artifactStore implementation, as captured by this interceptor, before the readiness check fails.
+     */
+    REGISTRY_METRICS_READINESS_ERROR_THRESHOLD("registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", RegistryConfigPropertyType.ReadOnly, 1),
+    /**
+     * The counter is reset after some time without errors. To fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option to 60.
+     * TODO report the absolute count as a metric?
+     */
+    REGISTRY_METRICS_READINESS_COUNTER_RESET_WINDOW_DURATION("registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 60),
+    /**
+     * If set to a positive value, reset the readiness status after this time window passes without any further errors.
+     */
+    REGISTRY_METRICS_READINESS_STATUS_RESET_WINDOW_DURATION("registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 300),
+    /**
+     * Set the operation duration in seconds, after which it's considered an error.
+     */
+    REGISTRY_METRICS_READINESS_TIMEOUT("registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", RegistryConfigPropertyType.ReadOnly, 15),
+    /**
+     * Enable this property to disable logging in the readiness checker.
+     */
+    REGISTRY_METRICS_READINESS_DISABLE_LOGGING("registry.metrics.PersistenceTimeoutReadinessCheck.disableLogging", RegistryConfigPropertyType.ReadOnly, false),
+    /**
+     * Maximum number of requests taking more than {@link ResponseTimeoutReadinessCheck#configTimeoutSec} seconds,
+     * before the readiness check fails.
+     */
+    REGISTRY_METRICS_RESP_TIMEOUT_READINESS_ERROR_THRESHOLD("registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", RegistryConfigPropertyType.ReadOnly, 1),
+    /**
+     * The counter is reset after some time without errors. To fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option to 60.
+     * TODO report the absolute count as a metric?
+     */
+    REGISTRY_METRICS_RESP_TIMEOUT_READINESS_COUNTER_RESET_WINDOW_DURATION("registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 60),
+    /**
+     * If set to a positive value, reset the readiness status after this time window passes without any further errors.
+     */
+    REGISTRY_METRICS_RESP_TIMEOUT_READINESS_STATUS_RESET_WINDOW_DURATION("registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 300),
+    /**
+     * Set the request duration in seconds, after which it's considered an error.
+     * TODO This may be expected on some endpoints. Add a way to ignore those.
+     */
+    REGISTRY_METRICS_RESP_TIMEOUT_READINESS_TIMEOUT("registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", RegistryConfigPropertyType.ReadOnly, 15),
+    /**
+     * Enable this property to disable logging in the readiness checker.
+     */
+    REGISTRY_METRICS_RESP_TIMEOUT_READINESS_DISABLE_LOGGING("registry.metrics.ResponseTimeoutReadinessCheck.disableLogging", RegistryConfigPropertyType.ReadOnly, false),
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // The following are Liveness related properties.
+    ////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Maximum number of exceptions raised by artifactStore implementation, as captured by this interceptor, before the liveness check fails.
+     */
+    REGISTRY_METRICS_EXCEPTION_LIVENESS_ERROR_THRESHOLD("registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold", RegistryConfigPropertyType.ReadOnly, 1),
+    /**
+     * The counter is reset after some time without errors. To fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option to 60.
+     * TODO report the absolute count as a metric?
+     */
+    REGISTRY_METRICS_EXCEPTION_LIVENESS_COUNTER_RESET_WINDOW_DURATION("registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 60),
+    /**
+     * If set to a positive value, reset the liveness status after this time window passes without any further errors.
+     */
+    REGISTRY_METRICS_EXCEPTION_LIVENESS_STATUS_RESET_WINDOW_DURATION("registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 300),
+    /**
+     * Use this property to disable logging in the liveness checker.
+     */
+    REGISTRY_METRICS_EXCEPTION_LIVENESS_DISABLE_LOGGING("registry.metrics.PersistenceExceptionLivenessCheck.disableLogging", RegistryConfigPropertyType.ReadOnly, false),
+    /**
+     * Maximum number of HTTP 5xx errors returned to the user
+     * as captured by {@link io.apicurio.registry.rest.RegistryExceptionMapper}
+     * before the liveness check fails.
+     */
+    REGISTRY_METRICS_RESP_ERROR_LIVENESS_ERROR_THRESHOLD("registry.metrics.ResponseErrorLivenessCheck.errorThreshold", RegistryConfigPropertyType.ReadOnly, 1),
+    /**
+     * The counter is reset after some time without errors.  To fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option to 60.
+     * TODO report the absolute count as a metric?
+     */
+    REGISTRY_METRICS_RESP_ERROR_LIVENESS_COUNTER_RESET_WINDOW_DURATION("registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 60),
+    /**
+     * If set to a positive value, reset the liveness status after this time window passes without any further errors.
+     */
+    REGISTRY_METRICS_RESP_ERROR_LIVENESS_STATUS_RESET_WINDOW_DURATION("registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", RegistryConfigPropertyType.ReadOnly, 300),
+    /**
+     * Use this property to disable logging in the liveness checker.
+     */
+    REGISTRY_METRICS_RESP_ERROR_LIVENESS_DISABLE_LOGGING("registry.metrics.ResponseErrorLivenessCheck.disableLogging", RegistryConfigPropertyType.ReadOnly, false),
 
 
     ////////////////////////////////////////////////////////////////////////////////
     // The following are authorization related properties.
     ////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Indicates whether Quarkus OIDC is enabled.
+     */
+    REGISTRY_OIDC_TENANT_ENABLED("quarkus.oidc.tenant-enabled", RegistryConfigPropertyType.ReadOnly, false),
     /**
      * Enable/disable authorization.
      */
@@ -177,11 +310,17 @@ public enum RegistryConfigProperty {
      * The topic partition to use in the kafka events sink.
      */
     REGISTRY_EVENTS_KAFKA_TOPIC_PARTITION("registry.events.kafka.topic-partition", RegistryConfigPropertyType.ReadOnly, null),
+    /**
+     * Used to configure the HttpEventSink.  TODO : add docs
+     */
+    REGISTRY_EVENTS_KSINK("registry.events.ksink", RegistryConfigPropertyType.ReadOnly, null),
 
 
     ////////////////////////////////////////////////////////////////////////////////
     // The following are Multitenancy related properties.
+    // TODO document the multi-tenancy properties
     ////////////////////////////////////////////////////////////////////////////////
+
     REGISTRY_MULTITENANCY_ENABLED("registry.enable.multitenancy", RegistryConfigPropertyType.ReadOnly, false),
     REGISTRY_MULTITENANCY_AUTHORIZATION_ENABLED("registry.multitenancy.authorization.enabled", RegistryConfigPropertyType.ReadOnly, true),
     REGISTRY_MULTITENANCY_CONTEXT_PATH_ENABLED("registry.multitenancy.types.context-path.enabled", RegistryConfigPropertyType.ReadOnly, true),
@@ -195,10 +334,50 @@ public enum RegistryConfigProperty {
     REGISTRY_MULTITENANCY_REAPER_EVERY("registry.multitenancy.reaper.every", RegistryConfigPropertyType.ReadOnly, null),
     REGISTRY_MULTITENANCY_REAPER_PERIOD("registry.multitenancy.reaper.period-seconds", RegistryConfigPropertyType.ReadOnly, 10800L),
     REGISTRY_MULTITENANCY_TENANT_MANAGER_URL("registry.tenant.manager.url", RegistryConfigPropertyType.ReadOnly, null),
-    REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_ENABLED("registry.tenant.manager.auth.enabled", RegistryConfigPropertyType.ReadOnly, null),
+    REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_ENABLED("registry.tenant.manager.auth.enabled", RegistryConfigPropertyType.ReadOnly, false),
     REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_URL("registry.tenant.manager.auth.url.configured", RegistryConfigPropertyType.ReadOnly, null),
     REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_CLIENT_ID("registry.tenant.manager.auth.client-id", RegistryConfigPropertyType.ReadOnly, null),
     REGISTRY_MULTITENANCY_TENANT_MANAGER_AUTH_CLIENT_SECRET("registry.tenant.manager.auth.client-secret", RegistryConfigPropertyType.ReadOnly, null),
+    REGISTRY_TENANTS_CONTEXT_CACHE_CHECK_PERIOD("registry.tenants.context.cache.check-period", RegistryConfigPropertyType.ReadOnly, 60000L),
+    REGISTRY_TENANTS_ORGANIZATION_CLAIM_NAME("registry.organization-id.claim-name", RegistryConfigPropertyType.ReadOnly, "rh-org-id"),
+    REGISTRY_MULTITENANCY_REAPER_MAX_TENANTS_REAPED("registry.multitenancy.reaper.max-tenants-reaped", RegistryConfigPropertyType.ReadOnly, 100),
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // The following are Limits related properties.
+    // TODO document the Limits properties.
+    ////////////////////////////////////////////////////////////////////////////////
+
+    REGISTRY_LIMITS_CONFIG_CACHE_CHECK_PERIOD("registry.limits.config.cache.check-period", RegistryConfigPropertyType.ReadOnly, 30000L),
+    REGISTRY_LIMITS_DEFAULT_MAX_TOTAL_SCHEMAS("registry.limits.config.max-total-schemas", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACTS("registry.limits.config.max-artifacts", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_VERSIONS_PER_ARTIFACT("registry.limits.config.max-versions-per-artifact", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACT_PROPS("registry.limits.config.max-artifact-properties", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_PROPERTY_KEY_BYTES("registry.limits.config.max-property-key-size", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_PROPERTY_VALUE_BYTES("registry.limits.config.max-property-value-size", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACT_LABELS("registry.limits.config.max-artifact-labels", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_LABEL_SIZE("registry.limits.config.max-label-size", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_NAME_LENGTH("registry.limits.config.max-name-length", RegistryConfigPropertyType.ReadOnly, -1L),
+    REGISTRY_LIMITS_DEFAULT_MAX_DESCRIPTION_LENGTH("registry.limits.config.max-description-length", RegistryConfigPropertyType.ReadOnly, -1L),
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // The following are UI related properties.
+    ////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Switch the UI into "read-only" mode.
+     */
+    REGISTRY_UI_FEATURES_READONLY("registry.ui.features.readOnly", RegistryConfigPropertyType.ReadOnly, false),
+    /**
+     * The relative context path of the UI.  Useful if the UI is relocated from /ui/ to some other path.
+     */
+    REGISTRY_UI_CONFIG_UI_CONTEXT_PATH("registry.ui.config.uiContextPath", RegistryConfigPropertyType.ReadOnly, "/ui/"),
+    /**
+     * The URL to the API that the UI should use when making REST calls to the backend.  Useful in some deployment scenarios
+     * to force the UI to a specific absolute URL.
+     */
+    REGISTRY_UI_CONFIG_API_URL("registry.ui.config.apiUrl", RegistryConfigPropertyType.ReadOnly, null),
+
 
     ;
 

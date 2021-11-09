@@ -23,13 +23,14 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 import io.apicurio.registry.mt.limits.TenantLimitsConfigurationService;
 import io.apicurio.registry.utils.CheckPeriodCache;
@@ -68,13 +69,10 @@ public class TenantContextLoader {
     Instance<JsonWebToken> jsonWebToken;
 
     @Inject
-    @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
-    Long cacheCheckPeriod;
-
-    @ConfigProperty(name = "registry.organization-id.claim-name")
-    String organizationIdClaimName;
+    RegistryConfigService configService;
 
     public void onStart(@Observes StartupEvent ev) {
+        Long cacheCheckPeriod = configService.get(RegistryConfigProperty.REGISTRY_TENANTS_CONTEXT_CACHE_CHECK_PERIOD, Long.class);
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
     }
 
@@ -137,6 +135,7 @@ public class TenantContextLoader {
                 logger.debug("Tenant access attempted without JWT token for tenant {} [allowing because some endpoints allow anonymous access]", tenant.getTenantId());
                 return;
             }
+            String organizationIdClaimName = configService.get(RegistryConfigProperty.REGISTRY_TENANTS_ORGANIZATION_CLAIM_NAME);
             final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
 
             if (accessedOrganizationId.isEmpty() || !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {

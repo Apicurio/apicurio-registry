@@ -5,8 +5,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
@@ -25,34 +26,14 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
     @Inject
     Logger log;
 
-    /**
-     * Maximum number of exceptions raised by artifactStore implementation,
-     * as captured by this interceptor,
-     * before the liveness check fails.
-     */
-    @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold", defaultValue = "1")
-    Integer configErrorThreshold;
-
-    /**
-     * The counter is reset after some time without errors.
-     * i.e. to fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option
-     * to 60.
-     * TODO report the absolute count as a metric?
-     */
-    @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    Integer configCounterResetWindowDurationSec;
-
-    /**
-     * If set to a positive value, reset the liveness status after this time window passes without any further errors.
-     */
-    @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    Integer configStatusResetWindowDurationSec;
-
-    @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.disableLogging", defaultValue = "false")
-    Boolean disableLogging;
+    @Inject
+    RegistryConfigService configService;
 
     @PostConstruct
     void init() {
+        Integer configErrorThreshold = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_ERROR_THRESHOLD, Integer.class);
+        Integer configCounterResetWindowDurationSec = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_COUNTER_RESET_WINDOW_DURATION, Integer.class);
+        Integer configStatusResetWindowDurationSec = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_STATUS_RESET_WINDOW_DURATION, Integer.class);
         init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
     }
 
@@ -68,22 +49,26 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
 
     @Override
     public void suspect(String reason) {
+        boolean disableLogging = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_DISABLE_LOGGING, Boolean.class);
         if (disableLogging != Boolean.TRUE) {
             log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck: {}", reason);
         }
         super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
+            Integer configErrorThreshold = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_ERROR_THRESHOLD, Integer.class);
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
         }
     }
 
     @Override
     public void suspectWithException(Throwable reason) {
+        boolean disableLogging = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_DISABLE_LOGGING, Boolean.class);
         if (disableLogging != Boolean.TRUE) {
             log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck because of an exception: ", reason);
         }
         super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
+            Integer configErrorThreshold = configService.get(RegistryConfigProperty.REGISTRY_METRICS_EXCEPTION_LIVENESS_ERROR_THRESHOLD, Integer.class);
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).", errorCounter, configErrorThreshold);
         }
     }

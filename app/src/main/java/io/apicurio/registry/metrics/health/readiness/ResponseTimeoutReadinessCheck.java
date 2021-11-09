@@ -1,7 +1,8 @@
 package io.apicurio.registry.metrics.health.readiness;
 
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
@@ -12,7 +13,6 @@ import java.time.format.DateTimeParseException;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
-import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -35,41 +35,19 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
     @Inject
     Logger log;
 
-    /**
-     * Maximum number of requests taking more than {@link ResponseTimeoutReadinessCheck#configTimeoutSec} seconds,
-     * before the readiness check fails.
-     */
-    @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
-    Instance<Integer> configErrorThreshold;
-
-    /**
-     * The counter is reset after some time without errors.
-     * i.e. to fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option
-     * to 60.
-     * TODO report the absolute count as a metric?
-     */
-    @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
-    Instance<Integer> configCounterResetWindowDurationSec;
-
-    /**
-     * If set to a positive value, reset the readiness status after this time window passes without any further errors.
-     */
-    @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
-    Instance<Integer> configStatusResetWindowDurationSec;
-
-    /**
-     * Set the request duration in seconds, after which it's considered an error.
-     * TODO This may be expected on some endpoints. Add a way to ignore those.
-     */
-    @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
-    Instance<Integer> configTimeoutSec;
+    @Inject
+    RegistryConfigService configService;
 
     private Duration timeoutSec;
 
     @PostConstruct
     void init() {
-        init(configErrorThreshold.get(), configCounterResetWindowDurationSec.get(), configStatusResetWindowDurationSec.get());
-        timeoutSec = Duration.ofSeconds(configTimeoutSec.get());
+        Integer configErrorThreshold = configService.get(RegistryConfigProperty.REGISTRY_METRICS_RESP_TIMEOUT_READINESS_ERROR_THRESHOLD, Integer.class);
+        Integer configCounterResetWindowDurationSec = configService.get(RegistryConfigProperty.REGISTRY_METRICS_RESP_TIMEOUT_READINESS_COUNTER_RESET_WINDOW_DURATION, Integer.class);
+        Integer configStatusResetWindowDurationSec = configService.get(RegistryConfigProperty.REGISTRY_METRICS_RESP_TIMEOUT_READINESS_STATUS_RESET_WINDOW_DURATION, Integer.class);
+        Integer configTimeoutSec = configService.get(RegistryConfigProperty.REGISTRY_METRICS_RESP_TIMEOUT_READINESS_TIMEOUT, Integer.class);
+        init(configErrorThreshold, configCounterResetWindowDurationSec, configStatusResetWindowDurationSec);
+        timeoutSec = Duration.ofSeconds(configTimeoutSec);
     }
 
     @Override

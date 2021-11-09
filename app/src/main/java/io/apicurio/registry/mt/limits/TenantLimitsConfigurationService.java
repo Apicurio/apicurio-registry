@@ -20,16 +20,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.apicurio.registry.mt.MultitenancyConfig;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
@@ -44,45 +46,7 @@ public class TenantLimitsConfigurationService {
     Logger logger;
 
     @Inject
-    @ConfigProperty(defaultValue = "30000", name = "registry.limits.config.cache.check-period")
-    Long limitsCheckPeriod;
-
-    //All limits to -1 , which means by default all limits are disabled
-
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-total-schemas")
-    Long defaultMaxTotalSchemas;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifacts")
-    Long defaultMaxArtifacts;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-versions-per-artifact")
-    Long defaultMaxVersionsPerArtifact;
-
-    //TODO content size
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-properties")
-    Long defaultMaxArtifactProperties;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-property-key-size")
-    Long defaultMaxPropertyKeyBytesSize;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-property-value-size")
-    Long defaultMaxPropertyValueBytesSize;
-
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-lables")
-    Long defaultMaxArtifactLabels;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-label-size")
-    Long defaultMaxLabelBytesSize;
-
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-name-length")
-    Long defaultMaxNameLength;
-    @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-description-length")
-    Long defaultMaxDescriptionLength;
+    RegistryConfigService configService;
 
     @Inject
     TenantContext tenantContext;
@@ -90,8 +54,35 @@ public class TenantLimitsConfigurationService {
     @Inject
     MultitenancyConfig mtProperties;
 
+    Long limitsCheckPeriod;
+    Long defaultMaxTotalSchemas;
+    Long defaultMaxArtifacts;
+    Long defaultMaxVersionsPerArtifact;
+    Long defaultMaxArtifactProperties;
+    Long defaultMaxPropertyKeyBytesSize;
+    Long defaultMaxPropertyValueBytesSize;
+    Long defaultMaxArtifactLabels;
+    Long defaultMaxLabelBytesSize;
+    Long defaultMaxNameLength;
+    Long defaultMaxDescriptionLength;
+
     private boolean isConfigured = true;
     private TenantLimitsConfiguration defaultLimitsConfiguration;
+
+    @PostConstruct
+    void init() {
+        limitsCheckPeriod = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_CONFIG_CACHE_CHECK_PERIOD, Long.class);
+        defaultMaxTotalSchemas = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_TOTAL_SCHEMAS, Long.class);
+        defaultMaxArtifacts = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACTS, Long.class);
+        defaultMaxVersionsPerArtifact = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_VERSIONS_PER_ARTIFACT, Long.class);
+        defaultMaxArtifactProperties = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACT_PROPS, Long.class);
+        defaultMaxPropertyKeyBytesSize = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_PROPERTY_KEY_BYTES, Long.class);
+        defaultMaxPropertyValueBytesSize = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_PROPERTY_VALUE_BYTES, Long.class);
+        defaultMaxArtifactLabels = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_ARTIFACT_LABELS, Long.class);
+        defaultMaxLabelBytesSize = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_LABEL_SIZE, Long.class);
+        defaultMaxNameLength = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_NAME_LENGTH, Long.class);
+        defaultMaxDescriptionLength = configService.get(RegistryConfigProperty.REGISTRY_LIMITS_DEFAULT_MAX_DESCRIPTION_LENGTH, Long.class);
+    }
 
     public void onStart(@Observes StartupEvent ev) {
 

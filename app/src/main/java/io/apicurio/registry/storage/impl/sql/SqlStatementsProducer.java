@@ -20,8 +20,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,14 +34,15 @@ public class SqlStatementsProducer {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
-    String databaseType;
+    @Inject
+    RegistryConfigService configService;
 
     /**
      * Produces an {@link SqlStatements} instance for injection.
      */
     @Produces @ApplicationScoped
     public SqlStatements createSqlStatements() {
+        String databaseType = configService.get(RegistryConfigProperty.REGISTRY_QUARKUS_DB_KIND);
         log.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {
             return new H2SqlStatements();

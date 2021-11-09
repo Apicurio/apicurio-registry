@@ -22,11 +22,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.System;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigService;
 import io.quarkus.runtime.StartupEvent;
 import io.sentry.Sentry;
 import io.sentry.jul.SentryHandler;
@@ -39,13 +40,14 @@ public class SentryConfiguration {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @ConfigProperty(name = "registry.enable.sentry", defaultValue = "false")
-    Boolean enableSentry;
+    @Inject
+    RegistryConfigService configService;
 
     @Inject
     System system;
 
     void onStart(@Observes StartupEvent ev) throws Exception {
+        boolean enableSentry = configService.get(RegistryConfigProperty.REGISTRY_ENABLE_SENTRY, Boolean.class);
         if (enableSentry) {
             java.lang.System.setProperty("sentry.release", system.getVersion());
             //Sentry will pick it's configuration from env variables

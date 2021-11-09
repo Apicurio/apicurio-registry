@@ -34,6 +34,13 @@
         <dependency>
             <groupId>com.squareup.wire</groupId>
             <artifactId>wire-compiler</artifactId>
+            <!-- Excluding as the latest version is not present and this is not required -->
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.wire</groupId>
+                    <artifactId>wire-grpc-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
         <dependency>

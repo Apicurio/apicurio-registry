@@ -363,9 +363,9 @@ public class FileDescriptorUtils {
      * @return true if a type is a parent type, false otherwise.
      */
     private static boolean isParentLevelType(ProtoType protoType, Optional<String> optionalPackageName) {
+        String typeName = protoType.toString();
         if (optionalPackageName.isPresent()) {
             String packageName = optionalPackageName.get();
-            String typeName = protoType.toString();
 
             //If the type doesn't start with the package name, ignore it.
             if (!typeName.startsWith(packageName)) {
@@ -379,10 +379,8 @@ public class FileDescriptorUtils {
             return isNotNested;
         }
 
-        //If package is not present,
-        //TODO: Square wire has a bug loading schemas without packageName, update the logic when
-        //https://github.com/square/wire/issues/2042 is fixed.
-        return false;
+        //In case the package is not defined, we select the types that are not google types.
+        return !typeName.startsWith("google.type") && !typeName.startsWith("google.protobuf");
     }
 
     private static DescriptorProto messageElementToDescriptorProto(

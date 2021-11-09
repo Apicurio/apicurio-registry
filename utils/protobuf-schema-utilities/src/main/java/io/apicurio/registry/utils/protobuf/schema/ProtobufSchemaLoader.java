@@ -5,7 +5,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
 import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Feature;
 import com.google.common.jimfs.Jimfs;
+import com.google.common.jimfs.PathType;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.Schema;
@@ -47,7 +49,15 @@ public class ProtobufSchemaLoader {
             .build();
 
     private static FileSystem getFileSystem() throws IOException {
-        final FileSystem inMemoryFileSystem = Jimfs.newFileSystem(Configuration.unix());
+        final FileSystem inMemoryFileSystem =
+            Jimfs.newFileSystem(
+                Configuration.builder(PathType.unix())
+                    .setRoots("/")
+                    .setWorkingDirectory("/")
+                    .setAttributeViews("basic")
+                    .setSupportedFeatures(Feature.SYMBOLIC_LINKS)
+                    .build());
+
         createDirectory(GOOGLE_API_PATH.split("/"), inMemoryFileSystem);
 
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
@@ -85,13 +95,10 @@ public class ProtobufSchemaLoader {
         throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
 
-        //Null package schemas are not supported by Square
-        //Remove once https://github.com/square/wire/issues/2042 is pushed.
-        packageName
-            .orElseThrow(() -> new IllegalArgumentException("Schema cannot be parsed without a package"));
-
         String [] dirs = {};
-        dirs = packageName.get().split("\\.");
+        if (packageName.isPresent()) {
+            dirs = packageName.get().split("\\.");
+        }
         String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
         try {
             String dirPath = createDirectory(dirs, inMemoryFileSystem);

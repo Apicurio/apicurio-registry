@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.types.Current;
 import io.quarkus.scheduler.Scheduled;
 
@@ -41,7 +42,7 @@ import io.quarkus.scheduler.Scheduled;
 @ApplicationScoped
 public class RegistryConfigServiceImpl implements RegistryConfigService {
 
-    private static final String DEFAULT_TENANT_ID = "___";
+    private static final Object CACHED_NULL_VALUE = new Object();
 
     @Inject
     Logger log;
@@ -80,20 +81,24 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
     @SuppressWarnings("unchecked")
     public <T> T get(RegistryConfigProperty property, Class<T> propertyType) {
         // Possibly check the tenant property cache for a value.  If found return it.
-        // TODO should we validate the type of the property value against the propertyType above rather than just blindly casting it?
         T rval = property.isEditable() ? (T) tenantPropertyCache().get(property) : null;
 
         // If not found, check for a global property.
         if (rval == null) {
             rval = (T) globalPropertyCache.computeIfAbsent(property, (key) -> {
-                Optional<? extends Object> value = ConfigProvider.getConfig().getOptionalValue(property.propertyName(), propertyType);
-                // TODO can this be simplified to use orElse() etc?
-                if (value.isPresent()) {
-                    return (T) value.get();
-                } else {
-                    return (T) property.defaultValue();
+                Optional<T> value = ConfigProvider.getConfig().getOptionalValue(property.propertyName(), propertyType);
+                T newMappedValue = value.orElse((T) property.defaultValue());
+                // Can't cache a null value, so convert to the cached null value.
+                if (newMappedValue == null) {
+                    newMappedValue = (T) CACHED_NULL_VALUE;
                 }
+                return newMappedValue;
             });
+        }
+
+        // Revert the cached null value to actual null.
+        if (rval == CACHED_NULL_VALUE) {
+            rval = null;
         }
 
         return rval;
@@ -109,12 +114,13 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
     }
 
     public <T> T set(RegistryConfigProperty property, T newValue) {
-        storage.setConfigProperty(property.propertyName(), newValue);
+        ConfigPropertyDto propertyDto = ConfigPropertyDto.create(property.propertyName(), newValue);
+        storage.setConfigProperty(propertyDto);
         return newValue;
     }
 
     private Map<RegistryConfigProperty, Object> tenantPropertyCache() {
-        String tenantId = tenantContext.getTenantIdOrElse(DEFAULT_TENANT_ID);
+        String tenantId = tenantContext.tenantId();
         return tenantPropertyCaches.computeIfAbsent(tenantId, key -> {
             Map<String, Object> tenantProperties = loadTenantProperties();
             Map<RegistryConfigProperty, Object> cache = new HashMap<>();
@@ -129,7 +135,12 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
     }
 
     private Map<String, Object> loadTenantProperties() {
-        return storage.getConfigProperties();
+        List<ConfigPropertyDto> configProperties = storage.getConfigProperties();
+        Map<String, Object> rval = new HashMap<>();
+        configProperties.forEach(dto -> {
+            rval.put(dto.getName(), convertValue(dto));
+        });
+        return rval;
     }
 
     /**
@@ -158,8 +169,30 @@ public class RegistryConfigServiceImpl implements RegistryConfigService {
      * @param tenantId
      */
     private void invalidateTenantCache(String tenantId) {
-        // TODO implement this!
-
+        tenantPropertyCaches.remove(tenantId);
     }
 
+    private static Object convertValue(ConfigPropertyDto property) {
+        String name = property.getName();
+        String type = property.getType();
+        String value = property.getValue();
+
+        if (value == null) {
+            return null;
+        }
+
+        if ("java.lang.String".equals(type)) {
+            return value;
+        }
+        if ("java.lang.Boolean".equals(type)) {
+            return "true".equals(value);
+        }
+        if ("java.lang.Integer".equals(type)) {
+            return Integer.valueOf(value);
+        }
+        if ("java.lang.Long".equals(type)) {
+            return Long.valueOf(value);
+        }
+        throw new UnsupportedOperationException("Configuration property type not supported: " + type + " for property with name: " + name);
+    }
 }

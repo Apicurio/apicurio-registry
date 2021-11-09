@@ -23,7 +23,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -2901,10 +2900,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
      */
-    @Override @Transactional
-    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+    @Override
+    public List<ConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
         log.debug("Getting all config properties.");
-        List<ConfigPropertyDto> properties = handles.withHandleNoException( handle -> {
+        return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectConfigProperties();
             return handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
@@ -2920,11 +2919,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     })
                     .list();
         });
-        Map<String, Object> rval = new HashMap<>();
-        properties.forEach(propertyDto -> {
-            rval.put(propertyDto.getName(), propertyDto.getTypedValue());
-        });
-        return rval;
     }
 
     /**
@@ -2943,17 +2937,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(io.apicurio.registry.storage.dto.ConfigPropertyDto)
      */
-    @Override @Transactional
-    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
-        log.debug("Setting a config property with name: {}  and value: {}", propertyName, propertyValue);
+    @Override
+    public void setConfigProperty(ConfigPropertyDto property) throws RegistryStorageException {
+        log.debug("Setting a config property with name: {}  and value: {}", property.getName(), property.getValue());
         this.handles.withHandleNoException( handle -> {
+            String propertyName = property.getName();
+            String propertyValue = property.getValue();
+
             // First delete the property row from the table
             String sql = sqlStatements.deleteConfigProperty();
             handle.createUpdate(sql)
                   .bind(0, tenantContext.tenantId())
-                  .bind(1, propertyName)
+                  .bind(1, property.getName())
                   .execute();
 
             // Then create the row again with the new value (only if the value is not null)
@@ -2962,8 +2959,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 handle.createUpdate(sql)
                       .bind(0, tenantContext.tenantId())
                       .bind(1, propertyName)
-                      .bind(2, propertyValue.getClass().getSimpleName())
-                      .bind(3, propertyValue.toString())
+                      .bind(2, property.getType())
+                      .bind(3, propertyValue)
                       .bind(4, java.lang.System.currentTimeMillis())
                       .execute();
             }

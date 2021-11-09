@@ -40,6 +40,7 @@ import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -335,6 +336,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    @DisabledIfSystemProperty(named = "os.name", matches = "[wW]indows.*")
     public void testCreateArtifactNoAscii() {
         String artifactContent = resourceToString("openapi-empty.json");
 
@@ -528,6 +530,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    @DisabledIfSystemProperty(named = "os.name", matches = "[wW]indows.*")
     public void testUpdateArtifactNoAscii() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
@@ -871,6 +874,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
     @Test
     @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
+    @DisabledIfSystemProperty(named = "os.name", matches = "[wW]indows.*")
     public void testCreateArtifactVersionNoAscii() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");

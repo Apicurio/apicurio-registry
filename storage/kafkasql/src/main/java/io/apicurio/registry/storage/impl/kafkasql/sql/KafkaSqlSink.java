@@ -226,7 +226,8 @@ public class KafkaSqlSink {
     private Object processConfig(ConfigKey key, ConfigValue value) {
         switch (value.getAction()) {
             case UPDATE:
-                sqlStore.setConfigProperty(key.getPropertyName(), value.getConfigProperty().getTypedValue());
+                sqlStore.setConfigProperty(value.getConfigProperty());
+                return null;
             default:
                 return unsupported(key, value);
         }

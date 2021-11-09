@@ -16,6 +16,23 @@
 
 package io.apicurio.registry.storage;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -26,6 +43,7 @@ import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -39,21 +57,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.tests.TestUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -1300,24 +1303,41 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @Test
     public void testConfigProperties() throws Exception {
-        Map<String, Object> properties = storage().getConfigProperties();
+        List<ConfigPropertyDto> properties = storage().getConfigProperties();
         Assertions.assertNotNull(properties);
         Assertions.assertTrue(properties.isEmpty());
 
-        storage().setConfigProperty("registry.test.property-string", "test-value");
-        storage().setConfigProperty("registry.test.property-boolean", true);
-        storage().setConfigProperty("registry.test.property-long", 12345L);
+        storage().setConfigProperty(ConfigPropertyDto.create("registry.test.property-string", "test-value"));
+        storage().setConfigProperty(ConfigPropertyDto.create("registry.test.property-boolean", true));
+        storage().setConfigProperty(ConfigPropertyDto.create("registry.test.property-long", 12345L));
 
         properties = storage().getConfigProperties();
         Assertions.assertNotNull(properties);
         Assertions.assertFalse(properties.isEmpty());
         Assertions.assertEquals(3, properties.size());
-        Assertions.assertTrue(properties.containsKey("registry.test.property-string"));
-        Assertions.assertTrue(properties.containsKey("registry.test.property-boolean"));
-        Assertions.assertTrue(properties.containsKey("registry.test.property-long"));
-        Assertions.assertEquals("test-value", properties.get("registry.test.property-string"));
-        Assertions.assertTrue((Boolean) properties.get("registry.test.property-boolean"));
-        Assertions.assertEquals(12345L, properties.get("registry.test.property-long"));
+
+        ConfigPropertyDto stringProp = getProperty(properties, "registry.test.property-string");
+        ConfigPropertyDto boolProp = getProperty(properties, "registry.test.property-boolean");
+        ConfigPropertyDto longProp = getProperty(properties, "registry.test.property-long");
+
+        Assertions.assertNotNull(stringProp);
+        Assertions.assertNotNull(boolProp);
+        Assertions.assertNotNull(longProp);
+
+        Assertions.assertEquals("test-value", stringProp.getValue());
+        Assertions.assertEquals("java.lang.String", stringProp.getType());
+        Assertions.assertEquals("true", boolProp.getValue());
+        Assertions.assertEquals("java.lang.Boolean", boolProp.getType());
+        Assertions.assertEquals("12345", longProp.getValue());
+        Assertions.assertEquals("java.lang.Long", longProp.getType());
+    }
+    private ConfigPropertyDto getProperty(List<ConfigPropertyDto> properties, String propertyName) {
+        for (ConfigPropertyDto prop: properties) {
+            if (prop.getName().equals(propertyName)) {
+                return prop;
+            }
+        }
+        return null;
     }
 
     @Test

@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -1087,7 +1088,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
      */
     @Override
-    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+    public List<ConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
         return sqlStore.getConfigProperties();
     }
 
@@ -1100,11 +1101,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(io.apicurio.registry.storage.dto.ConfigPropertyDto)
      */
     @Override
-    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
-        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(tenantContext.tenantId(), propertyName, ActionType.UPDATE, propertyValue));
+    public void setConfigProperty(ConfigPropertyDto property) throws RegistryStorageException {
+        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(tenantContext.tenantId(), property, ActionType.UPDATE));
         coordinator.waitForResponse(reqId);
     }
 

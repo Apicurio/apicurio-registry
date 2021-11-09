@@ -19,7 +19,6 @@ package io.apicurio.registry.storage;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -28,6 +27,7 @@ import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -660,14 +660,13 @@ public interface RegistryStorage {
     /**
      * Called to load any configuration properties from the config_properties table.
      */
-    public Map<String, Object> getConfigProperties() throws RegistryStorageException;
+    public List<ConfigPropertyDto> getConfigProperties() throws RegistryStorageException;
 
     /**
      * Called to set the value of a single config property.
-     * @param propertyName
-     * @param propertyValue
+     * @param property
      */
-    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException;
+    public void setConfigProperty(ConfigPropertyDto property) throws RegistryStorageException;
 
     /**
      * Called to get a list of tenants that have configuration properties modified since the given

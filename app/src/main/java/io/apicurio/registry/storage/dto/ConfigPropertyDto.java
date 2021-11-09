@@ -37,33 +37,15 @@ import lombok.ToString;
 public class ConfigPropertyDto {
 
     public static <T> ConfigPropertyDto create(String name, T value) {
-        return ConfigPropertyDto.builder().name(name).type(value.getClass().getName()).value(value.toString()).build();
+        if (value == null) {
+            return ConfigPropertyDto.builder().name(name).type(String.class.getName()).value(null).build();
+        } else {
+            return ConfigPropertyDto.builder().name(name).type(value.getClass().getName()).value(value.toString()).build();
+        }
     }
 
     private String name;
     private String type;
     private String value;
-
-    // TODO move this logic to the registry config service instead?  lets the storage only deal with strings
-    public Object getTypedValue() {
-        if (value == null) {
-            return null;
-        }
-
-        // TODO use the full canonical class name instead?
-        if ("String".equals(type)) {
-            return value;
-        }
-        if ("Boolean".equals(type)) {
-            return "true".equals(value);
-        }
-        if ("Integer".equals(type)) {
-            return Integer.valueOf(value);
-        }
-        if ("Long".equals(type)) {
-            return Long.valueOf(value);
-        }
-        throw new UnsupportedOperationException("Configuration property type not supported: " + type + " for property with name: " + name);
-    }
 
 }

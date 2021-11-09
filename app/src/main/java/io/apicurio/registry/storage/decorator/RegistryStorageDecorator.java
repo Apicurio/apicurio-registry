@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -50,7 +51,6 @@ import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -892,16 +892,16 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperties()
      */
     @Override
-    public Map<String, Object> getConfigProperties() throws RegistryStorageException {
+    public List<ConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
         return delegate.getConfigProperties();
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(java.lang.String, java.lang.Object)
+     * @see io.apicurio.registry.storage.RegistryStorage#setConfigProperty(io.apicurio.registry.storage.dto.ConfigPropertyDto)
      */
     @Override
-    public <T> void setConfigProperty(String propertyName, T propertyValue) throws RegistryStorageException {
-        delegate.setConfigProperty(propertyName, propertyValue);
+    public void setConfigProperty(ConfigPropertyDto property) throws RegistryStorageException {
+        delegate.setConfigProperty(property);
     }
 
     /**

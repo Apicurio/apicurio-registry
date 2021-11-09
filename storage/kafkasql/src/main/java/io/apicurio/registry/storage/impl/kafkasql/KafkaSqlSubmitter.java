@@ -266,10 +266,9 @@ public class KafkaSqlSubmitter {
     /* ******************************************************************************************
      * Config property actions
      * ****************************************************************************************** */
-    public <T> CompletableFuture<UUID> submitConfigProperty(String tenantId, String propertyName, ActionType action,
-            T propertyValue) {
-        ConfigKey key = ConfigKey.create(tenantId, propertyName);
-        ConfigValue value = ConfigValue.create(action, ConfigPropertyDto.create(propertyName, propertyValue));
+    public <T> CompletableFuture<UUID> submitConfigProperty(String tenantId, ConfigPropertyDto property, ActionType action) {
+        ConfigKey key = ConfigKey.create(tenantId, property.getName());
+        ConfigValue value = ConfigValue.create(action, property);
         return send(key, value);
     }
 

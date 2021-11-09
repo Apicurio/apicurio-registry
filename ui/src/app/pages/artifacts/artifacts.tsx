@@ -20,7 +20,7 @@ import "./artifacts.css";
 import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
 import {ArtifactList} from "./components/artifactList";
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {ArtifactsPageToolbar} from "./components/toolbar";
+import {ArtifactsPageToolbar, ArtifactsPageToolbarFilterCriteria} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
 import {InvalidContentModal} from "../../components/modals";
@@ -43,7 +43,7 @@ export interface ArtifactsPageProps extends PageProps {
  * State
  */
 export interface ArtifactsPageState extends PageState {
-    criteria: GetArtifactsCriteria;
+    criteria: ArtifactsPageToolbarFilterCriteria;
     isUploadModalOpen: boolean;
     isUploadFormValid: boolean;
     isInvalidContentModalOpen: boolean;
@@ -53,6 +53,7 @@ export interface ArtifactsPageState extends PageState {
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
     invalidContentError: any | null;
+    initFromSearch: string;
 }
 
 /**
@@ -64,6 +65,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         super(props);
     }
 
+    componentDidUpdate(prevProps: Readonly<ArtifactsPageProps>, prevState: Readonly<ArtifactsPageState>, snapshot?: {}) {
+        // @ts-ignore
+        if (this.props.history.location.search !== this.state.initFromSearch) {
+            this.setMultiState(this.initializePageState(), () => this.search());
+        }
+    }
+
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
@@ -73,11 +81,12 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <If condition={this.showToolbar}>
                     <PageSection variant={PageSectionVariants.light} padding={{default : "noPadding"}}>
                         <ArtifactsPageToolbar artifacts={this.results()}
+                                              criteria={this.state.criteria}
                                               paging={this.state.paging}
                                               onPerPageSelect={this.onPerPageSelect}
                                               onSetPage={this.onSetPage}
                                               onUploadArtifact={this.onUploadArtifact}
-                                              onChange={this.onFilterChange}/>
+                                              onCriteriaChange={this.onFilterChange}/>
                     </PageSection>
                 </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
@@ -117,15 +126,30 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     }
 
     protected initializePageState(): ArtifactsPageState {
+        let criteria: ArtifactsPageToolbarFilterCriteria = {
+            filterSelection: "name",
+            filterValue: "",
+            ascending: true
+        }
+        // @ts-ignore
+        const location: any = this.props.history.location;
+        let initFromSearch: string = "";
+        if (location && location.search) {
+            const params = new URLSearchParams(location.search);
+            if (params.get("group")) {
+                criteria = {
+                    filterSelection: "group",
+                    filterValue: params.get("group") as string,
+                    ascending: true
+                }
+            }
+            initFromSearch = location.search;
+        }
         return {
-            criteria: {
-                sortAscending: true,
-                type: "everything",
-                value: "",
-            },
+            criteria,
+            initFromSearch,
             invalidContentError: null,
             isInvalidContentModalOpen: false,
-            isLoading: true,
             isPleaseWaitModalOpen: false,
             isSearching: false,
             isUploadFormValid: false,
@@ -200,7 +224,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return this.state.results ? this.state.results.artifacts.length : 0;
     }
 
-    private onFilterChange = (criteria: GetArtifactsCriteria): void => {
+    private onFilterChange = (criteria: ArtifactsPageToolbarFilterCriteria): void => {
         this.setMultiState({
             criteria,
             isSearching: true
@@ -210,16 +234,21 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private isFiltered(): boolean {
-        return !!this.state.criteria.value;
+        return !!this.state.criteria.filterValue;
     }
 
     // @ts-ignore
     private search(): Promise {
-        return Services.getGroupsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
-                this.onArtifactsLoaded(results);
-            }).catch(error => {
-                this.handleServerError(error, "Error searching for artifacts.");
-            });
+        const gac: GetArtifactsCriteria = {
+            sortAscending: this.state.criteria.ascending,
+            type: this.state.criteria.filterSelection,
+            value: this.state.criteria.filterValue
+        };
+        return Services.getGroupsService().getArtifacts(gac, this.state.paging).then(results => {
+            this.onArtifactsLoaded(results);
+        }).catch(error => {
+            this.handleServerError(error, "Error searching for artifacts.");
+        });
     }
 
     private onSetPage = (event: any, newPage: number, perPage?: number): void => {
@@ -273,7 +302,14 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     }
 
     private onGroupClick = (groupId: string): void => {
-        // TODO filter by the group
+        Services.getLoggerService().info("[ArtifactsPage] Filtering by group: ", groupId);
+        this.setSingleState("criteria", {
+            filterSelection: "group",
+            filterValue: groupId,
+            ascending: this.state.criteria.ascending
+        }, () => {
+            this.search();
+        });
     };
 
     private showToolbar = (): boolean => {

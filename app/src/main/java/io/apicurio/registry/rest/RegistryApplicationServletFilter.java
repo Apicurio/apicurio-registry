@@ -129,10 +129,8 @@ public class RegistryApplicationServletFilter implements Filter {
                 evaluatedURI = rewriteContext.toString();
             }
 
-            if (mtProperties.isMultitenancyEnabled()
-                    && disabledApisMatcherService.isApiRequest(evaluatedURI)
-                    && (!tenantResolved || tenantContext.getTenantStatus() != TenantStatusValue.READY)) {
-                log.warn("Request {} is rejected because the tenant could not be found, and direct access to apis is disabled in a multitenant deployment", requestURI);
+            if (mtProperties.isMultitenancyEnabled() && tenantContext.getTenantStatus() != TenantStatusValue.READY) {
+                log.warn("Request {} is rejected because the tenant is not ready", requestURI);
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

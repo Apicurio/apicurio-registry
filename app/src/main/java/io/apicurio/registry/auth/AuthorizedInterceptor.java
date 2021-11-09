@@ -24,6 +24,8 @@ import javax.interceptor.InvocationContext;
 
 import org.slf4j.Logger;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -53,8 +55,22 @@ public class AuthorizedInterceptor {
     @Inject
     OwnerBasedAccessController obac;
 
+    @Inject
+    MultitenancyProperties mtProperties;
+
+    @Inject
+    TenantContext tenantContext;
+
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
+
+        //if multitenancy is enabled but no tenant context is loaded, because no tenant was resolved from request, reject it
+        //this is to avoid access to default tenant "_" when multitenancy is enabled
+        if (mtProperties.isMultitenancyEnabled() && !tenantContext.isLoaded()) {
+            log.warn("Request is rejected because the tenant could not be found, and access to default tenant is disabled in a multitenant deployment");
+            throw new ForbiddenException("Default tenant access is not allowed in multitenancy mode.");
+        }
+
         // If the user is trying to invoke a role-mapping operation, deny it if
         // database based RBAC is not enabled.
         RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);

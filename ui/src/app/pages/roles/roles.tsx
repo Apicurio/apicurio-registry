@@ -40,6 +40,7 @@ import {RoleMapping} from "../../../models";
 import {Principal, Services} from "../../../services";
 import {GrantAccessModal, RoleList, RoleMappingsEmptyState} from "./components";
 import {PleaseWaitModal, RootPageHeader} from "../../components";
+import {If} from "../../components/common/if";
 
 
 /**
@@ -123,9 +124,8 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                                                                 aria-label="Role"
                                                                 onToggle={this.onRoleFilterSelectToggle}
                                                                 onSelect={this.onRoleFilterSelectChange}
-                                                                selections={this.state.roleFilterSelectInputValue}
                                                                 isOpen={this.state.roleFilterSelectInputOpened}
-                                                                placeholder="Filter by role"
+                                                                placeholderText="Filter by role"
                                                             >
                                                                 <SelectOption key={1} value="Administrator" />
                                                                 <SelectOption key={2} value="Manager" />
@@ -139,9 +139,11 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
                                                                        onKeyDown={this.onRoleFilterTextInputKeydown}
                                                                        onChange={this.onRoleFilterInputChange} />
                                                     }
-                                                    <Button variant={ButtonVariant.control} aria-label="search button for search input" onClick={this.onRoleFilterApplyClick}>
-                                                        <SearchIcon />
-                                                    </Button>
+                                                    <If condition={this.isAccountFilterSelected}>
+                                                        <Button variant={ButtonVariant.control} aria-label="search button for search input" onClick={this.onRoleFilterApplyClick}>
+                                                            <SearchIcon />
+                                                        </Button>
+                                                    </If>
                                                 </InputGroup>
                                             </ToolbarItem>
                                             <ToolbarItem>
@@ -190,14 +192,13 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
             isPleaseWaitModalOpen: false,
             isRoleMappingUpdate: false,
             pleaseWaitMessage: "",
-            isLoading: true,
             selectedRole: undefined,
             roles: [],
             roleFilter: { principalId: "", role: "", principalName: "" },
             roleListFilterOpened: false,
             roleFilterSelected: roleFilterOptions[0],
             roleFilterTextInputValue: "",
-            roleFilterSelectInputValue: "Administrator",
+            roleFilterSelectInputValue: "",
             roleFilterSelectInputOpened: false
         };
     }
@@ -249,18 +250,18 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         this.setSingleState("isCreateRoleMappingModalOpen", true);
     };
 
-    private isAccountFilterSelected(): boolean {
+    private isAccountFilterSelected = (): boolean => {
         return this.state.roleFilterSelected == roleFilterOptions[0];
-    }
-    private isRoleFilterSelected(): boolean {
+    };
+    private isRoleFilterSelected = (): boolean => {
         return this.state.roleFilterSelected == roleFilterOptions[1];
-    }
+    };
 
     private onRoleFilterSelectChange = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         this.setMultiState({
             roleFilterSelectInputValue: selection,
             roleFilterSelectInputOpened: false
-        });
+        }, () => this.onRoleFilterApplyClick());
     };
 
     private closeRoleMappingModal = (): void => {

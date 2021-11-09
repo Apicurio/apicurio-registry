@@ -34,13 +34,21 @@ import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/r
 import {IfAuth, IfFeature, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {OnPerPageSelect, OnSetPage} from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import {ArtifactsSearchResults, GetArtifactsCriteria, Paging, Services} from "../../../../../services";
+import {SelectPrincipalAccountProps} from "../../../roles";
+
+export interface ArtifactsPageToolbarFilterCriteria {
+    filterSelection: string;
+    filterValue: string;
+    ascending: boolean;
+}
 
 /**
  * Properties
  */
 export interface ArtifactsPageToolbarProps extends PureComponentProps {
     artifacts: ArtifactsSearchResults;
-    onChange: (criteria: GetArtifactsCriteria) => void
+    onCriteriaChange: (criteria: ArtifactsPageToolbarFilterCriteria) => void
+    criteria: ArtifactsPageToolbarFilterCriteria;
     paging: Paging;
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
@@ -52,9 +60,7 @@ export interface ArtifactsPageToolbarProps extends PureComponentProps {
  */
 export interface ArtifactsPageToolbarState extends PureComponentState {
     filterIsExpanded: boolean;
-    filterSelection: string;
-    filterValue: string;
-    ascending: boolean;
+    criteria: ArtifactsPageToolbarFilterCriteria;
 }
 
 /**
@@ -64,6 +70,15 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     constructor(props: Readonly<ArtifactsPageToolbarProps>) {
         super(props);
+    }
+    public componentDidUpdate(prevProps: ArtifactsPageToolbarProps) {
+        if (this.props.criteria && this.props.criteria != prevProps.criteria) {
+            this.setSingleState("criteria", {
+                filterSelection: this.props.criteria.filterSelection,
+                filterValue: this.props.criteria.filterValue,
+                ascending: this.props.criteria.ascending
+            });
+        }
     }
 
     public render(): React.ReactElement {
@@ -87,6 +102,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                     ]}
                                 />
                                 <TextInput name="filterValue" id="filterValue" type="search"
+                                           value={this.state.criteria.filterValue}
                                            onChange={this.onFilterValueChange}
                                            data-testid="toolbar-filter-value"
                                            aria-label="search input example"/>
@@ -102,7 +118,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                     <ToolbarItem className="sort-icon-item">
                         <Button variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={this.onToggleAscending}>
                             {
-                                this.state.ascending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
+                                this.state.criteria.ascending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                             }
                         </Button>
                     </ToolbarItem>
@@ -134,11 +150,9 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     protected initializeState(): ArtifactsPageToolbarState {
         return {
-            ascending: true,
             filterIsExpanded: false,
-            filterSelection: "name",
-            filterValue: ""
-        };
+            criteria: this.props.criteria
+        }
     }
 
     private totalArtifactsCount(): number {
@@ -155,7 +169,11 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter type to: %s", value);
         this.setState({
             filterIsExpanded: false,
-            filterSelection: value
+            criteria: {
+                ascending: this.state.criteria.ascending,
+                filterSelection: value,
+                filterValue: this.state.criteria.filterValue
+            }
         }, () => {
             this.fireOnChange();
         });
@@ -163,7 +181,11 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     private onFilterValueChange = (value: any): void => {
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Setting filter value: %o", value);
-        this.setSingleState("filterValue", value);
+        this.setSingleState("criteria", {
+            ascending: this.state.criteria.ascending,
+            filterSelection: this.state.criteria.filterSelection,
+            filterValue: value
+        });
     };
 
     private onFilterSubmit = (event: any|undefined): void => {
@@ -175,26 +197,18 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
 
     private onToggleAscending = (): void => {
         Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
-        const sortAscending: boolean = !this.state.ascending;
+        const sortAscending: boolean = !this.state.criteria.ascending;
         this.setSingleState("ascending", sortAscending, () => {
             this.fireOnChange();
         });
     };
 
     private fireOnChange(): void {
-        if (this.props.onChange) {
-            const criteria: GetArtifactsCriteria = {
-                sortAscending: this.state.ascending,
-                type: this.state.filterSelection,
-                value: this.state.filterValue
-            };
-
-            this.props.onChange(criteria);
-        }
+        this.props.onCriteriaChange(this.state.criteria);
     }
 
     private filterValueDisplay(): string {
-        switch (this.state.filterSelection) {
+        switch (this.state.criteria.filterSelection) {
             case "name":
                 return "Name";
             case "group":

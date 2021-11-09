@@ -19,7 +19,6 @@ import React from 'react';
 import {Divider, Select, SelectGroup, SelectOption, SelectVariant,} from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
 import {Principal} from '../../../../../services/config';
-import {GrantAccessModalProps} from "./grantAccessModal";
 
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;

@@ -53,6 +53,7 @@ export interface ArtifactsPageState extends PageState {
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
     invalidContentError: any | null;
+    initFromSearch: string;
 }
 
 /**
@@ -66,7 +67,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     componentDidUpdate(prevProps: Readonly<ArtifactsPageProps>, prevState: Readonly<ArtifactsPageState>, snapshot?: {}) {
         // @ts-ignore
-        if (prevProps.location.search != this.props.location.search) {
+        if (this.props.history.location.search !== this.state.initFromSearch) {
             this.setMultiState(this.initializePageState(), () => this.search());
         }
     }
@@ -131,7 +132,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             ascending: true
         }
         // @ts-ignore
-        const location: any = this.props.location;
+        const location: any = this.props.history.location;
+        let initFromSearch: string = "";
         if (location && location.search) {
             const params = new URLSearchParams(location.search);
             if (params.get("group")) {
@@ -141,9 +143,11 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     ascending: true
                 }
             }
+            initFromSearch = location.search;
         }
         return {
             criteria,
+            initFromSearch,
             invalidContentError: null,
             isInvalidContentModalOpen: false,
             isPleaseWaitModalOpen: false,

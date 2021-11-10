@@ -24,7 +24,7 @@ import javax.interceptor.InvocationContext;
 
 import org.slf4j.Logger;
 
-import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.MultitenancyConfig;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -56,7 +56,7 @@ public class AuthorizedInterceptor {
     OwnerBasedAccessController obac;
 
     @Inject
-    MultitenancyProperties mtProperties;
+    MultitenancyConfig mtConfig;
 
     @Inject
     TenantContext tenantContext;
@@ -66,7 +66,7 @@ public class AuthorizedInterceptor {
 
         //if multitenancy is enabled but no tenant context is loaded, because no tenant was resolved from request, reject it
         //this is to avoid access to default tenant "_" when multitenancy is enabled
-        if (mtProperties.isMultitenancyEnabled() && !tenantContext.isLoaded()) {
+        if (mtConfig.isMultitenancyEnabled() && !tenantContext.isLoaded()) {
             log.warn("Request is rejected because the tenant could not be found, and access to default tenant is disabled in a multitenant deployment");
             throw new ForbiddenException("Default tenant access is not allowed in multitenancy mode.");
         }

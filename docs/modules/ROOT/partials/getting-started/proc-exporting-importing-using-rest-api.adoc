@@ -1,52 +1,81 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
-[id="exporting-importing-using-rest-api"]
-= Exporting and importing registry content using Registry REST API commands
+[id="exporting-importing-using-rest-api_{context}"]
+= Exporting and importing registry content using {registry} REST API commands
 
 [role="_abstract"]
 This section shows a simple curl-based example of using the registry v2 core REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating or upgrading from one {registry} v2.x instance to another. 
 
+ifdef::rh-openshift-sr[]
+IMPORTANT: You can import Service Registry data that has been exported from another {product-long} instance. You cannot currently import Service Registry data from a Red Hat Integration Service Registry instance.   
+endif::[]
+
 .Prerequisites
 
-* {registry} must be installed and running in your environment. 
+ifdef::apicurio-registry,rh-service-registry[]
+* {registry} is installed and running in your environment
+endif::[]
+ifdef::rh-openshift-sr[]
+* You have a service account with the correct access permissions for {registry} instances.
+* You  have created an access token using your service account credentials. 
+endif::[]
 
 .Procedure
+
+ifdef::rh-openshift-sr[]
+. Connect to the {registry} web console on:
++
+`*{registry-url}*`
+
+. For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
+. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. This is the registry API endpoint that you need for connecting to this {registry} instance. 
+endif::[]
 
 . Export the registry data from your existing source {registry} instance:
 +
 [source,bash]
 ----
-$ curl http://MY-REGISTRY-HOST/apis/registry/v2/admin/export \ 
+$ curl http://MY-REGISTRY-URL/apis/registry/v2/admin/export \ 
+  -H "Authorization: Bearer $ACCESS_TOKEN" \ 
   --output my-registry-data.zip
 ----
 +
+`MY-REGISTRY-URL` is the 
 ifdef::apicurio-registry[]
-`MY-REGISTRY-HOST` is the host name on which the source {registry} is deployed. For example: `\http://my-source-registry:8080`.
+host name on which the source {registry} is deployed. For example: `\http://my-source-registry:8080`.
 endif::[]
-
 ifdef::rh-service-registry[]
-`MY-REGISTRY-HOST` is the host name on which the source {registry} is deployed. For example: `my-cluster-source-registry-myproject.example.com`. 
+host name on which the source {registry} is deployed. For example: `my-cluster-source-registry-myproject.example.com`. 
+endif::[]
+ifdef::rh-openshift-sr[]
+URL on which the source {registry} is deployed. For example: `\https://service-registry-source.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
 endif::[]
 
 . Import the registry data into your target {registry} instance:
 +
 [source,bash]
 ----
-$ curl -X POST "http://MY-REGISTRY-HOST/apis/registry/v2/admin/import" \ 
-  -H "Content-Type: application/zip" --data-binary @my-registry-data.zip
+$ curl -X POST "http://MY-REGISTRY-URL/apis/registry/v2/admin/import" \ 
+  -H "Content-Type: application/zip" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @my-registry-data.zip
 ----
 +
+`MY-REGISTRY-URL` is the 
 ifdef::apicurio-registry[]
-`MY-REGISTRY-HOST` is the host name on which the target {registry} is deployed. For example: `\http://my-target-registry:8080`.
+host name on which the target {registry} is deployed. For example: `\http://my-target-registry:8080`.
 endif::[]
-
 ifdef::rh-service-registry[]
-`MY-REGISTRY-HOST` is the host name on which the target {registry} is deployed. For example: `my-cluster-target-registry-myproject.example.com`. 
+host name on which the target {registry} is deployed. For example: `my-cluster-target-registry-myproject.example.com`. 
+endif::[]
+ifdef::rh-openshift-sr[]
+URL on which the target {registry} is deployed. For example: `\https://service-registry-target.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
 endif::[]
 
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the `admin` endpoint in the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For more details, see the `admin` endpoint in the {registry-rest-api}
+ifdef::apicurio-registry,rh-service-registry[]
 * For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/master/utils/exportV1[Apicurio Registry export utility for 1.x versions]
+endif::[]

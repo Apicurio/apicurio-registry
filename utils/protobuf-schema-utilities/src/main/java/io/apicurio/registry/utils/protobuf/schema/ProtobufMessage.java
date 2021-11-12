@@ -81,30 +81,34 @@ public class ProtobufMessage {
             String jsonName,
             Boolean isDeprecated,
             Boolean isPacked,
+            DescriptorProtos.FieldOptions.CType ctype,
+            DescriptorProtos.FieldOptions.JSType jsType,
             Integer oneOfIndex,
             Boolean isProto3Optional
         ) {
-        FieldDescriptorProto.Label protoLabel = fieldDescriptorLabels.get(label);
-        addFieldDescriptorProto(protoLabel, type, typeName, name, num, defaultVal, jsonName, isDeprecated, isPacked, oneOfIndex, isProto3Optional);
+        descriptorProtoBuilder.addField(
+                buildFieldDescriptorProto(label, type, typeName, name, num, defaultVal, jsonName, isDeprecated,
+                        isPacked, ctype, jsType, oneOfIndex, isProto3Optional)
+        );
     }
 
-    public void addFieldDescriptorProto(
-            FieldDescriptorProto.Label label,
-            String type,
-            String typeName,
-            String name,
-            int num,
-            String defaultVal,
-            String jsonName,
-            Boolean isDeprecated,
-            Boolean isPacked,
-            Integer oneOfIndex,
-            Boolean isProto3Optional
-        ) {
-
+    public static FieldDescriptorProto buildFieldDescriptorProto(String label,
+                                                                 String type,
+                                                                 String typeName,
+                                                                 String name,
+                                                                 int num,
+                                                                 String defaultVal,
+                                                                 String jsonName,
+                                                                 Boolean isDeprecated,
+                                                                 Boolean isPacked,
+                                                                 DescriptorProtos.FieldOptions.CType ctype,
+                                                                 DescriptorProtos.FieldOptions.JSType jsType,
+                                                                 Integer oneOfIndex,
+                                                                 Boolean isProto3Optional) {
         FieldDescriptorProto.Builder fieldBuilder = FieldDescriptorProto.newBuilder();
+        FieldDescriptorProto.Label protoLabel = fieldDescriptorLabels.get(label);
         if (label != null) {
-            fieldBuilder.setLabel(label);
+            fieldBuilder.setLabel(protoLabel);
         }
         FieldDescriptorProto.Type primType = fieldDescriptorTypes.get(typeName);
         if (primType != null) {
@@ -116,8 +120,8 @@ public class ProtobufMessage {
                 fieldBuilder.setType(fieldDescriptorType);
             }
             if (fieldDescriptorType != null &&
-                (fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_MESSAGE) || fieldDescriptorType.equals(
-                    FieldDescriptorProto.Type.TYPE_ENUM)))  {
+                    (fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_MESSAGE) || fieldDescriptorType.equals(
+                            FieldDescriptorProto.Type.TYPE_ENUM)))  {
                 //References to other nested messages / enums / google.protobuf types start with "."
                 //See https://developers.google.com/protocol-buffers/docs/proto#packages_and_name_resolution
                 fieldBuilder.setTypeName(typeName.startsWith(".") ? typeName : "." + typeName);
@@ -148,10 +152,22 @@ public class ProtobufMessage {
             fieldBuilder.mergeOptions(optionsBuilder.build());
         }
 
+        if (ctype != null) {
+            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            optionsBuilder.setCtype(ctype);
+            fieldBuilder.mergeOptions(optionsBuilder.build());
+        }
+
+        if (jsType != null) {
+            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            optionsBuilder.setJstype(jsType);
+            fieldBuilder.mergeOptions(optionsBuilder.build());
+        }
+
         if (isProto3Optional != null) {
             fieldBuilder.setProto3Optional(isProto3Optional);
         }
-        descriptorProtoBuilder.addField(fieldBuilder.build());
+        return fieldBuilder.build();
     }
 
 }

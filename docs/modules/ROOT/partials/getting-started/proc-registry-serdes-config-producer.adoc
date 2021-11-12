@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-config-producer-{context}']
+[id='registry-serdes-config-producer_{context}']
 = Using a schema from a Kafka producer client
 
 [role="_abstract"]

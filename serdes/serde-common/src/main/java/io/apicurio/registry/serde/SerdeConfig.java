@@ -168,6 +168,23 @@ public class SerdeConfig {
      * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be fetched every time.
      */
     public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
+    public static final long CHECK_PERIOD_MS_DEFAULT = 30000;
+
+    /**
+     * If a schema can not be retrieved from the Registry, serdes may retry a number of times.
+     * This configuration option controls the number of retries before failing.
+     * Valid values are non-negative integers.
+     */
+    public static final String RETRY_COUNT = "apicurio.registry.retry-count";
+    public static final long RETRY_COUNT_DEFAULT = 3;
+
+    /**
+     * If a schema can not be be retrieved from the Registry, serdes may retry a number of times.
+     * This configuration option controls the delay between the retry attempts, in milliseconds.
+     * Valid values are non-negative integers.
+     */
+    public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
+    public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
      * Configures the serdes to use the specified {@link IdOption} as the identifier for the artifacts.

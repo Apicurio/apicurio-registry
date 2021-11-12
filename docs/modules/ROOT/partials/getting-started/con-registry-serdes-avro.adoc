@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-types-avro-{context}']
+[id='registry-serdes-types-avro_{context}']
 = Configure Avro SerDe with {registry}
 
 [role="_abstract"]

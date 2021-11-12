@@ -1,6 +1,6 @@
 // Metadata created by nebel
 
-[id="registry-storage"]
+[id="registry-storage_{context}"]
 = {registry} storage options
 
 [role="_abstract"]

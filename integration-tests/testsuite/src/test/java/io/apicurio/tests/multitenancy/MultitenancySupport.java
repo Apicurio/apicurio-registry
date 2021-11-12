@@ -74,8 +74,13 @@ public class MultitenancySupport {
         return tenantAppUrl;
     }
 
-    public RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
+    public RegistryClient createUserClientCustomJWT(TenantUser user, String tenantAppUrl) {
         return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new CustomJWTAuth(user.principalId, user.organizationId));
+    }
+
+    public RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
+        var keycloak = registryFacade.getMTOnlyKeycloakMock();
+        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new OidcAuth(keycloak.tokenEndpoint, user.principalId, user.principalPassword, Optional.empty()));
     }
 
     public synchronized TenantManagerClient getTenantManagerClient() {

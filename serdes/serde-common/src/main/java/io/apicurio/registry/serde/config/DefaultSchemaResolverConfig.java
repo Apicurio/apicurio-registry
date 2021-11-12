@@ -18,7 +18,9 @@ package io.apicurio.registry.serde.config;
 
 import static io.apicurio.registry.serde.SerdeConfig.*;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -30,7 +32,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
     public static ConfigDef configDef() {
-        ConfigDef configDef = new ConfigDef()
+        return new ConfigDef()
                 .define(REGISTRY_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_TOKEN_ENDPOINT, Type.STRING, null, Importance.HIGH, "TODO docs")
                 .define(AUTH_SERVICE_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
@@ -47,12 +49,12 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
 
                 .define(FIND_LATEST_ARTIFACT, Type.BOOLEAN, FIND_LATEST_ARTIFACT_DEFAULT, Importance.HIGH, "TODO docs")
 
-                .define(CHECK_PERIOD_MS, Type.LONG, null, Importance.MEDIUM, "TODO docs")
+                .define(CHECK_PERIOD_MS, Type.LONG, CHECK_PERIOD_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
+                .define(RETRY_COUNT, Type.LONG, RETRY_COUNT_DEFAULT, Importance.MEDIUM, "TODO docs")
+                .define(RETRY_BACKOFF_MS, Type.LONG, RETRY_BACKOFF_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
 
                 .define(EXPLICIT_ARTIFACT_GROUP_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs")
                 .define(EXPLICIT_ARTIFACT_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs");
-
-        return configDef;
       }
 
     public DefaultSchemaResolverConfig(Map<?, ?> originals) {
@@ -107,8 +109,22 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
         return this.getBoolean(FIND_LATEST_ARTIFACT);
     }
 
-    public Object getCheckPeriodMs() {
-        return this.get(CHECK_PERIOD_MS);
+    public Duration getCheckPeriod() {
+        return extractDurationMillis(this.get(CHECK_PERIOD_MS), CHECK_PERIOD_MS);
+    }
+
+    public long getRetryCount() {
+        // No need to check for null, a default value is defined
+        long result = extractLong(this.get(RETRY_COUNT), RETRY_COUNT);
+        if(result < 0) {
+            throw new IllegalArgumentException("Config param '" + RETRY_COUNT + "' must be non-negative. Got '" + result + "'.");
+        }
+        return result;
+    }
+
+    public Duration getRetryBackoff() {
+        // No need to check for null, a default value is defined
+        return extractDurationMillis(this.get(RETRY_BACKOFF_MS), RETRY_BACKOFF_MS);
     }
 
     public String getExplicitArtifactGroupId() {
@@ -127,4 +143,39 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
         return version.toString();
     }
 
+    private static Duration extractDurationMillis(Object value, String configurationName) {
+        Objects.requireNonNull(value);
+        Objects.requireNonNull(configurationName);
+        long result;
+        if (value instanceof Number) {
+            result = ((Number) value).longValue();
+        } else if (value instanceof String) {
+            result = Long.parseLong((String) value);
+        } else if (value instanceof Duration) {
+            result = ((Duration) value).toMillis();
+        } else {
+            throw new IllegalArgumentException("Config param '" + configurationName + "' type unsupported. " +
+                "Expected a Number, String, or Duration. Got '" + value + "'.");
+        }
+        if (result < 0) {
+            throw new IllegalArgumentException("Config param '" + configurationName + "' represents a duration, " +
+                "which must be non-negative. Got '" + value + "'.");
+        }
+        return Duration.ofMillis(result);
+    }
+
+    private static long extractLong(Object value, String configurationName) {
+        Objects.requireNonNull(value);
+        Objects.requireNonNull(configurationName);
+        long result;
+        if (value instanceof Number) {
+            result = ((Number) value).longValue();
+        } else if (value instanceof String) {
+            result = Long.parseLong((String) value);
+        } else {
+            throw new IllegalArgumentException("Config param '" + configurationName + "' type unsupported. " +
+                "Expected a Number or String. Got '" + value + "'.");
+        }
+        return result;
+    }
 }

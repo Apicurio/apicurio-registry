@@ -1,10 +1,12 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-[id="registry-artifact-states"]
+[id="registry-artifact-states_{context}"]
 
 = {registry} artifact states
-These are the valid artifact states in {registry}:
+
+[role="_abstract"]
+The valid artifact states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`. 
 
 .{registry} artifact states
 [%header,cols=2*]
@@ -18,5 +20,3 @@ These are the valid artifact states in {registry}:
 |`DEPRECATED`
 |The artifact is fully usable but a header is added to the REST API response whenever the artifact content is fetched. The {registry} Rest Client will also log a warning whenever it sees deprecated content.
 |===
-
-

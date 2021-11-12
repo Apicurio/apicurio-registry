@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-types-protobuf-{context}']
+[id='registry-serdes-types-protobuf_{context}']
 
 = Configure Protobuf SerDe with {registry}
 
@@ -23,8 +23,8 @@ You can configure the Protobuf serializer class as follows:
 
 For details on these configuration options, see the following sections: 
 
-* xref:registry-serdes-concepts-constants-registry[]
-* xref:registry-serdes-types-avro-registry[]
+* xref:registry-serdes-concepts-constants_registry[]
+* xref:registry-serdes-types-avro_registry[]
 
 .Configure the Protobuf deserializer
 

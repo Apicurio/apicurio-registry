@@ -1,17 +1,17 @@
 // Metadata created by nebel
 
-[id="registry-migration"]
+[id="registry-migration_{context}"]
 = Migration from {registry} {registry-v1} to 2.x
 
 [role="_abstract"]
-{registry} 2.x includes new features with breaking changes from the previous {registry-v1} release. This section describes the major changes between {registry} {registry-v1} and version 2.x. 
+{registry} 2.x includes new features with breaking changes from the previous {registry} {registry-v1} release. This section describes the major changes between {registry} {registry-v1} and version 2.x. 
 
 Because of the breaking changes in 2.x, there is no automatic upgrade and a migration process is required. This involves moving the data in your existing registry to a new registry. You must also review your existing registry client applications and update their configuration to meet the new requirements.
 
 When migrating to version 2.x, you must take the following major changes into account:
 
 == New data storage options
-The existing registry data storage options in {registry} {registry-v1} (`streams`,`jpa` and `infinispan`) have been replaced with new storage options in version 2.x (`sql` and `kafkasql`). These new storage options provide more robust, performant, and maintainable {registry} deployments. 
+The existing registry data storage options in {registry} {registry-v1} (`streams`,`jpa`, and `infinispan`) have been replaced with new storage options in version 2.x (`sql` and `kafkasql`). These new storage options provide more robust, performant, and maintainable {registry} deployments. 
 ifdef::apicurio-registry[]
 The in-memory storage option (`mem`) is also still available, but is not suitable for production workloads. 
 endif::[]
@@ -35,4 +35,4 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For more details on the registry v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[{registry} REST API documentation]
+* For more details on the v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation]

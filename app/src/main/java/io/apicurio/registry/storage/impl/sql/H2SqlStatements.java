@@ -99,6 +99,6 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, groupId, artifactId, version, contentId, name) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO artifactreferences (tenantId, globalId, groupId, artifactId, version, contentId, name) VALUES (?, ?, ?, ?, ?, ?, ?)";
     }
 }

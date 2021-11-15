@@ -27,6 +27,7 @@ import lombok.ToString;
 @ToString
 public class ArtifactReferenceDto {
 
+    private long globalId;
     private String groupId;
     private String artifactId;
     private String version;
@@ -37,6 +38,20 @@ public class ArtifactReferenceDto {
      * Constructor
      */
     public ArtifactReferenceDto() {
+    }
+
+    /**
+     * @return the globalId
+     */
+    public long getGlobalId() {
+        return globalId;
+    }
+
+    /**
+     * @param globalId to set
+     */
+    public void setGlobalId(long globalId) {
+        this.globalId = globalId;
     }
 
     /**

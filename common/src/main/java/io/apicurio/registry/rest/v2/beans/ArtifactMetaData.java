@@ -37,7 +37,8 @@ import io.apicurio.registry.types.ArtifactType;
     "labels",
     "properties",
     "groupId",
-    "contentId"
+    "contentId",
+    "references"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -151,6 +152,12 @@ public class ArtifactMetaData {
     @JsonProperty("contentId")
     @JsonPropertyDescription("")
     private Long contentId;
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    @JsonPropertyDescription("")
+    private List<ArtifactReference> references = new ArrayList<ArtifactReference>();
 
     @JsonProperty("name")
     public String getName() {
@@ -436,24 +443,20 @@ public class ArtifactMetaData {
         this.contentId = contentId;
     }
 
-    @Override
-    public String toString() {
-        return "ArtifactMetaData{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", modifiedBy='" + modifiedBy + '\'' +
-                ", modifiedOn=" + modifiedOn +
-                ", id='" + id + '\'' +
-                ", version='" + version + '\'' +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                ", groupId='" + groupId + '\'' +
-                ", contentId=" + contentId +
-                '}';
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    public List<ArtifactReference> getReferences() {
+        return references;
     }
+
+    /**
+     * 
+     */
+    @JsonProperty("references")
+    public void setReferences(List<ArtifactReference> references) {
+        this.references = references;
+    }
+
 }

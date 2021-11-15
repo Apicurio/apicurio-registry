@@ -4,6 +4,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 /**
@@ -40,7 +41,8 @@ public interface IdsResource {
   @Path("/globalIds/{globalId}")
   @GET
   @Produces("*/*")
-  Response getContentByGlobalId(@PathParam("globalId") int globalId);
+  Response getContentByGlobalId(@PathParam("globalId") int globalId,
+      @QueryParam("dereference") Boolean dereference);
 
   /**
    * Gets the content for an artifact version in the registry using the 

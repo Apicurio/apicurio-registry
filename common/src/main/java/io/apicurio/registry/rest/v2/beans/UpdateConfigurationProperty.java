@@ -4,39 +4,39 @@ package io.apicurio.registry.rest.v2.beans;
 import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.apicurio.registry.types.LogLevel;
 
 
 /**
+ * Root Type for UpdateConfigurationProperty
+ * <p>
+ * 
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "level"
+    "value"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-public class LogConfiguration {
+public class UpdateConfigurationProperty {
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("level")
-    @JsonPropertyDescription("")
-    private LogLevel level;
+    @JsonProperty("value")
+    private String value;
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("level")
-    public LogLevel getLevel() {
-        return level;
+    @JsonProperty("value")
+    public String getValue() {
+        return value;
     }
 
     /**
@@ -44,9 +44,9 @@ public class LogConfiguration {
      * (Required)
      * 
      */
-    @JsonProperty("level")
-    public void setLevel(LogLevel level) {
-        this.level = level;
+    @JsonProperty("value")
+    public void setValue(String value) {
+        this.value = value;
     }
 
 }

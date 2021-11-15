@@ -2,7 +2,6 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -170,8 +169,7 @@ public interface GroupsResource {
   @GET
   @Produces("*/*")
   Response getArtifactVersion(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @PathParam("version") String version,
-      @QueryParam("dereference") Boolean dereference);
+      @PathParam("artifactId") String artifactId, @PathParam("version") String version);
 
   /**
    * Updates the state of a specific version of an artifact.  For example, you can use 
@@ -421,7 +419,7 @@ public interface GroupsResource {
   @GET
   @Produces("*/*")
   Response getLatestArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
+      @PathParam("artifactId") String artifactId);
 
   /**
    * Updates an artifact by uploading new content.  The body of the request should
@@ -509,135 +507,4 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description") String xRegistryDescription,
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
-
-  /**
-   * Creates a new artifact by posting the artifact content.  The body of the request should
-   * be the raw content of the artifact typically in JSON format for *most* of the supported types, 
-   * but may be in another format for a few (for example, `PROTOBUF`). and a collection of artifact references. 
-   *
-   * The registry attempts to figure out what kind of artifact is being added from the
-   * following supported list:
-   *
-   * * Avro (`AVRO`)
-   * * Protobuf (`PROTOBUF`)
-   * * JSON Schema (`JSON`)
-   * * Kafka Connect (`KCONNECT`)
-   * * OpenAPI (`OPENAPI`)
-   * * AsyncAPI (`ASYNCAPI`)
-   * * GraphQL (`GRAPHQL`)
-   * * Web Services Description Language (`WSDL`)
-   * * XML Schema (`XSD`)
-   *
-   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType` 
-   * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
-   *
-   * ```
-   * Content-Type: application/json; artifactType=AVRO
-   * ```
-   *
-   * An artifact is created using the content provided in the body of the request.  This
-   * content is created under a unique artifact ID that can be provided in the request
-   * using the `X-Registry-ArtifactId` request header.  If not provided in the request,
-   * the server generates a unique ID for the artifact.  It is typically recommended
-   * that callers provide the ID, because this is typically a meaningful identifier, 
-   * and for most use cases should be supplied by the caller.
-   *
-   * Registry will also try to resolve the artifact references.
-   *
-   * If an artifact with the provided artifact ID already exists, the default behavior
-   * is for the server to reject the content with a 409 error.  However, the caller can
-   * supply the `ifExists` query parameter to alter this default behavior. The `ifExists`
-   * query parameter can have one of the following values:
-   *
-   * * `FAIL` (*default*) - server rejects the content with a 409 error
-   * * `UPDATE` - server updates the existing artifact and returns the new metadata
-   * * `RETURN` - server does not create or add content to the server, but instead 
-   * returns the metadata for the existing artifact
-   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the 
-   * provided content if such a version exists, otherwise a new version is created
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * An invalid `ArtifactType` was indicated (HTTP error `400`)
-   * * No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)
-   * * Provided content (request body) was empty (HTTP error `400`)
-   * * An artifact with the provided ID already exists (HTTP error `409`)
-   * * The content violates one of the configured global rules (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{groupId}/artifacts/withRefs")
-  @POST
-  @Produces("application/json")
-  @Consumes("application/json")
-  ArtifactMetaData createArtifactWithRefs(@PathParam("groupId") String groupId,
-      @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
-      @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @QueryParam("ifExists") IfExists ifExists, @QueryParam("canonical") Boolean canonical,
-      @HeaderParam("X-Registry-Description") String xRegistryDescription,
-      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
-      @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      ContentCreateRequest data);
-
-  /**
-   * Creates a new version of the artifact containing references by uploading new content.  The configured rules for
-   * the artifact are applied, and if they all pass, the new content is added as the most recent 
-   * version of the artifact.  If any of the rules fail, an error is returned.
-   *
-   * The body of the request should be the raw content of the new artifact version, the type
-   * of that content should match the artifact's type (for example if the artifact type is `AVRO`
-   * then the content of the request should be an Apache Avro document) and the collection of references.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * Provided content (request body) was empty (HTTP error `400`)
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{groupId}/artifacts/{artifactId}/versions/withRefs")
-  @POST
-  @Produces("application/json")
-  @Consumes("application/json")
-  VersionMetaData createArtifactVersionWithRefs(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Description") String xRegistryDescription,
-      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      ContentCreateRequest data);
-
-  /**
-   * Updates an artifact by uploading new content.  The body of the request should
-   * be the raw content of the artifact and the collection of references to other artifacts.  This is typically in JSON format for *most*
-   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
-   * The type of the content should be compatible with the artifact's type (it would be
-   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
-   *
-   * The update could fail for a number of reasons including:
-   *
-   * * Provided content (request body) was empty (HTTP error `400`)
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   * When successful, this creates a new version of the artifact, making it the most recent
-   * (and therefore official) version of the artifact.
-   */
-  @Path("/{groupId}/artifacts/{artifactId}/withRefs")
-  @PUT
-  @Produces("application/json")
-  @Consumes("application/json")
-  ArtifactMetaData updateArtifactWithRefs(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      @HeaderParam("X-Registry-Description") String xRegistryDescription,
-      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
-      ContentCreateRequest data);
 }

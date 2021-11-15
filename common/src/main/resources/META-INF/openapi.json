@@ -2290,6 +2290,146 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
+        "/admin/config/properties": {
+            "summary": "Manage configuration properties.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ConfigurationProperty"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a list of configuration properties."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listConfigProperties",
+                "summary": "List all configuration properties",
+                "description": "Returns a list of all configuration properties that have been set.  The list is not paged.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigurationProperty"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Returned if the configuration property is correctly set."
+                    }
+                },
+                "operationId": "setConfigProperty",
+                "summary": "Set a configuration property",
+                "description": "Sets a configuration property using a name and value.  If the configuration property is\nalready set, it will be overwritten.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/config/properties/{propertyName}": {
+            "summary": "Manage a single configuration property (by name).",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfigurationProperty"
+                                }
+                            }
+                        },
+                        "description": "The configuration property value."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "getConfigProperty",
+                "summary": "Get the value of a configuration property",
+                "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConfigurationProperty"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was updated."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "updateConfigProperty",
+                "summary": "Update a configuration property",
+                "description": "Updates the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteConfigProperty",
+                "summary": "Delete a configuration property",
+                "description": "Deletes the value of a single configuration property.  This will return the property to\nits default value (see external documentation for supported properties and their default\nvalues).\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "propertyName",
+                    "description": "The name of a configuration property.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
@@ -2750,41 +2890,6 @@
                     "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
                 }
             },
-            "VersionReference": {
-                "title": "Root Type for ArtifactReference",
-                "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
-                "required": [
-                    "artifactId",
-                    "groupId",
-                    "name",
-                    "globalId"
-                ],
-                "type": "object",
-                "properties": {
-                    "groupId": {
-                        "type": "string"
-                    },
-                    "artifactId": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "globalId": {
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "mygroup",
-                    "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
-                    "version": "versionName",
-                    "globalId": 2,
-                    "name": "foo.bar.Open"
-                }
-            },
             "ArtifactMetaData": {
                 "title": "Root Type for ArtifactMetaData",
                 "description": "",
@@ -3182,6 +3287,43 @@
                     ]
                 },
                 "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+            },
+            "ConfigurationProperty": {
+                "title": "Root Type for ConfigurationProperty",
+                "description": "",
+                "required": [
+                    "name",
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry.auth.owner-only-authorization",
+                    "value": "true"
+                }
+            },
+            "UpdateConfigurationProperty": {
+                "title": "Root Type for UpdateConfigurationProperty",
+                "description": "",
+                "required": [
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "value": "true"
+                }
             }
         },
         "responses": {

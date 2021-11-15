@@ -435,7 +435,7 @@ public class ArtifactMetaData {
     public void setContentId(Long contentId) {
         this.contentId = contentId;
     }
-
+    
     @Override
     public String toString() {
         return "ArtifactMetaData{" +

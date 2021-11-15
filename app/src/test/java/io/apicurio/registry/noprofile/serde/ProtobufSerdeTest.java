@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.apicurio.registry.serde.SerdeConfig;
+import io.api.sample.TableNotification;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -146,6 +147,25 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             DynamicMessage dm = deserializer.deserialize(topic, bytes);
             assertProtobufEquals(record, dm);
         }
+    }
+
+    @Test
+    public void testProtobufSchemaWithReferences() {
+
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
+             Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            byte[] data = serializer.serialize("test",  TableNotification.newBuilder().build());
+            deserializer.deserialize("test", data);
+
+        }
+
     }
 
     private void assertProtobufEquals(TestCmmn.UUID record, DynamicMessage dm) {

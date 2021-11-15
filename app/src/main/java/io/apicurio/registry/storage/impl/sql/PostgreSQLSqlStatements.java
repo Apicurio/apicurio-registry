@@ -99,7 +99,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, groupId, artifactId, version, contentId, name) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, name, contentId) DO NOTHING";
+        return "INSERT INTO artifactreferences (tenantId, globalId, groupId, artifactId, version, contentId, name) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, name, contentId) DO NOTHING";
     }
 
 }

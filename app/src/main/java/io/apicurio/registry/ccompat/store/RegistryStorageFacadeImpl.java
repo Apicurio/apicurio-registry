@@ -203,7 +203,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                         return artifactReferenceDto;
 
                     })
-                    .peek(reference -> reference.setContentId(storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()).getContentId()))
+                    .peek(reference -> {
+                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+                        reference.setGlobalId(artifactVersionMetaData.getGlobalId());
+                        reference.setContentId(artifactVersionMetaData.getContentId());
+                    })
                     .collect(Collectors.toList());
 
             resolvedReferences = storage.resolveReferences(referencesAsDtos);
@@ -361,8 +365,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     private List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references) {
         if (references != null) {
             return references.stream()
-                    .map(schemaReference -> new ArtifactReferenceDto(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName(), storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion())).getContentId()))
-                    .collect(Collectors.toList());
+                    .map(schemaReference -> {
+                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()));
+                        return new ArtifactReferenceDto(artifactVersionMetaData.getGlobalId(), null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName(), artifactVersionMetaData.getContentId());
+                    }).collect(Collectors.toList());
         } else {
             return Collections.emptyList();
         }

@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public class InvalidArtifactTypeException extends RegistryException {
+public class InvalidArtifactIdException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 
-    public InvalidArtifactTypeException(String message) {
+    public InvalidArtifactIdException(String message) {
         super(message);
     }
 

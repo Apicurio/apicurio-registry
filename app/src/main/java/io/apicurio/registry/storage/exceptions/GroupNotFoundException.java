@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public class DownloadNotFoundException extends NotFoundException {
+public class GroupNotFoundException extends NotFoundException {
 
-    private static final long serialVersionUID = -8634862918588649938L;
+    private static final long serialVersionUID = -5024749463194169679L;
 
-    public DownloadNotFoundException() {
+    private final String groupId;
+
+    public GroupNotFoundException(String groupId) {
+        this.groupId = groupId;
     }
 
-    public DownloadNotFoundException(Throwable cause) {
+    public GroupNotFoundException(String groupId, Throwable cause) {
         super(cause);
+        this.groupId = groupId;
     }
 
     /**
@@ -35,7 +39,7 @@ public class DownloadNotFoundException extends NotFoundException {
      */
     @Override
     public String getMessage() {
-        return "Download not found.";
+        return "No group '" + this.groupId + "' was found.";
     }
 
 }

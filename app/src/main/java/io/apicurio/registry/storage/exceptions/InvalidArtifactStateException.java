@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
+import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.types.ArtifactState;
 
 /**

@@ -51,11 +51,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.config.RegistryConfigProperty;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -846,9 +849,175 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-
-
     }
 
+    @Test
+    public void testConfigProperties() throws Exception {
+        // Start with no role mappings
+        given()
+            .when()
+                .get("/registry/v2/admin/config/properties")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("[0]", nullValue());
+
+        // Add
+        ConfigurationProperty property = new ConfigurationProperty();
+        property.setName(RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName());
+        property.setValue("true");
+        given()
+            .when()
+                .contentType(CT_JSON).body(property)
+                .post("/registry/v2/admin/config/properties")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName())
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName()))
+                    .body("value", equalTo("true"));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/config/properties")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].name", equalTo(RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName()))
+                    .body("[0].value", equalTo("true"));
+        });
+
+        // Add another property
+        property = new ConfigurationProperty();
+        property.setName(RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName());
+        property.setValue("true");
+        given()
+            .when()
+                .contentType(CT_JSON).body(property)
+                .post("/registry/v2/admin/config/properties")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName())
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName()))
+                    .body("value", equalTo("true"));
+        });
+
+        // Change the value of a property
+        UpdateConfigurationProperty update = new UpdateConfigurationProperty();
+        update.setValue("false");
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName())
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was updated.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName())
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName()))
+                    .body("value", equalTo("false"));
+        });
+
+        // Delete a config property
+        given()
+            .when()
+                .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName())
+                .delete("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was deleted.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName())
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(404);
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/config/properties")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("[0].name", equalTo(RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName()))
+                    .body("[0].value", equalTo("true"));
+        });
+
+        // Delete the other property (update to null)
+        update.setValue(null);
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName())
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was deleted.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName())
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(404);
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .get("/registry/v2/admin/config/properties")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("size()", equalTo(0));
+        });
+
+
+        // Try to add a config property that doesn't exist.
+        property = new ConfigurationProperty();
+        property.setName("property-does-not-exist");
+        property.setValue("foobar");
+        given()
+            .when()
+                .contentType(CT_JSON).body(property)
+                .post("/registry/v2/admin/config/properties")
+            .then()
+                .statusCode(404);
+
+    }
 
 }

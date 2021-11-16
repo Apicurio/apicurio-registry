@@ -16,15 +16,48 @@
 
 package io.apicurio.registry;
 
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.apicurio.registry.config.RegistryConfigProperty;
 import io.apicurio.registry.logging.audit.MockAuditLogService;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.ConfigPropertyNotFoundException;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -49,34 +82,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -1292,9 +1297,95 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Clean up
         clientV2.deleteRoleMapping("TestUser");
-
     }
 
+    @Test
+    public void testConfigProperties() throws Exception {
+        String propOneName = RegistryConfigProperty.REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED.propertyName();
+        String propTwoName = RegistryConfigProperty.REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS.propertyName();
+
+        // Start with no config properties
+        List<ConfigurationProperty> configProperties = clientV2.listConfigProperties();
+        Assertions.assertTrue(configProperties.isEmpty());
+
+        // Add
+        clientV2.setConfigProperty(propOneName, "true");
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(propOneName);
+            Assertions.assertEquals(propOneName, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            Assertions.assertEquals(1, properties.size());
+            ConfigurationProperty prop = properties.get(0);
+            Assertions.assertEquals(propOneName, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+
+        // Add another property
+        clientV2.setConfigProperty(propTwoName, "true");
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(propTwoName);
+            Assertions.assertEquals(propTwoName, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            Assertions.assertEquals(2, properties.size());
+        });
+
+        // Change the value of a property
+        clientV2.setConfigProperty(propTwoName, "false");
+
+        // Verify the property was updated.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(propTwoName);
+            Assertions.assertEquals(propTwoName, prop.getName());
+            Assertions.assertEquals("false", prop.getValue());
+        });
+
+        // Delete a config property
+        clientV2.deleteConfigProperty(propTwoName);
+
+        // Verify the property was deleted.
+        TestUtils.retry(() -> {
+            Assertions.assertThrows(ConfigPropertyNotFoundException.class, () -> {
+                clientV2.getConfigProperty(propTwoName);
+            });
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            Assertions.assertEquals(1, properties.size());
+            ConfigurationProperty prop = properties.get(0);
+            Assertions.assertEquals(propOneName, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+
+        // Delete the other property (update to null)
+        clientV2.setConfigProperty(propOneName, null);
+
+        // Verify the property was deleted.
+        TestUtils.retry(() -> {
+            Assertions.assertThrows(ConfigPropertyNotFoundException.class, () -> {
+                clientV2.getConfigProperty(propOneName);
+            });
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            Assertions.assertEquals(0, properties.size());
+        });
+
+
+        // Try to add a config property that doesn't exist.
+        Assertions.assertThrows(ConfigPropertyNotFoundException.class, () -> {
+            clientV2.setConfigProperty("property-does-not-exist", "foobar");
+        });
+    }
 
     private void testNonConcurrentClientCalls(String groupId, RegistryClient client, Map<String, String> firstRequestHeaders, Map<String, String> secondRequestHeaders) throws InterruptedException {
 

@@ -12,8 +12,8 @@ import io.apicurio.registry.types.ArtifactState;
 /**
  * Root Type for UpdateState
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -21,18 +21,19 @@ import io.apicurio.registry.types.ArtifactState;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class UpdateState {
 
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
@@ -41,13 +42,13 @@ public class UpdateState {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public ArtifactState getState() {
@@ -57,13 +58,13 @@ public class UpdateState {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {

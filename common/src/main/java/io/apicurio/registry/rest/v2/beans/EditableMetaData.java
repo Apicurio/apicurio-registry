@@ -14,8 +14,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * Root Type for EditableArtifactMetaData
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class EditableMetaData {
 
     @JsonProperty("name")
@@ -33,14 +34,14 @@ public class EditableMetaData {
     @JsonProperty("description")
     private String description;
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
     private List<String> labels = new ArrayList<String>();
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
@@ -67,7 +68,7 @@ public class EditableMetaData {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public List<String> getLabels() {
@@ -75,7 +76,7 @@ public class EditableMetaData {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public void setLabels(List<String> labels) {
@@ -84,7 +85,7 @@ public class EditableMetaData {
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public Map<String, String> getProperties() {
@@ -93,7 +94,7 @@ public class EditableMetaData {
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public void setProperties(Map<String, String> properties) {

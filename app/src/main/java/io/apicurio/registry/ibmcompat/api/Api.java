@@ -23,8 +23,8 @@ import io.apicurio.registry.ibmcompat.model.Schema;
 import io.apicurio.registry.ibmcompat.model.SchemaInfo;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaModificationPatch;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;

@@ -32,10 +32,10 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
-import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
+import io.apicurio.registry.storage.exceptions.DownloadNotFoundException;
 import io.apicurio.registry.types.Current;
 
 /**

@@ -17,17 +17,9 @@
 package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -43,6 +35,14 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.ContentNotFoundException;
+import io.apicurio.registry.storage.exceptions.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.GroupNotFoundException;
+import io.apicurio.registry.storage.exceptions.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
+import io.apicurio.registry.storage.exceptions.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -902,6 +902,14 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public void setConfigProperty(ConfigPropertyDto property) throws RegistryStorageException {
         delegate.setConfigProperty(property);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public ConfigPropertyDto getConfigProperty(String propertyName) {
+        return delegate.getConfigProperty(propertyName);
     }
 
     /**

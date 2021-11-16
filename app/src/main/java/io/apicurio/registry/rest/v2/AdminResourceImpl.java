@@ -19,7 +19,9 @@ package io.apicurio.registry.rest.v2;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOGGER;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PROPERTY_CONFIGURATION;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
@@ -47,28 +49,34 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
+import io.apicurio.registry.config.RegistryConfigProperty;
+import io.apicurio.registry.config.RegistryConfigPropertyType;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.ConfigPropertyDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.exceptions.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
@@ -357,6 +365,84 @@ public class AdminResourceImpl implements AdminResource {
         storage.deleteRoleMapping(principalId);
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listConfigProperties()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public List<ConfigurationProperty> listConfigProperties() {
+        List<ConfigPropertyDto> props = storage.getConfigProperties();
+        return props.stream().map(dto -> {
+            return dtoToConfigurationProperty(dto);
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#getConfigProperty(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public ConfigurationProperty getConfigProperty(String propertyName) {
+        RegistryConfigProperty configProperty = RegistryConfigProperty.fromPropertyName(propertyName);
+        if (configProperty == null || configProperty.type() != RegistryConfigPropertyType.Editable) {
+            throw new ConfigPropertyNotFoundException(propertyName);
+        }
+
+        ConfigPropertyDto dto = storage.getConfigProperty(propertyName);
+        return dtoToConfigurationProperty(dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#setConfigProperty(io.apicurio.registry.rest.v2.beans.ConfigurationProperty)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = {"0", KEY_PROPERTY_CONFIGURATION})
+    public void setConfigProperty(ConfigurationProperty data) {
+        RegistryConfigProperty configProperty = RegistryConfigProperty.fromPropertyName(data.getName());
+        if (configProperty == null || configProperty.type() != RegistryConfigPropertyType.Editable) {
+            throw new ConfigPropertyNotFoundException(data.getName());
+        }
+        ConfigPropertyDto dto = new ConfigPropertyDto();
+        dto.setName(data.getName());
+        dto.setValue(data.getValue());
+        dto.setType(configProperty.defaultType().getName());
+        storage.setConfigProperty(dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateConfigProperty(java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
+        ConfigurationProperty cp = new ConfigurationProperty();
+        cp.setName(propertyName);
+        cp.setValue(data.getValue());
+        this.setConfigProperty(cp);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteConfigProperty(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = {"0", KEY_NAME})
+    public void deleteConfigProperty(String propertyName) {
+        RegistryConfigProperty configProperty = RegistryConfigProperty.fromPropertyName(propertyName);
+        if (configProperty == null || configProperty.type() != RegistryConfigPropertyType.Editable) {
+            throw new ConfigPropertyNotFoundException(propertyName);
+        }
+
+        // TODO this implementation understands that the underlying storage will delete a config property if we
+        //      call setConfigProperty with a value of 'null'.  Warning: his might not always be true.
+        ConfigPropertyDto dto = new ConfigPropertyDto();
+        dto.setName(configProperty.propertyName());
+        dto.setType(configProperty.defaultType().getName());
+        dto.setValue(null);
+        storage.setConfigProperty(dto);
+    }
+
     private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId(dto.getPrincipalId());
@@ -365,8 +451,15 @@ public class AdminResourceImpl implements AdminResource {
         return mapping;
     }
 
-    private String createDownloadHref(String downloadId) {
+    private static String createDownloadHref(String downloadId) {
         return "/apis/registry/v2/downloads/" + downloadId;
+    }
+
+    private static ConfigurationProperty dtoToConfigurationProperty(ConfigPropertyDto dto) {
+        ConfigurationProperty rval = new ConfigurationProperty();
+        rval.setName(dto.getName());
+        rval.setValue(dto.getValue());
+        return rval;
     }
 
 }

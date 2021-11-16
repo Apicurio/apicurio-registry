@@ -541,6 +541,8 @@ public interface SqlStatements {
 
     public String deleteAllConfigProperties();
 
+    public String selectConfigPropertyByName();
+
     public String selectTenantIdsByConfigModifiedOn();
 
 }

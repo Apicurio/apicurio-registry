@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Root Type for Download
  * <p>
  * Models a download "link".  Useful for browser use-cases.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -20,12 +20,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class DownloadRef {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("downloadId")
     private String downloadId;
@@ -33,9 +34,9 @@ public class DownloadRef {
     private String href;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("downloadId")
     public String getDownloadId() {
@@ -43,9 +44,9 @@ public class DownloadRef {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("downloadId")
     public void setDownloadId(String downloadId) {

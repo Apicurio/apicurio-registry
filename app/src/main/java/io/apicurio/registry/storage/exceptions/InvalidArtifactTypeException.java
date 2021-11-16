@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,19 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
+
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author Fabian Martinez
+ * @author eric.wittmann@gmail.com
  */
-public class GroupAlreadyExistsException extends AlreadyExistsException {
+public class InvalidArtifactTypeException extends RegistryException {
 
-    private static final long serialVersionUID = 2412206165461946827L;
+    private static final long serialVersionUID = 1L;
 
-    private final String groupId;
-
-    /**
-     * Constructor.
-     */
-    public GroupAlreadyExistsException(String groupId) {
-        this.groupId = groupId;
-    }
-
-    /**
-     * @see java.lang.Throwable#getMessage()
-     */
-    @Override
-    public String getMessage() {
-        return "The group '" + this.groupId + "' already exists.";
+    public InvalidArtifactTypeException(String message) {
+        super(message);
     }
 
 }

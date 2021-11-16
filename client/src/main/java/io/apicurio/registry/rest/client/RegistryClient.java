@@ -23,6 +23,7 @@ import java.util.Map;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -207,4 +208,13 @@ public interface RegistryClient {
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 
     Map<String, String> getHeaders();
+
+    List<ConfigurationProperty> listConfigProperties();
+
+    void setConfigProperty(String propertyName, String propertyValue);
+
+    ConfigurationProperty getConfigProperty(String propertyName);
+
+    void deleteConfigProperty(String propertyName);
+
 }

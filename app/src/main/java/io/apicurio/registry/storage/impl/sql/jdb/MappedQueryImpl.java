@@ -101,7 +101,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
         Optional<T> rval;
         try {
             if (this.resultSet.next()) {
-                rval = Optional.of(this.mapper.map(resultSet));
+                rval = Optional.ofNullable(this.mapper.map(resultSet));
                 if (this.resultSet.next()) {
                     throw new RuntimeSqlException("SQL error: Expected only one result but got multiple.");
                 }

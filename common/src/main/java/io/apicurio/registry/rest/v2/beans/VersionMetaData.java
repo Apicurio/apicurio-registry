@@ -18,8 +18,8 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * Root Type for ArtifactVersionMetaData
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -39,12 +39,13 @@ import io.apicurio.registry.types.ArtifactType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class VersionMetaData {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     private String version;
@@ -53,32 +54,32 @@ public class VersionMetaData {
     @JsonProperty("description")
     private String description;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     private String createdBy;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("createdOn")
     private Date createdOn;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     @JsonPropertyDescription("")
@@ -86,12 +87,12 @@ public class VersionMetaData {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
-     * 
+     *
+     *
      */
     @JsonProperty("state")
     @JsonPropertyDescription("Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n")
@@ -99,44 +100,44 @@ public class VersionMetaData {
     /**
      * The ID of a single artifact.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     @JsonPropertyDescription("The ID of a single artifact.")
     private String id;
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     @JsonPropertyDescription("")
     private List<String> labels = new ArrayList<String>();
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
     private Map<String, String> properties;
     /**
      * An ID of a single artifact group.
-     * 
+     *
      */
     @JsonProperty("groupId")
     @JsonPropertyDescription("An ID of a single artifact group.")
     private String groupId;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     @JsonPropertyDescription("")
     private Long contentId;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     public String getVersion() {
@@ -144,9 +145,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("version")
     public void setVersion(String version) {
@@ -174,9 +175,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public String getCreatedBy() {
@@ -184,9 +185,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdBy")
     public void setCreatedBy(String createdBy) {
@@ -194,9 +195,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public Date getCreatedOn() {
@@ -204,9 +205,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("createdOn")
     public void setCreatedOn(Date createdOn) {
@@ -214,9 +215,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public ArtifactType getType() {
@@ -224,9 +225,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("type")
     public void setType(ArtifactType type) {
@@ -234,9 +235,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public Long getGlobalId() {
@@ -244,9 +245,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("globalId")
     public void setGlobalId(Long globalId) {
@@ -256,12 +257,12 @@ public class VersionMetaData {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
-     * 
+     *
+     *
      */
     @JsonProperty("state")
     public ArtifactState getState() {
@@ -271,12 +272,12 @@ public class VersionMetaData {
     /**
      * Describes the state of an artifact or artifact version.  The following states
      * are possible:
-     * 
+     *
      * * ENABLED
      * * DISABLED
      * * DEPRECATED
-     * 
-     * 
+     *
+     *
      */
     @JsonProperty("state")
     public void setState(ArtifactState state) {
@@ -286,7 +287,7 @@ public class VersionMetaData {
     /**
      * The ID of a single artifact.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     public String getId() {
@@ -296,7 +297,7 @@ public class VersionMetaData {
     /**
      * The ID of a single artifact.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("id")
     public void setId(String id) {
@@ -304,7 +305,7 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public List<String> getLabels() {
@@ -312,7 +313,7 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("labels")
     public void setLabels(List<String> labels) {
@@ -321,7 +322,7 @@ public class VersionMetaData {
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public Map<String, String> getProperties() {
@@ -330,7 +331,7 @@ public class VersionMetaData {
 
     /**
      * User-defined name-value pairs. Name and value must be strings.
-     * 
+     *
      */
     @JsonProperty("properties")
     public void setProperties(Map<String, String> properties) {
@@ -339,7 +340,7 @@ public class VersionMetaData {
 
     /**
      * An ID of a single artifact group.
-     * 
+     *
      */
     @JsonProperty("groupId")
     public String getGroupId() {
@@ -348,7 +349,7 @@ public class VersionMetaData {
 
     /**
      * An ID of a single artifact group.
-     * 
+     *
      */
     @JsonProperty("groupId")
     public void setGroupId(String groupId) {
@@ -356,9 +357,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     public Long getContentId() {
@@ -366,9 +367,9 @@ public class VersionMetaData {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("contentId")
     public void setContentId(Long contentId) {

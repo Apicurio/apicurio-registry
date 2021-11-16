@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * Describes the response received when searching for artifacts.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -21,13 +21,14 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class VersionSearchResults {
 
     /**
      * The total number of versions that matched the query (may be more than the number of versions
      * returned in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     @JsonPropertyDescription("The total number of versions that matched the query (may be more than the number of versions\nreturned in the result set).")
@@ -35,7 +36,7 @@ public class VersionSearchResults {
     /**
      * The collection of artifact versions returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("versions")
     @JsonPropertyDescription("The collection of artifact versions returned in the result set.")
@@ -45,7 +46,7 @@ public class VersionSearchResults {
      * The total number of versions that matched the query (may be more than the number of versions
      * returned in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     public Integer getCount() {
@@ -56,7 +57,7 @@ public class VersionSearchResults {
      * The total number of versions that matched the query (may be more than the number of versions
      * returned in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     public void setCount(Integer count) {
@@ -66,7 +67,7 @@ public class VersionSearchResults {
     /**
      * The collection of artifact versions returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("versions")
     public List<SearchedVersion> getVersions() {
@@ -76,7 +77,7 @@ public class VersionSearchResults {
     /**
      * The collection of artifact versions returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("versions")
     public void setVersions(List<SearchedVersion> versions) {

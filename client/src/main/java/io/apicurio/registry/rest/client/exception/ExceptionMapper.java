@@ -73,6 +73,8 @@ public class ExceptionMapper {
                 return new TenantManagerClientException(ex.getError());
             case "ParametersConflictException":
                 return new ParametersConflictException(ex.getError());
+            case "ConfigPropertyNotFoundException":
+                return new ConfigPropertyNotFoundException(ex.getError());
             default:
                 return ex;
         }

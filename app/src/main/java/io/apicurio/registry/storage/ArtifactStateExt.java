@@ -26,6 +26,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import io.apicurio.registry.storage.exceptions.InvalidArtifactStateException;
 import io.apicurio.registry.types.ArtifactState;
 
 /**

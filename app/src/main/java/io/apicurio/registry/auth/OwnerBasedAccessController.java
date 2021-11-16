@@ -20,10 +20,10 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.interceptor.InvocationContext;
 
-import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.exceptions.NotFoundException;
 import io.apicurio.registry.types.Current;
 import io.quarkus.security.identity.SecurityIdentity;
 

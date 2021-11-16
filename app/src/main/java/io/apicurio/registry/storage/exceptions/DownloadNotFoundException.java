@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
-import io.apicurio.registry.types.RegistryException;
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public class DownloadNotFoundException extends NotFoundException {
 
-public class InvalidPropertiesException extends RegistryException {
+    private static final long serialVersionUID = -8634862918588649938L;
 
-    private static final long serialVersionUID = 1L;
+    public DownloadNotFoundException() {
+    }
 
-    public InvalidPropertiesException(String message, Throwable throwable) {
-        super(message, throwable);
+    public DownloadNotFoundException(Throwable cause) {
+        super(cause);
+    }
+
+    /**
+     * @see java.lang.Throwable#getMessage()
+     */
+    @Override
+    public String getMessage() {
+        return "Download not found.";
     }
 
 }

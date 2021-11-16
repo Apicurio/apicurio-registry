@@ -14,48 +14,27 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ArtifactAlreadyExistsException extends AlreadyExistsException {
+public class RoleMappingAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = -1015140450163088675L;
-    
-    private final String groupId;
-    private final String artifactId;
+    private static final long serialVersionUID = 2950093578954587049L;
 
     /**
      * Constructor.
-     * @param groupId
-     * @param artifactId
      */
-    public ArtifactAlreadyExistsException(String groupId, String artifactId) {
-        this.artifactId = artifactId;
-        this.groupId = groupId;
+    public RoleMappingAlreadyExistsException() {
     }
 
-    /**
-     * @return the artifactId
-     */
-    public String getArtifactId() {
-        return artifactId;
-    }
-    
-    /**
-     * @return the groupId
-     */
-    public String getGroupId() {
-        return groupId;
-    }
-    
     /**
      * @see java.lang.Throwable#getMessage()
      */
     @Override
     public String getMessage() {
-        return "An artifact with ID '" + this.artifactId + "' in group '" + groupId + "' already exists.";
+        return "A role mapping for this principal already exists.";
     }
 
 }

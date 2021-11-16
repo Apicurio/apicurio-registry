@@ -26,14 +26,14 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.context.ThreadContext;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RegistryException;
 

@@ -55,23 +55,24 @@ import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.storage.AlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.DownloadNotFoundException;
-import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.InvalidArtifactIdException;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.exceptions.AlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.exceptions.ContentNotFoundException;
+import io.apicurio.registry.storage.exceptions.DownloadNotFoundException;
+import io.apicurio.registry.storage.exceptions.GroupNotFoundException;
+import io.apicurio.registry.storage.exceptions.InvalidArtifactIdException;
+import io.apicurio.registry.storage.exceptions.InvalidArtifactStateException;
+import io.apicurio.registry.storage.exceptions.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.exceptions.InvalidGroupIdException;
+import io.apicurio.registry.storage.exceptions.NotFoundException;
+import io.apicurio.registry.storage.exceptions.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RoleMappingNotFoundException;
+import io.apicurio.registry.storage.exceptions.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
+import io.apicurio.registry.storage.exceptions.VersionNotFoundException;
 
 /**
  * @author Fabian Martinez
@@ -122,6 +123,7 @@ public class RegistryExceptionMapperService {
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

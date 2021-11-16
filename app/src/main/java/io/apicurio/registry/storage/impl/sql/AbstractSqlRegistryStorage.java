@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -49,22 +50,11 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.DownloadNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
-import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -83,6 +73,18 @@ import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.exceptions.ContentNotFoundException;
+import io.apicurio.registry.storage.exceptions.DownloadNotFoundException;
+import io.apicurio.registry.storage.exceptions.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.GroupNotFoundException;
+import io.apicurio.registry.storage.exceptions.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RoleMappingNotFoundException;
+import io.apicurio.registry.storage.exceptions.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
+import io.apicurio.registry.storage.exceptions.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.AbstractRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
@@ -93,6 +95,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -2907,18 +2910,36 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             String sql = sqlStatements.selectConfigProperties();
             return handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
-                    .map(new RowMapper<ConfigPropertyDto>() {
-                        @Override
-                        public ConfigPropertyDto map(ResultSet rs) throws SQLException {
-                            return ConfigPropertyDto.builder()
-                                .name(rs.getString("pname"))
-                                .type(rs.getString("ptype"))
-                                .value(rs.getString("pvalue"))
-                                .build();
-                        }
-                    })
-                    .list();
+                    .map(ConfigPropertyDtoMapper.instance)
+                    .list()
+                    .stream()
+                    // Filter out possible null values.
+                    .filter(item -> item != null)
+                    .collect(Collectors.toList());
         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public ConfigPropertyDto getConfigProperty(String propertyName) {
+        log.debug("Selecting a single config property: {}", propertyName);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectConfigPropertyByName();
+                Optional<ConfigPropertyDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, propertyName)
+                        .map(ConfigPropertyDtoMapper.instance)
+                        .findOne();
+                return res.orElseThrow(() -> new ConfigPropertyNotFoundException(propertyName));
+            });
+        } catch (ConfigPropertyNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -2953,17 +2974,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                   .bind(1, property.getName())
                   .execute();
 
-            // Then create the row again with the new value (only if the value is not null)
-            if (propertyValue != null) {
-                sql = sqlStatements.insertConfigProperty();
-                handle.createUpdate(sql)
-                      .bind(0, tenantContext.tenantId())
-                      .bind(1, propertyName)
-                      .bind(2, property.getType())
-                      .bind(3, propertyValue)
-                      .bind(4, java.lang.System.currentTimeMillis())
-                      .execute();
-            }
+            // Then create the row again with the new value
+            sql = sqlStatements.insertConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .bind(2, property.getType())
+                  .bind(3, propertyValue)
+                  .bind(4, java.lang.System.currentTimeMillis())
+                  .execute();
+
             return null;
         });
     }

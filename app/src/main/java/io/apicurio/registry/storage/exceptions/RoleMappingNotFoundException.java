@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,20 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
- * @author Fabian Martinez
+ * @author eric.wittmann@gmail.com
  */
-public class GroupNotFoundException extends NotFoundException {
+public class RoleMappingNotFoundException extends NotFoundException {
 
-    private static final long serialVersionUID = -5024749463194169679L;
+    private static final long serialVersionUID = -2662972482016902671L;
 
-    private final String groupId;
-
-    public GroupNotFoundException(String groupId) {
-        this.groupId = groupId;
+    public RoleMappingNotFoundException() {
     }
 
-    public GroupNotFoundException(String groupId, Throwable cause) {
+    public RoleMappingNotFoundException(Throwable cause) {
         super(cause);
-        this.groupId = groupId;
     }
 
     /**
@@ -39,7 +35,7 @@ public class GroupNotFoundException extends NotFoundException {
      */
     @Override
     public String getMessage() {
-        return "No group '" + this.groupId + "' was found.";
+        return "Role mapping not found for principal.";
     }
 
 }

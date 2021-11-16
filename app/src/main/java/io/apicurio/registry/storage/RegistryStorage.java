@@ -39,6 +39,14 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.exceptions.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.ArtifactNotFoundException;
+import io.apicurio.registry.storage.exceptions.ContentNotFoundException;
+import io.apicurio.registry.storage.exceptions.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.GroupNotFoundException;
+import io.apicurio.registry.storage.exceptions.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
+import io.apicurio.registry.storage.exceptions.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -661,6 +669,12 @@ public interface RegistryStorage {
      * Called to load any configuration properties from the config_properties table.
      */
     public List<ConfigPropertyDto> getConfigProperties() throws RegistryStorageException;
+
+    /**
+     * Called to get the value of a single config property.
+     * @param propertyName
+     */
+    public ConfigPropertyDto getConfigProperty(String propertyName);
 
     /**
      * Called to set the value of a single config property.

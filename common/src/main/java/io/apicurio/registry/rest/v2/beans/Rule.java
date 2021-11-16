@@ -12,8 +12,8 @@ import io.apicurio.registry.types.RuleType;
 /**
  * Root Type for Rule
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -22,26 +22,27 @@ import io.apicurio.registry.types.RuleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class Rule {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("config")
     private String config;
     /**
-     * 
+     *
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private RuleType type;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("config")
     public String getConfig() {
@@ -49,9 +50,9 @@ public class Rule {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("config")
     public void setConfig(String config) {
@@ -59,7 +60,7 @@ public class Rule {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("type")
     public RuleType getType() {
@@ -67,7 +68,7 @@ public class Rule {
     }
 
     /**
-     * 
+     *
      */
     @JsonProperty("type")
     public void setType(RuleType type) {

@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.storage.exceptions;
 
-package io.apicurio.registry.storage;
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public abstract class AlreadyExistsException extends StorageException {
+public class InvalidGroupIdException extends RegistryException {
 
-    private static final long serialVersionUID = 5055445625652989500L;
+    private static final long serialVersionUID = 1L;
 
-    public AlreadyExistsException() {
-    }
-    
-    public AlreadyExistsException(Throwable cause) {
-        super(cause);
-    }
-    
-    public AlreadyExistsException(String reason, Throwable cause) {
-        super(reason, cause);
+    public InvalidGroupIdException(String message) {
+        super(message);
     }
 
 }

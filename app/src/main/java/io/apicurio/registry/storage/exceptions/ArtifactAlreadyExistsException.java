@@ -14,43 +14,48 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class VersionNotFoundException extends ArtifactNotFoundException {
+public class ArtifactAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = 969959730600115392L;
-
-    private final String version;
+    private static final long serialVersionUID = -1015140450163088675L;
+    
+    private final String groupId;
+    private final String artifactId;
 
     /**
      * Constructor.
+     * @param groupId
+     * @param artifactId
      */
-    public VersionNotFoundException(String groupId, String artifactId, String version) {
-        super(groupId, artifactId);
-        this.version = version;
-    }
-
-    public VersionNotFoundException(String groupId, String artifactId, String version, Throwable cause) {
-        super(groupId, artifactId, cause);
-        this.version = version;
+    public ArtifactAlreadyExistsException(String groupId, String artifactId) {
+        this.artifactId = artifactId;
+        this.groupId = groupId;
     }
 
     /**
-     * @return the version
+     * @return the artifactId
      */
-    public String getVersion() {
-        return version;
+    public String getArtifactId() {
+        return artifactId;
     }
-
+    
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+    
     /**
      * @see java.lang.Throwable#getMessage()
      */
     @Override
     public String getMessage() {
-        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "' in group '" + getGroupId() + "'.";
+        return "An artifact with ID '" + this.artifactId + "' in group '" + groupId + "' already exists.";
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.apicurio.registry.storage;
+
+package io.apicurio.registry.storage.exceptions;
 
 import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author Fabian Martinez
- */
-public class InvalidGroupIdException extends RegistryException {
+public class InvalidPropertiesException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 
-    public InvalidGroupIdException(String message) {
-        super(message);
+    public InvalidPropertiesException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 
 }

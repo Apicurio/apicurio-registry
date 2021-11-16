@@ -35,8 +35,8 @@ import io.apicurio.registry.rest.v1.beans.Rule;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.exceptions.RuleNotFoundException;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 

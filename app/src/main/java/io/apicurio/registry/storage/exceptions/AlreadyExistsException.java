@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
+
+import io.apicurio.registry.storage.StorageException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public abstract class NotFoundException extends StorageException {
+public abstract class AlreadyExistsException extends StorageException {
 
-    private static final long serialVersionUID = 7134307797211927863L;
+    private static final long serialVersionUID = 5055445625652989500L;
 
-    public NotFoundException() {
+    public AlreadyExistsException() {
     }
     
-    public NotFoundException(Throwable cause) {
+    public AlreadyExistsException(Throwable cause) {
         super(cause);
     }
     
-    public NotFoundException(String reason, Throwable cause) {
+    public AlreadyExistsException(String reason, Throwable cause) {
         super(reason, cause);
     }
 

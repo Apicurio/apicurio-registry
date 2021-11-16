@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-public class RoleMappingNotFoundException extends NotFoundException {
+public class GroupAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = -2662972482016902671L;
+    private static final long serialVersionUID = 2412206165461946827L;
 
-    public RoleMappingNotFoundException() {
-    }
+    private final String groupId;
 
-    public RoleMappingNotFoundException(Throwable cause) {
-        super(cause);
+    /**
+     * Constructor.
+     */
+    public GroupAlreadyExistsException(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -35,7 +37,7 @@ public class RoleMappingNotFoundException extends NotFoundException {
      */
     @Override
     public String getMessage() {
-        return "Role mapping not found for principal.";
+        return "The group '" + this.groupId + "' already exists.";
     }
 
 }

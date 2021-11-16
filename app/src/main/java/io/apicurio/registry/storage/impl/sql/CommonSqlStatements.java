@@ -918,6 +918,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectConfigPropertyByName()
+     */
+    @Override
+    public String selectConfigPropertyByName() {
+        return "SELECT c.* FROM config c WHERE c.tenantId = ? AND c.pname = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteConfigProperty()
      */
     @Override

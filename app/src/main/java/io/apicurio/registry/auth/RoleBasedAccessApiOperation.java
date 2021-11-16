@@ -22,6 +22,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * Indicates whether a REST operation is part of the RBAC system.  In other words, only REST operations
+ * that managed role mappings should be annotated with this annotation.
  * @author eric.wittmann@gmail.com
  */
 @Retention(RetentionPolicy.RUNTIME)

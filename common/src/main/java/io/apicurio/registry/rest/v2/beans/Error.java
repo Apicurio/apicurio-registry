@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>
  * All error responses, whether `4xx` or `5xx` will include one of these as the response
  * body.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -24,32 +24,33 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class Error {
 
     /**
      * The short error message.
-     * 
+     *
      */
     @JsonProperty("message")
     @JsonPropertyDescription("The short error message.")
     private String message;
     /**
      * The server-side error code.
-     * 
+     *
      */
     @JsonProperty("error_code")
     @JsonPropertyDescription("The server-side error code.")
     private Integer errorCode;
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
     @JsonProperty("detail")
     @JsonPropertyDescription("Full details about the error.  This might contain a server stack trace, for example.")
     private String detail;
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("The error name - typically the classname of the exception thrown by the server.")
@@ -57,7 +58,7 @@ public class Error {
 
     /**
      * The short error message.
-     * 
+     *
      */
     @JsonProperty("message")
     public String getMessage() {
@@ -66,7 +67,7 @@ public class Error {
 
     /**
      * The short error message.
-     * 
+     *
      */
     @JsonProperty("message")
     public void setMessage(String message) {
@@ -75,7 +76,7 @@ public class Error {
 
     /**
      * The server-side error code.
-     * 
+     *
      */
     @JsonProperty("error_code")
     public Integer getErrorCode() {
@@ -84,7 +85,7 @@ public class Error {
 
     /**
      * The server-side error code.
-     * 
+     *
      */
     @JsonProperty("error_code")
     public void setErrorCode(Integer errorCode) {
@@ -93,7 +94,7 @@ public class Error {
 
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
     @JsonProperty("detail")
     public String getDetail() {
@@ -102,7 +103,7 @@ public class Error {
 
     /**
      * Full details about the error.  This might contain a server stack trace, for example.
-     * 
+     *
      */
     @JsonProperty("detail")
     public void setDetail(String detail) {
@@ -111,7 +112,7 @@ public class Error {
 
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -120,7 +121,7 @@ public class Error {
 
     /**
      * The error name - typically the classname of the exception thrown by the server.
-     * 
+     *
      */
     @JsonProperty("name")
     public void setName(String name) {

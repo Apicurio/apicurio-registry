@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * Describes the response received when searching for artifacts.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -21,21 +21,22 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class ArtifactSearchResults {
 
     /**
      * The artifacts returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("artifacts")
     @JsonPropertyDescription("The artifacts returned in the result set.")
     private List<SearchedArtifact> artifacts = new ArrayList<SearchedArtifact>();
     /**
-     * The total number of artifacts that matched the query that produced the result set (may be 
+     * The total number of artifacts that matched the query that produced the result set (may be
      * more than the number of artifacts in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     @JsonPropertyDescription("The total number of artifacts that matched the query that produced the result set (may be \nmore than the number of artifacts in the result set).")
@@ -44,7 +45,7 @@ public class ArtifactSearchResults {
     /**
      * The artifacts returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("artifacts")
     public List<SearchedArtifact> getArtifacts() {
@@ -54,7 +55,7 @@ public class ArtifactSearchResults {
     /**
      * The artifacts returned in the result set.
      * (Required)
-     * 
+     *
      */
     @JsonProperty("artifacts")
     public void setArtifacts(List<SearchedArtifact> artifacts) {
@@ -62,10 +63,10 @@ public class ArtifactSearchResults {
     }
 
     /**
-     * The total number of artifacts that matched the query that produced the result set (may be 
+     * The total number of artifacts that matched the query that produced the result set (may be
      * more than the number of artifacts in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     public Integer getCount() {
@@ -73,10 +74,10 @@ public class ArtifactSearchResults {
     }
 
     /**
-     * The total number of artifacts that matched the query that produced the result set (may be 
+     * The total number of artifacts that matched the query that produced the result set (may be
      * more than the number of artifacts in the result set).
      * (Required)
-     * 
+     *
      */
     @JsonProperty("count")
     public void setCount(Integer count) {

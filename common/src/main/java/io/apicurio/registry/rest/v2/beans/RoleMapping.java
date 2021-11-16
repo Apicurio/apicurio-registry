@@ -11,7 +11,7 @@ import io.apicurio.registry.types.RoleType;
 
 /**
  * The mapping between a user/principal and their role.
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -21,36 +21,37 @@ import io.apicurio.registry.types.RoleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class RoleMapping {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("principalId")
     @JsonPropertyDescription("")
     private String principalId;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     @JsonPropertyDescription("")
     private RoleType role;
     /**
      * A friendly name for the principal.
-     * 
+     *
      */
     @JsonProperty("principalName")
     @JsonPropertyDescription("A friendly name for the principal.")
     private String principalName;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("principalId")
     public String getPrincipalId() {
@@ -58,9 +59,9 @@ public class RoleMapping {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("principalId")
     public void setPrincipalId(String principalId) {
@@ -68,9 +69,9 @@ public class RoleMapping {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     public RoleType getRole() {
@@ -78,9 +79,9 @@ public class RoleMapping {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     public void setRole(RoleType role) {
@@ -89,7 +90,7 @@ public class RoleMapping {
 
     /**
      * A friendly name for the principal.
-     * 
+     *
      */
     @JsonProperty("principalName")
     public String getPrincipalName() {
@@ -98,7 +99,7 @@ public class RoleMapping {
 
     /**
      * A friendly name for the principal.
-     * 
+     *
      */
     @JsonProperty("principalName")
     public void setPrincipalName(String principalName) {

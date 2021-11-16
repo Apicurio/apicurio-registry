@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
+
+import io.apicurio.registry.storage.StorageException;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class RoleMappingAlreadyExistsException extends AlreadyExistsException {
+public abstract class NotFoundException extends StorageException {
 
-    private static final long serialVersionUID = 2950093578954587049L;
+    private static final long serialVersionUID = 7134307797211927863L;
 
-    /**
-     * Constructor.
-     */
-    public RoleMappingAlreadyExistsException() {
+    public NotFoundException() {
     }
-
-    /**
-     * @see java.lang.Throwable#getMessage()
-     */
-    @Override
-    public String getMessage() {
-        return "A role mapping for this principal already exists.";
+    
+    public NotFoundException(Throwable cause) {
+        super(cause);
+    }
+    
+    public NotFoundException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 
 }

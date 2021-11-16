@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.storage.exceptions.NotFoundException;
+
 /**
  * @author Fabian Martinez
  */

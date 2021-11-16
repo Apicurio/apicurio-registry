@@ -12,8 +12,8 @@ import io.apicurio.registry.types.RoleType;
 /**
  * Root Type for UpdateRole
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -21,21 +21,22 @@ import io.apicurio.registry.types.RoleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class UpdateRole {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     @JsonPropertyDescription("")
     private RoleType role;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     public RoleType getRole() {
@@ -43,9 +44,9 @@ public class UpdateRole {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("role")
     public void setRole(RoleType role) {

@@ -10,7 +10,7 @@ import io.apicurio.registry.types.LogLevel;
 
 
 /**
- * 
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -19,29 +19,30 @@ import io.apicurio.registry.types.LogLevel;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class NamedLogConfiguration {
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("name")
     @JsonPropertyDescription("")
     private String name;
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("level")
     @JsonPropertyDescription("")
     private LogLevel level;
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("name")
     public String getName() {
@@ -49,9 +50,9 @@ public class NamedLogConfiguration {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("name")
     public void setName(String name) {
@@ -59,9 +60,9 @@ public class NamedLogConfiguration {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("level")
     public LogLevel getLevel() {
@@ -69,9 +70,9 @@ public class NamedLogConfiguration {
     }
 
     /**
-     * 
+     *
      * (Required)
-     * 
+     *
      */
     @JsonProperty("level")
     public void setLevel(LogLevel level) {

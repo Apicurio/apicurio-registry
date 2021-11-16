@@ -38,5 +38,6 @@ public interface AuditingConstants {
     String KEY_NAME_ENCODED = "name_encoded";
     String KEY_DESCRIPTION = "description";
     String KEY_DESCRIPTION_ENCODED = "description_encoded";
+    String KEY_PROPERTY_CONFIGURATION = "property_configuration";
 
 }

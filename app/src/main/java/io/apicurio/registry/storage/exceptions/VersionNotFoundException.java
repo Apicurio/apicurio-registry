@@ -14,37 +14,35 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage;
+package io.apicurio.registry.storage.exceptions;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ContentNotFoundException extends NotFoundException {
-    
-    private static final long serialVersionUID = -3640094007953927715L;
-    
-    private String contentIdentifier;
+public class VersionNotFoundException extends ArtifactNotFoundException {
+
+    private static final long serialVersionUID = 969959730600115392L;
+
+    private final String version;
 
     /**
      * Constructor.
-     * @param contentIdentifier
      */
-    public ContentNotFoundException(String contentIdentifier) {
-        this.setContentIdentifier(contentIdentifier);
+    public VersionNotFoundException(String groupId, String artifactId, String version) {
+        super(groupId, artifactId);
+        this.version = version;
+    }
+
+    public VersionNotFoundException(String groupId, String artifactId, String version, Throwable cause) {
+        super(groupId, artifactId, cause);
+        this.version = version;
     }
 
     /**
-     * @return the contentIdentifier
+     * @return the version
      */
-    public String getContentIdentifier() {
-        return contentIdentifier;
-    }
-
-    /**
-     * @param contentIdentifier the contentIdentifier to set
-     */
-    public void setContentIdentifier(String contentIdentifier) {
-        this.contentIdentifier = contentIdentifier;
+    public String getVersion() {
+        return version;
     }
 
     /**
@@ -52,7 +50,7 @@ public class ContentNotFoundException extends NotFoundException {
      */
     @Override
     public String getMessage() {
-        return "No content with id/hash '" + this.contentIdentifier + "' was found.";
+        return "No version '" + this.version + "' found for artifact with ID '" + this.getArtifactId() + "' in group '" + getGroupId() + "'.";
     }
 
 }

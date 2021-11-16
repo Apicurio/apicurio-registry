@@ -134,6 +134,10 @@ export class GroupsService extends BaseService {
         return this.httpGet<ArtifactMetaData>(endpoint);
     }
 
+    public getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {
+        return this.getArtifactContent(groupId, artifactId, "latest");
+    }
+
     public updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
         groupId = this.normalizeGroupId(groupId);
 

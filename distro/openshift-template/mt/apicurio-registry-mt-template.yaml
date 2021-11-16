@@ -229,6 +229,9 @@ objects:
           - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
             value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE}
 
+          - name: CORS_ALLOWED_ORIGINS
+            value: ${CORS_ALLOWED_ORIGINS}
+
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}
           - name: TENANT_MANAGER_REALM
@@ -580,3 +583,7 @@ parameters:
 - name: SENTRY_DSN_SECRET_NAME
   description: Secret name containing dsn for connecting to sentry
   value: sentry-dsn-secret
+
+- name: CORS_ALLOWED_ORIGINS
+  description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.
+  value: ""

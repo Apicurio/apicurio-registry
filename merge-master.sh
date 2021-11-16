@@ -43,6 +43,6 @@ done
 
 git add .
 git commit -m "Updated MAS version to $NEW_VERSION and build number to $NEW_MAS_BUILD_NUMBER"
-git push upstream/mas-sr
+git push upstream mas-sr
 
 echo "All done!  Everything was successful.  Great job.  You're killing it!"

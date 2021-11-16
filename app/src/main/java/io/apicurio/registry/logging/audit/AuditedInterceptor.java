@@ -18,6 +18,8 @@ package io.apicurio.registry.logging.audit;
 
 
 
+import io.quarkus.security.identity.SecurityIdentity;
+
 import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.interceptor.AroundInvoke;
@@ -42,11 +44,18 @@ public class AuditedInterceptor {
     @Inject
     AuditLogService auditLogService;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
     @AroundInvoke
     public Object auditMethod(InvocationContext context) throws Exception {
 
         Audited annotation = context.getMethod().getAnnotation(Audited.class);
         Map<String, String> metadata = new HashMap<>();
+
+        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
+            metadata.put("principalId", securityIdentity.getPrincipal().getName());
+        }
 
         final String[] annotationParams = annotation.extractParameters();
         if (annotationParams.length > 0) {

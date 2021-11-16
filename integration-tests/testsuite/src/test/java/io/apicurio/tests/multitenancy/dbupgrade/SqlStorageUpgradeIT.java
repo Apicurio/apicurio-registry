@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -35,6 +36,7 @@ import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -98,6 +100,88 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             createMoreArtifacts(data);
 
             verifyData(data);
+
+        } finally {
+            facade.stopAndCollectLogs(logsPath);
+        }
+
+    }
+
+    @Test
+    public void testStorageUpgradeProtobufUpgrader() throws Exception {
+
+        Path logsPath = RegistryUtils.getLogsPath(getClass(), "testStorageUpgradeProtobufUpgrader");
+        RegistryFacade facade = RegistryFacade.getInstance();
+
+        try {
+
+            Map<String, String> appEnv = facade.initRegistryAppEnv();
+
+            //runs all required infra except for the registry
+            facade.setupSQLStorage(appEnv);
+
+            appEnv.put("QUARKUS_HTTP_PORT", "8081");
+
+            String oldRegistryName = "registry-sql-dbv4";
+            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse("quay.io/apicurio/apicurio-registry-sql:2.1.2.Final")));
+            container.setNetworkMode("host");
+            facade.runContainer(appEnv, oldRegistryName, container);
+            facade.waitForRegistryReady();
+
+            //
+
+            var registryClient = RegistryClientFactory.create("http://localhost:8081");
+
+            createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
+            createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
+            ArtifactData protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+
+            //verify search with canonicalize returns the expected artifact metadata
+            var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
+
+            assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
+
+            //
+
+            facade.stopContainer(logsPath, oldRegistryName);
+
+            facade.runRegistry(appEnv, "sql-dblatest", "8081");
+            facade.waitForRegistryReady();
+
+            //
+
+            var searchResults = registryClient.listArtifactsInGroup(null);
+            assertEquals(3, searchResults.getCount());
+
+            var protobufs = searchResults.getArtifacts().stream()
+                .filter(ar -> ar.getType() == ArtifactType.PROTOBUF)
+                .collect(Collectors.toList());
+
+            assertEquals(1, protobufs.size());
+            var protoMetadata = registryClient.getArtifactMetaData(protobufs.get(0).getGroupId(), protobufs.get(0).getId());
+            var content = registryClient.getContentByGlobalId(protoMetadata.getGlobalId());
+
+            //search with canonicalize
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), true, null, content);
+            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
+
+            //search with canonicalize
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
+
+            //search without canonicalize
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), false, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
+
+            //create one more protobuf artifact and verify
+            protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto"));
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
+
+            //assert total num of artifacts
+            assertEquals(4, registryClient.listArtifactsInGroup(null).getCount());
+
 
         } finally {
             facade.stopAndCollectLogs(logsPath);

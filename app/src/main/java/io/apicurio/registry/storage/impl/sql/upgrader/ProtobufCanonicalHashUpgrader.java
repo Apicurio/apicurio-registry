@@ -75,7 +75,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
                 .bind(3, contentEntity.contentHash)
                 .execute();
         if (rowCount == 0) {
-            //TODO throw error or log warn
+            logger.warn("content row not matched for canonical hash upgrade contentId {} contentHash {}", contentEntity.contentId, contentEntity.contentHash);
         }
 
     }

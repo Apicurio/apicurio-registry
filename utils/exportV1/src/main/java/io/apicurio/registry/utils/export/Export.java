@@ -40,6 +40,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rest.beans.Rule;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -126,8 +127,13 @@ public class Export implements QuarkusApplication {
 
                     VersionMetaData meta = client.getArtifactVersionMetaData(id, version.intValue());
 
-                    InputStream contentStream = client.getArtifactVersion(id, version.intValue());
-                    byte[] contentBytes = IoUtil.toBytes(contentStream);
+                    byte[] contentBytes = new byte[0];
+                    // Cannot retrieve content of artifacts in DISABLED state, so just write out metadata.
+                    if (!ArtifactState.DISABLED.equals(meta.getState())) {
+                      InputStream contentStream = client.getArtifactVersion(id, version.intValue());
+                      contentBytes = IoUtil.toBytes(contentStream);
+                    }
+
                     String contentHash = DigestUtils.sha256Hex(contentBytes);
                     ContentHandle canonicalContent = this.canonicalizeContent(meta.getType(), ContentHandle.create(contentBytes));
                     byte[] canonicalContentBytes = canonicalContent.bytes();

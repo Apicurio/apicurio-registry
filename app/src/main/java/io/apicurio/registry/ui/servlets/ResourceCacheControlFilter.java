@@ -72,13 +72,13 @@ public class ResourceCacheControlFilter implements Filter {
 
         boolean disableCaching = false;
         if (requestURI == null) {
-            disableCaching = false;
+            disableCaching = true;
         } else if (requestURI.contains("version.js")) {
-            disableCaching = false;
+            disableCaching = true;
         } else if (requestURI.contains("config.js")) {
-            disableCaching = false;
+            disableCaching = true;
         } else if (requestURI.contains("/apis/")) {
-            disableCaching = false;
+            disableCaching = true;
         }
         
         if (disableCaching) {

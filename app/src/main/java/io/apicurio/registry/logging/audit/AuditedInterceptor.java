@@ -28,6 +28,8 @@ import javax.interceptor.InvocationContext;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
  * <p>
@@ -54,7 +56,7 @@ public class AuditedInterceptor {
         Map<String, String> metadata = new HashMap<>();
 
         if (securityIdentity != null && !securityIdentity.isAnonymous()) {
-            metadata.put("principalId", securityIdentity.getPrincipal().getName());
+            metadata.put(KEY_PRINCIPAL_ID, securityIdentity.getPrincipal().getName());
         }
 
         final String[] annotationParams = annotation.extractParameters();

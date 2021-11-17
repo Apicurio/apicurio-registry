@@ -267,7 +267,11 @@ public class RegistryFacade {
     }
 
     private void deployStorage(Map<String, String> appEnv) throws Exception {
-        switch (RegistryUtils.REGISTRY_STORAGE) {
+        deployStorage(appEnv, RegistryUtils.REGISTRY_STORAGE);
+    }
+
+    public void deployStorage(Map<String, String> appEnv, RegistryStorageType storage) throws Exception {
+        switch (storage) {
             case inmemory:
                 break;
             case sql:

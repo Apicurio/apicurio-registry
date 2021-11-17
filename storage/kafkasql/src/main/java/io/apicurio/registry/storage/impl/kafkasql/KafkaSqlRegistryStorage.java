@@ -151,6 +151,9 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Inject
     ArtifactStateExt artifactStateEx;
 
+    @Inject
+    KafkaSqlUpgrader upgrader;
+
     private boolean bootstrapped = false;
     private boolean stopped = true;
 
@@ -268,6 +271,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                                 if (bkey.getBootstrapId().equals(bootstrapId)) {
                                     this.bootstrapped = true;
                                     log.info("KafkaSQL storage bootstrapped in " + (System.currentTimeMillis() - bootstrapStart) + "ms.");
+                                    upgrader.upgrade();
                                 }
                                 return;
                             }

@@ -134,10 +134,12 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             createArtifact(registryClient, ArtifactType.AVRO, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "avro/multi-field_v1.json"));
             createArtifact(registryClient, ArtifactType.JSON, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "jsonSchema/person_v1.json"));
-            ArtifactData protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto"));
+
+            String test1content = ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
+            ArtifactData protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, test1content);
 
             //verify search with canonicalize returns the expected artifact metadata
-            var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            var versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(test1content));
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
             assertEquals(3, registryClient.listArtifactsInGroup(null).getCount());
@@ -155,9 +157,10 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(3, searchResults.getCount());
 
             var protobufs = searchResults.getArtifacts().stream()
-                .filter(ar -> ar.getType() == ArtifactType.PROTOBUF)
+                .filter(ar -> ar.getType().name().equals(ArtifactType.PROTOBUF.name()))
                 .collect(Collectors.toList());
 
+            System.out.println("Protobuf artifacts are " + protobufs.size());
             assertEquals(1, protobufs.size());
             var protoMetadata = registryClient.getArtifactMetaData(protobufs.get(0).getGroupId(), protobufs.get(0).getId());
             var content = registryClient.getContentByGlobalId(protoMetadata.getGlobalId());
@@ -167,16 +170,17 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
             //search with canonicalize
-            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), true, null, IoUtil.toStream(test1content));
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
             //search without canonicalize
-            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), false, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(protobufs.get(0).getGroupId(), protobufs.get(0).getId(), false, null, IoUtil.toStream(test1content));
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
             //create one more protobuf artifact and verify
-            protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto"));
-            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto")));
+            String test2content = ApicurioV2BaseIT.resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
+            protoData = createArtifact(registryClient, ArtifactType.PROTOBUF, test2content);
+            versionMetadata = registryClient.getArtifactVersionMetaDataByContent(null, protoData.meta.getId(), true, null, IoUtil.toStream(test2content));
             assertEquals(protoData.meta.getContentId(), versionMetadata.getContentId());
 
             //assert total num of artifacts
@@ -266,7 +270,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
     private ArtifactData createArtifact(RegistryClient client, ArtifactType type, String content) throws Exception {
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, ArtifactType.JSON, IoUtil.toStream(content));
+        ArtifactMetaData meta = client.createArtifact(null, artifactId, type, IoUtil.toStream(content));
         TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
         assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
         String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));

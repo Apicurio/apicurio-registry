@@ -44,14 +44,15 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
     @Override
     public void upgrade(Handle dbHandle) throws Exception {
 
-        String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash"
+        String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash "
                 + "FROM versions v "
                 + "JOIN content c on c.contentId = v.contentId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE a.type = " + ArtifactType.PROTOBUF.name();
+                + "WHERE a.type = ?";
 
         Stream<ContentEntity> stream = dbHandle.createQuery(sql)
                 .setFetchSize(50)
+                .bind(0, ArtifactType.PROTOBUF.name())
                 .map(ContentEntityMapper.instance)
                 .stream();
         try (stream) {
@@ -71,8 +72,8 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
         String update = "UPDATE content SET canonicalHash = ? WHERE contentId = ? AND contentHash = ?";
         int rowCount = dbHandle.createUpdate(update)
                 .bind(0, canonicalContentHash)
-                .bind(2, contentEntity.contentId)
-                .bind(3, contentEntity.contentHash)
+                .bind(1, contentEntity.contentId)
+                .bind(2, contentEntity.contentHash)
                 .execute();
         if (rowCount == 0) {
             logger.warn("content row not matched for canonical hash upgrade contentId {} contentHash {}", contentEntity.contentId, contentEntity.contentHash);

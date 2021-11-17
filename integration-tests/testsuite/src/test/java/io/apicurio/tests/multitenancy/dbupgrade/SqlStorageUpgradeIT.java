@@ -48,6 +48,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
+import io.apicurio.tests.common.RegistryStorageType;
 import io.apicurio.tests.common.interfaces.TestSeparator;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
@@ -108,9 +109,21 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
     }
 
     @Test
-    public void testStorageUpgradeProtobufUpgrader() throws Exception {
+    public void testStorageUpgradeProtobufUpgraderSql() throws Exception {
+        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashSql", RegistryStorageType.sql);
+    }
 
-        Path logsPath = RegistryUtils.getLogsPath(getClass(), "testStorageUpgradeProtobufUpgrader");
+    @Test
+    public void testStorageUpgradeProtobufUpgraderKafkaSql() throws Exception {
+        testStorageUpgradeProtobufUpgrader("protobufCanonicalHashKafkaSql", RegistryStorageType.kafkasql);
+    }
+
+    public void testStorageUpgradeProtobufUpgrader(String testName, RegistryStorageType storage) throws Exception {
+
+        RegistryStorageType previousStorageValue = RegistryUtils.REGISTRY_STORAGE;
+        RegistryUtils.REGISTRY_STORAGE = storage;
+
+        Path logsPath = RegistryUtils.getLogsPath(getClass(), testName);
         RegistryFacade facade = RegistryFacade.getInstance();
 
         try {
@@ -118,12 +131,16 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
             Map<String, String> appEnv = facade.initRegistryAppEnv();
 
             //runs all required infra except for the registry
-            facade.setupSQLStorage(appEnv);
+            facade.deployStorage(appEnv, storage);
 
             appEnv.put("QUARKUS_HTTP_PORT", "8081");
 
-            String oldRegistryName = "registry-sql-dbv4";
-            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse("quay.io/apicurio/apicurio-registry-sql:2.1.2.Final")));
+            String oldRegistryName = "registry-dbv4";
+            String image = "quay.io/apicurio/apicurio-registry-sql:2.1.2.Final";
+            if (storage == RegistryStorageType.kafkasql) {
+                image = "quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final";
+            }
+            var container = new GenericContainer<>(new RemoteDockerImage(DockerImageName.parse(image)));
             container.setNetworkMode("host");
             facade.runContainer(appEnv, oldRegistryName, container);
             facade.waitForRegistryReady();
@@ -148,7 +165,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             facade.stopContainer(logsPath, oldRegistryName);
 
-            facade.runRegistry(appEnv, "sql-dblatest", "8081");
+            facade.runRegistry(appEnv, "registry-dblatest", "8081");
             facade.waitForRegistryReady();
 
             //
@@ -188,7 +205,11 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
 
         } finally {
-            facade.stopAndCollectLogs(logsPath);
+            try {
+                facade.stopAndCollectLogs(logsPath);
+            } finally {
+                RegistryUtils.REGISTRY_STORAGE = previousStorageValue;
+            }
         }
 
     }

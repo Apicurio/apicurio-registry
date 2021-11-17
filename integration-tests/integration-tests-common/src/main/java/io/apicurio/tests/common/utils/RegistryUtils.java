@@ -22,7 +22,7 @@ import io.apicurio.tests.common.RegistryStorageType;
 
 public class RegistryUtils {
 
-    public static final RegistryStorageType REGISTRY_STORAGE =
+    public static RegistryStorageType REGISTRY_STORAGE =
             Optional.ofNullable(System.getProperty("test.storage"))
                 .map(RegistryStorageType::valueOf)
                 .orElse(null);

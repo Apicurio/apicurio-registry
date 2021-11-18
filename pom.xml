@@ -110,8 +110,7 @@
         <module>utils/tools</module>
         <module>utils/importexport</module>
         <module>utils/protobuf-schema-utilities</module>
-        <module>schema-compatibility/json</module>
-        <module>schema-compatibility/protobuf</module>
+        <module>utils/exportV1</module>
         <module>utils/tests</module>
         <module>serdes/serde-common</module>
         <module>serdes/avro-serde</module>
@@ -123,6 +122,20 @@
         <module>client</module>
         <module>multitenancy/tenant-manager-datamodel</module>
         <module>multitenancy/tenant-manager-client</module>
+
+        <!-- modules for implementing ArtifactTypeUtilProvider -->
+        <module>schema-util/common</module>
+        <module>schema-util/json</module>
+        <module>schema-util/protobuf</module>
+        <module>schema-util/asyncapi</module>
+        <module>schema-util/avro</module>
+        <module>schema-util/graphql</module>
+        <module>schema-util/kconnect</module>
+        <module>schema-util/openapi</module>
+        <module>schema-util/wsdl</module>
+        <module>schema-util/xml</module>
+        <module>schema-util/xsd</module>
+        <module>schema-util/util-provider</module>
     </modules>
 
     <properties>
@@ -270,16 +283,6 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-kafka</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
@@ -377,6 +380,67 @@
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-rest-client-common</artifactId>
                 <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-asyncapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-avro</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-graphql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-kconnect</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-openapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-wsdl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-xml</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-xsd</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <!-- Quarkus Dependencies -->

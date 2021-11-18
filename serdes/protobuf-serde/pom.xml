@@ -21,7 +21,7 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
+            <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
         </dependency>
 
         <dependency>

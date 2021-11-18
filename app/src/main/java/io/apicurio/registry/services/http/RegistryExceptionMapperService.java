@@ -55,6 +55,7 @@ import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -108,6 +109,7 @@ public class RegistryExceptionMapperService {
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
+        map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);

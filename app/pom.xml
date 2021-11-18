@@ -33,13 +33,9 @@
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
 
-         <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-schema-compatibility-json</artifactId>
-        </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-schema-compatibility-protobuf</artifactId>
+            <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
 
         <dependency>
@@ -122,39 +118,23 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-data-models</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.networknt</groupId>
-            <artifactId>json-schema-validator</artifactId>
-        </dependency>
+<!--         <dependency> -->
+<!--             <groupId>com.networknt</groupId> -->
+<!--             <artifactId>json-schema-validator</artifactId> -->
+<!--         </dependency> -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>wsdl4j</groupId>
-            <artifactId>wsdl4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.santuario</groupId>
-            <artifactId>xmlsec</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.everit-org.json-schema</groupId>
-            <artifactId>org.everit.json.schema</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-json-org</artifactId>
-        </dependency>
+<!--         <dependency> -->
+<!--             <groupId>com.github.everit-org.json-schema</groupId> -->
+<!--             <artifactId>org.everit.json.schema</artifactId> -->
+<!--         </dependency> -->
+<!--         <dependency> -->
+<!--             <groupId>com.fasterxml.jackson.datatype</groupId> -->
+<!--             <artifactId>jackson-datatype-json-org</artifactId> -->
+<!--         </dependency> -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
@@ -164,16 +144,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-kafka-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-json</artifactId>
-        </dependency>
-
-        <!-- GraphQL -->
-        <dependency>
-            <groupId>com.graphql-java</groupId>
-            <artifactId>graphql-java</artifactId>
         </dependency>
 
         <!-- Test Only -->

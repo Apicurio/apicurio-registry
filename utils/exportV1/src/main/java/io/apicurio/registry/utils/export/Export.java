@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
-import javax.inject.Inject;
-
 import org.apache.commons.codec.digest.DigestUtils;
 
 import io.apicurio.registry.client.RegistryRestClient;
@@ -46,6 +44,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -61,8 +60,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 @QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
 
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
 
     private boolean matchContentId = false;
 

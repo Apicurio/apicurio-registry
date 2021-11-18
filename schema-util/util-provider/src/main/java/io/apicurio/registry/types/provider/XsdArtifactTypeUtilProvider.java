@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.enterprise.context.ApplicationScoped;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -30,8 +29,6 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * @author cfoskin@redhat.com
  */
-@ApplicationScoped
-//@Logged
 public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     /**

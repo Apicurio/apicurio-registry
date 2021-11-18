@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.enterprise.context.ApplicationScoped;
-
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -31,8 +29,6 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * @author Ales Justin
  */
-@ApplicationScoped
-//@Logged
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override

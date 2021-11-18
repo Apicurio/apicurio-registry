@@ -26,13 +26,9 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.GraphQLContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import javax.enterprise.context.ApplicationScoped;
-
 /**
  * @author Ales Justin
  */
-@ApplicationScoped
-//@Logged
 public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public ArtifactType getArtifactType() {

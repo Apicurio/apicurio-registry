@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.types.provider;
 
-import javax.enterprise.context.ApplicationScoped;
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
@@ -30,8 +29,6 @@ import io.apicurio.registry.types.ArtifactType;
 /**
  * @author Ales Justin
  */
-@ApplicationScoped
-//@Logged
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override

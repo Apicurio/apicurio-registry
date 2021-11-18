@@ -26,13 +26,9 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import javax.enterprise.context.ApplicationScoped;
-
 /**
  * @author Ales Justin
  */
-@ApplicationScoped
-//@Logged
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
     @Override
     public ArtifactType getArtifactType() {

@@ -18,22 +18,32 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 
 /**
  * @author Ales Justin
+ * @author famartin
  */
-@ApplicationScoped
-//@Logged
 public class ArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
+
     private Map<ArtifactType, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
-    @Inject
-    Instance<ArtifactTypeUtilProvider> providers;
+    private List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
+                List.of(
+                        new AsyncApiArtifactTypeUtilProvider(),
+                        new AvroArtifactTypeUtilProvider(),
+                        new GraphQLArtifactTypeUtilProvider(),
+                        new JsonArtifactTypeUtilProvider(),
+                        new KConnectArtifactTypeUtilProvider(),
+                        new OpenApiArtifactTypeUtilProvider(),
+                        new ProtobufArtifactTypeUtilProvider(),
+                        new WsdlArtifactTypeUtilProvider(),
+                        new XmlArtifactTypeUtilProvider(),
+                        new XsdArtifactTypeUtilProvider())
+            );
 
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type) {

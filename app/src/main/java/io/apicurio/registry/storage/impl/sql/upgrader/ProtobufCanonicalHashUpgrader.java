@@ -30,10 +30,12 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * @author Fabian Martinez
  */
+@RegisterForReflection
 public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
 
     private static Logger logger = LoggerFactory.getLogger(ProtobufCanonicalHashUpgrader.class);

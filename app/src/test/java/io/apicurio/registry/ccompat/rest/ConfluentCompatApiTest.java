@@ -57,6 +57,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
             + "\"schemaType\": \"AVRO\"}";
 
+    private static final String PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"message SearchRequest { required string query = 1; optional int32 page_number = 2;  optional int32 result_per_page = 3; }\",\"schemaType\": \"PROTOBUF\"}";
+
+    private static final String JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"f1\\\":{\\\"type\\\":\\\"string\\\"}}}\"}\",\"schemaType\": \"JSON\"}";
+
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED = "{\"schema\": \"{\\\"name\\\": \\\"EloquaContactRecordData\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"eloqua_contact_record\\\", \\\"type\\\": {\\\"name\\\": \\\"EloquaContactRecord\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"contact_id\\\", \\\"type\\\": \\\"string\\\", \\\"default\\\": \\\"\\\"}, {\\\"name\\\": \\\"field_map\\\", \\\"type\\\": {\\\"type\\\": \\\"map\\\", \\\"values\\\": \\\"string\\\"}, \\\"default\\\": \\\"{}\\\"}]}}]}\"}";
 
     private static final String SCHEMA_1_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
@@ -361,22 +365,33 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGetSchemaById() throws Exception {
-        final String SUBJECT = "subjectTestSchema";
+        //VERIFY AVRO, no schema type should be returned
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        //VERIFY JSON, JSON must be returned as schemaType
+        registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
+        //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
+        registerSchemaAndVerify(PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_proto", "PROTOBUF");
+    }
 
-        // POST
+    private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
+        registerSchemaInSubject(schema, subject);
+        this.waitForArtifact(subject);
+        final Integer avroSchemaGlobalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
+        verifySchemaType(avroSchemaGlobalId, schemaTye);
+    }
+
+    private void registerSchemaInSubject(String schema, String subject) {
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .body(schema)
+                .post("/ccompat/v6/subjects/{subject}/versions", subject)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+    }
 
-        this.waitForArtifact(SUBJECT);
-
-        final Integer globalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
-
+    private void verifySchemaType(long globalId, String schemaType) {
         //Verify
         Assertions.assertEquals(given()
                 .when()
@@ -384,7 +399,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .get("/ccompat/v6/schemas/ids/{id}", globalId)
                 .then()
                 .extract()
-                .body().jsonPath().get("schemaType"), "AVRO");
+                .body().jsonPath().get("schemaType"), schemaType);
     }
 
     /**

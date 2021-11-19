@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
-import javax.inject.Inject;
-
 import org.apache.commons.codec.digest.DigestUtils;
 
 import io.apicurio.registry.client.RegistryRestClient;
@@ -39,11 +37,14 @@ import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -56,16 +57,10 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 /**
  * @author Fabian Martinez
  */
-@QuarkusMain
+@QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
 
-    static {
-        //Workaround, because this app depends on apicurio-registry-app we are spawning an http server. Here we are setting the http port to a less probable used port
-        System.setProperty("quarkus.http.port", "9573");
-    }
-
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
 
     private boolean matchContentId = false;
 
@@ -126,8 +121,31 @@ public class Export implements QuarkusApplication {
 
                     VersionMetaData meta = client.getArtifactVersionMetaData(id, version.intValue());
 
-                    InputStream contentStream = client.getArtifactVersion(id, version.intValue());
-                    byte[] contentBytes = IoUtil.toBytes(contentStream);
+                    byte[] contentBytes;
+
+                    if (ArtifactState.DISABLED.equals(meta.getState())) {
+                        try {
+                            var temporalstate = new UpdateState();
+                            temporalstate.setState(ArtifactState.ENABLED);
+                            client.updateArtifactVersionState(id, version.intValue(), temporalstate);
+
+                            InputStream contentStream = client.getArtifactVersion(id, version.intValue());
+                            contentBytes = IoUtil.toBytes(contentStream);
+
+                        } finally {
+                            var disabledagain = new UpdateState();
+                            disabledagain.setState(ArtifactState.DISABLED);
+                            client.updateArtifactVersionState(id, version.intValue(), disabledagain);
+                        }
+                    } else {
+                        InputStream contentStream = client.getArtifactVersion(id, version.intValue());
+                        contentBytes = IoUtil.toBytes(contentStream);
+                    }
+
+                    if (contentBytes == null) {
+                        System.out.println("[WARNING] An error ocurred getting the content for the artifact " + id + " version " + version);
+                    }
+
                     String contentHash = DigestUtils.sha256Hex(contentBytes);
                     ContentHandle canonicalContent = this.canonicalizeContent(meta.getType(), ContentHandle.create(contentBytes));
                     byte[] canonicalContentBytes = canonicalContent.bytes();

@@ -51,6 +51,8 @@ public class ExceptionMapper {
                 return new InvalidArtifactStateException(ex.getError());
             case "UnprocessableEntityException":
                 return new UnprocessableEntityException(ex.getError());
+            case "UnprocessableSchemaException":
+                return new UnprocessableSchemaException(ex.getError());
             case "InvalidArtifactTypeException":
                 return new InvalidArtifactTypeException(ex.getError());
             case "LimitExceededException":

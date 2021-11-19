@@ -129,7 +129,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                     if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
                         throw new VersionNotFoundException(null, subject, version);
                     }
-                    return converter.convert(subject, storage.getArtifactVersion(null, subject, version));
+                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null));
                 });
     }
 

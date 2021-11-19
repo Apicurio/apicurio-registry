@@ -365,11 +365,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGetSchemaById() throws Exception {
-        //VERIFY AVRO
-        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", "AVRO");
-        //VERIFY JSON
+        //VERIFY AVRO, no schema type should be returned
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        //VERIFY JSON, JSON must be returned as schemaType
         registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
-        //VERIFY PROTOBUF
+        //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
         registerSchemaAndVerify(PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_proto", "PROTOBUF");
     }
 

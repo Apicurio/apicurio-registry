@@ -23,8 +23,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Header;
@@ -46,6 +49,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.support.Tester;
@@ -133,12 +137,22 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvro() throws Exception {
+        testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> restClient.getArtifactMetaData("test-group-avro", "myrecord3"));
+
+    }
+
+    @Test
+    public void testAvroQualifiedRecordIdStrategy() throws Exception {
+        testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> restClient.getArtifactMetaData(null, "test-group-avro.myrecord3"));
+    }
+
+    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactResolverStrategy<?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
@@ -156,7 +170,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             // some impl details ...
             waitForSchema(globalId -> {
                 if (restClient.getContentByGlobalId(globalId) != null) {
-                    ArtifactMetaData artifactMetadata = restClient.getArtifactMetaData("test-group-avro", "myrecord3");
+                    ArtifactMetaData artifactMetadata = artifactFinder.get();
                     assertEquals(globalId, artifactMetadata.getGlobalId());
                     return true;
                 }

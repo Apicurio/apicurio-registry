@@ -27,6 +27,7 @@ import javax.interceptor.InvocationContext;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
+import io.quarkus.security.identity.SecurityIdentity;
 
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
@@ -48,6 +49,9 @@ public class AuditedInterceptor {
     @Inject
     AuditLogService auditLogService;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
     @AroundInvoke
     public Object auditMethod(InvocationContext context) throws Exception {
 
@@ -55,6 +59,10 @@ public class AuditedInterceptor {
 
 
         Map<String, String> metadata = new HashMap<>();
+
+        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
+            metadata.put("principalId", securityIdentity.getPrincipal().getName());
+        }
 
         for (Object parameter : context.getParameters()) {
             if (parameter instanceof NewRegistryTenantRequest) {
@@ -92,8 +100,5 @@ public class AuditedInterceptor {
         } finally {
             auditLogService.log(action, result, metadata, null);
         }
-
     }
-
-
 }

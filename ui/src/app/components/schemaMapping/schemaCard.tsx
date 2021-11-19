@@ -23,7 +23,6 @@ import {
   DescriptionList,
   DescriptionListTerm,
 } from "@patternfly/react-core";
-import "./schemaCard.css";
 import { MatchingSchemaCard } from "./matchingSchemaCard";
 import { NoMatchingSchema } from "./noMatchingSchema";
 

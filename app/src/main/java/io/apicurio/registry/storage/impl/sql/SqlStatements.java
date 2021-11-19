@@ -187,6 +187,12 @@ public interface SqlStatements {
     public String upsertContent();
 
     /**
+     * A statement to update canonicalHash value in a row in the "content" table
+     * The only statement that allows to modify an existing row in the "content" table
+     */
+    public String updateContentCanonicalHash();
+
+    /**
      * A statement to get a single artifact (latest version) content by artifactId.
      */
     public String selectLatestArtifactContent();

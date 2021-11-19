@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.ccompat;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public class SchemaTypeFilter {
 
     @Override

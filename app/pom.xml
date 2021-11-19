@@ -118,23 +118,11 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>com.networknt</groupId> -->
-<!--             <artifactId>json-schema-validator</artifactId> -->
-<!--         </dependency> -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
         </dependency>
-<!--         <dependency> -->
-<!--             <groupId>com.github.everit-org.json-schema</groupId> -->
-<!--             <artifactId>org.everit.json.schema</artifactId> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>com.fasterxml.jackson.datatype</groupId> -->
-<!--             <artifactId>jackson-datatype-json-org</artifactId> -->
-<!--         </dependency> -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>

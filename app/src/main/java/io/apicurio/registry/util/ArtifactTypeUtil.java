@@ -136,7 +136,7 @@ public final class ArtifactTypeUtil {
                 return ArtifactType.ASYNCAPI;
             }
             // JSON Schema
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")) {
+            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
                 return ArtifactType.JSON;
             }
             // Kafka Connect??

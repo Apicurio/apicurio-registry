@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "Merging latest changes from the master branch!"
-git fetch --all
+git fetch upstream master
 git merge upstream/master
 
 echo "Merge complete.  Check for conflicts!"

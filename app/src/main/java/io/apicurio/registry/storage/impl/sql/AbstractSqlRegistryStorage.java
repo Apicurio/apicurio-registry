@@ -127,6 +127,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
     private static int DB_VERSION = 5;
     private static final Object dbMutex = new Object();
+    private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
@@ -2983,32 +2984,35 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
         } else {
             // no way to automatically increment the sequence in h2 with just one query
-            // good news is that this algorithm is good enough for our needs and is lock free
             // we are incresing the sequence value in a way that it's not safe for concurrent executions
-            // but we are just doing this because our h2 storage is not supposed to be used concurrently
+            // for kafkasql storage this method is not supposed to be executed concurrently
+            // but for inmemory storage that's not guaranteed
+            // that forces us to use an inmemory lock, should not cause any harm
             // caveat emptor , consider yourself as warned
-            Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Long.class)
-                    .findOne();
+            synchronized (inmemorySequencesMutex) {
+                Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                        .bind(0, sequenceName)
+                        .bind(1, tenantContext.tenantId())
+                        .mapTo(Long.class)
+                        .findOne();
 
-            if (seqExists.isPresent()) {
-                //
-                Long newValue = seqExists.get() + 1;
-                handle.createUpdate(sqlStatements.resetSequenceValue())
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, sequenceName)
-                    .bind(2, newValue)
-                    .execute();
-                return newValue;
-            } else {
-                handle.createUpdate(sqlStatements.insertSequenceValue())
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, sequenceName)
-                    .bind(2, 1)
-                    .execute();
-                return 1;
+                if (seqExists.isPresent()) {
+                    //
+                    Long newValue = seqExists.get() + 1;
+                    handle.createUpdate(sqlStatements.resetSequenceValue())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, sequenceName)
+                        .bind(2, newValue)
+                        .execute();
+                    return newValue;
+                } else {
+                    handle.createUpdate(sqlStatements.insertSequenceValue())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, sequenceName)
+                        .bind(2, 1)
+                        .execute();
+                    return 1;
+                }
             }
         }
     }

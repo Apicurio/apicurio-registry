@@ -37,6 +37,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
@@ -92,6 +93,9 @@ public class RegistryExceptionMapperService {
 
     @Inject
     LivenessUtil livenessUtil;
+
+    @ConfigProperty(name = "registry.api.errors.include-stack-in-response", defaultValue = "false")
+    boolean includeStackTrace;
 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
@@ -174,7 +178,9 @@ public class RegistryExceptionMapperService {
 
         error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
-        error.setDetail(getStackTrace(t));
+        if (includeStackTrace) {
+            error.setDetail(getStackTrace(t));
+        }
         error.setName(t.getClass().getSimpleName());
         return error;
     }

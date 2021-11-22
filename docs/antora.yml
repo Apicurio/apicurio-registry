@@ -1,6 +1,6 @@
 name: apicurio-registry
 title: Apicurio Registry
-version: 'master'
+version: '2.1.3.Final'
 start_ROOT: ROOT:index.adoc
 nav:
 - modules/ROOT/nav.adoc

@@ -26,9 +26,15 @@ objects:
                 value: "50"
               - name: TEST_RAMP_TIME
                 value: "30"
+            envFrom:
+            - secretRef:
+                name: ${PERFORMANCE_TESTS_ENVS_SECRET_NAME}
 parameters:
 - name: APICURIO_PERF_IMAGE_FULL
   value: quay.io/rhoas/apicurio-perf:latest
 - name: IMAGE_TAG
+  value: ''
+  required: true
+- name: PERFORMANCE_TESTS_ENVS_SECRET_NAME
   value: ''
   required: true

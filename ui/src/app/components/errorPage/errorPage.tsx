@@ -156,7 +156,7 @@ export class ErrorPage extends PureComponent<ErrorPageProps, ErrorPageState> {
         this.setSingleState("isShowDetails", true);
     };
 
-    private reloadPage = (): void => {
+    protected reloadPage = (): void => {
         window.location.reload();
-    }
+    };
 }

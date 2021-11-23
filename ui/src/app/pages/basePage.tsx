@@ -19,6 +19,7 @@ import React from "react";
 import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
 import {Services} from "../../services";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner} from "@patternfly/react-core";
+import {AccessErrorPage} from "../components/errorPage/accessErrorPage";
 
 // TODO this should be configurable via standard UI config settings
 const MAX_RETRIES: number = 5;
@@ -73,9 +74,15 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     public render(): React.ReactElement {
         if (this.isError()) {
-            return (
-                <ErrorPage error={this.state.error}/>
-            );
+            if (this.is403Error()) {
+                return (
+                    <AccessErrorPage error={this.state.error} />
+                );
+            } else {
+                return (
+                    <ErrorPage error={this.state.error}/>
+                );
+            }
         } else if (this.isLoading()) {
             return (
                 <React.Fragment>
@@ -174,6 +181,11 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     private isError(): boolean {
         return this.state.isError ? true : false;
+    }
+
+    private is403Error(): boolean {
+        return this.state.error && this.state.error.error && this.state.error.error.message &&
+            this.state.error.error.message.includes("403");
     }
 
     private handleError(errorType: PageErrorType, error: any, errorMessage: any): void {

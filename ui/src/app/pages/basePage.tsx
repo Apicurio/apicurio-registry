@@ -184,8 +184,7 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
     }
 
     private is403Error(): boolean {
-        return this.state.error && this.state.error.error && this.state.error.error.message &&
-            this.state.error.error.message.includes("403");
+        return this.state.error && this.state.error.error.status && (this.state.error.error.status == 403);
     }
 
     private handleError(errorType: PageErrorType, error: any, errorMessage: any): void {
@@ -194,7 +193,8 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         Services.getLoggerService().error("[PageComponent] ", error);
         this.setMultiState({
             error: {
-                error, errorMessage,
+                error,
+                errorMessage,
                 type: errorType
             },
             isError: true

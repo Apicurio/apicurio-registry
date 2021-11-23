@@ -37,6 +37,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -180,6 +181,8 @@ public class RegistryExceptionMapperService {
         error.setMessage(t.getLocalizedMessage());
         if (includeStackTrace) {
             error.setDetail(getStackTrace(t));
+        } else {
+            error.setDetail(getRootMessage(t));
         }
         error.setName(t.getClass().getSimpleName());
         return error;
@@ -208,13 +211,17 @@ public class RegistryExceptionMapperService {
      *
      * @param t
      */
-    private String getStackTrace(Throwable t) {
+    private static String getStackTrace(Throwable t) {
         try (StringWriter writer = new StringWriter()) {
             t.printStackTrace(new PrintWriter(writer));
             return writer.toString();
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static String getRootMessage(Throwable t) {
+        return ExceptionUtils.getRootCauseMessage(t);
     }
 
 }

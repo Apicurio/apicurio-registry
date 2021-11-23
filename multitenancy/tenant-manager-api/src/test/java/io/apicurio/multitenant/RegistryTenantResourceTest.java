@@ -52,7 +52,11 @@ public class RegistryTenantResourceTest {
     public void cleanup() {
         var client = new TenantManagerClientImpl("http://localhost:8081/");
         List<RegistryTenant> list = client.listTenants();
-        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+        list.forEach(t -> {
+            if (t.getStatus() == TenantStatusValue.READY) {
+                client.deleteTenant(t.getTenantId());
+            }
+        });
 
         Response res = given()
           .when().params("status", "READY").get(TENANTS_PATH)

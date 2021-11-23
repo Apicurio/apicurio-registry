@@ -340,6 +340,10 @@ public class RegistryFacade {
         appEnv.put("KEYCLOAK_API_CLIENT_ID", registryAppEnv.get("KEYCLOAK_API_CLIENT_ID"));
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
 
+        //config only for test purposes
+        //for TenantReaperIT , to enable tenant status transition from DELETED to READY
+        appEnv.put("ENABLE_TEST_STATUS_TRANSITION", "true");
+
         appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
         appEnv.put("LOG_LEVEL", "DEBUG");
 

@@ -26,4 +26,10 @@ public interface MetricsConstants {
     String REST_REQUESTS_TAG_METHOD = "method";
     String REST_REQUESTS_TAG_STATUS_CODE_FAMILY = "status_code_group";
 
+    // usage metrics
+    String USAGE_TENANTS = "usage.tenants";
+    String USAGE_DELETING_TENANTS = "usage.deleting.tenants";
+
+    String TAG_USAGE_TENANTS_STATUS = "status";
+
 }

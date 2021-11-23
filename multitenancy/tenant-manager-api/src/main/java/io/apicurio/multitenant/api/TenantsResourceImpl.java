@@ -209,6 +209,7 @@ public class TenantsResourceImpl implements TenantsResource {
             throw new BadRequestException(
                     String.format("Unable to mark tenant to be deleted, status change from %s to %s is not allowed", tenant.getStatus(), TenantStatusValue.TO_BE_DELETED.value()));
         }
+        tenant.setModifiedOn(new Date());
         tenant.setStatus(TenantStatusValue.TO_BE_DELETED.value());
         tenantsRepository.save(tenant);
     }

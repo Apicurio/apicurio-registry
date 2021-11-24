@@ -47,6 +47,9 @@ public class RegistryTenantDto {
     @Column(name = "createdOn")
     private Date createdOn;
 
+    @Column(name = "modifiedOn")
+    private Date modifiedOn;
+
     @Column(name = "createdBy")
     private String createdBy;
 
@@ -83,6 +86,14 @@ public class RegistryTenantDto {
 
     public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
+    }
+
+    public Date getModifiedOn() {
+        return modifiedOn;
+    }
+
+    public void setModifiedOn(Date modifiedOn) {
+        this.modifiedOn = modifiedOn;
     }
 
     public String getCreatedBy() {

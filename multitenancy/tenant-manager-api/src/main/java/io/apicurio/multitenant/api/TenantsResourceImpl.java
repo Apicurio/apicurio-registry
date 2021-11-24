@@ -42,8 +42,9 @@ import io.apicurio.multitenant.api.datamodel.SortOrder;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.api.dto.DtoMappers;
-import io.apicurio.multitenant.logging.audit.AuditLogService;
+import io.apicurio.multitenant.api.services.TenantStatusService;
 import io.apicurio.multitenant.logging.audit.Audited;
+import io.apicurio.multitenant.metrics.UsageMetrics;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
@@ -61,7 +62,10 @@ public class TenantsResourceImpl implements TenantsResource {
     RegistryTenantStorage tenantsRepository;
 
     @Inject
-    AuditLogService auditLog;
+    TenantStatusService tenantStatusService;
+
+    @Inject
+    UsageMetrics usageMetrics;
 
     @Override
     public RegistryTenantList getTenants(@QueryParam("status") String status,
@@ -144,12 +148,15 @@ public class TenantsResourceImpl implements TenantsResource {
     @Transactional
     @Audited
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest tenantRequest) {
+        boolean updated = false;
         RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
         if (tenantRequest.getName() != null) {
             tenant.setName(tenantRequest.getName());
+            updated = true;
         }
         if (tenantRequest.getDescription() != null) {
             tenant.setDescription(tenantRequest.getDescription());
+            updated = true;
         }
 
         if (tenantRequest.getResources() != null) {
@@ -172,13 +179,25 @@ public class TenantsResourceImpl implements TenantsResource {
                 .stream()
                 .map(DtoMappers::toStorageDto)
                 .forEach(dto -> tenant.addResource(dto));
+            updated = true;
         }
 
         if (tenantRequest.getStatus() != null) {
+            if (!tenantStatusService.verifyTenantStatusChange(tenant, tenantRequest.getStatus())) {
+                throw new BadRequestException(
+                        String.format("Invalid new tenant status, status change from %s to %s is not allowed", tenant.getStatus(), tenantRequest.getStatus().value()));
+            }
             tenant.setStatus(tenantRequest.getStatus().value());
+            updated = true;
+            //very important to call this before modifiying the previous modifiedOn date
+            usageMetrics.tenantStatusChanged(tenant);
         }
 
-        tenantsRepository.save(tenant);
+        if (updated) {
+            tenant.setModifiedOn(new Date());
+            tenantsRepository.save(tenant);
+        }
+
     }
 
     @Override
@@ -186,6 +205,11 @@ public class TenantsResourceImpl implements TenantsResource {
     @Audited
     public void deleteTenant(@PathParam("tenantId") String tenantId) {
         RegistryTenantDto tenant = tenantsRepository.findByTenantId(tenantId).orElseThrow(() -> TenantNotFoundException.create(tenantId));
+        if (!tenantStatusService.verifyTenantStatusChange(tenant, TenantStatusValue.TO_BE_DELETED)) {
+            throw new BadRequestException(
+                    String.format("Unable to mark tenant to be deleted, status change from %s to %s is not allowed", tenant.getStatus(), TenantStatusValue.TO_BE_DELETED.value()));
+        }
+        tenant.setModifiedOn(new Date());
         tenant.setStatus(TenantStatusValue.TO_BE_DELETED.value());
         tenantsRepository.save(tenant);
     }

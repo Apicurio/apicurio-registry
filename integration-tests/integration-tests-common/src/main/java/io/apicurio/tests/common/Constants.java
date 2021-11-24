@@ -61,5 +61,11 @@ public interface Constants {
      */
     String MIGRATION = "migration";
 
+    /**
+     * Tag for sql storage db schema upgrade tests. Consists of one test that deploys an older version of the registry, populates the db, and then deploys the latest version of the registry.
+     * Used to test the db schema upgrade process.
+     */
+    String DB_UPGRADE = "dbupgrade";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 }

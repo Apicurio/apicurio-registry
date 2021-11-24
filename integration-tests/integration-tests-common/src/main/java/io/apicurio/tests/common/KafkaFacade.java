@@ -91,7 +91,7 @@ public class KafkaFacade implements RegistryTestProcess {
         kafkaContainer.start();
     }
 
-    private AdminClient adminClient() {
+    public AdminClient adminClient() {
         if (client == null) {
             Properties properties = new Properties();
             properties.put("bootstrap.servers", bootstrapServers());

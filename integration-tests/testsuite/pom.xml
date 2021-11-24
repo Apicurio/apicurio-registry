@@ -297,6 +297,14 @@
         </profile>
 
         <profile>
+            <id>dbupgrade</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <groups>dbupgrade</groups>
+            </properties>
+        </profile>
+
+        <profile>
             <id>disableSerdesTest</id>
             <properties>
                 <exclude.integration.tests>**/BasicApicurioSerDesIT.java</exclude.integration.tests>

@@ -78,6 +78,8 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql migration
         run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - sql dbupgrade
+        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
       - name: Run Legacy Tests - kafkasql
         env:

@@ -30,6 +30,9 @@ objects:
       app: apicurio-registry
       template: multitenant-apicurio-registry
       component: apicurio-registry-envoy
+    annotations:
+      description: Exposes and load balances the apicurio-registry pods going through envoy beforehand
+      service.alpha.openshift.io/serving-cert-secret-name: apicurio-registry-envoy-tls
     name: apicurio-registry-envoy
   spec:
     ports:
@@ -129,6 +132,9 @@ objects:
         - name: db-ssl-ca
           secret:
             secretName: ${DATABASE_SSL_CA_SECRET_NAME}
+        - name: envoy-tls
+          secret:
+            secretName: apicurio-registry-envoy-tls
 
         containers:
         - name: apicurio-registry
@@ -382,6 +388,8 @@ objects:
           image: ${ENVOY_IMAGE}
           imagePullPolicy: IfNotPresent
           volumeMounts:
+          - name: envoy-tls
+            mountPath: /secrets/tls
           - name: envoy-config
             mountPath: /configs/envoy
           - name: envoy-unix-sockets
@@ -423,6 +431,16 @@ objects:
               memory: 512Mi
               cpu: 500m
 
+- kind: PodDisruptionBudget
+  apiVersion: policy/v1
+  metadata:
+    name: apicurio-registry-pdb
+  spec:
+    maxUnavailabe: "50%"
+    selector:
+      matchLabels:
+        app: apicurio-registry
+        template: multitenant-apicurio-registry
 
 parameters:
 

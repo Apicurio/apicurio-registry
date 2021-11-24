@@ -780,7 +780,7 @@ public class RegistryFacade {
         });
     }
 
-    public void stopContainer(Path logsPath, String name) throws Exception {
+    public void stopProcess(Path logsPath, String name) throws Exception {
         var process = processes.stream()
             .filter(p -> p.getName().equals(name))
             .findFirst()

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.tests.multitenancy.dbupgrade;
+package io.apicurio.tests.dbupgrade;
 
+import static io.apicurio.tests.utils.CustomTestsUtils.createArtifact;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,7 +44,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
-import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
@@ -53,6 +52,7 @@ import io.apicurio.tests.common.interfaces.TestSeparator;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.apicurio.tests.multitenancy.MultitenancySupport;
 import io.apicurio.tests.multitenancy.TenantUserClient;
+import io.apicurio.tests.utils.CustomTestsUtils.ArtifactData;
 
 /**
  * Note this test does not extend any base class
@@ -91,7 +91,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             verifyData(data);
 
-            facade.stopContainer(logsPath, oldRegistryName);
+            facade.stopProcess(logsPath, oldRegistryName);
 
             facade.runRegistry(appEnv, "sql-dblatest", "8081");
             facade.waitForRegistryReady();
@@ -163,7 +163,7 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
 
             //
 
-            facade.stopContainer(logsPath, oldRegistryName);
+            facade.stopProcess(logsPath, oldRegistryName);
 
             facade.runRegistry(appEnv, "registry-dblatest", "8081");
             facade.waitForRegistryReady();
@@ -289,15 +289,6 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         }
     }
 
-    private ArtifactData createArtifact(RegistryClient client, ArtifactType type, String content) throws Exception {
-        String artifactId = TestUtils.generateArtifactId();
-        ArtifactMetaData meta = client.createArtifact(null, artifactId, type, IoUtil.toStream(content));
-        TestUtils.retry(() -> client.getContentByGlobalId(meta.getGlobalId()));
-        assertNotNull(client.getLatestArtifact(meta.getGroupId(), meta.getId()));
-        String contentHash = DigestUtils.sha256Hex(IoUtil.toBytes(content));
-        return new ArtifactData(meta, contentHash);
-    }
-
     private class TenantData {
         TenantUserClient tenant;
         List<ArtifactData> artifacts;
@@ -307,12 +298,4 @@ public class SqlStorageUpgradeIT implements TestSeparator, Constants {
         }
     }
 
-    private class ArtifactData {
-        ArtifactMetaData meta;
-        String contentHash;
-        public ArtifactData(ArtifactMetaData meta, String contentHash) {
-            this.meta = meta;
-            this.contentHash = contentHash;
-        }
-    }
 }

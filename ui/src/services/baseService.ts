@@ -265,9 +265,16 @@ export abstract class BaseService implements Service {
 
     private unwrapErrorData(error: any): any {
         if (error.response && error.response.data) {
-            return error.response.data;
+            return {
+                message: error.message,
+                ...error.response.data,
+                status: error.response.status
+            };
         }
-        return error;
+        return {
+            message: error.message,
+            status: error.response.status
+        };
     }
 
     private apiBaseHref(): string {

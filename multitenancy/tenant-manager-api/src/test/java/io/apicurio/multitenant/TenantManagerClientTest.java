@@ -72,7 +72,11 @@ public class TenantManagerClientTest {
     @SuppressWarnings("deprecation")
     public void cleanup() {
         List<RegistryTenant> list = client.listTenants();
-        list.forEach(t -> client.deleteTenant(t.getTenantId()));
+        list.forEach(t -> {
+            if (t.getStatus() == TenantStatusValue.READY) {
+                client.deleteTenant(t.getTenantId());
+            }
+        });
         var search = client.listTenants(TenantStatusValue.READY, null, null, null, null);
         list = search.getItems();
         assertEquals(0, list.size());
@@ -205,6 +209,33 @@ public class TenantManagerClientTest {
     @Test
     public void testNotFound() {
         testTenantNotFound("abcede");
+    }
+
+    @Test
+    public void testCreateDeleteCreate() {
+        NewRegistryTenantRequest req = new NewRegistryTenantRequest();
+        String tenantId = "testCreateDeleteCreate";
+        req.setTenantId(tenantId);
+        req.setOrganizationId("aaa");
+
+        client.createTenant(req);
+        assertEquals(TenantStatusValue.READY, client.getTenant(tenantId).getStatus());
+
+        client.deleteTenant(tenantId);
+        assertEquals(TenantStatusValue.TO_BE_DELETED, client.getTenant(tenantId).getStatus());
+
+        //transition not allowed
+        UpdateRegistryTenantRequest upready = new UpdateRegistryTenantRequest();
+        upready.setStatus(TenantStatusValue.READY);
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.updateTenant(tenantId, upready));
+
+        UpdateRegistryTenantRequest updr = new UpdateRegistryTenantRequest();
+        updr.setStatus(TenantStatusValue.DELETED);
+        client.updateTenant(tenantId, updr);
+        assertEquals(TenantStatusValue.DELETED, client.getTenant(tenantId).getStatus());
+
+        //tenant already exists
+        Assertions.assertThrows(TenantManagerClientException.class, () -> client.createTenant(req));
     }
 
     private void testGetTenant(String tenantId, NewRegistryTenantRequest req) {

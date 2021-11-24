@@ -93,7 +93,6 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             }
 
             // To test that the data was removed, we will change the tenant status back to ready
-            // TODO Make sure this is safe to do in the future
             for (int i = 0; i < 53; i++) {
                 updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.READY);
             }

@@ -19,7 +19,6 @@ public interface MetricsConstants {
 
     // REST tags/labels
 
-    String REST_REQUESTS_TAG_TENANT = "tenant_id";
     String REST_REQUESTS_TAG_PATH = "path";
     String REST_REQUESTS_TAG_METHOD = "method";
     String REST_REQUESTS_TAG_STATUS_CODE_FAMILY = "status_code_group";

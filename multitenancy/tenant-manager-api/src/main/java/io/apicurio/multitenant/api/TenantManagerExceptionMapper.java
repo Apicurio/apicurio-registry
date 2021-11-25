@@ -15,6 +15,7 @@
  */
 package io.apicurio.multitenant.api;
 
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
@@ -31,6 +32,8 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import org.slf4j.Logger;
+
+import io.apicurio.multitenant.storage.TenantAlreadyExistsException;
 import io.apicurio.multitenant.storage.TenantNotFoundException;
 import io.apicurio.multitenant.api.datamodel.Error;
 
@@ -47,6 +50,7 @@ public class TenantManagerExceptionMapper implements ExceptionMapper<Throwable> 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
         map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(TenantAlreadyExistsException.class, HTTP_CONFLICT);
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

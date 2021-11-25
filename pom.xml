@@ -209,10 +209,6 @@
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
         
-        <!-- Gatling -->
-        <version.gatling>3.6.1</version.gatling>
-        <version.gatling.plugin>3.1.2</version.gatling.plugin>
-
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
         <scala.version>2.13.7</scala.version>
@@ -585,18 +581,6 @@
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson-dataformat-yaml.version}</version>
-            </dependency>
-
-            <!-- Gatling -->
-            <dependency>
-                <groupId>io.gatling</groupId>
-                <artifactId>gatling-app</artifactId>
-                <version>${version.gatling}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.gatling.highcharts</groupId>
-                <artifactId>gatling-charts-highcharts</artifactId>
-                <version>${version.gatling}</version>
             </dependency>
 
             <!-- Tests -->

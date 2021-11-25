@@ -39,7 +39,6 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_DESCRI
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_METHOD;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_PATH;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_FAMILY;
-import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_TENANT;
 
 /**
  * Filters REST API requests and responses to report metrics
@@ -85,13 +84,13 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
         throws IOException {
 
-        if (requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME) == null)
+        if (requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME) == null) {
             return;
+        }
 
         Timer timer = Timer
             .builder(REST_REQUESTS)
             .description(REST_REQUESTS_DESCRIPTION)
-            .tag(REST_REQUESTS_TAG_TENANT, this.tenantContext.getTenantIdOrElse("")) //we may have to delete this tag
             .tag(REST_REQUESTS_TAG_PATH, this.getPath())
             .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
             .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))

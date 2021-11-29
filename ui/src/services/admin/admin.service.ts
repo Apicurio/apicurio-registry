@@ -16,7 +16,7 @@
  */
 
 import {BaseService} from "../baseService";
-import {RoleMapping, Rule} from "../../models";
+import {DownloadRef, RoleMapping, Rule} from "../../models";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global
@@ -111,6 +111,22 @@ export class AdminService extends BaseService {
             principalId
         });
         return this.httpDelete(endpoint);
+    }
+
+    public exportAs(filename: string): Promise<DownloadRef> {
+        const endpoint: string = this.endpoint("/v2/admin/export", {}, {
+            forBrowser: true
+        });
+        const headers: any = {
+            Accept: "application/zip"
+        };
+        return this.httpGet<DownloadRef>(endpoint, this.options(headers)).then(ref => {
+            if (ref.href.startsWith("/apis/registry")) {
+                ref.href = ref.href.replace("/apis/registry", this.apiBaseHref());
+                ref.href = ref.href + "/" + filename;
+            }
+            return ref;
+        });
     }
 
 }

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./roleMapping.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./userInfo.model";
-export * from "./versionMetaData.model";
-export * from "./downloadRef.model";
+// tslint:disable-next-line:interface-name
+export interface DownloadRef {
+
+    downloadId: string;
+    href: string;
+
+}

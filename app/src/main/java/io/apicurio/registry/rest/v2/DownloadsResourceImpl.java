@@ -69,4 +69,21 @@ public class DownloadsResourceImpl {
         throw new DownloadNotFoundException();
     }
 
+    /**
+     * A duplicate version of the above that will allow a filename to be added
+     * for download purposes.  So e.g. /apis/registry/v2/downloads/ABCD-1234 can
+     * be aliased as /apis/registry/v2/downloads/ABCD-1234/export.zip and work
+     * the same way.  But when saving from a browser, the filename should be
+     * useful.
+     * @param downloadId
+     * @return
+     */
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @GET
+    @Path("{downloadId}/{fileName}")
+    @Produces("*/*")
+    public Response downloadAsFile(@PathParam("downloadId") String downloadId) {
+        return this.download(downloadId);
+    }
+
 }

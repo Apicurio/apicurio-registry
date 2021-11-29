@@ -26,6 +26,8 @@ objects:
                 value: "50"
               - name: TEST_RAMP_TIME
                 value: "30"
+              - name: TEST_SKIP_PUSH_RESULTS_GITHUB
+                value: "true"
             envFrom:
             - secretRef:
                 name: ${PERFORMANCE_TESTS_ENVS_SECRET_NAME}

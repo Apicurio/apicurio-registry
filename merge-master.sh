@@ -30,7 +30,11 @@ echo "Updating the MAS build number to: $NEW_MAS_BUILD_NUMBER"
 mvn versions:set-property -Dproperty=mas.build.number -DgenerateBackupPoms=false -DnewVersion=$NEW_MAS_BUILD_NUMBER
 
 git status
+echo "---"
 echo "MAS version and build numbers updated (see changes above)."
+echo "MAS version is now set to: $NEW_VERSION"
+echo "MAS build number is now set to: $NEW_MAS_BUILD_NUMBER"
+echo "---"
 
 CONTINUE="no"
 while [ "x$CONTINUE" != "xyes" ]

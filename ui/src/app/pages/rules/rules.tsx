@@ -17,7 +17,7 @@
 
 import React from "react";
 import "./rules.css";
-import {PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
+import {Button, PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RuleList} from "../../components/ruleList";
 import {Rule} from "../../../models";

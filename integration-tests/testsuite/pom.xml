@@ -17,7 +17,7 @@
         <groups></groups>
         <skipTests>true</skipTests>
         
-        <junit.version>5.8.1</junit.version>
+        <junit.version>5.8.2</junit.version>
         <junit.platform-launcher.version>1.8.1</junit.platform-launcher.version>
 
         <kafka.version>2.3.0</kafka.version>

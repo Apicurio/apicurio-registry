@@ -74,19 +74,23 @@ public class HttpEventSink implements EventSink {
         try {
             log.debug("Sending event to sink " + httpSink.getName());
             getHttpClient()
-                    .request(
-                            new RequestOptions()
-                                    .setMethod(HttpMethod.POST)
-                                    .setURI(httpSink.getEndpoint())
-                                    .putHeader("ce-id", UUID.randomUUID().toString())
-                                    .putHeader("ce-specversion", "1.0")
-                                    .putHeader("ce-source", "apicurio-registry")
-                                    .putHeader("ce-type", type)
-                                    .putHeader("content-type", MediaType.APPLICATION_JSON)
-                    )
-                    .result()
-                    .exceptionHandler(ex -> log.error("Error sending event to " + httpSink.getEndpoint(), ex))
-                    .end(data);
+                .request(new RequestOptions()
+                            .setMethod(HttpMethod.POST)
+                            .setURI(httpSink.getEndpoint())
+                            .putHeader("ce-id", UUID.randomUUID().toString())
+                            .putHeader("ce-specversion", "1.0")
+                            .putHeader("ce-source", "apicurio-registry")
+                            .putHeader("ce-type", type)
+                            .putHeader("content-type", MediaType.APPLICATION_JSON),
+                            ar -> {
+                                if (ar.succeeded()) {
+                                    ar.result()
+                                        .exceptionHandler(ex -> log.error("Error sending event to " + httpSink.getEndpoint(), ex))
+                                        .end(data);
+                                } else {
+                                    log.error("Error sending event to " + httpSink.getEndpoint(), ar.cause());
+                                }
+                            });
         } catch (Exception e) {
             log.error("Error sending http event", e);
         }

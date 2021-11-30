@@ -52,12 +52,10 @@ import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
-import io.quarkus.runtime.annotations.QuarkusMain;
 
 /**
  * @author Fabian Martinez
  */
-@QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
 
     ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();

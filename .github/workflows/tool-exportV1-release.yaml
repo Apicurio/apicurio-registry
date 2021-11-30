@@ -26,9 +26,9 @@ jobs:
     - name: Get maven wrapper
       run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
     - name: Set version
-      run: ./mvnw versions:set -DnewVersion="$TAG_NAME"
+      run: ./mvnw versions:set -DnewVersion="$TAG_NAME" -PexportV1
     - name: Build exportV1 jar
-      run: ./mvnw package -pl utils/exportV1/ -am
+      run: ./mvnw package -PexportV1 -pl utils/exportV1/ -am
     - name: Upload exportV1 jar
       id: upload-jar
       uses: actions/upload-release-asset@v1

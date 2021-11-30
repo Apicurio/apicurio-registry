@@ -39,7 +39,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -PexportV1 -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:

@@ -110,7 +110,6 @@
         <module>utils/tools</module>
         <module>utils/importexport</module>
         <module>utils/protobuf-schema-utilities</module>
-        <module>utils/exportV1</module>
         <module>utils/tests</module>
         <module>serdes/serde-common</module>
         <module>serdes/avro-serde</module>
@@ -960,6 +959,12 @@
                     </plugin>
                 </plugins>
             </build>            
+        </profile>
+        <profile>
+            <id>exportV1</id>
+            <modules>
+                <module>utils/exportV1</module>
+            </modules>
         </profile>
         <profile>
             <id>release</id>

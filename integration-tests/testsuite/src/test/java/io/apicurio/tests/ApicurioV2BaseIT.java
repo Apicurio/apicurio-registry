@@ -51,6 +51,8 @@ import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
 import io.apicurio.tests.common.utils.RegistryUtils;
+import io.apicurio.tests.utils.RegistryWaitUtils;
+import io.apicurio.tests.utils.RegistryWaitUtils.ConsumerExc;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 
@@ -67,6 +69,7 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
 
     protected RegistryClient createRegistryClient() {
         if (!TestUtils.isExternalRegistry() && RegistryUtils.TEST_PROFILE.contains(Constants.CLUSTERED)) {
+            logger.info("Using load-balancer registry client");
             return new LoadBalanceRegistryClient(RegistryFacade.getInstance().getClusteredRegistryNodes());
         } else {
             return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl());
@@ -128,6 +131,18 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         return meta;
     }
 
+    //DO NOT USE FOR CREATE OR UPDATE OPERATIONS
+    protected void retryOp(ConsumerExc<RegistryClient> registryOp) throws Exception {
+        RegistryWaitUtils.retry(registryClient, registryOp);
+    }
+
+    //DO NOT USE FOR CREATE OR UPDATE OPERATIONS
+    protected void retryAssertClientError(String expectedErrorName, int expectedCode, ConsumerExc<RegistryClient> registryOp, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+        RegistryWaitUtils.retry(registryClient, (rc) -> {
+            TestUtils.assertClientError(expectedErrorName, expectedCode, () -> registryOp.run(rc), errorCodeExtractor);
+        });
+    }
+
     private void ensureClusterSync(Long globalId) throws Exception {
         if (registryClient instanceof LoadBalanceRegistryClient) {
             LoadBalanceRegistryClient loadBalanceRegistryClient = (LoadBalanceRegistryClient) registryClient;
@@ -176,8 +191,8 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         }
     }
 
-    protected List<String> listArtifactVersions(String groupId, String artifactId) {
-        return registryClient.listArtifactVersions(groupId, artifactId, 0, 10)
+    protected List<String> listArtifactVersions(RegistryClient rc, String groupId, String artifactId) {
+        return rc.listArtifactVersions(groupId, artifactId, 0, 10)
                 .getVersions()
                 .stream()
                 .map(SearchedVersion::getVersion)

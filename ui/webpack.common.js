@@ -51,6 +51,7 @@ module.exports = (mode) => {
           "./FederatedRulesPage": "./src/app/pages/rules/rules.federated",
           "./FederatedRolesPage": "./src/app/pages/roles/roles.federated",
           "./FederatedSchemaMapping": "./src/app/components/schemaMapping/schemaMapping.federated",
+          "./FederatedDownloadArtifacts":"./src/app/components/downloadArtifacts/downloadArtifacts.federated"
         },
         shared: {
           ...dependencies,

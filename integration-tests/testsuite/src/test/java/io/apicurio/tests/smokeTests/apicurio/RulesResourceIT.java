@@ -59,7 +59,7 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        retryOp((rc) -> rc.createGlobalRule(rule));
+        TestUtils.retry(() -> registryClient.createGlobalRule(rule));
 
         // Check the rule was created.
         retryOp((rc) -> {
@@ -93,7 +93,7 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         rule.setType(RuleType.VALIDITY);
         rule.setConfig("SYNTAX_ONLY");
 
-        retryOp((rc) -> rc.createGlobalRule(rule));
+        TestUtils.retry(() -> registryClient.createGlobalRule(rule));
         LOGGER.info("Created rule: {} - {}", rule.getType(), rule.getConfig());
 
         TestUtils.assertClientError(RuleAlreadyExistsException.class.getSimpleName(), 409, () -> registryClient.createGlobalRule(rule), true, errorCodeExtractor);

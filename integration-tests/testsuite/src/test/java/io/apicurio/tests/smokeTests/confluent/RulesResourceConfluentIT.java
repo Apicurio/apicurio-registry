@@ -74,8 +74,8 @@ public class RulesResourceConfluentIT extends ConfluentBaseIT {
     void clearRules() throws Exception {
         LOGGER.info("Removing all global rules");
         registryClient.deleteAllGlobalRules();
-        TestUtils.retry(() -> {
-            List<RuleType> rules = registryClient.listGlobalRules();
+        retryOp((rc) -> {
+            List<RuleType> rules = rc.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

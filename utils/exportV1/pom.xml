@@ -61,6 +61,52 @@
 
         <plugins>
             <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <version>1.1.1</version><!--$NO-MVN-MAN-VER$ -->
+                <executions>
+                    <execution>
+                        <id>make-index</id>
+                        <goals>
+                            <goal>jandex</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/apicurio-registry-utils-exportV1-2.1.4-SNAPSHOT-runner.jar"
+                                    tofile="${project.build.directory}/apicurio-registry-utils-exportV1-2.1.4-SNAPSHOT.jar" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -72,38 +118,12 @@
                         </goals>
                         <configuration>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
+                            <attach>true</attach>  <!-- we want to attach & deploy these to Maven -->
                             <descriptors>
                                 <descriptor>src/main/assembly/exportV1.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.jboss.jandex</groupId>
-                <artifactId>jandex-maven-plugin</artifactId>
-                <version>1.1.1</version><!--$NO-MVN-MAN-VER$-->
-                <executions>
-                  <execution>
-                    <id>make-index</id>
-                    <goals>
-                      <goal>jandex</goal>
-                    </goals>
-                  </execution>
-                </executions>
-            </plugin>
-            
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

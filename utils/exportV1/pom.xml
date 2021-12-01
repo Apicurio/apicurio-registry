@@ -55,6 +55,10 @@
             <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
         
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client</artifactId>
+        </dependency>
     </dependencies>
     
     <build>

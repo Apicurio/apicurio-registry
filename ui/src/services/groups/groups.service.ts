@@ -159,7 +159,7 @@ export class GroupsService extends BaseService {
         const options: any = this.options({
             "Accept": "*"
         });
-        options.maxContentLength = "‭5242880‬"; // TODO 5MB hard-coded, make this configurable?
+        options.maxContentLength = "5242880"; // TODO 5MB hard-coded, make this configurable?
         options.responseType = "text";
         options.transformResponse = (data: any) => data;
         return this.httpGet<string>(endpoint, options);

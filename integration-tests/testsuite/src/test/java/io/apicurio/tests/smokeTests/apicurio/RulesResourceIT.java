@@ -62,8 +62,8 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         TestUtils.retry(() -> registryClient.createGlobalRule(rule));
 
         // Check the rule was created.
-        TestUtils.retry(() -> {
-            Rule ruleConfig = registryClient.getGlobalRuleConfig(RuleType.VALIDITY);
+        retryOp((rc) -> {
+            Rule ruleConfig = rc.getGlobalRuleConfig(RuleType.VALIDITY);
             assertNotNull(ruleConfig);
             assertEquals("SYNTAX_ONLY", ruleConfig.getConfig());
         });
@@ -72,16 +72,16 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         registryClient.deleteAllGlobalRules();
 
         // No rules listed now
-        TestUtils.retry(() -> {
-            List<RuleType> rules = registryClient.listGlobalRules();
+        retryOp((rc) -> {
+            List<RuleType> rules = rc.listGlobalRules();
             assertEquals(0, rules.size());
         });
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> registryClient.getGlobalRuleConfig(RuleType.COMPATIBILITY), errorCodeExtractor);
+        retryAssertClientError(RuleNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getGlobalRuleConfig(RuleType.COMPATIBILITY), errorCodeExtractor);
 
         // Should be null/error (deleted the VALIDITY rule)
-        TestUtils.assertClientError(RuleNotFoundException.class.getSimpleName(), 404, () -> registryClient.getGlobalRuleConfig(RuleType.VALIDITY), errorCodeExtractor);
+        retryAssertClientError(RuleNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getGlobalRuleConfig(RuleType.VALIDITY), errorCodeExtractor);
     }
 
     @Test
@@ -114,8 +114,8 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactData);
         LOGGER.info("Artifact with Id:{} was updated:{}", artifactId, metaData.toString());
 
-        TestUtils.retry(() -> {
-            List<String> artifactVersions = listArtifactVersions(groupId, artifactId);
+        retryOp((rc) -> {
+            List<String> artifactVersions = listArtifactVersions(rc, groupId, artifactId);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
             assertThat(artifactVersions, hasItems("1", "2"));
         });
@@ -164,12 +164,12 @@ class RulesResourceIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId1, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId1, metaData.toString());
 
-        TestUtils.retry(() -> {
-            List<String> artifactVersions = listArtifactVersions(groupId, artifactId1);
+        retryOp((rc) -> {
+            List<String> artifactVersions = listArtifactVersions(rc, groupId, artifactId1);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId1, artifactVersions.toString());
             assertThat(artifactVersions, hasItems("1", "2"));
 
-            artifactVersions = listArtifactVersions(groupId, artifactId2);
+            artifactVersions = listArtifactVersions(rc, groupId, artifactId2);
             LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId2, artifactVersions.toString());
             assertThat(artifactVersions, hasItems("1", "2"));
         });
@@ -195,13 +195,13 @@ class RulesResourceIT extends ApicurioV2BaseIT {
 
         registryClient.deleteArtifact(groupId, artifactId1);
 
-        TestUtils.retry(() -> {
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(groupId, artifactId1), true, errorCodeExtractor);
+        retryOp((rc) -> {
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getArtifactMetaData(groupId, artifactId1), errorCodeExtractor);
 
-            assertThat(registryClient.listArtifactsInGroup(groupId).getCount(), is(0));
+            assertThat(rc.listArtifactsInGroup(groupId).getCount(), is(0));
 
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(groupId, artifactId1), errorCodeExtractor);
-            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(groupId, artifactId1, RuleType.VALIDITY), errorCodeExtractor);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.listArtifactRules(groupId, artifactId1), errorCodeExtractor);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getArtifactRuleConfig(groupId, artifactId1, RuleType.VALIDITY), errorCodeExtractor);
         });
     }
 
@@ -209,8 +209,8 @@ class RulesResourceIT extends ApicurioV2BaseIT {
     void clearRules() throws Exception {
         LOGGER.info("Removing all global rules");
         registryClient.deleteAllGlobalRules();
-        TestUtils.retry(() -> {
-            List<RuleType> rules = registryClient.listGlobalRules();
+        retryOp((rc) -> {
+            List<RuleType> rules = rc.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

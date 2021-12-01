@@ -79,7 +79,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.createGlobalRule(rule);
 
         // Make sure we have rule
-        TestUtils.retry(() -> registryClient.getGlobalRuleConfig(rule.getType()));
+        retryOp((rc) -> rc.getGlobalRuleConfig(rule.getType()));
 
         String groupId = TestUtils.generateArtifactId();
 
@@ -108,14 +108,14 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         ArtifactMetaData amd2 = metaData;
-        TestUtils.retry(() -> registryClient.getContentByGlobalId(amd2.getGlobalId()));
+        retryOp((rc) -> rc.getContentByGlobalId(amd2.getGlobalId()));
 
         latest = registryClient.getLatestArtifact(groupId, artifactId);
         response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
-        List<String> apicurioVersions = listArtifactVersions(groupId, artifactId);
+        List<String> apicurioVersions = listArtifactVersions(registryClient, groupId, artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
@@ -150,7 +150,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.deleteArtifactsInGroup(groupId);
 
         for (ArtifactMetaData artifact : artifacts) {
-            assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(artifact.getGroupId(), artifact.getId()), true, errorCodeExtractor);
+            retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(artifact.getGroupId(), artifact.getId()), errorCodeExtractor);
         }
     }
 
@@ -185,7 +185,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        List<String> artifactVersions = listArtifactVersions(groupId, artifactId);
+        List<String> artifactVersions = listArtifactVersions(registryClient, groupId, artifactId);
 
         LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
         assertThat(artifactVersions, hasItems("1", "2"));
@@ -221,10 +221,10 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.updateArtifactState(groupId, artifactId, data);
 
         // Verify (expect 404)
-        TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+        retryOp((rc) -> {
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(groupId, artifactId), true, errorCodeExtractor);
+            assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(groupId, artifactId), errorCodeExtractor);
         });
 
         // Re-enable the artifact
@@ -232,8 +232,8 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.updateArtifactState(groupId, artifactId, data);
 
         // Verify
-        TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+        retryOp((rc) -> {
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertNotNull(registryClient.getLatestArtifact(groupId, artifactId));
@@ -264,19 +264,19 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         registryClient.updateArtifactVersionState(groupId, artifactId, String.valueOf(v3MD.getVersion()), data);
 
         // Verify artifact
-        TestUtils.retry(() -> {
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+        retryOp((rc) -> {
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
             assertEquals("3", actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
+            VersionMetaData actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
             assertEquals(ArtifactState.DISABLED, actualVMD.getState());
         });
 
@@ -284,20 +284,20 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         data.setState(ArtifactState.ENABLED);
         registryClient.updateArtifactVersionState(groupId, artifactId, String.valueOf(v3MD.getVersion()), data);
 
-        TestUtils.retry(() -> {
+        retryOp((rc) -> {
             // Verify artifact (now v3)
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
             assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
+            VersionMetaData actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -312,9 +312,9 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         ArtifactMetaData metaData = createArtifact(groupId, artifactId, ArtifactType.AVRO, IoUtil.toStream(artifactData));
         LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
 
-        TestUtils.retry(() -> {
+        retryOp((rc) -> {
             // Verify
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
         });
@@ -324,9 +324,9 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         data.setState(ArtifactState.DEPRECATED);
         registryClient.updateArtifactState(groupId, artifactId, data);
 
-        TestUtils.retry(() -> {
+        retryOp((rc) -> {
             // Verify (expect 404)
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(metaData.getGlobalId(), actualMD.getGlobalId());
             assertEquals(ArtifactState.DEPRECATED, actualMD.getState());
         });
@@ -355,19 +355,19 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         data.setState(ArtifactState.DEPRECATED);
         registryClient.updateArtifactVersionState(groupId, artifactId, String.valueOf(v2MD.getVersion()), data);
 
-        TestUtils.retry(() -> {
+        retryOp((rc) -> {
             // Verify artifact
-            ArtifactMetaData actualMD = registryClient.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
             assertEquals(ArtifactState.ENABLED, actualMD.getState());
 
             // Verify v1
-            VersionMetaData actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
+            VersionMetaData actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v2MD.getVersion()));
             assertEquals(ArtifactState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = registryClient.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
+            actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v3MD.getVersion()));
             assertEquals(ArtifactState.ENABLED, actualVMD.getState());
         });
     }
@@ -407,7 +407,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
-        TestUtils.retry(() -> registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
+        retryOp((rc) -> rc.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
 
         registryClient.listArtifactVersions(groupId, artifactId, 0, 10);
 
@@ -429,11 +429,11 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         ArtifactUtils.createArtifact(groupId, artifactId, content, 200);
 
-        TestUtils.retry(() -> registryClient.getArtifactMetaData(groupId,artifactId));
+        retryOp((rc) -> rc.getArtifactMetaData(groupId,artifactId));
 
         registryClient.getArtifactMetaData(groupId, artifactId);
 
-        TestUtils.retry(() -> registryClient.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
+        retryOp((rc) -> rc.getArtifactVersionMetaDataByContent(groupId, artifactId, false, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
 
         registryClient.listArtifactVersions(groupId, artifactId, 0, 100);
 
@@ -470,8 +470,8 @@ class ArtifactsIT extends ApicurioV2BaseIT {
     @AfterEach
     void deleteRules() throws Exception {
         registryClient.deleteAllGlobalRules();
-        TestUtils.retry(() -> {
-            List<RuleType> rules = registryClient.listGlobalRules();
+        retryOp((rc) -> {
+            List<RuleType> rules = rc.listGlobalRules();
             assertEquals(0, rules.size(), "All global rules not deleted");
         });
     }

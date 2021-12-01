@@ -34,9 +34,11 @@ import org.slf4j.LoggerFactory;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.storage.RegistryTenantStorage;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
+import io.quarkus.arc.Arc;
 import io.quarkus.runtime.Startup;
 
 /**
@@ -81,9 +83,19 @@ public class UsageMetrics {
         nextExpiration = Instant.now().plus(Duration.ofSeconds(stagger));
 
         //tenants count by status
-        for (var entry : getTenantsCountByStatus().entrySet()) {
-            metrics.gauge(MetricsConstants.USAGE_TENANTS, Tags.of(MetricsConstants.TAG_USAGE_TENANTS_STATUS, entry.getKey()), DUMMY,
-                    x -> getTenantsCountByStatus().get(entry.getKey()));
+        for (TenantStatusValue status : TenantStatusValue.values()) {
+            Gauge.builder(MetricsConstants.USAGE_TENANTS, () -> {
+                Arc.initialize();
+                var ctx = Arc.container().requestContext();
+                ctx.activate();
+                try {
+                    return getTenantsCountByStatus().get(status.value());
+                } finally {
+                    ctx.deactivate();
+                }
+            })
+            .tags(Tags.of(MetricsConstants.TAG_USAGE_TENANTS_STATUS, status.value()))
+            .register(metrics);
         }
 
         //time tenants are in TO_BE_DELETED status

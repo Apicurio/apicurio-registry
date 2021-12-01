@@ -70,8 +70,8 @@ class MetadataIT extends ApicurioV2BaseIT {
 
         registryClient.updateArtifactMetaData(groupId, artifactId, emd);
 
-        TestUtils.retry(() -> {
-            ArtifactMetaData amd = registryClient.getArtifactMetaData(groupId, artifactId);
+        retryOp((rc) -> {
+            ArtifactMetaData amd = rc.getArtifactMetaData(groupId, artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getId(), is(artifactId));
@@ -98,7 +98,9 @@ class MetadataIT extends ApicurioV2BaseIT {
         metaData = updateArtifact(groupId, artifactId, artifactUpdateData);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        VersionMetaData versionMetaData = TestUtils.retry(() -> registryClient.getArtifactVersionMetaData(groupId, artifactId, "2"));
+        retryOp((rc) -> rc.getArtifactVersionMetaData(groupId, artifactId, "2"));
+
+        VersionMetaData versionMetaData = registryClient.getArtifactVersionMetaData(groupId, artifactId, "2");
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
@@ -112,8 +114,8 @@ class MetadataIT extends ApicurioV2BaseIT {
 
         registryClient.updateArtifactVersionMetaData(groupId, artifactId, "2", emd);
 
-        TestUtils.retry(() -> {
-            ArtifactMetaData artifactMetaData = registryClient.getArtifactMetaData(groupId, artifactId);
+        retryOp((rc) -> {
+            ArtifactMetaData artifactMetaData = rc.getArtifactMetaData(groupId, artifactId);
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
             assertThat(artifactMetaData.getVersion(), is("2"));
             assertThat(artifactMetaData.getType().value(), is("AVRO"));

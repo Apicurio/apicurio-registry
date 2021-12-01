@@ -221,7 +221,7 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
 
         assertThat(1, is(confluentService.getAllSubjects().size()));
 
-        TestUtils.retry(() -> registryClient.getContentById(contentId));
+        retryOp((rc) -> rc.getContentById(contentId));
 
         TestUtils.waitFor("artifact created", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
             try {
@@ -258,10 +258,11 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
             }
         });
 
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getLatestArtifact(null, subjectName), true, errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.listArtifactRules(null, subjectName), true, errorCodeExtractor);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactRuleConfig(null, subjectName, rules.get(0)), true, errorCodeExtractor);
-
+        retryOp((rc) -> {
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(null, subjectName), errorCodeExtractor);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.listArtifactRules(null, subjectName), errorCodeExtractor);
+            TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getArtifactRuleConfig(null, subjectName, rules.get(0)), errorCodeExtractor);
+        });
         //if rule was actually deleted creating same artifact again shouldn't fail
         createArtifactViaConfluentClient(schema, subjectName);
         assertThat(1, is(confluentService.getAllSubjects().size()));

@@ -55,8 +55,8 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     private LinkedList<RegistryClientHolder> targets;
 
     public class RegistryClientHolder {
-        RegistryClient client;
-        String host;
+        public RegistryClient client;
+        public String host;
     }
 
     /**

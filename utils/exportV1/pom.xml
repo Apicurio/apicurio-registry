@@ -95,8 +95,8 @@
                         <phase>package</phase>
                         <configuration>
                             <target>
-                                <copy file="${project.build.directory}/apicurio-registry-utils-exportV1-2.1.4-SNAPSHOT-runner.jar"
-                                    tofile="${project.build.directory}/apicurio-registry-utils-exportV1-2.1.4-SNAPSHOT.jar" />
+                                <copy file="${project.build.directory}/${project.artifactId}-${project.version}-runner.jar"
+                                    tofile="${project.build.directory}/${project.artifactId}-${project.version}.jar" />
                             </target>
                         </configuration>
                         <goals>

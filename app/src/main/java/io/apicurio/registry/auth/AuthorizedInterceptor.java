@@ -120,7 +120,7 @@ public class AuthorizedInterceptor {
         }
 
         // If Authenticated read access is enabled, and the operation is read, allow it.
-        if (authConfig.authenticatedReadAccessEnabled && annotation.level() == AuthorizedLevel.Read) {
+        if (authConfig.authenticatedReadAccessEnabled && (annotation.level() == AuthorizedLevel.Read) || annotation.level() == AuthorizedLevel.None) {
             return context.proceed();
         }
 

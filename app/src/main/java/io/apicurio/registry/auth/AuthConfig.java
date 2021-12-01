@@ -47,6 +47,9 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
     boolean anonymousReadAccessEnabled;
 
+    @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
+    boolean authenticatedReadAccessEnabled;
+
     @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
     String readOnlyRole;
 
@@ -85,6 +88,7 @@ public class AuthConfig {
         log.debug("===============================");
         log.debug("Auth Enabled: " + authenticationEnabled);
         log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
+        log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
         log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
         if (roleBasedAuthorizationEnabled) {
             log.debug("   RBAC Roles: " + readOnlyRole + ", " + developerRole + ", " + adminRole);

@@ -88,10 +88,10 @@ public class AuthorizedInterceptor {
 
         log.trace("Authentication enabled, protected resource: " + context.getMethod());
 
+        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+
         // If the securityIdentity is not set (or is anonymous)...
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-
             // Anonymous users are allowed to perform "None" operations.
             if (annotation.level() == AuthorizedLevel.None) {
                 log.trace("Anonymous user is being granted access to unprotected operation.");
@@ -110,12 +110,17 @@ public class AuthorizedInterceptor {
             throw new UnauthorizedException("User is not authenticated.");
         }
 
-        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
+        log.trace("principalId:" + securityIdentity.getPrincipal().getName());
 
         // If the user is an admin (via the admin-override check) then there's no need to
         // check rbac or obac.
         if (adminOverride.isAdmin()) {
             log.trace("Admin override successful.");
+            return context.proceed();
+        }
+
+        // If Authenticated read access is enabled, and the operation is read, allow it.
+        if (authConfig.authenticatedReadAccessEnabled && (annotation.level() == AuthorizedLevel.Read) || annotation.level() == AuthorizedLevel.None) {
             return context.proceed();
         }
 

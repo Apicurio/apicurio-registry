@@ -1,8 +1,10 @@
 // Metadata created by nebel
 
-[id="registry-rules"]
+[id="registry-rules_{context}"]
 
 = Govern registry content using rules
+
+[role="_abstract"]
 To govern the evolution of registry content, you can configure optional rules for artifact content added to the registry. All configured global rules or artifact rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules.
 
 The goal of these rules is to prevent invalid content from being added to the registry. For example, content can be invalid for the following reasons:
@@ -11,10 +13,10 @@ The goal of these rules is to prevent invalid content from being added to the re
 * Valid syntax, but semantics violate a specification
 * Incompatibility, when new content includes breaking changes relative to the current artifact version
 
-You can add these optional content rules using the {registry} web console, REST API commands, or a Java client application.
+You can enable optional content rules using the {registry} web console, REST API commands, or a Java client application.
 
-[id="registry-rules-apply"]
-= When rules are applied
+[id="registry-rules-apply_{context}"]
+== When rules are applied
 Rules are applied only when content is added to the registry. This includes the following REST operations:
 
 * Adding an artifact
@@ -25,28 +27,32 @@ If a rule is violated, {registry} returns an HTTP error. The response body inclu
 
 NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied, if any.
 
-[id="registry-rules-work"]
-= How rules work
-Each rule has a name and optional configuration information. The registry storage maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and a set of configuration properties, which are specific to the rule implementation.
+[id="registry-rules-work_{context}"]
+== How rules work
+Each rule has a name and configuration information. The registry maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
 
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
+ifdef::apicurio-registry,rh-service-registry[]
+[role="_additional-resources"]
 .Additional resources
 For more details, see {registry-reference}.
+endif::[]
 
-[id="registry-rules-config"]
-= Content rule configuration
+ifdef::apicurio-registry,rh-service-registry[]
+[id="registry-rules-config_{context}"]
+== Content rule configuration
 You can configure rules individually for each artifact, as well as globally. {registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
 
 [discrete]
-== Configure artifact rules
+=== Configure artifact rules
 You can configure artifact rules using the {registry} web console or REST API. For details, see the following:
 
 * {managing-registry-artifacts-ui}
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 [discrete]
-== Configure global rules
+=== Configure global rules
 You can configure global rules in several ways:
 
 * Use the `/rules` operations in the REST API
@@ -96,3 +102,5 @@ a| `NONE`
 
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
+endif::[]

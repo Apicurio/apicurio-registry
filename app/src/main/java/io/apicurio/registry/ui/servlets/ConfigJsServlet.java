@@ -33,6 +33,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.ui.beans.ConfigJs;
 import io.apicurio.registry.ui.config.UiConfigProperties;
 import io.apicurio.registry.utils.StringUtil;
@@ -48,9 +49,12 @@ public class ConfigJsServlet extends HttpServlet {
 
     @Inject
     UiConfigProperties uiConfig;
-    
+
     @Inject
     SecurityIdentity identity;
+
+    @Inject
+    AuthConfig authConfig;
 
     /**
      * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
@@ -69,17 +73,16 @@ public class ConfigJsServlet extends HttpServlet {
             g.useDefaultPrettyPrinter();
 
             ConfigJs config = new ConfigJs();
-            config.mode = "prod";
 
             config.artifacts.url = this.generateApiUrl(request);
-            
-            config.ui.url = this.generateUiUrl(request);
-            config.ui.contextPath = "/ui";
-            
+
+            config.ui.contextPath = uiConfig.getUiContextPath();
+
             config.features.readOnly = uiConfig.isFeatureReadOnly();
-            
+            config.features.breadcrumbs = true;
+
             configureAuth(config);
-            
+
             g.writeObject(config);
 
             g.flush();
@@ -97,6 +100,9 @@ public class ConfigJsServlet extends HttpServlet {
         if (uiConfig.isKeycloakAuthEnabled()) {
             config.auth.type = "keycloakjs";
             config.auth.options = uiConfig.getKeycloakProperties();
+            config.auth.rbacEnabled = authConfig.isRbacEnabled();
+            config.auth.obacEnabled = authConfig.isObacEnabled();
+            config.features.roleManagement = authConfig.isApplicationRbacEnabled();
         } else {
             config.auth.type = "none";
         }
@@ -107,46 +113,20 @@ public class ConfigJsServlet extends HttpServlet {
      * @param request
      */
     private String generateApiUrl(HttpServletRequest request) {
+        String apiRelativePath = "/apis/registry";
         try {
             String apiUrl = uiConfig.getApiUrl();
             if (!"_".equals(apiUrl) && !StringUtil.isEmpty(apiUrl)) {
                 return apiUrl;
             }
-            
-            String url = resolveUrlFromXForwarded(request, "/api");
-            if (url != null) {
-                return url;
-            }
-            
-            url = request.getRequestURL().toString();
-            url = new URI(url).resolve("/api").toString();
-            if (url.startsWith("http:") && request.isSecure()) {
-                url = url.replaceFirst("http", "https");
-            }
-            return url;
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    /**
-     * Generates a URL that the caller can use to access the UI.
-     * @param request
-     */
-    private String generateUiUrl(HttpServletRequest request) {
-        try {
-            String uiUrl = uiConfig.getUiUrl();
-            if (!"_".equals(uiUrl) && !StringUtil.isEmpty(uiUrl)) {
-                return uiUrl;
-            }
-            
-            String url = resolveUrlFromXForwarded(request, "/ui");
+            String url = resolveUrlFromXForwarded(request, apiRelativePath);
             if (url != null) {
                 return url;
             }
 
             url = request.getRequestURL().toString();
-            url = new URI(url).resolve("/ui").toString();
+            url = new URI(url).resolve(apiRelativePath).toString();
             if (url.startsWith("http:") && request.isSecure()) {
                 url = url.replaceFirst("http", "https");
             }

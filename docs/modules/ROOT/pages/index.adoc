@@ -4,18 +4,17 @@ include::partial$shared/attributes.adoc[]
 
 Welcome to the {registry} version {registry-version} documentation. Navigate using the left menu.
 
-{registry} stores and retrieves API designs and event schemas, and gives you control of their evolution.
+{registry} is a schema registry and an API registry, which stores and retrieves event schemas and API designs, and gives you control of their evolution.
 
 
 == About this documentation
-This introduces {registry}, explains how to install with your chosen storage option, and how to manage event schemas and API designs using the {registry} web console, REST API, Maven plug-in, or Java client. 
+This document introduces {registry}, explains how to install with your chosen storage option, and how to manage event schemas and API designs using the {registry} web console, REST API, Maven plug-in, or Java client. 
 
-This also explains how to enforce schemas using Kafka client serializers and deserializers in your consumer and producer applications. It also describes {registry} content types and rule types, and OpenShift environment variables for health checks.
+This document also explains how to enforce schemas using Kafka client serializers and deserializers in your consumer and producer applications. It also describes {registry} content types and rule types, and OpenShift environment variables for health checks.
 
 == Getting help with {registry} 
 
-See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and https://github.com/Apicurio/apicurio-registry-operator[{registry} Operator] projects on GitHub.
-Any contributions, suggestions, and issue reports are welcome.
+See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and https://github.com/Apicurio/apicurio-registry-operator[{registry} Operator] projects on GitHub. Any contributions, suggestions, and issue reports are welcome.
 
 ifdef::apicurio-registry[]
 link:https://github.com/Apicurio/apicurio-registry/issues/new[Create an issue] on GitHub if you find any problems.

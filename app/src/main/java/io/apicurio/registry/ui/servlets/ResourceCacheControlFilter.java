@@ -70,9 +70,18 @@ public class ResourceCacheControlFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         httpResponse.setDateHeader("Date", now.getTime()); //$NON-NLS-1$
 
-        // Don't cache non-file paths.  Also don't cache version.js or config.js files - those are dynamically generated.
-        if (requestURI == null || !requestURI.contains(".") || requestURI.contains("version.js") || 
-                requestURI.contains("config.js")) {
+        boolean disableCaching = false;
+        if (requestURI == null) {
+            disableCaching = true;
+        } else if (requestURI.contains("version.js")) {
+            disableCaching = true;
+        } else if (requestURI.contains("config.js")) {
+            disableCaching = true;
+        } else if (requestURI.contains("/apis/")) {
+            disableCaching = true;
+        }
+        
+        if (disableCaching) {
             disableHttpCaching(httpResponse);
         } else {
             // Cache most files for one year

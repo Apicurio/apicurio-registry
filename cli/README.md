@@ -1,22 +1,34 @@
-Registry uses [Picocli](https://picocli.info/) to implement its CLI commands.
+# Apicurio Registry CLI tool
 
-At build time we create an uber-jar, holding all required dependencies.
-This uber-jar acts as a sort of executable.
+This is a WIP, not all client methods are yet supported or some existing methods may be modified. Feel free to contribute!
 
-The Registry CLI can be used in two different ways:
-* as a single command [1]
-* as an interactive shell [2]
+This is a cli tool for Apicurio Registry, it uses [Picocli](https://picocli.info/) and Quarkus.
 
-To ease the usage we suggest adding aliases:
-* for [1] use this: `alias rscli='java -cp "<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar" io.apicurio.registry.cli.EntryCommand'`
-* for [2] use this: `alias rsmain='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar'`
-* or simply start shell mode with: `java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-2.0.0-SNAPSHOT-jar-with-dependencies.jar`
+Picocli is the framework used to implement the cli, commands, arguments,...
+Quarkus is used for packaging, allowing to easily compile the tool to a native executable.
+
+The Registry CLI only can be used as a single command.
+
+### Compile the tool to a jar.
+```
+mvn package
+```
+### Compile the tool to a native executable.
+Use this command if you don't have GraalVM installed in your machine
+```
+mvn package -Pnative -Dquarkus.native.container-build=true
+```
+If you have GraalVM installed:
+```
+mvn package -Pnative
+```
+
+### To ease the usage we suggest adding aliases:
+* if compiled to a jar: `alias rscli='java -jar <PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-*-runner.jar'`
+* if compiled to a native executable: `alias rscli=<PATH_TO_REGISTRY_PROJECT>/cli/target/apicurio-registry-cli-*-runner`
 
 During the build you can also find completion script in target/ directory: `rscli_completion.sh`.
 You can `source` this script and get tab completion ootb.
 
-Shell mode also comes with full tab completion and suggestion support.
-
 Once you have things up-n-running, simply ask CLI for `help`. It will print out the usage, etc ;-) 
 
-This is a wip, not all client methods are yet supported. Feel free to contribute!

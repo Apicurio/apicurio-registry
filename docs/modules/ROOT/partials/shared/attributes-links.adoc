@@ -140,41 +140,47 @@
 
 // Camel K titles
 
-:LinkCamelKDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/deploying_camel_k_integrations_on_openshift/index
+:LinkCamelKDeploy: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/deploying_camel_k_integrations_on_openshift/index
 :NameCamelKDeploy: Deploying Camel K Integrations on OpenShift
 
-:LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/getting_started_with_camel_kafka_connector/index
+:LinkCamelKafkaConnectorGetStart: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_camel_kafka_connector/index
 :NameCamelKafkaConnectorGetStart: Getting Started with Camel Kafka Connector
+
+// Service Registry titles
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/installing_and_deploying_service_registry_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying Service Registry on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/service_registry_user_guide/index
+:NameServiceRegistryUser: Service Registry User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/migrating_service_registry_deployments/index
+:NameServiceRegistryMigration: Migrating Service Registry deployments
 
 // AMQ Streams titles
 
-////
-:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_openshift/index
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html-single/using_amq_streams_on_openshift/index
 :NameStreamsOpenShift: Using AMQ Streams on OpenShift
 
-:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq/{AMQVersion}/html-single/using_amq_streams_on_rhel/index
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html-single/using_amq_streams_on_rhel/index
 :NameStreamsRhel: Using AMQ Streams on RHEL
-////
-
-
 
 // Debezium titles
 
-:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_openshift/
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/installing_change_data_capture_on_openshift/
 :NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
 
-:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/installing_change_data_capture_on_rhel/
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/installing_change_data_capture_on_rhel/
 :NameDebeziumInstallRHEL: Installing Debezium on RHEL
 
-:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/getting_started_with_change_data_capture/index
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/getting_started_with_change_data_capture/index
 :NameDebeziumGettingStarted: Getting Started with Debezium
 
-:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2020-Q3/html-single/debezium_user_guide/index
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/2021.q1/html-single/debezium_user_guide/index
 :NameDebeziumUserGuide: Debezium User Guide
 
-// Debezium link attributes that are used upstream.  Add attributes as needed.
-
 ////
+// Debezium link attributes that are used upstream.  Add attributes as needed.
 :link-avro-serialization: {LinkCDCUserGuide}
 :link-cloud-events: {LinkCDCUserGuide}
 :link-db2-connector: {LinkCDCUserGuide}
@@ -192,8 +198,6 @@
 :link-sqlserver-connector: {LinkCDCUserGuide}
 :link-topic-routing: {LinkCDCUserGuide}
 :link-tutorial: {LinkCDCGettingStarted}
-////
-
 
 // Data Virtualization titles
 
@@ -205,3 +209,4 @@
 
 :LinkDVDevelopingClients: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/developing_clients_for_data_virtualization/index
 :NameDVDevelopingClients: Developing Clients for Data Virtualization
+////

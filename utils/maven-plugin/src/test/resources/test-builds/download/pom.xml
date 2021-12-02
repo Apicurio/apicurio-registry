@@ -1,0 +1,56 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-test-maven-plugin</artifactId>
+    <packaging>pom</packaging>
+    <version>2.0.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+        <timestamp>${maven.build.timestamp}</timestamp>
+
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <apicurio.version>2.0.0-SNAPSHOT</apicurio.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${apicurio.version}</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>download</goal>
+                        </goals>
+                        <configuration>
+                            <registryUrl>http://localhost:8080/api/v2</registryUrl>
+                            <artifacts>
+                                <artifact>
+                                    <groupId>TestGroup</groupId>
+                                    <artifactId>FullNameRecord</artifactId>
+                                    <file>${project.build.directory}/classes/record.avsc</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                                <artifact>
+                                    <groupId>TestGroup</groupId>
+                                    <artifactId>ExampleAPI</artifactId>
+                                    <version>1</version>
+                                    <file>${project.build.directory}/classes/example.graphql</file>
+                                    <overwrite>true</overwrite>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

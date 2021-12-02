@@ -2,7 +2,6 @@ name: Verify Build Workflow
 on:
   push:
     paths-ignore:
-      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -10,107 +9,153 @@ on:
     branches: [master, '[1-9].[0-9].x']
   pull_request:
     paths-ignore:
-      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [master, 2.0.x]
 
 jobs:
   build-verify:
     name: Verify Build
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
-      - name: Checkout Code with Ref '${{ github.ref }}' 
+      - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Cache Dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ runner.os }}-verify-
 
-      - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -Pkafkasql -pl !tests
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Build and Test All Variants
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build The Snapshot Docker Images
+      - name: Build The Images for Docker.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/build-snapshot-images-for-docker.sh ${{ github.ref }}
+        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
 
-      - name: List All The Tagged Docker Images
+      - name: List All The Images
         run: docker images
 
-      - name: Push The Snapshot Docker Images To Dockerhub
+      - name: Push The Images To Docker.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/push-snapshot-images-to-docker.sh ${{ github.ref }}
+        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} docker.io snapshot
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      - name: Tag Snapshot Docker Images for Quay.io
+      - name: Build The Images for Quay.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/tag-snapshot-images-for-quay.sh ${{ github.ref }}
-          
-      - name: List All The Tagged Docker Images
-        if: github.event_name == 'push'
+        run: ./.github/scripts/build-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
+
+      - name: List All The Images
         run: docker images
 
-      - name: Push The Sanpshot Docker Images to Quay.io
+      - name: Push The Images To Quay.io
         if: github.event_name == 'push'
-        run: ./.github/scripts/push-snapshot-images-to-quay.sh ${{ github.ref }}   
-          
-
-  kubernetes-tests:
-    name: Kubernetes Tests
+        run: ./.github/scripts/push-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
+  build-native-images:
+    name: Build native images
     runs-on: ubuntu-18.04
-    needs: ["build-verify"]
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
-      - name: Checkout Code
+      - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK 1.8
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Cache Dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ runner.os }}-verify-
 
-      - name: Build Converters Distro (used in testsuite)
-        run: mvn install -pl distro/connect-converter -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
-      - name: Kubernetes Tests
-        run: ./.github/scripts/test_apicurio_kubernetes.sh
+      - name: Build All Variants
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+
+      - name: Build Native executables
+        env:
+          SKIP_TESTS: "true"
+        run: |
+          make build-sql-native build-tenant-manager-native
+
+      - name: Build integration-tests-common
+        run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
+      - name: Run Integration Tests - sql
+        run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+      - name: Run Integration Tests - multitenancy
+        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
+      - name: Run Integration Tests - sql migration
+        run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+      - name: Run Integration Tests - sql auth
+        run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
+      - name: Run UI tests
+        run: ./mvnw verify -Pintegration-tests -Pui -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
+      - name: Run Legacy Tests - sql
+        run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 
       - name: Collect logs
         if: failure()
-        run: ./.github/scripts/collect_kubernetes_logs.sh
-
+        run: ./.github/scripts/collect_logs.sh
       - name: Upload tests logs artifacts
         if: failure()
         uses: actions/upload-artifact@v1.0.0
         with:
           name: tests-logs
           path: artifacts
+
+      - name: Build Native Images
+        env:
+          IMAGE_REPO: quay.io
+          IMAGE_TAG: latest-snapshot
+        run: |
+          make build-sql-native-image build-tenant-manager-native-image
+
+      - name: Login to Quay.io Registry
+        if: github.event_name == 'push'
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Push Native Images
+        env:
+          IMAGE_REPO: quay.io
+          IMAGE_TAG: latest-snapshot
+        if: github.event_name == 'push'
+        run: |
+          make push-sql-native-image push-tenant-manager-native-image
+
+      - name: List All The Images
+        run: docker images

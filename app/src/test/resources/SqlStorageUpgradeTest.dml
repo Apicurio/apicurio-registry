@@ -1,0 +1,8 @@
+
+INSERT INTO content (contentId, canonicalHash, contentHash, content) VALUES (101, '678910', '12345', RAWTOHEX('{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://example.com/product.schema.json","title":"Product","description":"A product in the catalog","type":"object"}'));
+
+INSERT INTO artifacts (tenantId, groupId, artifactId, type, createdBy, createdOn, latest) VALUES ('_', 'TestGroup', 'TestArtifact', 'JSON', 'test_user', {ts '2020-09-17 18:47:52.69'}, NULL);
+
+INSERT INTO versions (globalId, tenantId, groupId, artifactId, version, versionId, state, createdOn, contentId) VALUES (5001, '_', 'TestGroup', 'TestArtifact', '1.0', 1, 'ENABLED', {ts '2020-09-17 18:47:52.69'}, 101);
+
+UPDATE artifacts SET latest = 5001 WHERE tenantId = '_' AND groupId = 'TestGroup' AND artifactId = 'TestArtifact';

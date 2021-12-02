@@ -2,13 +2,12 @@
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-kafka-streams-operatorhub"]
+[id="installing-kafka-streams-operatorhub_{context}"]
 
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-understanding-operatorhub.html[OpenShift documentation].
-
 
 .Prerequisites
 
@@ -21,9 +20,9 @@ endif::[]
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
+. Change to the OpenShift project in which you want to install {kafka-streams}. For example, from the *Project* drop-down, select `my-project`. 
 
-. In the left navigation menu, click *Operators* > *OperatorHub*.
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
 ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{kafka-streams}* Operator.
 endif::[]
@@ -34,13 +33,15 @@ endif::[]
 
 . Select your subscription settings, for example:
 ifdef::apicurio-registry[]
-** *Update Channel* > *stable*
+** *Update Channel* and then *stable*
 endif::[]
 ifdef::rh-service-registry[]
-** *Update Channel* > *amq-streams-1.5.x*
+** *Update Channel* and then *amq-streams-{registry-streams-version}.x*
 endif::[]
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
-** *Approval Strategy* > *Manual*
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster* > *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
 
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 

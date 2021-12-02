@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.Disabled;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.events.dto.RegistryEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -26,11 +28,12 @@ import io.vertx.core.http.HttpServerOptions;
 
 @QuarkusTest
 @TestProfile(HttpEventsProfile.class)
+@Disabled
 public class HttpEventsTest extends AbstractResourceTestBase {
 
     @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    @Timeout(value = 65, unit = TimeUnit.SECONDS)
     public void testHttpEvents() throws TimeoutException {
 
         HttpServer server = null;
@@ -61,7 +64,7 @@ public class HttpEventsTest extends AbstractResourceTestBase {
                 }
             });
 
-            TestUtils.waitFor("Events to be produced", 200, 28 * 1000, () -> {
+            TestUtils.waitFor("Events to be produced", 200, 60 * 1000, () -> {
                 return events.size() == 2;
             });
 

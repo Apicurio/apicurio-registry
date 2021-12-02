@@ -6,6 +6,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+@io.quarkus.runtime.annotations.RegisterForReflection
 public enum RuleType {
 
     VALIDITY("VALIDITY"),

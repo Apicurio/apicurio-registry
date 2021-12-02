@@ -20,11 +20,17 @@ import picocli.CommandLine;
 
 import java.util.logging.Level;
 
+import io.apicurio.registry.cli.admin.ExportCommand;
+import io.apicurio.registry.cli.admin.ImportCommand;
+import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
+
 /**
  * The registry cli entry point
  *
  * @author Ales Justin
  */
+@QuarkusMain
 @CommandLine.Command(
         name = "rscli",
         description = "Simple entry command",
@@ -41,14 +47,31 @@ import java.util.logging.Level;
                 DeleteCommand.class,
                 UpdateStateCommand.class,
                 UpdateMetadataCommand.class,
-                ListRulesCommand.class
+                ListRulesCommand.class,
+                ExportCommand.class,
+                ImportCommand.class
         }
 )
-class EntryCommand {
-    public static void main(String[] args) {
+public class EntryCommand implements Runnable, QuarkusApplication {
+
+    /**
+     * @see io.quarkus.runtime.QuarkusApplication#run(java.lang.String[])
+     */
+    @Override
+    public int run(String... args) throws Exception {
         CommandLine cmd = new CommandLine(new EntryCommand());
         cmd.registerConverter(Level.class, Level::parse);
         int exit = cmd.execute(args);
-        System.exit(exit);
+        return exit;
     }
+
+    /**
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run() {
+        CommandLine cmd = new CommandLine(new EntryCommand());
+        cmd.usage(System.out);
+    }
+
 }

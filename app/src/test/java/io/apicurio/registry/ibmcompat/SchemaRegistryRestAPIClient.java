@@ -94,9 +94,9 @@ class SchemaRegistryRestAPIClient {
         return post(schemaId, response);
     }
 
-    SchemaResponse get(String schemaId, String versionId) throws Exception {
+    SchemaResponse get(String schemaId, String version) throws Exception {
         Response response = getResponse(schemaVersionEndpoint.resolveTemplateFromEncoded("schemaid", schemaId)
-                                                             .resolveTemplate("versionnum", versionId)
+                                                             .resolveTemplate("versionnum", version)
                                                              .request(MediaType.APPLICATION_JSON_TYPE)
                                                              .accept(MediaType.APPLICATION_JSON));
 
@@ -105,7 +105,7 @@ class SchemaRegistryRestAPIClient {
             if (status == 200)
                 return response.readEntity(SchemaResponse.class);
             else
-                handleErrorResponse(response, schemaId, versionId);
+                handleErrorResponse(response, schemaId, version);
         } finally {
             response.close();
         }
@@ -132,7 +132,7 @@ class SchemaRegistryRestAPIClient {
 
     }
 
-    public void handleErrorResponse(Response response, String schemaId, String versionId)
+    public void handleErrorResponse(Response response, String schemaId, String version)
     throws Exception {
         int status = response.getStatus();
 
@@ -141,10 +141,10 @@ class SchemaRegistryRestAPIClient {
 
             if (jsonObject.message != null &&
                 (jsonObject.message.equals("Schema not found") || jsonObject.message.equals("Schema version not found"))) {
-                if (versionId == null) {
+                if (version == null) {
                     throw new Exception("Schema id: " + schemaId);
                 } else {
-                    throw new Exception("Schema id: " + schemaId + ", version id: " + versionId);
+                    throw new Exception("Schema id: " + schemaId + ", version id: " + version);
                 }
             }
         } else if (status == 401 || status == 403) {

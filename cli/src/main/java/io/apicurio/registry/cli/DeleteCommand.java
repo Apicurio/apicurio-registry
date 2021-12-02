@@ -25,7 +25,7 @@ import picocli.CommandLine;
 public class DeleteCommand extends ArtifactCommand {
     @Override
     public void run() {
-        getClient().deleteArtifact(artifactId);
+        getClient().deleteArtifact(groupId, artifactId);
         println("Artifact deleted: " + artifactId);
     }
 }

@@ -17,31 +17,34 @@
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
-import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import lombok.ToString;
 
 /**
  * @author eric.wittmann@gmail.com
  */
+@ToString
 public class ContentValue extends AbstractMessageValue {
-    
-    private ArtifactType artifactType;
+
+    private String canonicalHash;
+    @ToString.Exclude
     private ContentHandle content;
 
     /**
      * Creator method.
      * @param action
+     * @param contentId
      * @param canonicalHash
      * @param content
      */
-    public static final ContentValue create(ActionType action, ArtifactType artifactType, ContentHandle content) {
-        ContentValue key = new ContentValue();
-        key.setAction(action);
-        key.setArtifactType(artifactType);
-        key.setContent(content);
-        return key;
+    public static final ContentValue create(ActionType action, String canonicalHash, ContentHandle content) {
+        ContentValue value = new ContentValue();
+        value.setAction(action);
+        value.setCanonicalHash(canonicalHash);
+        value.setContent(content);
+        return value;
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.values.MessageValue#getType()
      */
@@ -66,17 +69,17 @@ public class ContentValue extends AbstractMessageValue {
     }
 
     /**
-     * @return the artifactType
+     * @return the canonicalHash
      */
-    public ArtifactType getArtifactType() {
-        return artifactType;
+    public String getCanonicalHash() {
+        return canonicalHash;
     }
 
     /**
-     * @param artifactType the artifactType to set
+     * @param canonicalHash the canonicalHash to set
      */
-    public void setArtifactType(ArtifactType artifactType) {
-        this.artifactType = artifactType;
+    public void setCanonicalHash(String canonicalHash) {
+        this.canonicalHash = canonicalHash;
     }
 
 }

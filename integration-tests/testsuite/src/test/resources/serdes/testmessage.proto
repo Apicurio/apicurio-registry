@@ -1,0 +1,49 @@
+
+syntax = "proto3";
+package io.apicurio.tests.protobuf;
+
+option java_multiple_files=true;
+
+import "google/protobuf/timestamp.proto";
+
+message ProtobufTestMessage {
+ Header header = 1;
+ double d1 = 2;
+ string s1 = 4;
+ int32 i1 = 7;
+ int64 bi1 = 12;
+ google.protobuf.Timestamp state_time = 22;
+ Point point = 30;
+}
+
+/*
+* This is the header for all
+*/
+
+message Header {
+ google.protobuf.Timestamp time = 1; 
+ string source = 2; 
+ string destination = 3; 
+ string uuid = 4; 
+ repeated string source_uuids = 5; 
+ string message_type_id  = 6; 
+ string raw_message = 7;
+}
+
+
+/* 
+*  This is the point message (longitude/latitude)
+*/
+
+message Point {
+ oneof longitude_oneof {
+    double longitude = 1; 
+ }
+ oneof latitude_oneof {
+     double latitude = 2; 
+ }
+ oneof altitude_oneof {
+     double altitude = 3; 
+ }       
+
+}

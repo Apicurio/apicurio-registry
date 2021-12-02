@@ -18,14 +18,19 @@ package io.apicurio.registry.ui.beans;
 
 import java.util.Map;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ConfigJsAuth {
-    
+
     public String type;
+    public Boolean rbacEnabled;
+    public Boolean obacEnabled;
     public Map<String, Object> options;
-    
+
     /**
      * Constructor.
      */

@@ -15,7 +15,7 @@
  */
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
@@ -24,6 +24,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class RulesPropertiesImpl implements RulesProperties {
+    @SuppressWarnings("unused")
     private final Properties properties;
     private final Map<RuleType, String> defaultGlobalRules;
 

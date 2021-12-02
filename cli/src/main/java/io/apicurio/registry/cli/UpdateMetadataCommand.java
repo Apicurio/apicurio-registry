@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.rest.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import picocli.CommandLine;
 
 /**
@@ -32,9 +32,9 @@ public class UpdateMetadataCommand<T> extends CUJsonCommand<EditableMetaData> {
     @Override
     Object execute(EditableMetaData json) {
         if (version != null) {
-            getClient().updateArtifactVersionMetaData(artifactId, version, json);
+            getClient().updateArtifactVersionMetaData(groupId, artifactId, version, json);
         } else {
-            getClient().updateArtifactMetaData(artifactId, json);
+            getClient().updateArtifactMetaData(groupId, artifactId, json);
         }
         return json;
     }

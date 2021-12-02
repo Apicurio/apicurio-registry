@@ -17,12 +17,12 @@
     <dependencies>
         <dependency>
           <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-utils-serde</artifactId>
+          <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
           <version>${version.apicurio}</version>
         </dependency>
         <dependency>
           <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-rest-client</artifactId>
+          <artifactId>apicurio-registry-client</artifactId>
           <version>${version.apicurio}</version>
         </dependency>
     </dependencies>

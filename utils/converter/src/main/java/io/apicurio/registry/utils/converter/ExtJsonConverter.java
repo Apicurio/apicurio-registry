@@ -19,12 +19,19 @@ package io.apicurio.registry.utils.converter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.client.RegistryRestClient;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.ParsedSchema;
+import io.apicurio.registry.serde.ParsedSchemaImpl;
+import io.apicurio.registry.serde.SchemaLookupResult;
+import io.apicurio.registry.serde.SchemaParser;
+import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
-import io.apicurio.registry.utils.serde.AbstractKafkaStrategyAwareSerDe;
-import io.apicurio.registry.utils.serde.SchemaCache;
+
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -32,7 +39,6 @@ import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.storage.Converter;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,19 +46,19 @@ import java.util.Objects;
 
 /**
  * @author Ales Justin
+ * @author Fabian Martinez
  */
-public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, ExtJsonConverter> implements Converter {
+public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final ObjectMapper mapper;
     private FormatStrategy formatStrategy;
 
-    private SchemaCache<JsonNode> cache;
 
     public ExtJsonConverter() {
         this(null);
     }
 
-    public ExtJsonConverter(RegistryRestClient client) {
+    public ExtJsonConverter(RegistryClient client) {
         super(client);
         this.jsonConverter = new JsonConverter();
         this.mapper = new ObjectMapper();
@@ -61,42 +67,39 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
 
     public ExtJsonConverter setFormatStrategy(FormatStrategy formatStrategy) {
         this.formatStrategy = Objects.requireNonNull(formatStrategy);
-        return self();
+        return this;
     }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+        super.configure(configs, isKey, this);
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
         jsonConverter.configure(wrapper, isKey);
     }
 
-    private synchronized SchemaCache<JsonNode> getCache() {
-        if (cache == null) {
-            cache = new SchemaCache<JsonNode>(getClient()) {
-                @Override
-                protected JsonNode toSchema(InputStream schemaData) {
-                    try {
-                        return mapper.readTree(schemaData);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }
-            };
-        }
-        return cache;
+    @Override
+    public byte[] fromConnectData(String topic, Schema schema, Object value) {
+        return fromConnectData(topic, null, schema, value);
     }
 
     @Override
-    public byte[] fromConnectData(String topic, Schema schema, Object value) {
-        String schemaString = jsonConverter.asJsonSchema(schema).toString();
-        String artifactId = getArtifactIdStrategy().artifactId(topic, isKey(), schemaString);
-        long globalId = getGlobalIdStrategy().findId(getClient(), artifactId, ArtifactType.KCONNECT, schemaString);
+    public byte[] fromConnectData(String topic, Headers headers, Schema schema, Object value) {
+        if (schema == null && value == null) {
+            return null;
+        }
+        JsonNode jsonSchema = jsonConverter.asJsonSchema(schema);
+        String schemaString = jsonSchema != null ? jsonSchema.toString() : null;
+        ParsedSchema<JsonNode> parsedSchema = new ParsedSchemaImpl<JsonNode>()
+                .setParsedSchema(jsonSchema)
+                .setRawSchema(IoUtil.toBytes(schemaString));
+
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(topic, headers, value, parsedSchema);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 
-        return formatStrategy.fromConnectData(globalId, payload);
+        return formatStrategy.fromConnectData(schemaLookupResult.getGlobalId(), payload);
+
     }
 
     @Override
@@ -104,12 +107,43 @@ public class ExtJsonConverter extends AbstractKafkaStrategyAwareSerDe<String, Ex
         FormatStrategy.IdPayload ip = formatStrategy.toConnectData(value);
 
         long globalId = ip.getGlobalId();
-        JsonNode schemaNode = getCache().getSchema(globalId);
-        Schema schema = jsonConverter.asConnectSchema(schemaNode);
+
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
+
+        Schema schema = jsonConverter.asConnectSchema(schemaLookupResult.getSchema());
 
         byte[] payload = ip.getPayload();
         SchemaAndValue sav = jsonConverter.toConnectData(topic, payload);
 
         return new SchemaAndValue(schema, sav.value());
     }
+
+    /**
+     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+     */
+    @Override
+    public ArtifactType artifactType() {
+        return ArtifactType.KCONNECT;
+    }
+
+    /**
+     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
+     */
+    @Override
+    public JsonNode parseSchema(byte[] rawSchema) {
+        try {
+            return mapper.readTree(rawSchema);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * @see java.lang.AutoCloseable#close()
+     */
+    @Override
+    public void close() throws Exception {
+        jsonConverter.close();
+    }
+
 }

@@ -16,26 +16,29 @@
 
 package io.apicurio.registry.ibmcompat;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ibmcompat.model.SchemaListItem;
 import io.apicurio.registry.ibmcompat.model.SchemaState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.restassured.common.mapper.TypeRef;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Optional;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 
 @QuarkusTest
+@TestProfile(IBMTestProfile.class)
 public class IBMCompatApiTest extends AbstractResourceTestBase {
 
     @Test
@@ -55,7 +58,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
-                .post("/ibmcompat/schemas")
+                .post("/ibmcompat/v1/schemas")
             .then()
                 .statusCode(201)
                 .body("name", equalTo(schemaName))
@@ -76,7 +79,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
-                .post("/ibmcompat/schemas")
+                .post("/ibmcompat/v1/schemas")
             .then()
                 .statusCode(409);
     }
@@ -98,7 +101,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .queryParam("verify", "true")
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + schemaName + "\",\"version\":\"" + versionName + "\",\"definition\":\"" + schemaDefinition + "\"}")
-                .post("/ibmcompat/schemas")
+                .post("/ibmcompat/v1/schemas")
             .then()
                 .statusCode(200)
                 .body(equalTo("\"" + schemaDefinition + "\""));
@@ -119,7 +122,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         while (true) {
             List<SchemaListItem> schemas = given()
                     .when()
-                    .get("/ibmcompat/schemas?page=" + page)
+                    .get("/ibmcompat/v1/schemas?page=" + page)
                     .then()
                     .statusCode(200)
                     .extract().body().as(new TypeRef<List<SchemaListItem>>() {
@@ -163,7 +166,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Get the artifact via ibmcompat API
         given()
             .when()
-                .get("/ibmcompat/schemas/" + schemaName)
+                .get("/ibmcompat/v1/schemas/" + schemaName)
             .then()
                 .statusCode(200)
                 .body("name", equalTo(schemaId))
@@ -180,7 +183,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // schema ID in path can be the name or the id (which is the lower-cased name)
         given()
             .when()
-                .get("/ibmcompat/schemas/" + schemaId)
+                .get("/ibmcompat/v1/schemas/" + schemaId)
             .then()
                 .statusCode(200)
                 .body("name", equalTo(schemaId))
@@ -208,7 +211,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Delete the artifact via ibmcompat API
         given()
             .when()
-                .delete("/ibmcompat/schemas/" + schemaName)
+                .delete("/ibmcompat/v1/schemas/" + schemaName)
             .then()
                 .statusCode(204);
 
@@ -216,7 +219,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             // Try to get the artifact via ibmcompat API
             given()
                 .when()
-                    .get("/ibmcompat/schemas/" + schemaName)
+                    .get("/ibmcompat/v1/schemas/" + schemaName)
                 .then()
                     .statusCode(404);
         });
@@ -240,7 +243,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
-                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+                .post("/ibmcompat/v1/schemas/" + schemaName + "/versions")
             .then()
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
@@ -252,7 +255,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
-                .patch("/ibmcompat/schemas/" + schemaName)
+                .patch("/ibmcompat/v1/schemas/" + schemaName)
             .then()
                 .statusCode(200)
                 .body("name", equalTo(schemaId))
@@ -274,7 +277,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .when()
                     .contentType(CT_JSON)
                     .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\",\"comment\":\"this schema is deprecated\"}}]")
-                    .patch("/ibmcompat/schemas/" + schemaName)
+                    .patch("/ibmcompat/v1/schemas/" + schemaName)
                 .then()
                     .statusCode(200)
                     .body("name", equalTo(schemaId))
@@ -306,7 +309,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Get the list of artifacts via ibmcompat API
         given()
             .when()
-                .get("/ibmcompat/schemas/" + schemaName + "/versions/1")
+                .get("/ibmcompat/v1/schemas/" + schemaName + "/versions/1")
             .then()
                 .statusCode(200)
                 .body("name", equalTo(schemaId))
@@ -341,7 +344,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
-                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+                .post("/ibmcompat/v1/schemas/" + schemaName + "/versions")
             .then()
                 .statusCode(201)
                 .body("name", equalTo(schemaId))
@@ -379,7 +382,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .queryParam("verify", true)
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
-                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+                .post("/ibmcompat/v1/schemas/" + schemaName + "/versions")
             .then()
                 .statusCode(200)
                 .body(equalTo("\"" + newSchemaDefinition + "\""));
@@ -403,7 +406,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + newVersionName + "\",\"definition\":\"" + newSchemaDefinition + "\"}")
-                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+                .post("/ibmcompat/v1/schemas/" + schemaName + "/versions")
             .then()
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
@@ -413,7 +416,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
         // Delete the artifact via ibmcompat API
         given()
             .when()
-                .delete("/ibmcompat/schemas/" + schemaName+ "/versions/2")
+                .delete("/ibmcompat/v1/schemas/" + schemaName+ "/versions/2")
             .then()
                 .statusCode(204);
 
@@ -421,7 +424,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             // Try to get the artifact via ibmcompat API
             given()
                 .when()
-                    .get("/ibmcompat/schemas/" + schemaName + "/versions/2")
+                    .get("/ibmcompat/v1/schemas/" + schemaName + "/versions/2")
                 .then()
                    .statusCode(404);
         });
@@ -446,7 +449,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("{\"version\":\"" + version2Name + "\",\"definition\":\"" + version2SchemaDefinition + "\"}")
-                .post("/ibmcompat/schemas/" + schemaName + "/versions")
+                .post("/ibmcompat/v1/schemas/" + schemaName + "/versions")
             .then()
                 .statusCode(201)
                 .body("versions.size()", equalTo(2));
@@ -458,7 +461,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
             .when()
                 .contentType(CT_JSON)
                 .body("[{\"op\":\"replace\",\"path\":\"/enabled\",\"value\":false}]")
-                .patch("/ibmcompat/schemas/" + schemaName + "/versions/2")
+                .patch("/ibmcompat/v1/schemas/" + schemaName + "/versions/2")
             .then()
                 .statusCode(200)
                 .body("name", equalTo(schemaId))
@@ -479,7 +482,7 @@ public class IBMCompatApiTest extends AbstractResourceTestBase {
                 .when()
                     .contentType(CT_JSON)
                     .body("[{\"op\":\"replace\",\"path\":\"/state\",\"value\":{\"state\":\"deprecated\",\"comment\":\"this version is deprecated\"}}]")
-                    .patch("/ibmcompat/schemas/" + schemaName + "/versions/1")
+                    .patch("/ibmcompat/v1/schemas/" + schemaName + "/versions/1")
                 .then()
                     .statusCode(200)
                     .body("name", equalTo(schemaId))

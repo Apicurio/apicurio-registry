@@ -1,0 +1,43 @@
+syntax = "proto2";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax2.specified;
+
+message Address {
+  required string street = 1 [json_name = "Address_Street"];
+
+  optional int32 zip = 2 [deprecated = true];
+
+  optional string city = 3 [default = "Seattle"];
+
+  enum Type {
+    OFFICE = 0;
+    APARTMENT = 1;
+    HOUSE = 2;
+  }
+
+  map<int32, int32> rentPerYear = 4;
+
+  map<string, Type> addressType = 9;
+
+  message ContactPersons {
+    required string name = 1;
+    required int32 phone = 2;
+  }
+
+  oneof test_oneof {
+    string state = 5;
+    string country = 7;
+  }
+
+  repeated int32 samples = 6 [packed=true];
+
+  map<string, string> pastAddresses = 8;
+}
+
+message Customer {
+  required string name = 1;
+
+  reserved 2, 15, 10 to 11, 800 to 899;
+
+  extensions 100 to 199, 1000 to max;
+}

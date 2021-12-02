@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.NonRecordContainer;
 import io.apicurio.registry.utils.converter.avro.AvroData;
 import io.apicurio.registry.utils.converter.avro.AvroDataConfig;
-import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
-import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
-import io.apicurio.registry.utils.serde.avro.NonRecordContainer;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -29,26 +29,36 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Avro converter.
  *
  * @author Ales Justin
+ * @author Fabian Martinez
  */
-public class AvroConverter<T> extends SchemalessConverter<T> {
+public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema, T> {
     private AvroData avroData;
 
     public AvroConverter() {
+        super();
     }
 
-    public AvroConverter(
-        AvroKafkaSerializer<T> serializer,
-        AvroKafkaDeserializer<T> deserializer,
-        AvroData avroData
-    ) {
-        super(serializer, deserializer);
-        this.avroData = Objects.requireNonNull(avroData);
+    /**
+     * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#serializerClass()
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    protected Class<? extends Serializer> serializerClass() {
+        return AvroKafkaSerializer.class;
+    }
+
+    /**
+     * @see io.apicurio.registry.utils.converter.SerdeBasedConverter#deserializerClass()
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    protected Class<? extends Deserializer> deserializerClass() {
+        return AvroKafkaDeserializer.class;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -64,6 +74,7 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
         avroData = new AvroData(new AvroDataConfig(copy));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected T applySchema(Schema schema, Object value) {
         //noinspection unchecked
@@ -86,23 +97,4 @@ public class AvroConverter<T> extends SchemalessConverter<T> {
         return new SchemaAndValue(null, result);
     }
 
-    @SuppressWarnings("rawtypes")
-    @Override
-    protected Class<? extends Serializer> serializerClass() {
-        return AvroKafkaSerializer.class;
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Override
-    protected Class<? extends Deserializer> deserializerClass() {
-        return AvroKafkaDeserializer.class;
-    }
-
-    public AvroKafkaSerializer<T> getSerializer() {
-        return (AvroKafkaSerializer<T>) serializer;
-    }
-
-    public AvroKafkaDeserializer<T> getDeserializer() {
-        return (AvroKafkaDeserializer<T>) deserializer;
-    }
 }

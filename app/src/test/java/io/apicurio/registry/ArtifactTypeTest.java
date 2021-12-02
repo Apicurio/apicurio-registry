@@ -30,6 +30,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
+import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityDifference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -85,14 +86,14 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     private Difference findDiffByPathUpdated(Set<CompatibilityDifference> incompatibleDifferences, String path) {
         for(CompatibilityDifference cd : incompatibleDifferences) {
-            Difference diff = (Difference) cd;
+            JsonSchemaCompatibilityDifference jsonSchemaCompatibilityDifference = (JsonSchemaCompatibilityDifference) cd;
+            Difference diff = jsonSchemaCompatibilityDifference.getDifference();
             if(diff.getPathUpdated().equals(path)) {
                 return diff;
             }
         }
         return null;
     }
-
 
     @Test
     public void testProtobuf() {
@@ -165,7 +166,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data3);
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not BACKWARD compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolationCause().getContext());
+        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
+        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
     }
 }

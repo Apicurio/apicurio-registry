@@ -19,4 +19,6 @@ package io.apicurio.registry.ccompat.rest.error;
 import io.apicurio.registry.types.RegistryException;
 
 public class OperationNotSupportedException extends RegistryException {
+
+    private static final long serialVersionUID = 973895997518688538L;
 }

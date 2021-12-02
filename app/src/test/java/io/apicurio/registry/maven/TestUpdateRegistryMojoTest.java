@@ -20,17 +20,20 @@ package io.apicurio.registry.maven;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.avro.Schema;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -43,12 +46,13 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new TestUpdateRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081/api";
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testCompatibility() throws Exception {
+        String groupId = TestUpdateRegistryMojoTest.class.getName();
         String artifactId = generateArtifactId();
 
         Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
@@ -59,14 +63,19 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
                                                   " ]" +
                                                   "}");
-        client.createArtifact(artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
-        
-        this.waitForArtifact(artifactId);
+        clientV2.createArtifact(groupId, artifactId, ArtifactType.AVRO, new ByteArrayInputStream(schema.toString().getBytes(StandardCharsets.UTF_8)));
+        this.waitForArtifact(groupId, artifactId);
 
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        client.createArtifactRule(artifactId, rule);
+        clientV2.createArtifactRule(groupId, artifactId, rule);
+
+        // Wait for the rule configuration to be set.
+        TestUtils.retry(() -> {
+            Rule rconfig = clientV2.getArtifactRuleConfig(groupId, artifactId, RuleType.COMPATIBILITY);
+            Assertions.assertEquals("BACKWARD", rconfig.getConfig());
+        });
 
         // add new field
         Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
@@ -74,18 +83,25 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                                                    " \"name\": \"user\"," +
                                                    " \"fields\": [" +
                                                    "     {\"name\": \"name\", \"type\": \"string\"}," +
-                                                   "     {\"name\": \"favorite_number\",  \"type\": \"int\"}," +
+                                                   "     {\"name\": \"favorite_number\",  \"type\": \"string\"}," +
                                                    "     {\"name\": \"favorite_color\", \"type\": \"string\", \"default\": \"green\"}" +
                                                    " ]" +
                                                    "}");
         File file = new File(tempDirectory, artifactId + ".avsc");
         writeContent(file, schema2.toString().getBytes(StandardCharsets.UTF_8));
 
-        mojo.artifacts = Collections.singletonMap(artifactId, file);
-        mojo.artifactType = ArtifactType.AVRO;
-        mojo.execute();
+        List<TestArtifact> artifacts = new ArrayList<>();
+        TestArtifact artifact = new TestArtifact();
+        artifact.setGroupId(groupId);
+        artifact.setArtifactId(artifactId);
+        artifact.setFile(file);
+        artifacts.add(artifact);
 
-        Assertions.assertTrue(mojo.results.get(artifactId));
+        mojo.setArtifacts(artifacts);
+
+        Assertions.assertThrows(MojoExecutionException.class, () -> {
+            mojo.execute();
+        });
     }
 
 }

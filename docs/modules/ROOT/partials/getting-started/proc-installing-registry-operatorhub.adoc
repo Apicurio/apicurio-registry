@@ -2,11 +2,15 @@
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-operatorhub"]
+[id="installing-registry-operatorhub_{context}"]
 = Installing {registry} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/4.3/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+[role="_abstract"]
+You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/understanding/olm-understanding-operatorhub.html[OpenShift documentation].
+
+NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
+
 
 .Prerequisites
 
@@ -18,10 +22,10 @@ You can install the {registry} Operator on your OpenShift cluster from the Opera
 
 . Create a new OpenShift project:
 
-.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. In the left navigation menu, click *Home*, *Project*, and then *Create Project*.
 .. Enter a project name, for example, `my-project`, and click *Create*.
 
-. In the left navigation menu, click *Operators* > *OperatorHub*.
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
 ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
 endif::[]
@@ -31,20 +35,16 @@ endif::[]
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-ifdef::rh-service-registry[]
-** *Update Channel* > Select one of the following channels:
-*** *serviceregistry-1*: All minor and patch updates, such as 1.1.0 and 1.0.1. An installation on 1.0.x automatically upgrades to 1.1.x. 
-*** *serviceregistry-1.0*: Patch updates only, such as 1.0.1 and 1.0.2. An installation on 1.0.x automatically ignores 1.1.x.
-*** *serviceregistry-1.1*: Patch updates only, such as 1.1.1 and 1.1.2. An installation on 1.1.x automatically ignores 1.0.x.
-endif::[]
-ifdef::apicurio-registry[]
-** *Update Channel* > *alpha*
-endif::[]
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
-** *Approval Strategy* > *Manual*
-
+** *Update Channel*: Select one of the following:
+*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x automatically ignores 2.1.x.
+*** *2.x*: Includes all minor and patch updates, such as 2.1.0 and 2.0.1. For example, an installation on 2.0.x automatically upgrades to 2.1.x. 
+** *Installation Mode*: Select one of the following: 
+*** *All namespaces on the cluster (default)*
+*** *A specific namespace on the cluster*  and then *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 
+[role="_additional-resources"]
 .Additional resources
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
 * link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]

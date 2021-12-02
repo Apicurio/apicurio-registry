@@ -1,0 +1,30 @@
+version: '3.1'
+
+services:
+  postgres:
+    image: quay.io/centos7/postgresql-12-centos7:1
+    environment:
+      POSTGRESQL_DATABASE: apicurio-database
+      POSTGRESQL_USER: apicurio-registry
+      POSTGRESQL_PASSWORD: password
+  app:
+    image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+    ports:
+      - 8080:8080
+    environment:
+      REGISTRY_ENABLE_MULTITENANCY: 'true'
+      AUTH_ENABLED: 'false'
+      REGISTRY_LOG_LEVEL: DEBUG
+    depends_on:
+      - tenant-manager
+  tenant-manager:
+    image: quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-snapshot
+    ports:
+      - 8585:8585
+    environment:
+      REGISTRY_ROUTE_URL: http://app:8080
+      DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-database'
+      DATASOURCE_USERNAME: apicurio-registry
+      DATASOURCE_PASSWORD: password
+    depends_on:
+      - postgres

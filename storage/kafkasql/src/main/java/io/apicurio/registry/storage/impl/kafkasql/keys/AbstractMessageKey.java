@@ -43,6 +43,7 @@ public abstract class AbstractMessageKey implements MessageKey {
      * @see java.lang.Object#toString()
      */
     @Override
-    public abstract String toString();
-
+    public String toString() {
+        return String.format("AbstractMessageKey(tenantId = '%s')", tenantId);
+    }
 }

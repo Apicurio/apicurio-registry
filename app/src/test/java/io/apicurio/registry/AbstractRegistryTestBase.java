@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractRegistryTestBase {
 
+    public static final String CURRENT_ENV = "CURRENT_ENV";
+    public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
 
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();
@@ -51,6 +53,16 @@ public abstract class AbstractRegistryTestBase {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Loads a resource as an input stream.
+     * @param resourceName the resource name
+     */
+    protected final InputStream resourceToInputStream(String resourceName) {
+        InputStream stream = getClass().getResourceAsStream(resourceName);
+        Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
+        return stream;
     }
 
     protected final ContentHandle resourceToContentHandle(String resourceName) {

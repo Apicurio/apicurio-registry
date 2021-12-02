@@ -16,14 +16,12 @@
 
 package io.apicurio.registry.util;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.MediaType;
+
+import org.apache.avro.Schema;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -32,14 +30,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.apicurio.registry.common.proto.Serde;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.compatibility.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
-import uk.gov.nationalarchives.csv.validator.api.java.CsvValidator;
-import uk.gov.nationalarchives.csv.validator.api.java.FailMessage;
-import uk.gov.nationalarchives.csv.validator.api.java.Substitution;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -47,11 +41,63 @@ import uk.gov.nationalarchives.csv.validator.api.java.Substitution;
 public final class ArtifactTypeUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    protected final static Logger log = LoggerFactory.getLogger(ArtifactTypeUtil.class);
+
     /**
      * Constructor.
      */
     private ArtifactTypeUtil() {
+    }
+
+    /**
+     * Figures out the artifact type in the following order of precedent:
+     * <p>
+     * 1) The provided X-Registry-ArtifactType header
+     * 2) A hint provided in the Content-Type header
+     * 3) Determined from the content itself
+     *
+     * @param content       the content
+     * @param xArtifactType the artifact type
+     * @param ct            content type from request API
+     */
+    public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {
+        ArtifactType artifactType = xArtifactType;
+        if (artifactType == null) {
+            artifactType = getArtifactTypeFromContentType(contentType);
+            if (artifactType == null) {
+                artifactType = ArtifactTypeUtil.discoverType(content, contentType);
+            }
+        }
+        return artifactType;
+    }
+
+    /**
+     * Tries to figure out the artifact type by analyzing the content-type.
+     *
+     * @param contentType the content type header
+     */
+    private static ArtifactType getArtifactTypeFromContentType(String contentType) {
+        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON) && contentType.indexOf(';') != -1) {
+            String[] split = contentType.split(";");
+            if (split.length > 1) {
+                for (String s : split) {
+                    if (s.contains("artifactType=")) {
+                        String at = s.split("=")[1];
+                        try {
+                            return ArtifactType.valueOf(at);
+                        } catch (IllegalArgumentException e) {
+                            throw new BadRequestException("Unsupported artifact type: " + at);
+                        }
+                    }
+                }
+            }
+        }
+        if (contentType != null && contentType.contains("x-proto")) {
+            return ArtifactType.PROTOBUF;
+        }
+        if (contentType != null && contentType.contains("graphql")) {
+            return ArtifactType.GRAPHQL;
+        }
+        return null;
     }
 
     /**
@@ -61,11 +107,11 @@ public final class ArtifactTypeUtil {
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
      * fails.
-     * 
+     *
      * @param content
      * @param contentType
      */
-    public static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
+    private static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
@@ -75,11 +121,6 @@ public final class ArtifactTypeUtil {
             if (type != null) {
                 return type;
             }
-        }
-        
-        //Try CSV
-        if(tryCSV(content)) {
-        	return ArtifactType.CSV;
         }
 
         // Try the various JSON formatted types
@@ -95,19 +136,23 @@ public final class ArtifactTypeUtil {
                 return ArtifactType.ASYNCAPI;
             }
             // JSON Schema
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")) {
+            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org") || tree.has("properties")) {
                 return ArtifactType.JSON;
             }
             // Kafka Connect??
             // TODO detect Kafka Connect schemas
-            // Avro
-            if (tree.has("type")) {
-                return ArtifactType.AVRO;
-            }
-            
+
             throw new InvalidArtifactTypeException("Failed to discover artifact type from JSON content.");
         } catch (Exception e) {
             // Apparently it's not JSON.
+        }
+
+        try {
+            // Avro
+            new Schema.Parser().parse(content.content());
+            return ArtifactType.AVRO;
+        } catch (Exception e) {
+            //ignored
         }
 
         // Try protobuf (only if we haven't already)
@@ -154,12 +199,6 @@ public final class ArtifactTypeUtil {
         } catch (Exception e) {
             // Doesn't seem to be protobuf
         }
-        try {
-            Serde.Schema.parseFrom(content.bytes());
-            return ArtifactType.PROTOBUF_FD;
-        } catch (Exception e) {
-            // Doesn't seem to be protobuf_fd
-        }
         return null;
     }
 
@@ -175,22 +214,4 @@ public final class ArtifactTypeUtil {
         return false;
     }
 
-    private static boolean tryCSV(ContentHandle content) {
-    	
-    
-        List<FailMessage> failures = CsvValidator.validate(new InputStreamReader(new ByteArrayInputStream("test,test,test".getBytes())), new InputStreamReader(content.stream()), false,  new ArrayList<Substitution>(), Boolean.TRUE, Boolean.FALSE);
-        if(failures != null && !failures.isEmpty()) {
-        	for(FailMessage msg : failures) {
-        		
-        		if(failures.size() == 1 && msg.getMessage().startsWith("Metadata header, cannot find")) {
-        			return true;
-        		}
-        		
-        		log.info("CSV Parse error message: " + msg.getMessage());
-        	}
-        	
-        	return false;
-        }
-        return false;
-    }
 }

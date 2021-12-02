@@ -18,7 +18,7 @@ package io.apicurio.registry.ccompat.rest;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public final class ContentTypes {
 

@@ -16,25 +16,25 @@
 
 package io.apicurio.registry;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ServiceInitializer;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.restassured.RestAssured;
-import io.restassured.response.ValidatableResponse;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import io.restassured.http.ContentType;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
+import io.restassured.response.ValidatableResponse;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -43,52 +43,47 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
 
-    protected static final String CT_JSON = "application/json";
+    public static final String CT_JSON = "application/json";
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
 
-    @Inject
-    Instance<ServiceInitializer> initializers;
-
-    protected String registryUrl;
-    protected RegistryRestClient client;
-
+    protected String registryApiBaseUrl;
+    protected String registryV1ApiUrl;
+    protected String registryV2ApiUrl;
+    protected RegistryClient clientV2;
 
     @BeforeAll
     protected void beforeAll() throws Exception {
-        registryUrl = "http://localhost:8081/api";
-        client = RegistryRestClientFactory.create(registryUrl);
+        registryApiBaseUrl = "http://localhost:8081/apis";
+        registryV1ApiUrl = registryApiBaseUrl + "/registry/v1";
+        registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
+        clientV2 = createRestClientV2();
+    }
+
+    protected RegistryClient createRestClientV2() {
+        return RegistryClientFactory.create(registryV2ApiUrl);
     }
 
     @BeforeEach
     protected void beforeEach() throws Exception {
-        prepareServiceInitializers();
+        setupRestAssured();
         deleteGlobalRules(0);
     }
 
-    protected void prepareServiceInitializers() {
-        RestAssured.baseURI = registryUrl;
-
-        // run all initializers::beforeEach
-        initializers.stream().forEach(ServiceInitializer::beforeEach);
+    protected void setupRestAssured() {
+        RestAssured.baseURI = registryApiBaseUrl;
+        RestAssured.registerParser(ArtifactMediaTypes.BINARY.toString(), Parser.JSON);
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
-        client.deleteAllGlobalRules();
         TestUtils.retry(() -> {
-            assertEquals(expectedDefaultRulesCount, client.listGlobalRules().size());
+            clientV2.deleteAllGlobalRules();
+            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
         });
     }
 
-    /**
-     * Called to create an artifact by invoking the appropriate JAX-RS operation.
-     * @param artifactId
-     * @param artifactType
-     * @param artifactContent
-     * @throws Exception
-     */
     protected Integer createArtifact(String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
         ValidatableResponse response = given()
             .when()
@@ -96,13 +91,33 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .header("X-Registry-ArtifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/artifacts")
+            .post("/registry/v1/artifacts")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));
 
         waitForArtifact(artifactId);
+
+        return response.extract().body().path("globalId");
+    }
+
+
+    protected Integer createArtifact(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .header("X-Registry-ArtifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+            .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        waitForArtifact(groupId, artifactId);
 
         return response.extract().body().path("globalId");
     }
@@ -114,7 +129,24 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .pathParam("artifactId", artifactId)
                 .header("X-Registry-ArtifactType", artifactType.name())
                 .body(artifactContent)
-            .post("/artifacts/{artifactId}/versions")
+            .post("/registry/v1/artifacts/{artifactId}/versions")
+            .then()
+                .statusCode(200)
+                .body("id", equalTo(artifactId))
+                .body("type", equalTo(artifactType.name()));
+
+        return response.extract().body().path("globalId");
+    }
+
+    protected Integer createArtifactVersion(String groupId, String artifactId, ArtifactType artifactType, String artifactContent) throws Exception {
+        ValidatableResponse response = given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .header("X-Registry-ArtifactType", artifactType.name())
+                .body(artifactContent)
+            .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
             .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
@@ -134,8 +166,45 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/meta")
                 .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact to be created.
+     * @param groupId
+     * @param artifactId
+     * @throws Exception
+     */
+    protected void waitForArtifact(String groupId, String artifactId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId == null ? "default" : groupId)
+                    .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact rule to be created.
+     * @param ruleType
+     * @throws Exception
+     */
+    protected void waitForArtifactRule(String artifactId, RuleType ruleType) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("rule", ruleType.value())
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v1/artifacts/{artifactId}/rules/{rule}")
+                    .then()
                     .statusCode(200);
         });
     }
@@ -153,7 +222,28 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact version to be created.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @throws Exception
+     */
+    protected void waitForVersion(String groupId, String artifactId, int version) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then()
                     .statusCode(200);
         });
@@ -170,8 +260,25 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/ids/{globalId}/meta")
+                .get("/registry/v1/ids/{globalId}/meta")
                 .then()
+                    .statusCode(200);
+        });
+    }
+
+    /**
+     * Wait for an artifact version to be created.
+     * @param contentId
+     * @throws Exception
+     */
+    protected void waitForContentId(long contentId) throws Exception {
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .pathParam("contentId", contentId)
+                    .get("/registry/v2/ids/contentIds/{contentId}")
+                    .then()
                     .statusCode(200);
         });
     }
@@ -188,7 +295,26 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
-                .get("/artifacts/{artifactId}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/meta")
+                .then(), state, false);
+        });
+    }
+
+    /**
+     * Wait for an artifact's state to change.
+     * @param groupId
+     * @param artifactId
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForArtifactState(String groupId, String artifactId, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
                 .then(), state, false);
         });
     }
@@ -207,7 +333,28 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                     .contentType(CT_JSON)
                     .pathParam("artifactId", artifactId)
                     .pathParam("version", version)
-                .get("/artifacts/{artifactId}/versions/{version}/meta")
+                .get("/registry/v1/artifacts/{artifactId}/versions/{version}/meta")
+                .then(), state, true);
+        });
+    }
+
+    /**
+     * Wait for an artifact version's state to change.
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param state
+     * @throws Exception
+     */
+    protected void waitForVersionState(String groupId, String artifactId, String version, ArtifactState state) throws Exception {
+        TestUtils.retry(() -> {
+            validateMetaDataResponseState(given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("version", version)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta")
                 .then(), state, true);
         });
     }
@@ -224,8 +371,28 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .when()
                     .contentType(CT_JSON)
                     .pathParam("globalId", globalId)
-                .get("/ids/{globalId}/meta")
+                .get("/registry/v1/ids/{globalId}/meta")
                 .then(), state, true);
+        });
+    }
+
+    /**
+     * Wait for a global rule to be created.
+     * @param ruleType
+     * @param ruleConfig
+     * @throws Exception
+     */
+    public void waitForGlobalRule(RuleType ruleType, String ruleConfig) throws Exception {
+        // Verify the default global rule exists
+        TestUtils.retry(() -> {
+            given()
+                    .when()
+                    .get("/registry/v1/rules/VALIDITY")
+                    .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("type", equalTo(ruleType.value()))
+                    .body("config", equalTo(ruleConfig));
         });
     }
 
@@ -239,4 +406,3 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         response.body("state", equalTo(state.name()));
     }
 }
-

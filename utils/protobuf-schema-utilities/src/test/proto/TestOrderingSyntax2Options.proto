@@ -1,0 +1,43 @@
+syntax = "proto2";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax2.options;
+
+option java_generic_services = true;
+option java_package = "io.apicurio.registry.utils.protobuf.schema.syntax2.options.example";
+option java_outer_classname = "TestOrderingSyntax2OptionsExampleName";
+option java_string_check_utf8 = true;
+
+message Address {
+  option no_standard_descriptor_accessor = true;
+  optional string street = 1 [ctype = CORD];
+  repeated int64 zipCode = 2 [jstype = JS_STRING];
+  optional string state = 3 [json_name = "STATE OR PROVINCE"];
+  optional string country = 4 [deprecated = true];
+
+  message ShippingAddress {
+    option no_standard_descriptor_accessor = false; //default is false
+  }
+
+  oneof test_oneof {
+    string city = 5 [deprecated = false]; // default is false
+    string county = 7 [ctype = STRING_PIECE];
+  }
+
+}
+
+message Customer {
+  option no_standard_descriptor_accessor = false; //default is false
+  required string name = 1 [ctype = STRING]; // default is STRING
+  repeated int32 age = 2 [packed = true];
+  repeated int64 phoneNumber = 3 [jstype = JS_NORMAL]; // default is JS_NORMAL
+}
+
+service OriginalService {
+  rpc Foo(Customer) returns(Address) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  };
+
+  rpc Boo(Address) returns(Customer) {
+    option idempotency_level = IDEMPOTENCY_UNKNOWN; // default is IDEMPOTENCY_UNKNOWN
+  };
+}

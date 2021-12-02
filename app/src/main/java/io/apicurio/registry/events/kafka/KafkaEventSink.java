@@ -30,8 +30,6 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Serdes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.events.EventSink;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
@@ -45,7 +43,8 @@ import io.vertx.core.eventbus.Message;
 @ApplicationScoped
 public class KafkaEventSink implements EventSink {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaEventSink.class);
+    @Inject
+    Logger log;
 
     @Inject
     @RegistryProperties(

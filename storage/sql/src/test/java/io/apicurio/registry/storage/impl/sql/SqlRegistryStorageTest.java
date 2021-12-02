@@ -26,11 +26,11 @@ import io.quarkus.test.junit.QuarkusTest;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
-    
+public class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+
     @Inject
     SqlRegistryStorage storage;
-    
+
     /**
      * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
      */

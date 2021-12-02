@@ -19,6 +19,9 @@ package io.apicurio.registry.cli;
 import picocli.CommandLine;
 
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 /**
  * @author Ales Justin
@@ -27,6 +30,10 @@ import java.io.InputStream;
 public class CreateCommand extends CUArtifactCommand {
     @Override
     protected Object run(InputStream data) {
-        return getClient().createArtifact(artifactId, artifactType, data);
+        try {
+            return mapper.writeValueAsString(getClient().createArtifact(groupId, artifactId, artifactType, data));
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

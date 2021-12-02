@@ -19,7 +19,10 @@ package io.apicurio.registry.cli;
 import io.apicurio.registry.types.RuleType;
 import picocli.CommandLine;
 
+import java.io.UncheckedIOException;
 import java.util.List;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 /**
  * @author Ales Justin
@@ -28,7 +31,11 @@ import java.util.List;
 public class ListRulesCommand extends ArtifactCommand {
     @Override
     public void run() {
-        List<RuleType> artifacts = getClient().listArtifactRules(artifactId);
-        artifacts.forEach(this::println);
+        List<RuleType> rules = getClient().listArtifactRules(groupId, artifactId);
+        try {
+            println(mapper.writeValueAsString(rules));
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

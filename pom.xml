@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>2.1.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -13,7 +13,7 @@
 
     <organization>
         <name>Red Hat</name>
-        <url>https://www.redhat.com</url>
+        <url>https://www.redhat.com/</url>
     </organization>
 
     <licenses>
@@ -77,6 +77,26 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <name>Fabian Martinez Gonzalez</name>
+            <id>famartinrh</id>
+            <email>famartin@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+        <developer>
+            <name>Rishab Prasad</name>
+            <id>riprasad</id>
+            <email>riprasad@redhat.com</email>
+            <organization>Red Hat</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+4</timezone>
+        </developer>
     </developers>
 
     <modules>
@@ -86,18 +106,36 @@
         <module>ui</module>
         <module>utils/converter</module>
         <module>utils/kafka</module>
-        <module>utils/streams</module>
         <module>utils/maven-plugin</module>
-        <module>utils/serde</module>
-        <module>utils/sql</module>
         <module>utils/tools</module>
+        <module>utils/importexport</module>
+        <module>utils/protobuf-schema-utilities</module>
+        <module>utils/exportV1</module>
         <module>utils/tests</module>
-        <module>search/client</module>
-        <module>search/connector</module>
+        <module>serdes/serde-common</module>
+        <module>serdes/avro-serde</module>
+        <module>serdes/protobuf-serde</module>
+        <module>serdes/jsonschema-serde</module>
+        <module>storage</module>
         <module>distro</module>
         <module>docs</module>
-        <module>tests</module>
-        <module>rest-client</module>
+        <module>client</module>
+        <module>multitenancy/tenant-manager-datamodel</module>
+        <module>multitenancy/tenant-manager-client</module>
+
+        <!-- modules for implementing ArtifactTypeUtilProvider -->
+        <module>schema-util/common</module>
+        <module>schema-util/json</module>
+        <module>schema-util/protobuf</module>
+        <module>schema-util/asyncapi</module>
+        <module>schema-util/avro</module>
+        <module>schema-util/graphql</module>
+        <module>schema-util/kconnect</module>
+        <module>schema-util/openapi</module>
+        <module>schema-util/wsdl</module>
+        <module>schema-util/xml</module>
+        <module>schema-util/xsd</module>
+        <module>schema-util/util-provider</module>
     </modules>
 
     <properties>
@@ -106,111 +144,104 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
-        <docker.tag.name>latest-release</docker.tag.name>
-        <tar.long.file.mode>posix</tar.long.file.mode>
+        <tar.long.file.mode>gnu</tar.long.file.mode>
         
         <!-- UI Build Tools -->
-        <node.version>10.20.1</node.version>
+        <node.version>12.13.0</node.version>
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>1.10.5.Final</quarkus.version>
+        <quarkus.version>2.2.3.Final</quarkus.version>
 
         <!-- Jandex -->
-        <jandex.version>1.0.8</jandex.version>
+        <jandex.version>1.1.1</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.10.1</avro.version>
-        <json-schema-validator.version>1.0.47</json-schema-validator.version>
-        <wire-schema.version>3.2.2</wire-schema.version>
-        <protobuf.version>3.14.0</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <avro.version>1.11.0</avro.version>
+        <json-schema-validator.version>1.0.64</json-schema-validator.version>
+        <wire-schema.version>3.7.1</wire-schema.version>
+        <wire-compiler.version>3.7.1</wire-compiler.version>
+        <jimfs.version>1.1</jimfs.version>
+        <icu4j.version>70.1</icu4j.version>
+        <protobuf.version>3.19.1</protobuf.version>
+        <xmlsec.version>2.1.7</xmlsec.version>
+        <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
-
-        <!-- Storage types -->
-        <infinispan.version>12.0.0.Final</infinispan.version>
+        <google.truth.extension.version>1.1.3</google.truth.extension.version>
 
         <!-- Picocli -->
-        <picocli.version>4.6.1</picocli.version>
-
-        <!-- gRPC -->
-        <grpc.version>1.35.0</grpc.version>
+        <picocli.version>4.6.2</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>6.0.1</confluent.version>
+        <confluent.version>6.1.1</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.7</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.19</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>16.1</graphql.version>
-        
-        <!-- CSV Validator -->
-        <csv.version>1.1.5</csv.version>
-   
+        <graphql.version>17.3</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <medeia-validator-jackson.version>1.1.1</medeia-validator-jackson.version>
-        <org.everit.json.schema.version>1.12.2</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.12.1</jackson-datatype-json-org.version>
+        <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
+        <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
-        <lombok.version>1.18.18</lombok.version>
+        <lombok.version>1.18.22</lombok.version>
         <h2.version>1.4.199</h2.version>
         <retrofit.version>2.9.0</retrofit.version>
-        <jdbi.version>3.18.0</jdbi.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-        <keycloak.version>11.0.3</keycloak.version>
         <httpclient.version>4.5.13</httpclient.version>
+        <apicurio-common-rest-client.version>0.1.0.Final</apicurio-common-rest-client.version>
+        <sentry.version>1.7.30</sentry.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
-        
-        <!-- Specifications -->
-        <annotation-api.version>1.3.2</annotation-api.version>
-        <cdi-api.version>2.0</cdi-api.version>
-        
-        <!-- Gatling -->
-        <version.gatling>3.5.0</version.gatling>
-        <version.gatling.plugin>3.1.1</version.gatling.plugin>
 
+        <!-- Specifications -->
+        <annotation-api.version>1.3.5</annotation-api.version>
+        
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.11.2</scala.version>
+        <scala.version>2.13.7</scala.version>
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.javadoc.plugin>3.2.0</version.javadoc.plugin>
+        <version.javadoc.plugin>3.3.1</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.0</version.jar.plugin>
         <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
-        <version.dependency.plugin>3.1.2</version.dependency.plugin>
+        <version.dependency.plugin>3.2.0</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.11.0</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.12.0</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.40</version.puppycrawl>
+        <version.puppycrawl>8.45.1</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>
-        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
+        <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.15.1</test-containers.version>
-        <keycloak.testcontainers.version>1.5.0</keycloak.testcontainers.version>
+        <test-containers.version>1.16.2</test-containers.version>
+        <keycloak.testcontainers.version>1.8.1</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>15.0.2</keycloak-admin-client.version>
+        <embedded-postgres.version>1.3.1</embedded-postgres.version>
+        <strimzi.version>0.25.0</strimzi.version>
+        <wiremock-jre8.version>2.31.0</wiremock-jre8.version>
     </properties>
 
     <dependencyManagement>
@@ -233,27 +264,17 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-rest-client</artifactId>
+                <artifactId>apicurio-registry-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-search-client</artifactId>
+                <artifactId>apicurio-registry-client-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-utils-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-streams</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -262,11 +283,6 @@
                 <version>${project.version}</version>
                 <scope>test</scope>
                 <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-utils-serde</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
@@ -293,7 +309,7 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-asyncmem</artifactId>
+                <artifactId>apicurio-registry-integration-tests-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -303,12 +319,123 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-streams</artifactId>
+                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-storage-kafkasql</artifactId>
+                <artifactId>apicurio-registry-serde-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-utils-import-export</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-vertx</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-jdk</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-rest-client-common</artifactId>
+                <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-asyncapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-avro</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-graphql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-kconnect</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-openapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-wsdl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-xml</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-xsd</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -338,16 +465,6 @@
                 <version>${apicurio-data-models.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-commons</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
@@ -363,6 +480,28 @@
                 <version>${wire-schema.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.squareup.wire</groupId>
+                <artifactId>wire-compiler</artifactId>
+                <version>${wire-compiler.version}</version>
+                <!-- Excluding as the latest version is not present and this is not required -->
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.squareup.wire</groupId>
+                        <artifactId>wire-grpc-client</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.jimfs</groupId>
+                <artifactId>jimfs</artifactId>
+                <version>${jimfs.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ibm.icu</groupId>
+                <artifactId>icu4j</artifactId>
+                <version>${icu4j.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf.version}</version>
@@ -371,6 +510,11 @@
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java-util</artifactId>
                 <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api.grpc</groupId>
+                <artifactId>proto-google-common-protos</artifactId>
+                <version>${protobuf.googleapi.types.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -388,13 +532,6 @@
                 <version>${wsdl4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.jdbi</groupId>
-                <artifactId>jdbi3-bom</artifactId>
-                <version>${jdbi.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
@@ -403,6 +540,11 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.sentry</groupId>
+                <artifactId>sentry</artifactId>
+                <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
             </dependency>
 
             <!-- Picocli -->
@@ -416,78 +558,6 @@
                 <artifactId>picocli-shell-jline2</artifactId>
                 <version>${picocli.version}</version>
             </dependency>
-            
-            <!-- CSV -->
-           <dependency>
-			    <groupId>uk.gov.nationalarchives</groupId>
-			    <artifactId>csv-validator-java-api</artifactId>
-			    <version>${csv.version}</version>
-               <!-- TODO: Resolve this exclusion: we had to bump down the dependency version because our Jenkins pipeline couldn't
-               find alternative sources for the most recent version of this dependency - Z Evans 6/21/2021   -->
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.gilt</groupId>
-                        <artifactId>gfc-semver_2.11</artifactId>
-                    </exclusion>
-                </exclusions>
-			</dependency>
-            <!-- TODO: Resolve this exclusion: we had to bump down the dependency version because our Jenkins pipeline couldn't
-find alternative sources for the most recent version of this dependency - Z Evans 6/21/2021   -->
-            <dependency>
-                <groupId>com.gilt</groupId>
-                <artifactId>gfc-semver_2.11</artifactId>
-                <version>0.0.5</version>
-            </dependency>
-			<dependency>
-			    <groupId>uk.gov.nationalarchives</groupId>
-			    <artifactId>csv-validator-parent</artifactId>
-			    <version>${csv.version}</version>
-			    <type>pom</type>
-			</dependency>
-			<dependency>
-			    <groupId>uk.gov.nationalarchives</groupId>
-			    <artifactId>csv-validator</artifactId>
-			    <version>${csv.version}</version>
-			    <type>pom</type>
-			</dependency>
-			<dependency>
-			    <groupId>uk.gov.nationalarchives</groupId>
-			    <artifactId>csv-validator-core</artifactId>
-			    <version>${csv.version}</version>
-			</dependency>
-						
-
-            <!-- gRPC -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-api</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-context</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
 
             <!-- GraphQL -->
             <dependency>
@@ -496,12 +566,6 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <version>${graphql.version}</version>
             </dependency>
 
-            <!-- JSON Schema Validator -->
-            <dependency>
-                <groupId>com.worldturner.medeia</groupId>
-                <artifactId>medeia-validator-jackson</artifactId>
-                <version>${medeia-validator-jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.github.everit-org.json-schema</groupId>
                 <artifactId>org.everit.json.schema</artifactId>
@@ -512,41 +576,10 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <artifactId>jackson-datatype-json-org</artifactId>
                 <version>${jackson-datatype-json-org.version}</version>
             </dependency>
-
-            <!-- Search -->
             <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>connect-runtime</artifactId>
-                <version>${connect.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-client-rest</artifactId>
-                <version>${infinispan.version}</version>
-            </dependency>
-
-            <!-- Gatling -->
-            <dependency>
-                <groupId>io.gatling</groupId>
-                <artifactId>gatling-app</artifactId>
-                <version>${version.gatling}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.gatling.highcharts</groupId>
-                <artifactId>gatling-charts-highcharts</artifactId>
-                <version>${version.gatling}</version>
-            </dependency>
-
-            <!-- Specifications -->
-            <dependency>
-                <groupId>javax.annotation</groupId>
-                <artifactId>javax.annotation-api</artifactId>
-                <version>${annotation-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.enterprise</groupId>
-                <artifactId>cdi-api</artifactId>
-                <version>${cdi-api.version}</version>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson-dataformat-yaml.version}</version>
             </dependency>
 
             <!-- Tests -->
@@ -606,9 +639,9 @@ find alternative sources for the most recent version of this dependency - Z Evan
             </dependency>
 
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>kafka</artifactId>
-                <version>${test-containers.version}</version>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>${strimzi.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -621,6 +654,21 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <groupId>com.github.dasniko</groupId>
                 <artifactId>testcontainers-keycloak</artifactId>
                 <version>${keycloak.testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-admin-client</artifactId>
+                <version>${keycloak-admin-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>${wiremock-jre8.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.truth.extensions</groupId>
+                <artifactId>truth-proto-extension</artifactId>
+                <version>${google.truth.extension.version}</version>
                 <scope>test</scope>
             </dependency>
 
@@ -726,7 +774,7 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.4.0</version>
+                    <version>4.5.4</version>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
                         <args>
@@ -780,7 +828,8 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <release>11</release>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                     <showDeprecation>false</showDeprecation>
                     <showWarnings>false</showWarnings>
                 </configuration>
@@ -811,14 +860,14 @@ find alternative sources for the most recent version of this dependency - Z Evan
                 <configuration>
                     <additionalDependencies>
                         <additionalDependency>
-                            <groupId>org.jboss.spec.javax.annotation</groupId>
-                            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
-                            <version>1.0.1.Final</version>
+                            <groupId>jakarta.annotation</groupId>
+                            <artifactId>jakarta.annotation-api</artifactId>
+                            <version>${annotation-api.version}</version>
                         </additionalDependency>
                     </additionalDependencies>
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
-                    <source>8</source>
+                    <source>${maven.compiler.source}</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -855,27 +904,15 @@ find alternative sources for the most recent version of this dependency - Z Evan
 
     <profiles>
         <profile>
-            <id>infinispan</id>
+            <id>multitenancy</id>
             <modules>
-                <module>storage/infinispan</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>asyncmem</id>
-            <modules>
-                <module>storage/asyncmem</module>
+                <module>multitenancy/tenant-manager-api</module>
             </modules>
         </profile>
         <profile>
             <id>sql</id>
             <modules>
                 <module>storage/sql</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>streams</id>
-            <modules>
-                <module>storage/streams</module>
             </modules>
         </profile>
         <profile>
@@ -894,10 +931,35 @@ find alternative sources for the most recent version of this dependency - Z Evan
             </properties>
         </profile>
         <profile>
-            <id>perftest</id>
+            <id>integration-tests</id>
             <modules>
-                <module>perftest</module>
+                <module>integration-tests/integration-tests-common</module>
+                <module>integration-tests/legacy-tests</module>
+                <module>integration-tests/testsuite</module>
             </modules>
+        </profile>
+        <profile>
+            <id>skip-auth-test</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+             <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*SimpleAuthTest.java</exclude>
+                                <exclude>**/*MojoAuthTest.java</exclude>
+                                <exclude>**/*SimpleAuthIT.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>            
         </profile>
         <profile>
             <id>release</id>

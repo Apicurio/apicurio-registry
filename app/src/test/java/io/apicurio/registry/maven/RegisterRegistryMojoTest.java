@@ -17,22 +17,15 @@
 
 package io.apicurio.registry.maven;
 
-import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.avro.Schema;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * @author Ales Justin
@@ -44,35 +37,12 @@ public class RegisterRegistryMojoTest extends RegistryMojoTestBase {
     @BeforeEach
     public void createMojo() {
         this.mojo = new RegisterRegistryMojo();
-        this.mojo.registryUrl = "http://localhost:8081/api";
+        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
-        Map<String, Integer> expectedVersions = new LinkedHashMap<>();
-
-        Map<String, File> idToFile = new LinkedHashMap<>();
-        int version = 1;
-        for (int i = 0; i < 10; i++) {
-            String keySubject = String.format("TestSubject%03d-key", i);
-            String valueSubject = String.format("TestSubject%03d-value", i);
-            Schema keySchema = Schema.create(Schema.Type.STRING);
-            Schema valueSchema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-            File keySchemaFile = new File(this.tempDirectory, keySubject + ".avsc");
-            File valueSchemaFile = new File(this.tempDirectory, valueSubject + ".avsc");
-            writeContent(keySchemaFile, keySchema.toString(true).getBytes(StandardCharsets.UTF_8));
-            writeContent(valueSchemaFile, valueSchema.toString(true).getBytes(StandardCharsets.UTF_8));
-            idToFile.put(keySubject, keySchemaFile);
-            expectedVersions.put(keySubject, version);
-            idToFile.put(valueSubject, valueSchemaFile);
-            expectedVersions.put(valueSubject, version);
-        }
-
-        mojo.artifacts = idToFile;
-        mojo.artifactType = ArtifactType.AVRO;
-        mojo.execute();
-
-        Assertions.assertEquals(mojo.artifactVersions, expectedVersions);
+        super.testRegister(mojo, "RegisterRegistryMojoTest");
     }
 }

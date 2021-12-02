@@ -6,11 +6,11 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+@io.quarkus.runtime.annotations.RegisterForReflection
 public enum ArtifactType {
 
     AVRO("AVRO"),
     PROTOBUF("PROTOBUF"),
-    PROTOBUF_FD("PROTOBUF_FD"),
     JSON("JSON"),
     OPENAPI("OPENAPI"),
     ASYNCAPI("ASYNCAPI"),

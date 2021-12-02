@@ -16,68 +16,51 @@
 
 package io.apicurio.registry.rest;
 
-import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
-import io.apicurio.registry.metrics.LivenessUtil;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.rest.beans.Error;
-import io.apicurio.registry.rest.beans.RuleViolationError;
-import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.services.http.ErrorHttpResponse;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.InvalidArtifactIdException;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
-import io.apicurio.registry.storage.InvalidArtifactTypeException;
-import io.apicurio.registry.storage.NotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
 /**
+ * TODO use v1 beans when appropriate (when handling REST API v1 calls)
+ *
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @ApplicationScoped
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private static final Logger log = LoggerFactory.getLogger(RegistryExceptionMapper.class);
-
-    private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
-
-    private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
+    private static final Map<Class<? extends Exception>, Integer> CONFLUENT_CODE_MAP;
 
     @Inject
-    ResponseErrorLivenessCheck liveness;
+    Logger log;
+
     @Inject
-    LivenessUtil livenessUtil;
+    RegistryExceptionMapperService exceptionMapper;
 
     @Context
     HttpServletRequest request;
@@ -86,24 +69,12 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
-        map.put(NotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleViolationException.class, HTTP_CONFLICT);
-        map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
-        map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ConflictException.class, HTTP_CONFLICT);
-        map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
-        map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
-        CODE_MAP = Collections.unmodifiableMap(map);
-    }
-
-    public static Set<Class<? extends Exception>> getIgnored() {
-        return CODE_MAP.keySet();
+        map.put(ArtifactNotFoundException.class, ErrorCode.SUBJECT_NOT_FOUND.value());
+        map.put(ContentNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
+        map.put(RuleViolationException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
+        map.put(VersionNotFoundException.class, ErrorCode.VERSION_NOT_FOUND.value());
+        map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
+        CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
     }
 
     /**
@@ -111,35 +82,21 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
+
+        ErrorHttpResponse res = exceptionMapper.mapException(t);
+
         Response.ResponseBuilder builder;
-        int code;
-        if (t instanceof WebApplicationException) {
-            WebApplicationException wae = (WebApplicationException) t;
-            Response response = wae.getResponse();
-            builder = Response.fromResponse(response);
-            code = response.getStatus();
+        if (res.getJaxrsResponse() != null) {
+            builder = Response.fromResponse(res.getJaxrsResponse());
         } else {
-            code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
-            builder = Response.status(code);
+            builder = Response.status(res.getStatus());
         }
 
-        if (code == HTTP_INTERNAL_ERROR) {
-            // If the error is not something we should ignore, then we report it to the liveness object 
-            // and log it.  Otherwise we only log it if debug logging is enabled.
-            if (!livenessUtil.isIgnoreError(t)) {
-                liveness.suspectWithException(t);
-                log.error(t.getMessage(), t);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.error(t.getMessage(), t);
-                }
-            }
-        }
-
-        Error error = toError(t, code);
+        Error error = res.getError();
         if (isCompatEndpoint()) {
             error.setDetail(null);
             error.setName(null);
+            error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
         }
         return builder.type(MediaType.APPLICATION_JSON)
                       .entity(error)
@@ -148,7 +105,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
 
     /**
      * Returns true if the endpoint that caused the error is a "ccompat" endpoint.  If so
-     * we need to simplify the error we return.  The apicurio error structure has at least 
+     * we need to simplify the error we return.  The apicurio error structure has at least
      * one additional property.
      */
     private boolean isCompatEndpoint() {
@@ -158,35 +115,4 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         return false;
     }
 
-    private static Error toError(Throwable t, int code) {
-        Error error;
-
-        if (t instanceof RuleViolationException) {
-            RuleViolationException rve = (RuleViolationException) t;
-            error = new RuleViolationError();
-            ((RuleViolationError) error).setCauses(rve.getCauses());
-        } else {
-            error = new Error();
-        }
-
-        error.setErrorCode(code);
-        error.setMessage(t.getLocalizedMessage());
-        error.setDetail(getStackTrace(t));
-        error.setName(t.getClass().getSimpleName());
-        return error;
-    }
-    
-    /**
-     * Gets the full stack trace for the given exception and returns it as a
-     * string.
-     * @param t
-     */
-    private static String getStackTrace(Throwable t) {
-        try (StringWriter writer = new StringWriter()) {
-            t.printStackTrace(new PrintWriter(writer));
-            return writer.toString();
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

@@ -20,17 +20,17 @@ package io.apicurio.registry;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.beans.EditableMetaData;
-import io.apicurio.registry.rest.beans.SearchOver;
-import io.apicurio.registry.rest.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -40,22 +40,21 @@ import io.quarkus.test.junit.QuarkusTest;
  */
 @QuarkusTest
 public class ArtifactSearchTest extends AbstractResourceTestBase {
-    
-    private static final String OPENAPI_CONTENT_TEMPLATE = "{\r\n" + 
-            "    \"openapi\": \"3.0.2\",\r\n" + 
-            "    \"info\": {\r\n" + 
-            "        \"title\": \"TITLE\",\r\n" + 
-            "        \"version\": \"1.0.0\",\r\n" + 
-            "        \"description\": \"DESCRIPTION\"\r\n" + 
-            "    }\r\n" + 
+
+    private static final String OPENAPI_CONTENT_TEMPLATE = "{\r\n" +
+            "    \"openapi\": \"3.0.2\",\r\n" +
+            "    \"info\": {\r\n" +
+            "        \"title\": \"TITLE\",\r\n" +
+            "        \"version\": \"1.0.0\",\r\n" +
+            "        \"description\": \"DESCRIPTION\"\r\n" +
+            "    }\r\n" +
             "}";
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     void testCaseInsensitiveSearch() throws Exception {
-
+        String groupId = "ArtifactSearchTest_testCaseInsensitiveSearch";
         // warm-up
-        client.listArtifacts();
+        clientV2.listArtifactsInGroup(groupId);
 
         String artifactId = UUID.randomUUID().toString();
         String title = "testCaseInsensitiveSearch";
@@ -63,13 +62,13 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
         ByteArrayInputStream artifactData = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.OPENAPI, artifactData);
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactData);
         long id = amd.getGlobalId();
 
         this.waitForGlobalId(id);
 
         // Search against the name, with the exact name of the artifact
-        ArtifactSearchResults results = client.searchArtifacts(title, SearchOver.name, SortOrder.asc, 0, 10);
+        ArtifactSearchResults results = clientV2.searchArtifacts(groupId, title, null, null, null, SortBy.name, SortOrder.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
@@ -79,22 +78,36 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         metaData.setDescription(description);
         metaData.setLabels(Collections.singletonList("testCaseInsensitiveSearchLabel"));
         metaData.setProperties(Collections.singletonMap("testCaseInsensitiveSearchKey", "testCaseInsensitiveSearchValue"));
-        client.updateArtifactMetaData(artifactId, metaData);
+        clientV2.updateArtifactMetaData(groupId, artifactId, metaData);
 
         TestUtils.retry(() -> {
             // Now try various cases when seaching by labels and properties
-            ArtifactSearchResults ires = client.searchArtifacts("testCaseInsensitiveSearchLabel", SearchOver.labels, SortOrder.asc, 0, 10);
+            ArtifactSearchResults ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel"), null, SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = client.searchArtifacts("testCaseInsensitiveSearchLabel".toLowerCase(), SearchOver.labels, SortOrder.asc, 0, 10);
+            ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel".toLowerCase()), null, SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = client.searchArtifacts("testCaseInsensitiveSearchLabel".toUpperCase(), SearchOver.labels, SortOrder.asc, 0, 10);
+            ires = clientV2.searchArtifacts(groupId, null, null, List.of("testCaseInsensitiveSearchLabel".toUpperCase()), null, SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
-            ires = client.searchArtifacts("TESTCaseInsensitiveSEARCHLabel", SearchOver.labels, SortOrder.asc, 0, 10);
+            ires = clientV2.searchArtifacts(groupId, null, null, List.of("TESTCaseInsensitiveSEARCHLabel"), null, SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(ires);
             Assertions.assertEquals(1, ires.getCount());
+
+
+            ArtifactSearchResults propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey"), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey"), SortBy.name, SortOrder.asc, 0, 10);
+            Assertions.assertNotNull(propertiesSearch);
+            Assertions.assertEquals(1, propertiesSearch.getCount());
         });
     }
 

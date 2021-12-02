@@ -1,0 +1,86 @@
+
+.root {
+    margin: 0;
+    padding: 0;
+    font-family: RedHatDisplay, Overpass, overpass, helvetica, arial, sans-serif;
+    background-color: #efefef;
+}
+
+.apidocs-header {
+	background-image: url(/resources/images/apicurio_logo_darkbkg_350px.png);
+	background-repeat: no-repeat;
+	background-position: 9px 9px;
+	text-indent: 350px;
+	line-height: 64px;
+	font-size: 32px;
+	background-color: black;
+	color: #eee;
+	padding: 4px;
+}
+
+.apidocs-subheader {
+    background-color: rgb(34, 37, 44);
+    padding: 8px;
+    padding-left: 20px;
+    color: #eee;
+    font-size: 22px;
+    border-top: 1px solid #888;
+    border-bottom: 1px solid black;
+}
+
+.apidocs-body {
+	padding: 30px;
+	max-width: 920px;
+}
+
+.apidocs-body .apidocs-listing {
+}
+
+.apidocs-body .apidocs-listing .apidocs-api {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	box-shadow: 2px 2px 2px #ccc;
+	margin-bottom: 20px;
+	padding: 18px;
+	background-color: white;
+}
+.apidocs-body .apidocs-listing .apidocs-api:hover {
+	border-color: #aaa;
+    box-shadow: 2px 2px 2px #aaa;
+}
+
+.apidocs-body .apidocs-listing .apidocs-api.default {
+	margin-bottom: 40px;
+	border-color: green;
+}
+
+.apidocs-body .apidocs-listing .apidocs-api.deprecated {
+}
+
+
+.apidocs-body .apidocs-listing .apidocs-api .name {
+	color: #333;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 8px;
+}
+.apidocs-body .apidocs-listing .apidocs-api.default .name {
+	color: green;
+}
+.apidocs-body .apidocs-listing .apidocs-api .description {
+	color: #666;
+	font-size: 14px;
+    margin-bottom: 15px;
+}
+.apidocs-body .apidocs-listing .apidocs-api .endpoint {
+}
+.apidocs-body .apidocs-listing .apidocs-api .endpoint .url {
+	font-family: Consolas, monospace;
+	font-size: 17px;
+	color: green;
+	background-color: #eef;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-top: 2px;
+	padding-bottom: 5px;
+}

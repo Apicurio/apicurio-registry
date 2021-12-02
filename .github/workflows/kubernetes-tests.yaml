@@ -1,53 +1,102 @@
 name: Kubernetes Tests Workflow
 on:
-
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to run tests on'
-        required: true
-        default: 'master'
-      apicurio-tests-profile:
-        description: 'Apicurio Tests Profile to be used, determines what tests are executed from tests module'
-        required: true
-        default: 'smoke'
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [master]
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+      - 'docs/**'
+    branches: [master]
 
 jobs:
-  kubernetes-tests:
-    name: Kubernetes Tests
+  kubernetes-tests-basic:
+    name: Kubernetes Tests Basic
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
-      - name: Set up JDK 1.8
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.8'
+      - run: go version
+
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '8'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
-      - name: Cache Dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
       - name: Build All Variants
-        run: mvn clean install -Pprod -Pjpa -Pinfinispan -Pstreams -pl !tests
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
         
       - name: Build The Tagged Docker Images
         run: |
-          cd distro/docker
-          mvn package -Pprod -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pjpa -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pinfinispan -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
-          mvn package -Pprod -Pstreams -DskipTests -Ddocker -Ddocker.tag.name=latest-snapshot
+          make IMAGE_TAG=latest-ci build-mem-image
+          make IMAGE_TAG=latest-ci build-sql-image
+          make IMAGE_TAG=latest-ci build-kafkasql-image
 
       - name: Kubernetes Tests
-        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-snapshot" E2E_APICURIO_TESTS_PROFILE=${{ github.event.inputs.apicurio-tests-profile }} ./.github/scripts/test_apicurio_kubernetes.sh
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_kubernetes_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: tests-logs
+          path: artifacts
+
+  kubernetes-tests-clustered:
+    name: Kubernetes Tests Clustered
+    runs-on: ubuntu-18.04
+    if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.8'
+      - run: go version
+
+      - name: Set up JDK ${{ matrix.jdk-version }}
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: ${{ matrix.jdk-version }}
+          architecture: x64
+
+      - name: Build All Variants
+        run: mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Build The Tagged Docker Images
+        run: |
+          make IMAGE_TAG=latest-ci build-mem-image
+          make IMAGE_TAG=latest-ci build-sql-image
+          make IMAGE_TAG=latest-ci build-kafkasql-image
+
+      - name: Kubernetes Tests
+        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=clustered ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()

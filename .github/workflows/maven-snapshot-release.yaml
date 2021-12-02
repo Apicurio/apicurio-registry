@@ -19,4 +19,4 @@ jobs:
     
       - name: Maven Deploy
         if: github.ref == 'refs/heads/master'
-        run: mvn deploy --batch-mode -Pprod -Psql -Pinfinispan -Pstreams -Pasyncmem -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml
+        run: mvn deploy --batch-mode -Pprod -Psql -Pmultitenancy -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml

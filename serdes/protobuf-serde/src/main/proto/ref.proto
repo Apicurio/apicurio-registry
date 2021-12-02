@@ -1,0 +1,9 @@
+syntax = "proto3";
+package io.apicurio.registry.serde.protobuf.ref;
+
+option optimize_for = SPEED;
+option java_package = "io.apicurio.registry.serde.protobuf.ref";
+
+message Ref {
+    string name = 1;
+}

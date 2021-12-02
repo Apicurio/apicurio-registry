@@ -1,15 +1,15 @@
 var ApicurioRegistryConfig = {
-    mode: "prod",
     artifacts: {
-        type: "rest",
-        url: "http://localhost:8080/api"
+        url: "http://localhost:8080/apis/registry"
     },
     ui: {
-        contextPath: null,
-        url: "http://localhost:8888/ui"
+        contextPath: "/",
+        navPrefixPath: "/"
     },
     auth: {
         type: "keycloakjs",
+        rbacEnabled: true,
+        obacEnabled: false,
         options: {
             url: "https://studio-auth.apicur.io/auth",
             realm: "apicurio-local",
@@ -18,6 +18,8 @@ var ApicurioRegistryConfig = {
         }
     },
     features: {
-        readOnly: false
+        readOnly: false,
+        breadcrumbs: true,
+        roleManagement: false
     }
 };

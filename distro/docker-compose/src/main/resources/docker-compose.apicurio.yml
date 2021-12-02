@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+
+  apicurio-registry:
+    image: 'apicurio/apicurio-registry-mem:latest'
+    ports:
+      - '8080:8080'
+    environment:
+      AUTH_ENABLED: ${AUTH_ENABLED}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_API_CLIENT_ID: ${KEYCLOAK_API_CLIENT_ID}
+      KEYCLOAK_UI_CLIENT_ID: ${KEYCLOAK_UI_CLIENT_ID}

@@ -1,50 +1,35 @@
 // Metadata created by nebel
 
-[id="registry-storage"]
+[id="registry-storage_{context}"]
 = {registry} storage options
-{registry} provides the following underlying storage implementations for registry artifacts: 
+
+[role="_abstract"]
+{registry} provides the following options for the underlying storage of registry data: 
 
 ifdef::apicurio-registry[]
 
 * In-memory 
-* Java Persistence API 
-* Apache Kafka 
-* Apache Kafka Streams
-* Embedded Infinispan cache
+* PostgreSQL {registry-db-version} database 
+* Apache Kafka 2.6
 
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The Kafka Streams storage option is recommended for production environments.
+NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
 
 endif::[]
 
 ifdef::rh-service-registry[]
 
-.{registry} storage options
-[%header,cols=2*] 
-|===
-|Storage option
-|Release
-|Kafka Streams-based storage in AMQ Streams 1.5 
-|General Availability
-|Cache-based storage in embedded Infinispan 10
-|Technical Preview only 
-|Java Persistence API-based storage in PostgreSQL 12 database
-|Technical Preview only 
-|===
+* PostgreSQL {registry-db-version} database 
+* AMQ Streams {registry-streams-version} 
 
 endif::[]
 
-ifdef::rh-service-registry[]
-[IMPORTANT]
-====
-{registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
-
-These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
-====
-endif::[]
-
+[role="_additional-resources"]
 .Additional resources
 ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
-endif::[]
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
+endif::[]
+ifdef::rh-service-registry[]
+* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
+endif::[]

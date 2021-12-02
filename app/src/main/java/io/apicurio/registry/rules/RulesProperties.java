@@ -15,7 +15,7 @@
  */
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.storage.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;

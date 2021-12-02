@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,188 +13,228 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.apicurio.registry.auth;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
-import io.apicurio.registry.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.client.exception.ForbiddenException;
-import io.apicurio.registry.client.exception.NotAuthorizedException;
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
+/**
+ * @author Fabian Martinez
+ */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
+@Tag(ApicurioTestTags.DOCKER)
 public class SimpleAuthTest extends AbstractResourceTestBase {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleAuthTest.class);
-
-    @ConfigProperty(name = "registry.keycloak.url")
-    String authServerUrl;
-
-    @ConfigProperty(name = "registry.keycloak.realm")
-    String realm;
-
-    @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
-    Boolean authEnabled;
+    @ConfigProperty(name = "registry.auth.token.endpoint")
+    String authServerUrlConfigured;
 
     String adminClientId = "registry-api";
     String developerClientId = "registry-api-dev";
     String readOnlyClientId = "registry-api-readonly";
 
-    String clientSecret = "test1";
+    String testUsername = "sr-test-user";
+    String testPassword = "sr-test-password";
 
-    @Override
-    @BeforeAll
-    protected void beforeAll() throws Exception {
-        System.out.println("Auth is " + authEnabled);
-        registryUrl = "http://localhost:8081/api";
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+    final String groupId = "authTestGroupId";
+
+    private RegistryClient createClient(Auth auth) {
+        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
-    @AfterEach
-    void cleanArtifacts() throws Exception {
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-        List<String> artifacts = client.listArtifacts();
-        for (String artifactId : artifacts) {
-            try {
-                client.deleteArtifact(artifactId);
-            } catch (AssertionError e) {
-                //because of async storage artifact may be already deleted but listed anyway
-                LOGGER.info(e.getMessage());
-            } catch (Exception e) {
-                LOGGER.error("", e);
-            }
-        }
+    /**
+     * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
+     */
+    @Override
+    protected RegistryClient createRestClientV2() {
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-
-        Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test55");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test55", Optional.empty());
+        RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
-            client.listArtifacts();
+            client.listArtifactsInGroup(groupId);
         });
-
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testReadOnly() throws Exception {
-
-        Auth auth = new KeycloakAuth(authServerUrl, realm, readOnlyClientId, "test1");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
-        client.listArtifacts();
-
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
-            client.getArtifactByGlobalId(2);
-        });
-
-        Assertions.assertThrows(ArtifactNotFoundException.class, () -> {
-            client.getLatestArtifact("abc");
-        });
-
-        Assertions.assertThrows(ForbiddenException.class, () -> {
-            client.createArtifact("ccc", ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-        });
-
+        Auth auth = new OidcAuth(authServerUrlConfigured, readOnlyClientId, "test1", Optional.empty());
+        RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
+        client.listArtifactsInGroup(groupId);
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getArtifactMetaData(groupId, artifactId));
+        Assertions.assertThrows(ArtifactNotFoundException.class, () -> client.getLatestArtifact("abc", artifactId));
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        });
         {
-            Auth devAuth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
-            RegistryRestClient devClient = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), devAuth);
-            ArtifactMetaData meta = devClient.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> devClient.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
+            Auth devAuth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
+            RegistryClient devClient = createClient(devAuth);
+            ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
         }
+        assertNotNull(client.getLatestArtifact(groupId, artifactId));
 
-        assertNotNull(client.getLatestArtifact(artifactId));
-
+        UserInfo userInfo = client.getCurrentUserInfo();
+        assertNotNull(userInfo);
+        Assertions.assertEquals("service-account-registry-api-readonly", userInfo.getUsername());
+        Assertions.assertFalse(userInfo.getAdmin());
+        Assertions.assertFalse(userInfo.getDeveloper());
+        Assertions.assertTrue(userInfo.getViewer());
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testDevRole() throws Exception {
-
-        Auth auth = new KeycloakAuth(authServerUrl, realm, developerClientId, "test1");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
+        Auth auth = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
+        RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifacts();
+            client.listArtifactsInGroup(groupId);
 
-            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
 
-            assertNotNull(client.getLatestArtifact(meta.getId()));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
 
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.createArtifactRule(meta.getId(), ruleConfig);
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
 
             Assertions.assertThrows(ForbiddenException.class, () -> {
                 client.createGlobalRule(ruleConfig);
             });
+
+            UserInfo userInfo = client.getCurrentUserInfo();
+            assertNotNull(userInfo);
+            Assertions.assertEquals("service-account-registry-api-dev", userInfo.getUsername());
+            Assertions.assertFalse(userInfo.getAdmin());
+            Assertions.assertTrue(userInfo.getDeveloper());
+            Assertions.assertFalse(userInfo.getViewer());
         } finally {
-            client.deleteArtifact(artifactId);
+            client.deleteArtifact(groupId, artifactId);
         }
-
-
-
     }
 
-    @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testAdminRole() throws Exception {
-
-        Auth auth = new KeycloakAuth(authServerUrl, realm, adminClientId, "test1");
-
-        RegistryRestClient client = RegistryRestClientFactory.create(registryUrl, Collections.emptyMap(), auth);
-
+        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.listArtifacts();
-
-            ArtifactMetaData meta = client.createArtifact(artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-            TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(meta.getGlobalId()));
-
-            assertNotNull(client.getLatestArtifact(meta.getId()));
-
+            client.listArtifactsInGroup(groupId);
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
             Rule ruleConfig = new Rule();
             ruleConfig.setType(RuleType.VALIDITY);
             ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.createArtifactRule(meta.getId(), ruleConfig);
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
+
+            client.createGlobalRule(ruleConfig);
+
+            UserInfo userInfo = client.getCurrentUserInfo();
+            assertNotNull(userInfo);
+            Assertions.assertEquals("service-account-registry-api", userInfo.getUsername());
+            Assertions.assertTrue(userInfo.getAdmin());
+            Assertions.assertFalse(userInfo.getDeveloper());
+            Assertions.assertFalse(userInfo.getViewer());
+        } finally {
+            client.deleteArtifact(groupId, artifactId);
+        }
+    }
+
+    @Test
+    public void testAdminRoleBasicAuth() throws Exception {
+
+        Auth auth = new BasicAuth(testUsername, testPassword);
+
+        RegistryClient client = createClient(auth);
+
+        String artifactId = TestUtils.generateArtifactId();
+        try {
+            client.listArtifactsInGroup(groupId);
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
+            assertNotNull(client.getLatestArtifact(groupId, artifactId));
+            Rule ruleConfig = new Rule();
+            ruleConfig.setType(RuleType.VALIDITY);
+            ruleConfig.setConfig(ValidityLevel.NONE.name());
+            client.createArtifactRule(groupId, artifactId, ruleConfig);
 
             client.createGlobalRule(ruleConfig);
         } finally {
-            client.deleteArtifact(artifactId);
+            client.deleteArtifact(groupId, artifactId);
         }
-
     }
 
+    @Test
+    public void testOwnerOnlyAuthorization() throws Exception {
+        Auth authDev = new OidcAuth(authServerUrlConfigured, developerClientId, "test1", Optional.empty());
+        RegistryClient clientDev = createClient(authDev);
+
+        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        RegistryClient clientAdmin = createClient(authAdmin);
+
+        // Admin user will create an artifact
+        String artifactId = TestUtils.generateArtifactId();
+        clientAdmin.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        EditableMetaData updatedMetaData = new EditableMetaData();
+        updatedMetaData.setName("Updated Name");
+        // Dev user cannot edit the same artifact because Dev user is not the owner
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
+        });
+
+        // But the admin user CAN make the change.
+        clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
+
+
+        // Now the Dev user will create an artifact
+        String artifactId2 = TestUtils.generateArtifactId();
+        clientDev.createArtifact(groupId, artifactId2, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        // And the Admin user will modify it (allowed because it's the Admin user)
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.createArtifactRule(groupId, artifactId2, rule);
+    }
 }

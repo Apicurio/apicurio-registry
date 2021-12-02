@@ -27,7 +27,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
-import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_V1;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.JSON;
+import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 
 /**
  * Note:
@@ -37,9 +40,9 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
-@Path("/ccompat/config")
+@Path("/apis/ccompat/v6/config")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface ConfigResource {

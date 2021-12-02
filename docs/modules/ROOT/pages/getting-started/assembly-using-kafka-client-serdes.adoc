@@ -2,48 +2,34 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="using-kafka-client-serdes"]
-= Validating schemas using Kafka client serializers/deserializers
+= Validating Kafka messages using serializers/deserializers in Java clients
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-{registry} provides Kafka client serializers/deserializers for producer and consumer applications. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that the messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
+[role="_abstract"]
+{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
 
-This chapter provides instructions on how to use the Kafka client serializers and deserializers for Apache Avro, JSON Schema, and Google Protobuf in your Kafka producer and consumer client applications:
+This chapter explains how to use Kafka client SerDe in your producer and consumer client applications:
 
-* xref:registry-serdes-concepts-serde-{context}[]
-* xref:registry-serdes-concepts-strategy-{context}[]
-* xref:registry-serdes-concepts-constants-{context}[]
-* xref:registry-serdes-types-serde-{context}[]
-* xref:registry-serdes-types-avro-{context}[]
-* xref:registry-serdes-types-json-{context}[]
-* xref:registry-serdes-types-protobuf-{context}[]
-* xref:registry-serdes-register-{context}[]
-* xref:registry-serdes-config-consumer-{context}[]
-* xref:registry-serdes-config-producer-{context}[]
-* xref:registry-serdes-config-stream-{context}[]
+* xref:registry-serdes-concepts-serde_{context}[]
+* xref:registry-serdes-concepts-strategy_{context}[]
+* xref:registry-serdes-register_{context}[]
+* xref:registry-serdes-config-consumer_{context}[]
+* xref:registry-serdes-config-producer_{context}[]
+* xref:registry-serdes-config-stream_{context}[]
 
 .Prerequisites
-* You must have read {registry-overview}
-* You must have installed {registry}.
-* You must have created Kafka producer and consumer client applications.
+* You have read {registry-overview}
+* You have installed {registry}
+* You have created Kafka producer and consumer client applications
 +
 ifdef::rh-service-registry[]
 For more details on Kafka client applications, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift[Using AMQ Streams on Openshift].
 endif::[]
 
-
 //INCLUDES
 include::{mod-loc}getting-started/con-registry-serdes-concepts.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/con-registry-serdes-strategy.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-constants.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-types.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-avro.adoc[leveloffset=+2]
-include::{mod-loc}getting-started/con-registry-serdes-json.adoc[leveloffset=+2]
-include::{mod-loc}getting-started/con-registry-serdes-protobuf.adoc[leveloffset=+2]
 include::{mod-loc}getting-started/proc-registry-serdes-register.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-registry-serdes-config-consumer.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-registry-serdes-config-producer.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-registry-serdes-config-stream.adoc[leveloffset=+1]
-
-//.Additional resources (or Next steps)
-
-//* ...

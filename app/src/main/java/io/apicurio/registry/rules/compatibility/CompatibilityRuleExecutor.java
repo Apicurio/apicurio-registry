@@ -29,9 +29,9 @@ import javax.inject.Inject;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.rest.beans.RuleViolationCause;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
+import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -79,11 +79,11 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
      * for return to the user.
      * @param differences
      */
-    private Set<RuleViolationCause> transformCompatibilityDiffs(Set<CompatibilityDifference> differences) {
+    private Set<RuleViolation> transformCompatibilityDiffs(Set<CompatibilityDifference> differences) {
         if (!differences.isEmpty()) {
-            Set<RuleViolationCause> res = new HashSet<>();
+            Set<RuleViolation> res = new HashSet<>();
             for (CompatibilityDifference diff : differences) {
-                res.add(diff.asRuleViolationCause());
+                res.add(diff.asRuleViolation());
             }
             return res;
         } else {

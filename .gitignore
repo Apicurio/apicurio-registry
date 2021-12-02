@@ -15,3 +15,8 @@ target/
 *.iws
 
 website
+
+# Other
+*~
+.notes
+**/bin

@@ -16,15 +16,34 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
+
 /**
  * @author eric.wittmann@gmail.com
  */
 public interface TenantContext {
-    
-    public String tenantId();
-    
-    public void tenantId(String tenantId);
-    
-    public void clearTenantId();
 
+    String DEFAULT_TENANT_ID = "_";
+
+    /**
+     * Get tenant ID.
+     */
+    String tenantId();
+
+    String tenantOwner();
+
+    default String getTenantIdOrElse(String alternative) {
+        return isLoaded() ? tenantId() : alternative;
+    }
+
+    TenantLimitsConfiguration limitsConfig();
+
+    void setContext(RegistryTenantContext ctx);
+
+    void clearContext();
+
+    boolean isLoaded();
+
+    TenantStatusValue getTenantStatus();
 }

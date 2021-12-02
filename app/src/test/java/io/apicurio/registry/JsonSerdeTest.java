@@ -19,7 +19,7 @@ package io.apicurio.registry;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 import java.io.InputStream;
-import java.util.Collections;
+import java.util.Map;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -27,12 +27,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.registry.rest.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
 import io.quarkus.test.junit.QuarkusTest;
 
 /**
@@ -44,25 +44,26 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
     @Disabled("Doesn't work with H2 test env after code change for Spanner")
     @Test
     public void testSchema() throws Exception {
+        String groupId = "JsonSerdeTest_testSchema";
         InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, jsonSchema);
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema);
 
         // make sure we have schema registered
-        retry(() -> client.getArtifactByGlobalId(amd.getGlobalId()));
+        retry(() -> clientV2.getContentByGlobalId(amd.getGlobalId()));
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(client, true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(client, true)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV2, true);
+             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV2, true)) {
 
-            serializer.configure(Collections.emptyMap(), false);
-            serializer.setArtifactIdStrategy(new SimpleTopicIdStrategy<>());
+            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializer.configure(configs, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(configs, false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);

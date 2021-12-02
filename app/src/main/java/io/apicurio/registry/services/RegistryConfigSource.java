@@ -20,13 +20,13 @@ import io.quarkus.runtime.configuration.ProfileManager;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * ConfigSource that turns env vars into plain properties.
- * e.g. REGISTRY_STREAMS_TOPOLOGY_SECURITY_PROTOCOL=SSL --> %dev.registry.streams.topology.security.protocol=SSL
  * <p>
- * docker run -it -p 8080:8080 -e REGISTRY_PROPERTIES_PREFIX=REGISTRY_ -e REGISTRY_STREAMS_TOPOLOGY_SECURITY_PROTOCOL=SSL apicurio/apicurio-registry-streams
  *
  * @author Ales Justin
  */
@@ -52,6 +52,11 @@ public class RegistryConfigSource implements ConfigSource {
             }
         }
         return properties;
+    }
+
+    @Override
+    public Set<String> getPropertyNames() {
+        return new HashSet<>(properties.values());
     }
 
     @Override

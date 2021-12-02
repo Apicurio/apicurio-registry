@@ -17,27 +17,42 @@
 package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.apicurio.registry.ccompat.SchemaTypeFilter;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.*;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * @author Carles Arnal <carles.arnal@redhat.com>
+ * @author Carles Arnal 'carles.arnal@redhat.com'
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @EqualsAndHashCode
 @ToString
-@Builder
+@RegisterForReflection
 public class SchemaInfo {
 
     @JsonProperty("schema")
     private String schema;
 
     @JsonProperty("schemaType")
-    @Builder.Default
-    private String schemaType = "AVRO";
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = SchemaTypeFilter.class)
+    private String schemaType;
+
+
+    public SchemaInfo(String schema, String schemaType) {
+        this.schema = schema;
+        this.schemaType = schemaType;
+    }
+
+    public SchemaInfo(String schema) {
+        this.schema = schema;
+    }
+
+    public SchemaInfo() {
+    }
 }

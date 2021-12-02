@@ -1,0 +1,2 @@
+io.apicurio.registry.mt.logging.MdcContextProvider
+io.apicurio.registry.mt.TenantThreadContextProvider

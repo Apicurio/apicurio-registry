@@ -16,63 +16,51 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.BadRequestException;
+
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SchemaId;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.metrics.ResponseErrorLivenessCheck;
-import io.apicurio.registry.metrics.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.metrics.RestMetricsApply;
-import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
-import org.eclipse.microprofile.metrics.annotation.Counted;
-import org.eclipse.microprofile.metrics.annotation.Timed;
-
-import java.util.List;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.container.AsyncResponse;
-
-import static io.apicurio.registry.metrics.MetricIDs.*;
-import static org.eclipse.microprofile.metrics.MetricUnits.MILLISECONDS;
+import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
 /**
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
-@RestMetricsApply
-@Counted(name = REST_REQUEST_COUNT, description = REST_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_COUNT})
-@ConcurrentGauge(name = REST_CONCURRENT_REQUEST_COUNT, description = REST_CONCURRENT_REQUEST_COUNT_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_CONCURRENT_REQUEST_COUNT})
-@Timed(name = REST_REQUEST_RESPONSE_TIME, description = REST_REQUEST_RESPONSE_TIME_DESC, tags = {"group=" + REST_GROUP_TAG, "metric=" + REST_REQUEST_RESPONSE_TIME}, unit = MILLISECONDS)
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {
 
+    @Inject
+    FacadeConverter converter;
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Integer> listVersions(String subject) throws Exception {
         return facade.getVersions(subject);
     }
 
     @Override
-    public void register(
-            AsyncResponse response,
-            String subject,
-            SchemaInfo request) throws Exception {
-
-        facade.createSchema(subject, request.getSchema(), request.getSchemaType())
-                .thenApply(FacadeConverter::convertUnsigned)
-                .whenComplete((id, t) -> {
-                    if (t != null) {
-                        response.resume(t);
-                    } else {
-                        response.resume(new SchemaId(id));
-                    }
-                });
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    public SchemaId register(String subject, SchemaInfo request) throws Exception {
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
+        int sid = converter.convertUnsigned(id);
+        return new SchemaId(sid);
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public Schema getSchemaByVersion(
             String subject,
             String version) throws Exception {
@@ -81,6 +69,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public int deleteSchemaVersion(
             String subject,
             String version) throws Exception {
@@ -93,6 +82,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public String getSchemaOnly(
             String subject,
             String version) throws Exception {
@@ -101,6 +91,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public List<Integer> getSchemasReferencedBy(String subject, Integer version) throws Exception {
         return facade.getVersions(subject);
     }

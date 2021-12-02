@@ -16,18 +16,31 @@
 
 package io.apicurio.registry.cli;
 
-import picocli.CommandLine;
+import java.io.UncheckedIOException;
 
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import picocli.CommandLine;
 
 /**
  * @author Ales Justin
  */
 @CommandLine.Command(name = "versions", description = "Get artifact versions")
 public class VersionsCommand extends ArtifactCommand {
+
+    @CommandLine.Option(names = {"--offset"}, description = "Offset")
+    Integer offset;
+    @CommandLine.Option(names = {"--limit"}, description = "Limit")
+    Integer limit;
+
     @Override
     public void run() {
-        List<Long> versions = getClient().listArtifactVersions(artifactId);
-        println(versions);
+        VersionSearchResults versions = getClient().listArtifactVersions(groupId, artifactId, offset == null ? 0 : offset, limit == null ? 10 : limit);
+        try {
+            println(mapper.writeValueAsString(versions));
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

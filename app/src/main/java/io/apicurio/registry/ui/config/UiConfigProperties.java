@@ -28,7 +28,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.utils.RegistryProperties;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Holds/accesses all configuration settings for the UI.
@@ -37,15 +36,16 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class UiConfigProperties {
 
-    private static final Logger logger = LoggerFactory.getLogger(UiConfigProperties.class);
-    
+    @Inject
+    Logger log;
+
     @Inject
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
     boolean featureReadOnly;
 
     @Inject
-    @ConfigProperty(name = "registry.ui.config.uiUrl")
-    String uiUrl;
+    @ConfigProperty(name = "registry.ui.config.uiContextPath", defaultValue = "/ui/")
+    String uiContextPath;
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.apiUrl")
@@ -56,7 +56,7 @@ public class UiConfigProperties {
     boolean tenantEnabled;
 
     private final Map<String, Object> keycloakConfig;
-    
+
     /**
      * Constructor.
      * @param kcProperties
@@ -65,32 +65,32 @@ public class UiConfigProperties {
         this.keycloakConfig = new HashMap<>();
         kcProperties.stringPropertyNames().forEach(key -> keycloakConfig.put(key, kcProperties.get(key)));
     }
-    
+
     @PostConstruct
     void onConstruct() {
-        logger.debug("============> kcProperties  " + keycloakConfig);
-        logger.debug("============> tenantEnabled  " + tenantEnabled);
-        logger.debug("============> featureReadOnly  " + featureReadOnly);
-        logger.debug("============> uiUrl  " + uiUrl);
-        logger.debug("============> apiUrl  " + apiUrl);
+        log.debug("============> kcProperties  " + keycloakConfig);
+        log.debug("============> tenantEnabled  " + tenantEnabled);
+        log.debug("============> featureReadOnly  " + featureReadOnly);
+        log.debug("============> uiContextPath  " + uiContextPath);
+        log.debug("============> apiUrl  " + apiUrl);
     }
 
     public Map<String, Object> getKeycloakProperties() {
         return keycloakConfig;
     }
-    
+
     public boolean isFeatureReadOnly() {
         return featureReadOnly;
     }
-    
-    public String getUiUrl() {
-        return uiUrl;
+
+    public String getUiContextPath() {
+        return uiContextPath;
     }
-    
+
     public String getApiUrl() {
         return apiUrl;
     }
-    
+
     public boolean isKeycloakAuthEnabled() {
         return tenantEnabled;
     }

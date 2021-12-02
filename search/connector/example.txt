@@ -1,3 +1,0 @@
-curl -d '{"name":"registry-search-connector", "config":{"search.client-class":"io.apicurio.registry.search.client.hotrod.HotRodSearchClient", "search.client-initialize":"true", "connector.class":"io.apicurio.registry.connector.SearchSinkConnector", "topics":"search-topic"}}' -H "Content-Type: application/json" -X POST http://localhost:8083/connectors
-
-curl -u user:pass 'http://127.0.0.1:11222/rest/v2/caches/___search_cache?action=search&query=from%20io.apicurio.registry.search.common.Artifact'

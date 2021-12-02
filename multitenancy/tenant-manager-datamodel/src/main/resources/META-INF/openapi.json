@@ -1,0 +1,628 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Apicurio Registry - Tenant Management API",
+        "version": "1.0.0",
+        "description": "The REST API to the Apicurio Registry Tenant Manager.  The Tenant Manager is responsible for creating and deleting tenants from a multi-tenant deployment of Apicurio Registry.",
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+    },
+    "paths": {
+        "/registry": {
+            "summary": "Path used to access the information of the registry deployment being managed",
+            "description": "This path only contains a `GET` operation to obtain the details of the registry deployment that this tenant manager API is managing",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryDeploymentInfo"
+                                }
+                            }
+                        },
+                        "description": "Basic information about the Registry deployment being managed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getRegistryInfo",
+                "summary": "Returns the details of the registry deployment being managed"
+            }
+        },
+        "/system/info": {
+            "summary": "Retrieve system information",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SystemInfo"
+                                }
+                            }
+                        },
+                        "description": "On success, returns the system information."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getSystemInfo",
+                "summary": "Get system information",
+                "description": "This operation retrieves information about the running registry system, such as the version\nof the software and when it was built."
+            }
+        },
+        "/tenants/{tenantId}": {
+            "summary": "Path used to manage a single Tenant.",
+            "description": "The REST endpoint/path used to get, update, and delete single instances of an `Tenant`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.",
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenant"
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns a single `Tenant`."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getTenant",
+                "summary": "Get a Tenant",
+                "description": "Gets the details of a single instance of a `Tenant`."
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRegistryTenantRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Returned when the operation was successful."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateTenant",
+                "summary": "Update a tenant",
+                "description": "Updates the name, description, and resources for a tenant."
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Successful response.",
+                        "x-codegen-returnType": "javax.ws.rs.core.Response"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteTenant",
+                "summary": "Delete a Tenant",
+                "description": "Marks an existing `Tenant` to be deleted."
+            },
+            "parameters": [
+                {
+                    "name": "tenantId",
+                    "description": "A unique identifier for a `Tenant`.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/tenants": {
+            "summary": "Path used to manage the list of tenants.",
+            "description": "The REST endpoint/path used to list and create zero or more `Tenant` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
+            "get": {
+                "parameters": [
+                    {
+                        "name": "status",
+                        "description": "Filter by tenant status.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of entries to skip before starting to collect the result set.  Defaults to 0.",
+                        "schema": {
+                            "minimum": 0,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "limit",
+                        "description": "The number of entries to return.  Defaults to 20.",
+                        "schema": {
+                            "maximum": 500,
+                            "minimum": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortOrder"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "orderby",
+                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n* `tenantId`\n",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortBy"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenantList"
+                                }
+                            }
+                        },
+                        "description": "Successful response - returns an object containing a slice of `RegistryTenant` entities."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getTenants",
+                "summary": "List Tenants",
+                "description": "Gets a list of `RegistryTenant` entities according to the query parameters set."
+            },
+            "post": {
+                "requestBody": {
+                    "description": "A new `Tenant` to be created.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewRegistryTenantRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegistryTenant"
+                                },
+                                "x-codegen-returnType": "javax.ws.rs.core.Response"
+                            }
+                        },
+                        "description": "Successful response."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createTenant",
+                "summary": "Create a Tenant",
+                "description": "Creates a new instance of a `Tenant`."
+            }
+        },
+        "x-codegen-contextRoot": "/api/v1"
+    },
+    "components": {
+        "schemas": {
+            "Error": {
+                "title": "Root Type for Error",
+                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "description": "The short error message.",
+                        "type": "string"
+                    },
+                    "error_code": {
+                        "format": "int32",
+                        "description": "The server-side error code.",
+                        "type": "integer"
+                    },
+                    "detail": {
+                        "description": "Full details about the error.  This might contain a server stack trace, for example.",
+                        "type": "string"
+                    },
+                    "name": {
+                        "description": "The error name - typically the classname of the exception thrown by the server.",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "error_code": 500,
+                    "message": "An error occurred somewhere."
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "NewRegistryTenantRequest": {
+                "title": "Root Type for NewTenant",
+                "description": "The information required when creating a new tenant.",
+                "required": [
+                    "organizationId",
+                    "tenantId"
+                ],
+                "type": "object",
+                "properties": {
+                    "tenantId": {
+                        "description": "Unique identifier of a tenant within a registry deployment",
+                        "type": "string"
+                    },
+                    "organizationId": {
+                        "description": "ID of the organization the tenant belongs to",
+                        "type": "string"
+                    },
+                    "resources": {
+                        "description": "The list of resources that this tenant will have at max. available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "User who created the tenant",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "organizationId": "bank-of-foo",
+                    "tenantId": "tenant1",
+                    "name": "Foo Tenant",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ],
+                    "createdBy": "foo-user"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "RegistryDeploymentInfo": {
+                "title": "Root Type for RegistryDeployment",
+                "description": "Basic information of the Registry deployment that the Tenant Manager API is managing",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry-abc",
+                    "url": "https://registry.apps.com"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "RegistryTenant": {
+                "title": "Root Type for Tenant",
+                "description": "Models a single tenant.",
+                "required": [
+                    "tenantId",
+                    "createdOn",
+                    "createdBy",
+                    "organizationId"
+                ],
+                "type": "object",
+                "properties": {
+                    "tenantId": {
+                        "description": "Unique identifier of a tenant within a registry deployment",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "Date when the tenant was created. ISO 8601 UTC timestamp.",
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "description": "User that created the tenant",
+                        "type": "string"
+                    },
+                    "organizationId": {
+                        "description": ""
+                    },
+                    "resources": {
+                        "description": "The list of resources that this tenant has available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
+                    },
+                    "name": {
+                        "description": "The name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "The description of the tenant.",
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TenantStatusValue",
+                        "description": "Current status of the tenant"
+                    }
+                },
+                "example": {
+                    "tenantId": "12345",
+                    "name": "Foo Tenant",
+                    "description": "This is the description of the foo tenant.",
+                    "createdOn": "2021-03-17T21:35:00Z",
+                    "createdBy": "usernamefoo",
+                    "organizationId": "bank-of-foo",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ],
+                    "status": "READY"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "SystemInfo": {
+                "title": "Root Type for SystemInfo",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "builtOn": {
+                        "format": "date-time",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "Apicurio Registry (SQL)",
+                    "description": "The Apicurio Registry application.",
+                    "version": "2.0.0.Final",
+                    "builtOn": "2021-03-19T12:55:00Z"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "TenantResource": {
+                "title": "Root Type for TenantResource",
+                "description": "Configuration of the limits for a specific resource type",
+                "required": [
+                    "limit",
+                    "type"
+                ],
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/ResourceType",
+                        "description": "The type of the resource to limit"
+                    },
+                    "limit": {
+                        "format": "int64",
+                        "description": "The quantity to limit this resource",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "type": "MAX_TOTAL_SCHEMAS",
+                    "limit": 1000
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "ResourceType": {
+                "description": "The list of possible types of a resource that can be limited",
+                "enum": [
+                    "MAX_TOTAL_SCHEMAS_COUNT",
+                    "MAX_ARTIFACTS_COUNT",
+                    "MAX_VERSIONS_PER_ARTIFACT_COUNT",
+                    "MAX_ARTIFACT_PROPERTIES_COUNT",
+                    "MAX_PROPERTY_KEY_SIZE_BYTES",
+                    "MAX_PROPERTY_VALUE_SIZE_BYTES",
+                    "MAX_ARTIFACT_LABELS_COUNT",
+                    "MAX_LABEL_SIZE_BYTES",
+                    "MAX_ARTIFACT_NAME_LENGTH_CHARS",
+                    "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "UpdateRegistryTenantRequest": {
+                "title": "Root Type for NewTenant",
+                "description": "The information required when creating a new tenant.",
+                "required": [
+                ],
+                "type": "object",
+                "properties": {
+                    "resources": {
+                        "description": "The list of resources that this tenant will have at max. available",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TenantResource"
+                        }
+                    },
+                    "name": {
+                        "description": "The optional name of the tenant.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "An optional description for the tenant.",
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TenantStatusValue",
+                        "description": "The new status for the tenant, it won't be changed if not provided"
+                    }
+                },
+                "example": {
+                    "name": "Updated Name",
+                    "description": "The updated description of the tenant.",
+                    "resources": [
+                        {
+                            "type": "MAX_TOTAL_SCHEMAS",
+                            "limit": 1000
+                        }
+                    ],
+                    "status": "TO_BE_DELETED"
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "TenantStatusValue": {
+                "description": "\"READY\": Tenant status when ready for use.\n\n\"TO_BE_DELETED\": Tenant status when marked to be deleted with all it's data.\n\n\"DELETED\": Tenant status after data deletion is finished.\n",
+                "enum": [
+                    "READY",
+                    "TO_BE_DELETED",
+                    "DELETED"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "RegistryTenantList": {
+                "description": "Describes the response received when searching for tenants.",
+                "required": [
+                    "count",
+                    "items"
+                ],
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "description": "The RegistryTenants returned in the result set.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RegistryTenant"
+                        }
+                    },
+                    "count": {
+                        "description": "The total number of items that matched the query that produced the result set (may be \nmore than the number of items in the result set).",
+                        "type": "integer"
+                    }
+                },
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "SortOrder": {
+                "description": "The order in which the list entries will be sorted",
+                "enum": [
+                    "asc",
+                    "desc"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            },
+            "SortBy": {
+                "description": "The name of the field that will be used for sorting",
+                "enum": [
+                    "name",
+                    "createdOn",
+                    "tenantId"
+                ],
+                "type": "string",
+                "x-codegen-package": "io.apicurio.multitenant.api.datamodel"
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can return a `400` error."
+            },
+            "NotFound": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "NotFoundExample": {
+                                "value": {
+                                    "error_code": 404,
+                                    "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can return a `404` error."
+            },
+            "ServerError": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "ErrorExample": {
+                                "value": {
+                                    "error_code": 500,
+                                    "message": "Lost connection to the database."
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Common response for all operations that can fail with an unexpected server error."
+            }
+        }
+    }
+}

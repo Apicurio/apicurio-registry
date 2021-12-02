@@ -1,17 +1,17 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="setting-up-postgresql-storage"]
-
+[id="setting-up-postgresql-storage_{context}"]
 
 = Configuring {registry} with PostgreSQL database storage on OpenShift
 
-This section explains how to configure Java Persistence API-based storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
+[role="_abstract"]
+This section explains how to configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See {installing-the-registry-openshift}.
-* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub[].
+* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[].
 
 .Procedure
 
@@ -19,11 +19,11 @@ This section explains how to configure Java Persistence API-based storage for {r
 
 . Change to the OpenShift project in which {registry} and your PostgreSQL Operator are installed. For example, from the *Project* drop-down, select `my-project`. 
 
-. Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators* > *PostgreSQL Operator by Dev4Ddevs.com* > *Create database* > *YAML*. 
+. Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators*, *PostgreSQL Operator by Dev4Ddevs.com*, and then *Create database*. 
 
-. Edit the database settings as follows:
+. Click *YAML* and edit the database settings as follows:
 ** `name`: Change the value to `registry`
-** `image`: Change the value to `centos/postgresql-10-centos7` 
+** `image`: Change the value to `centos/postgresql-12-centos7` 
 
 . Edit any other database settings as needed depending on your environment, for example:
 +
@@ -46,11 +46,11 @@ spec:
   databaseStorageRequest: 1Gi
   databaseUser: postgres
   databaseUserKeyEnvVar: POSTGRESQL_USER
-  image: centos/postgresql-10-centos7
+  image: centos/postgresql-12-centos7
   size: 1
 ----  
 
-. Click *Create Database*, and wait until the database is created.
+. Click *Create*, and wait until the database is created.
 
 ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
@@ -63,19 +63,19 @@ endif::[]
 +
 [source,yaml]
 ----
-apiVersion: apicur.io/v1alpha1
+apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry
 metadata:
-  name: example-apicurioregistry
+  name: example-apicurioregistry-sql
 spec:
   configuration:
-    persistence: "sql"
-    dataSource:
-      url: "jdbc:postgresql://SERVICE_NAME.NAMESPACE.svc:5432/"
-      # e.g. url: "jdbc:postgresql://acid-minimal-cluster.my-project.svc:5432/"
-      userName: "postgres"
-      password: "PASSWORD"
-      # ^ Optional
+    persistence: 'sql'
+    sql:
+      dataSource:
+        url: 'jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>'
+        # e.g. url: 'jdbc:postgresql://acid-minimal-cluster.my-project.svc:5432/registry'
+        userName: 'postgres'
+        password: '<password>' # Optional
 ----
       
 . Click *Create* and wait for the {registry} route to be created on OpenShift.
@@ -84,9 +84,10 @@ spec:
 +
 [source]
 ----
-http://example-apicurioregistry.my-project.my-domain-name.com/   
+http://example-apicurioregistry-sql.my-project.my-domain-name.com/   
 ----
 
+[role="_additional-resources"]
 .Additional resources
 
  * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]

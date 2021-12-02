@@ -28,7 +28,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.types.RegistryException;
 
 /**
- * Coordinates "write" responses across threads in the Kafka-SQL storage implementation.  Basically this is used
+ * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation.  Basically this is used
  * to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP thread is
  * waiting for an operation to be completed by the Kafka consumer thread.
  *

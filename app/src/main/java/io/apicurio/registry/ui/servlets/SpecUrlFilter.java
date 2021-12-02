@@ -19,8 +19,6 @@ package io.apicurio.registry.ui.servlets;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -39,9 +37,9 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 /**
  * Note: simple filtering of response content - found on Stack Overflow here:
- * 
+ *
  *   https://stackoverflow.com/a/14741213
- *   
+ *
  * @author eric.wittmann@gmail.com
  */
 @ApplicationScoped
@@ -55,26 +53,26 @@ public class SpecUrlFilter implements Filter {
     }
 
     /**
-     * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest,
-     *      javax.servlet.ServletResponse, javax.servlet.FilterChain)
+     * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-        CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) response);
-        chain.doFilter(request, wrappedResponse);
-        
+    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
+        CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) resp);
+        chain.doFilter(req, wrappedResponse);
+
         byte[] bytes = wrappedResponse.getByteArray();
-        if (bytes != null && response.getContentType() != null && response.getContentType().contains("text/html")) {
-            String specUrl = this.generateSpecUrl((HttpServletRequest) request);
-            
+        if (bytes != null && resp.getContentType() != null && resp.getContentType().contains("text/html")) {
+            String specUrl = this.generateSpecUrl((HttpServletRequest) req);
+            String title = this.generateSpecTitle((HttpServletRequest) req);
+
             String out = new String(bytes, StandardCharsets.UTF_8);
             out = out.replace("SPEC_URL", specUrl);
+            out = out.replace("API_TITLE", title);
             byte[] newBytes = out.getBytes(StandardCharsets.UTF_8);
-            response.setContentLength(newBytes.length);
-            response.getOutputStream().write(newBytes);
+            resp.setContentLength(newBytes.length);
+            resp.getOutputStream().write(newBytes);
         } else if (bytes != null && bytes.length > 0) {
-            response.getOutputStream().write(bytes);
+            resp.getOutputStream().write(bytes);
         }
     }
 
@@ -175,6 +173,7 @@ public class SpecUrlFilter implements Filter {
             return output.getWriter();
         }
 
+        @Override
         public String toString() {
             return output.toString();
         }
@@ -185,12 +184,35 @@ public class SpecUrlFilter implements Filter {
      * @param request
      */
     private String generateSpecUrl(HttpServletRequest request) {
-        try {
-            String url = request.getRequestURL().toString();
-            url = new URI(url).resolve("/openapi?format=JSON").toString();
-            return url;
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+        String servletPath = request.getServletPath();
+        String apiSpec = servletPath.replace("/apis/", "/api-specifications/");
+        if (!apiSpec.endsWith("/")) {
+            apiSpec += "/";
         }
+        apiSpec += "openapi.json";
+
+        return apiSpec;
+    }
+
+    private String generateSpecTitle(HttpServletRequest request) {
+        String servletPath = request.getServletPath();
+
+        if (servletPath.contains("registry/v1")) {
+            return "Core Registry API (v1)";
+        }
+        if (servletPath.contains("registry/v2")) {
+            return "Core Registry API (v2)";
+        }
+        if (servletPath.contains("ccompat")) {
+            return "Confluent Schema Registry API";
+        }
+        if (servletPath.contains("ibmcompat")) {
+            return "IBM Schema Registry API";
+        }
+        if (servletPath.contains("cncf")) {
+            return "CNCF Schema Registry API";
+        }
+
+        return "";
     }
 }

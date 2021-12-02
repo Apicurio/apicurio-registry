@@ -5,15 +5,16 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = {registry} artifact reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
+[role="_abstract"]
 This chapter provides details on the supported artifact types, states, metadata, and content rules that are stored in {registry}.
 
-* xref:registry-artifact-types[]
-* xref:registry-artifact-states[]
-* xref:registry-artifact-metadata[]
-* xref:registry-rule-types[]
-* xref:registry-rule-maturity-matrix[]
+* xref:registry-artifact-types_{context}[]
+* xref:registry-artifact-states_{context}[]
+* xref:registry-artifact-metadata_{context}[]
+* xref:registry-rule-types_{context}[]
+* xref:registry-rule-maturity-matrix_{context}[]
 
-
+[role="_additional-resources"]
 .Additional resources
 * For more detailed information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 

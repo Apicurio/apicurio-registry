@@ -18,22 +18,29 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 
 import java.util.UUID;
 
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * @author eric.wittmann@gmail.com
  */
+@RegisterForReflection
 public class ArtifactKey extends AbstractMessageKey {
-    
+
+    private String groupId;
     private String artifactId;
     private final String uuid = UUID.randomUUID().toString();
-    
+
     /**
      * Creator method.
      * @param tenantId
+     * @param groupId
      * @param artifactId
      */
-    public static final ArtifactKey create(String tenantId, String artifactId) {
+    public static final ArtifactKey create(String tenantId, String groupId, String artifactId) {
         ArtifactKey key = new ArtifactKey();
         key.setTenantId(tenantId);
+        key.setGroupId(groupId);
         key.setArtifactId(artifactId);
         return key;
     }
@@ -51,7 +58,7 @@ public class ArtifactKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + "/" + artifactId;
+        return getTenantId() + "/" + groupId + "/" + artifactId;
     }
 
     /**
@@ -59,6 +66,20 @@ public class ArtifactKey extends AbstractMessageKey {
      */
     public String getUuid() {
         return uuid;
+    }
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * @param groupId the groupId to set
+     */
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -74,13 +95,13 @@ public class ArtifactKey extends AbstractMessageKey {
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
     }
-    
+
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.keys.AbstractMessageKey#toString()
+     * @see java.lang.Object#toString()
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[artifactId=" + getArtifactId() + "]";
+        return "ArtifactKey [groupId=" + groupId + ", artifactId=" + artifactId + "]";
     }
 
 }

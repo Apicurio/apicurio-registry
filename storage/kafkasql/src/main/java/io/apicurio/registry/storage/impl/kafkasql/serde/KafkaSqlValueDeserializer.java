@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import java.util.Arrays;
-
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -27,12 +27,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageTypeToValueClass;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
-import io.apicurio.registry.types.ArtifactType;
 
 /**
  * Kafka deserializer responsible for deserializing the value of a KSQL Kafka message.
@@ -57,7 +56,7 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
         if (data == null) {
             return null;
         }
-        
+
         try {
             byte msgTypeOrdinal = data[0];
             if (msgTypeOrdinal == MessageType.Content.getOrd()) {
@@ -79,15 +78,32 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
      * @param data
      */
     private ContentValue deserializeContent(String topic, byte[] data) {
-        byte actionOrdinal = data[1];
-        byte artifactTypeOrdinal = data[2];
-        byte[] contentBytes = Arrays.copyOfRange(data, 3, data.length);
-        
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+        byteBuffer.get(); // the first byte is the message type ordinal, skip that
+        byte actionOrdinal = byteBuffer.get();
+
+        // Canonical hash (length of string + string bytes)
+        String canonicalHash = null;
+        int hashLen = byteBuffer.getInt();
+        if (hashLen > 0) {
+            byte[] bytes = new byte[hashLen];
+            byteBuffer.get(bytes);
+            canonicalHash = new String(bytes, StandardCharsets.UTF_8);
+        }
+
+        // Content (length of content + content bytes)
+        ContentHandle contentHandle = null;
+        int numContentBytes = byteBuffer.getInt();
+        if (numContentBytes > 0) {
+            byte[] contentBytes = new byte[numContentBytes];
+            byteBuffer.get(contentBytes);
+            contentHandle = ContentHandle.create(contentBytes);
+        }
+
+
         ActionType action = ActionType.fromOrd(actionOrdinal);
-        ArtifactType artifactType = ArtifactTypeOrdUtil.ordToArtifactType(artifactTypeOrdinal);
-        ContentHandle contentHandle = ContentHandle.create(contentBytes);
-        
-        return ContentValue.create(action, artifactType, contentHandle);
+
+        return ContentValue.create(action, canonicalHash, contentHandle);
     }
 
 }

@@ -1,0 +1,44 @@
+// Metadata created by nebel
+
+[id="registry-console_{context}"]
+= Manage {registry} content using client tools
+
+[role="_abstract"]
+You can manage {registry} content using the {registry} web console, core REST API, command line, Maven plug-in, or Java client.
+ 
+== {registry} web console
+You can use the {registry} web console to browse and search the schema and API artifacts, groups, and versions stored in the registry, and to add new schema and API artifacts, groups, and versions. You can also configure optional validation or compatibility rules for registry content, both globally and for each schema and API artifact.  
+
+.{registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-web-console.png[{registry} web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/introduction/registry-web-console.png[{registry} web console]
+endif::[]
+
+== Core registry REST API
+Using the {registry} core REST API, client applications can manage the schema and API artifacts in {registry}. This API provides create, read, update, and delete operations for artifacts, versions, metadata, and rules. It also provides search and admin operations, such as managing global rules or importing and exporting registry data.
+
+{registry} provides compatibility with other schema registry APIs, such as Confluent Schema Registry and CNCF CloudEvents Schema Registry.
+
+== rhoas CLI
+You can use the Red Hat OpenShift Application Services (`rhoas`) command line interface to create, read, and delete {registry} instances, and to manage schema and API artifacts stored {registry}. The `rhoas` CLI provides create, read, update, and delete operations for registry artifacts, versions, and metadata.
+
+== {registry} Java client
+You can use the {registry} Java client classes to create, read, update, or delete artifacts stored in {registry}. You can also perform admin functions using the Java client, such as managing global rules or importing and exporting registry data.
+
+== {registry} Maven plug-in
+You can use the {registry} Maven plug-in to add, download, or test {registry} artifacts in a Maven build. 
+This includes adding artifacts during a build, or downloading artifacts when generating code from a schema. If content rules are configured, you can test that artifacts can be added before making changes. 
+
+////
+[role="_additional-resources"]
+.Additional resources
+
+* Managing {registry} content using the web console
+* Managing {registry} content using the REST API
+* Getting started with the rhoas CLI
+* Managing {registry} content using the Java client
+* Managing {registry} content using the Maven plug-in
+////

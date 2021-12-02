@@ -26,25 +26,25 @@ import io.apicurio.registry.types.RuleType;
  * any rules configured for the artifact.
  *
  * @author Ales Justin
- * @author Jakub Senko <jsenko@redhat.com>
+ * @author Jakub Senko 'jsenko@redhat.com'
  */
 public interface RulesService {
 
     /**
      * Applies all configured rules to check whether a content update for an artifact is allowed.
-     *
+     * @param groupId
      * @param artifactId
      * @param artifactType
      * @param artifactContent
      * @param ruleApplicationType
      * @throws RuleViolationException
      */
-    void applyRules(String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
+    public void applyRules(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
                     RuleApplicationType ruleApplicationType) throws RuleViolationException;
 
     /**
      * Applies a single, specific rule to the content update for the given artifact.
-     *
+     * @param groupId
      * @param artifactId
      * @param artifactType
      * @param artifactContent
@@ -53,20 +53,20 @@ public interface RulesService {
      * @param ruleApplicationType
      * @throws RuleViolationException
      */
-    void applyRule(String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
+    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
                    RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
             throws RuleViolationException;
 
 
     /**
      * Applies configured rules to the content update, relative to ANY artifact version.
-     *
+     * @param groupId
      * @param artifactId
      * @param artifactVersion
      * @param artifactType
      * @param updatedContent
      * @throws RuleViolationException
      */
-    void applyRules(String artifactId, long artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
             throws RuleViolationException;
 }

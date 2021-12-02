@@ -2,7 +2,7 @@
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-postgresql-operatorhub"]
+[id="installing-postgresql-operatorhub_{context}"]
 = Installing a PostgreSQL database from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
@@ -16,18 +16,18 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`. 
+. Change to the OpenShift project in which you want to install the PostgreSQL Operator. For example, from the *Project* drop-down, select `my-project`. 
 
-. In the left navigation menu, click *Operators* > *OperatorHub*.
+. In the left navigation menu, click *Operators* and then *OperatorHub*.
 
 . In the *Filter by keyword* text box, enter `PostgreSQL` to find an Operator suitable for your environment, for example, *Crunchy PostgreSQL for OpenShift* or *PostgreSQL Operator by Dev4Ddevs.com*.
 
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:
-** *Update Channel* > *stable*
-** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
-** *Approval Strategy* > *Manual*
+** *Update Channel*: *stable*
+** *Installation Mode*: *A specific namespace on the cluster* and then *my-project*
+** *Approval Strategy*: Select *Automatic* or *Manual*
 
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 +

@@ -1,7 +1,10 @@
 // Metadata created by nebel
 
-[id="registry-distros"]
+[id="registry-distros_{context}"]
 = {registry} available distributions
+
+[role="_abstract"]
+{registry} provides the following distribution options. 
 
 ifdef::apicurio-registry[]
 
@@ -12,14 +15,10 @@ ifdef::apicurio-registry[]
 |Container Image
 |In-memory
 |https://hub.docker.com/r/apicurio/apicurio-registry-mem
-|Java Persistence API  
+|PostgreSQL database  
 |https://hub.docker.com/r/apicurio/apicurio-registry-sql 
 |Apache Kafka
-|https://hub.docker.com/r/apicurio/apicurio-registry-kafka 
-|Apache Kafka Streams
-|https://hub.docker.com/r/apicurio/apicurio-registry-streams
-|Infinispan
-|https://hub.docker.com/r/apicurio/apicurio-registry-infinispan
+|https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql 
 |{registry} Operator 
 |https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
@@ -37,7 +36,7 @@ ifdef::rh-service-registry[]
 |===
 |Distribution
 |Location
-|Release
+|Release category
 |{registry} Operator 
 |OpenShift web console under *Operators* → *OperatorHub*
 |General Availability
@@ -45,24 +44,12 @@ ifdef::rh-service-registry[]
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |General Availability
 |Container image for Kafka storage in AMQ Streams 
+|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog] 
+|General Availability
+|Container image for database storage in PostgreSQL 
 |link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
 |General Availability
-|Container image for embedded Infinispan storage 
-|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
-|Technical Preview only
-|Container image for SQL storage in PostgreSQL 
-|link:{download-url-registry-container-catalog}[Red Hat Ecosystem Catalog]
-|Technical Preview only
 |===
-
-ifdef::rh-service-registry[]
-[IMPORTANT]
-====
-{registry} storage in Infinispan or PostgreSQL is a Technology Preview feature only. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. 
-
-These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
-====
-endif::[]
 
 
 .{registry} zip downloads
@@ -70,11 +57,11 @@ endif::[]
 |===
 |Distribution
 |Location
-|Release
+|Release category
 |Example custom resource definitions for installation
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
-|General Availability and Technical Preview
-|Kafka Connect converters 
+|General Availability
+|{registry} v1 to v2 migration tool 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
 |Maven repository
@@ -83,8 +70,10 @@ endif::[]
 |Source code 
 |link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
 |General Availability
+|Kafka Connect converters 
+|link:{download-url-registry-distribution}[Software Downloads for Red Hat Integration]
+|General Availability
 |===
-
 
 NOTE: You must have a subscription for Red Hat Integration and be logged into the Red Hat Customer Portal to access the available {registry} distributions.
 endif::[]

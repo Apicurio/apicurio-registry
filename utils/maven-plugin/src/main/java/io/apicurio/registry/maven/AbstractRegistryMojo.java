@@ -17,13 +17,21 @@
 
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.BasicAuth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import io.apicurio.registry.client.RegistryRestClient;
-import io.apicurio.registry.client.RegistryRestClientFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Base class for all Registry Mojo's.
@@ -35,22 +43,45 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
      * The registry's url.
-     * e.g. http://localhost:8080/api
+     * e.g. http://localhost:8080/api/v2
      */
-    @Parameter(required = true)
+    @Parameter(required = true, property = "registry.url")
     String registryUrl;
 
-    private RegistryRestClient client;
+    @Parameter(property = "auth.server.url")
+    String authServerUrl;
 
-    protected RegistryRestClient getClient() {
+    @Parameter(property = "client.id")
+    String clientId;
+
+    @Parameter(property = "client.secret")
+    String clientSecret;
+
+    @Parameter(property = "username")
+    String username;
+
+    @Parameter(property = "password")
+    String password;
+
+    private static RegistryClient client;
+
+    protected RegistryClient getClient() {
         if (client == null) {
-            client = RegistryRestClientFactory.create(registryUrl);
+            if (authServerUrl != null && clientId != null && clientSecret != null) {
+                Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret, Optional.empty());
+                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+            } else if (username != null && password != null) {
+                Auth auth = new BasicAuth(username, password);
+                client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
+            } else {
+                client = RegistryClientFactory.create(registryUrl);
+            }
         }
         return client;
     }
 
-    protected void setClient(RegistryRestClient client) {
-        this.client = client;
+    public void setClient(RegistryClient client) {
+        AbstractRegistryMojo.client = client;
     }
 
     @Override
@@ -59,4 +90,52 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException;
+
+    protected String getContentTypeByExtension(String fileName){
+        if(fileName == null) return null;
+        String[] temp = fileName.split("[.]");
+        String extension = temp[temp.length - 1];
+        switch (extension.toLowerCase(Locale.ROOT)){
+            case "avro":
+            case "avsc":
+            case "json":
+                return ContentTypes.APPLICATION_JSON;
+            case "yml":
+            case "yaml":
+                return ContentTypes.APPLICATION_YAML;
+            case "graphql":
+                return ContentTypes.APPLICATION_GRAPHQL;
+            case "proto":
+                return ContentTypes.APPLICATION_PROTOBUF;
+            case "wsdl":
+            case "xsd":
+            case "xml":
+                return ContentTypes.APPLICATION_XML;
+        }
+        return null;
+    }
+
+    public void setRegistryUrl(String registryUrl) {
+        this.registryUrl = registryUrl;
+    }
+
+    public void setAuthServerUrl(String authServerUrl) {
+        this.authServerUrl = authServerUrl;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }

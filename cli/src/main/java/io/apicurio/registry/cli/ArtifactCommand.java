@@ -21,10 +21,10 @@ import picocli.CommandLine;
 /**
  * @author Ales Justin
  */
-public abstract class ArtifactCommand extends AbstractCommand {
+public abstract class ArtifactCommand extends GroupCommand {
     @CommandLine.Option(names = {"-a", "--artifactId"}, description = "Artifact id", required = true)
     String artifactId;
 
     @CommandLine.Option(names = {"-v", "--version"}, description = "Get artifact version or latest")
-    Integer version;
+    String version;
 }

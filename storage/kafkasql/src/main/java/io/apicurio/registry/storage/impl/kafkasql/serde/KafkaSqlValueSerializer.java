@@ -19,6 +19,7 @@ package io.apicurio.registry.storage.impl.kafkasql.serde;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
 import org.apache.kafka.common.serialization.Serializer;
@@ -26,7 +27,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.storage.impl.kafkasql.keys.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 
@@ -35,7 +36,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
  * @author eric.wittmann@gmail.com
  */
 public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
         mapper.setSerializationInclusion(Include.NON_NULL);
@@ -49,12 +50,12 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
         if (messageValue == null) {
             return null;
         }
-        
+
         if (messageValue.getType() == MessageType.Content) {
             return this.serializeContent(topic, (ContentValue) messageValue);
         }
         try (UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream()) {
-            out.write(ByteBuffer.allocate(1).put((byte) messageValue.getType().getOrd()).array());
+            out.write(ByteBuffer.allocate(1).put(messageValue.getType().getOrd()).array());
             mapper.writeValue(out, messageValue);
             return out.toByteArray();
         } catch (IOException e) {
@@ -69,15 +70,25 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
      */
     private byte[] serializeContent(String topic, ContentValue contentValue) {
         try (UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream()) {
-            // Byte 0 is the message type
-            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getType().getOrd()).array());
-            // Byte 1 is the action type
-            out.write(ByteBuffer.allocate(1).put((byte) contentValue.getAction().getOrd()).array());
-            // Byte 2 is the artifact type
-            out.write(ByteBuffer.allocate(1).put(ArtifactTypeOrdUtil.artifactTypeToOrd(contentValue.getArtifactType())).array());
+            out.write(ByteBuffer.allocate(1).put(contentValue.getType().getOrd()).array());
+            out.write(ByteBuffer.allocate(1).put(contentValue.getAction().getOrd()).array());
+            if (contentValue.getCanonicalHash() != null) {
+                byte[] bytes = contentValue.getCanonicalHash().getBytes(StandardCharsets.UTF_8);
+                out.write(ByteBuffer.allocate(4).putInt(bytes.length).array());
+                out.write(ByteBuffer.allocate(bytes.length).put(bytes).array());
+            } else {
+                out.write(ByteBuffer.allocate(4).putInt(0).array());
+            }
+
             // The rest of the bytes is the content
-            out.write(contentValue.getContent().bytes());
-            
+            if (contentValue.getContent() != null) {
+                byte[] contentBytes = contentValue.getContent().bytes();
+                out.write(ByteBuffer.allocate(4).putInt(contentBytes.length).array());
+                out.write(contentBytes);
+            } else {
+                out.write(ByteBuffer.allocate(4).putInt(0).array());
+            }
+
             return out.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

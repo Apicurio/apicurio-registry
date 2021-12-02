@@ -1,0 +1,12 @@
+.ps_roles-header {
+    border-bottom: 1px solid #ddd;
+}
+
+.ps_role-filter-select-toolbar-item {
+    margin-right: 0px;
+}
+
+.ps_role-section {
+    height: fit-content;
+    min-height: 70vh;
+}

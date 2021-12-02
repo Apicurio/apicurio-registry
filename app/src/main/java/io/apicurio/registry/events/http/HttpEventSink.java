@@ -20,9 +20,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
 
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.events.EventSink;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -36,9 +36,10 @@ import io.vertx.core.http.HttpClientOptions;
 @ApplicationScoped
 public class HttpEventSink implements EventSink {
 
-    private static final Logger log = LoggerFactory.getLogger(HttpEventSink.class);
-
     private HttpClient httpClient;
+
+    @Inject
+    Logger log;
 
     @Inject
     HttpSinksConfiguration sinksConfiguration;
@@ -69,24 +70,27 @@ public class HttpEventSink implements EventSink {
 
     }
 
-    @SuppressWarnings("deprecated")
     private void sendEventHttp(String type, HttpSinkConfiguration httpSink, Buffer data) {
         try {
-            log.debug("Sending event to sink "+httpSink.getName());
+            log.debug("Sending event to sink " + httpSink.getName());
             getHttpClient()
-                .postAbs(httpSink.getEndpoint())
-                .putHeader("ce-id", UUID.randomUUID().toString())
-                .putHeader("ce-specversion", "1.0")
-                .putHeader("ce-source", "apicurio-registry")
-                .putHeader("ce-type", type)
-                .putHeader("content-type", MediaType.APPLICATION_JSON)
-                .exceptionHandler(ex -> {
-                    log.error("Error sending event to " + httpSink.getEndpoint(), ex);
-                })
-                .handler(res -> {
-                    //do nothing
-                })
-                .end(data);
+                .request(new RequestOptions()
+                            .setMethod(HttpMethod.POST)
+                            .setURI(httpSink.getEndpoint())
+                            .putHeader("ce-id", UUID.randomUUID().toString())
+                            .putHeader("ce-specversion", "1.0")
+                            .putHeader("ce-source", "apicurio-registry")
+                            .putHeader("ce-type", type)
+                            .putHeader("content-type", MediaType.APPLICATION_JSON),
+                            ar -> {
+                                if (ar.succeeded()) {
+                                    ar.result()
+                                        .exceptionHandler(ex -> log.error("Error sending event to " + httpSink.getEndpoint(), ex))
+                                        .end(data);
+                                } else {
+                                    log.error("Error sending event to " + httpSink.getEndpoint(), ar.cause());
+                                }
+                            });
         } catch (Exception e) {
             log.error("Error sending http event", e);
         }

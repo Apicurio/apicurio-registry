@@ -108,6 +108,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -125,7 +126,8 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 5;
+    private static int DB_VERSION = Integer.valueOf(
+        IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
     private static final Object dbMutex = new Object();
     private static final Object inmemorySequencesMutex = new Object();
 
@@ -230,6 +232,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private boolean isDatabaseCurrent(Handle handle) {
         log.info("Checking to see if the DB is up-to-date.");
+        log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersion(handle);
         return version == DB_VERSION;
     }

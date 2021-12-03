@@ -80,13 +80,13 @@ public class SearchResourceImpl implements SearchResource {
     HttpServletRequest request;
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
-            SortBy orderby, List<String> labels, List<String> properties, String description,
-            String group) {
+            SortBy orderby, List<String> labels, List<String> properties, String description, String group,
+            Integer globalId, Integer contentId) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
@@ -116,6 +116,12 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (properties != null && !properties.isEmpty()) {
             properties.forEach(label -> filters.add(new SearchFilter(SearchFilterType.properties, label)));
+        }
+        if (globalId != null && globalId > 0) {
+            filters.add(new SearchFilter(SearchFilterType.globalId, globalId));
+        }
+        if (contentId != null && contentId > 0) {
+            filters.add(new SearchFilter(SearchFilterType.contentId, contentId));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);

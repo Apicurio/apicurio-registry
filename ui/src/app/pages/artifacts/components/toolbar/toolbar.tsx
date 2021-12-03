@@ -99,6 +99,8 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                         <DropdownItem key="group" id="group" data-testid="toolbar-filter-group" component="button">Group</DropdownItem>,
                                         <DropdownItem key="description" id="description" data-testid="toolbar-filter-description" component="button">Description</DropdownItem>,
                                         <DropdownItem key="labels" id="labels" data-testid="toolbar-filter-labels" component="button">Labels</DropdownItem>,
+                                        <DropdownItem key="globalId" id="globalId" data-testid="toolbar-filter-globalId" component="button">GlobalId</DropdownItem>,
+                                        <DropdownItem key="contentId" id="contentId" data-testid="toolbar-filter-contentId" component="button">ContentId</DropdownItem>,
                                     ]}
                                 />
                                 <TextInput name="filterValue" id="filterValue" type="search"
@@ -217,6 +219,10 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                 return "Description";
             case "labels":
                 return "Labels";
+            case "globalId":
+                return "GlobalId";
+            case "contentId":
+                return "ContentId";
             default:
                 return "Name";
         }

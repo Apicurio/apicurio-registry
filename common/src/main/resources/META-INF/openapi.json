@@ -532,6 +532,24 @@
                             "type": "string"
                         },
                         "in": "query"
+                    },
+                    {
+                        "name": "globalId",
+                        "description": "Filter by globalId.",
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "contentId",
+                        "description": "Filter by contentId.",
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        },
+                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -54,6 +54,9 @@ public class SearchFilter {
      * @return the string value
      */
     public String getStringValue() {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof String) {
             return (String) value;
         }
@@ -64,6 +67,9 @@ public class SearchFilter {
      * @return the integer value
      */
     public Integer getIntegerValue() {
+        if (value == null) {
+            return null;
+        }
         if (value instanceof Integer) {
             return (Integer) value;
         }

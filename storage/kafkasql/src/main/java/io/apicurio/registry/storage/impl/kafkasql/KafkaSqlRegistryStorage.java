@@ -73,7 +73,6 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
-import io.quarkus.runtime.StartupEvent;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -83,9 +82,9 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
@@ -157,7 +156,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     private boolean bootstrapped = false;
     private boolean stopped = true;
 
-    void onConstruct(@Observes StartupEvent ev) {
+    @PostConstruct
+    void onConstruct() {
         log.info("Using Kafka-SQL artifactStore.");
 
         // Create Kafka topics if needed
@@ -265,7 +265,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                                 return;
                             }
 
-                            // If the key is a Bootstrap key, then we have processed all messages and can set boostrapped to 'true'
+                            // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
                             if (record.key().getType() == MessageType.Bootstrap) {
                                 BootstrapKey bkey = (BootstrapKey) record.key();
                                 if (bkey.getBootstrapId().equals(bootstrapId)) {

@@ -76,7 +76,7 @@ public class SearchResourceImpl implements SearchResource {
         Set<SearchFilter> filters = new HashSet<>();
         if (search != null && !search.trim().isEmpty()) {
             SearchFilter filter = new SearchFilter();
-            filter.setValue(search);
+            filter.setStringValue(search);
             filters.add(filter);
             switch (over) {
                 case description:

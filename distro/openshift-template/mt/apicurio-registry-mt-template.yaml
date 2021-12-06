@@ -211,6 +211,8 @@ objects:
             value: ${REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS}
           - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
             value: ${REGISTRY_AUTH_ANONYMOUS_READS_ENABLED}
+          - name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+            value: ${REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED}
           - name: REGISTRY_AUTH_ROLES_READONLY
             value: ${REGISTRY_AUTH_ROLES_READONLY}
           - name: REGISTRY_AUTH_ROLES_DEVELOPER
@@ -551,6 +553,9 @@ parameters:
   value: "false"
 - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
   description: flag to enable/disable anonymous read access
+  value: "false"
+- name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+  description: flag to enable/disable authenticated read access
   value: "false"
 - name: REGISTRY_AUTH_ROLES_READONLY
   description: property to set the name of the role that enables ReadOnly access when using token based RBAC

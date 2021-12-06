@@ -497,24 +497,13 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     /**
-     * @param group
-     * @param name
-     * @param description
-     * @param labels
-     * @param properties
-     * @param orderBy
-     * @param order
-     * @param offset
-     * @param limit
-     * @return
-     * @see io.apicurio.registry.rest.client.RegistryClient#searchArtifacts(java.lang.String, java.lang.String, java.lang.String, java.util.List, java.util.List, io.apicurio.registry.rest.v2.beans.SortBy, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.client.RegistryClient#searchArtifacts(java.lang.String, java.lang.String, java.lang.String, java.util.List, java.util.List, java.lang.Long, java.lang.Long, io.apicurio.registry.rest.v2.beans.SortBy, io.apicurio.registry.rest.v2.beans.SortOrder, java.lang.Integer, java.lang.Integer)
      */
     @Override
     public ArtifactSearchResults searchArtifacts(String group, String name, String description,
-            List<String> labels, List<String> properties, SortBy orderBy, SortOrder order, Integer offset,
-            Integer limit) {
-        return getTarget().searchArtifacts(group, name, description, labels, properties, orderBy, order, offset,
-                limit);
+            List<String> labels, List<String> properties, Long globalId, Long contentId, SortBy orderBy,
+            SortOrder order, Integer offset, Integer limit) {
+        return getTarget().searchArtifacts(group, name, description, labels, properties, globalId, contentId, orderBy, order, offset, limit);
     }
 
     /**

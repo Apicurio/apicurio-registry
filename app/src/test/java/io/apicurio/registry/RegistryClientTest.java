@@ -394,6 +394,47 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void testSearchArtifactByIds() throws Exception {
+        //PReparation
+        final String groupId = "testSearchArtifactByIds";
+        clientV2.listArtifactsInGroup(groupId);
+
+        String artifactId = UUID.randomUUID().toString();
+        String name = "n" + ThreadLocalRandom.current().nextInt(1000000);
+        byte[] content = ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
+                .getBytes(StandardCharsets.UTF_8);
+
+        ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toStream(content));
+        long id = amd.getGlobalId();
+        this.waitForGlobalId(id);
+        LOGGER.info("created " + amd.getId() + " - " + amd.getCreatedOn());
+
+        Thread.sleep(1500);
+
+        String artifactId2 = UUID.randomUUID().toString();
+        ArtifactMetaData amd2 = clientV2.createArtifact(groupId, artifactId2, ArtifactType.JSON, IoUtil.toStream(content));
+        this.waitForGlobalId(amd2.getGlobalId());
+        LOGGER.info("created " + amd2.getId() + " - " + amd2.getCreatedOn());
+
+        ArtifactSearchResults results = clientV2.searchArtifacts(null, null, null, null, null, amd.getGlobalId(), null, SortBy.name, SortOrder.asc, 0, 10);
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(1, results.getArtifacts().size());
+
+        Assertions.assertEquals(artifactId, results.getArtifacts().get(0).getId());
+
+        ArtifactSearchResults resultsByContentId = clientV2.searchArtifacts(null, null, null, null, null, null, amd.getContentId(), SortBy.name, SortOrder.asc, 0, 10);
+        Assertions.assertNotNull(resultsByContentId);
+        Assertions.assertEquals(2, resultsByContentId.getCount());
+        Assertions.assertEquals(2, resultsByContentId.getArtifacts().size());
+
+        Assertions.assertEquals(2, resultsByContentId.getArtifacts().stream()
+            .filter(sa -> sa.getId().equals(amd.getId()) || sa.getId().equals(amd2.getId()))
+            .count());
+    }
+
+    @Test
     void testSearchVersion() throws Exception {
         //Preparation
         final String groupId = "testSearchVersion";

@@ -32,4 +32,6 @@ public class Parameters {
     public static String PROPERTIES = "properties";
     public static String LABELS = "labels";
     public static String IF_EXISTS = "ifExists";
+    public static String GLOBAL_ID = "globalId";
+    public static String CONTENT_ID = "contentId";
 }

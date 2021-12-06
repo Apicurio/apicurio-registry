@@ -20,20 +20,20 @@ package io.apicurio.registry.storage.dto;
  * @author eric.wittmann@gmail.com
  */
 public class SearchFilter {
-    
+
     private SearchFilterType type;
-    private String value;
-    
+    private Object value;
+
     /**
      * Constructor.
      */
     public SearchFilter() {
     }
-    
+
     /**
      * Constructor.
      * @param type
-     * @param value
+     * @param value string
      */
     public SearchFilter(SearchFilterType type, String value) {
         this.type = type;
@@ -41,16 +41,46 @@ public class SearchFilter {
     }
 
     /**
-     * @return the value
+     * Constructor.
+     * @param type
+     * @param value integer
      */
-    public String getValue() {
-        return value;
+    public SearchFilter(SearchFilterType type, Integer value) {
+        this.type = type;
+        this.value = value;
     }
+
+    /**
+     * @return the string value
+     */
+    public String getStringValue() {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String) {
+            return (String) value;
+        }
+        throw new IllegalStateException("value is not of type string");
+    }
+
+    /**
+     * @return the integer value
+     */
+    public Integer getIntegerValue() {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        throw new IllegalStateException("value is not of type integer");
+    }
+
 
     /**
      * @param value the value to set
      */
-    public void setValue(String value) {
+    public void setStringValue(String value) {
         this.value = value;
     }
 

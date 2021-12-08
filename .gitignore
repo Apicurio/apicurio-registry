@@ -3,6 +3,8 @@ target/
 .settings
 .classpath
 .DS_Store
+.gradle
+buildSrc/
 
 # VS Code
 .vscode/

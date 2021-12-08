@@ -147,12 +147,12 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <tar.long.file.mode>gnu</tar.long.file.mode>
-        
+        <tar.long.file.mode>posix</tar.long.file.mode>
+
         <!-- UI Build Tools -->
         <node.version>12.13.0</node.version>
         <yarn.version>1.22.4</yarn.version>
-        
+
         <!-- Quarkus Version -->
         <quarkus.version>2.2.3.Final</quarkus.version>
 
@@ -207,7 +207,7 @@
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>
-        
+
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
         <scala.version>2.13.7</scala.version>
@@ -460,6 +460,18 @@
 
             <!-- Third Party Libraries -->
             <dependency>
+                <groupId>uk.gov.nationalarchives</groupId>
+                <artifactId>csv-validator-java-api</artifactId>
+                <version>1.2-RC3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-spanner-jdbc</artifactId>
+                <version>2.5.5</version>
+            </dependency>
+            
+
+            <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-data-models</artifactId>
                 <version>${apicurio-data-models.version}</version>
@@ -642,13 +654,13 @@
                 <groupId>io.strimzi</groupId>
                 <artifactId>strimzi-test-container</artifactId>
                 <version>${strimzi.version}</version>
-                <scope>test</scope>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-test-common</artifactId>
                 <version>${quarkus.version}</version>
-                <scope>test</scope>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.github.dasniko</groupId>
@@ -959,7 +971,7 @@
                         </configuration>
                     </plugin>
                 </plugins>
-            </build>            
+            </build>
         </profile>
         <profile>
             <id>release</id>
@@ -1024,7 +1036,7 @@
         </profile>
         <!-- For deploying to github packages -->
         <profile>
-            <id>github</id>                       
+            <id>github</id>
             <distributionManagement>
                 <repository>
                     <id>github</id>
@@ -1033,8 +1045,8 @@
                 </repository>
             </distributionManagement>
         </profile>
-        <!-- 
-            conditional repo to be excluded in productization 
+        <!--
+            conditional repo to be excluded in productization
             build in prod with:
             mvn ... -P '!external_repos'
         -->
@@ -1059,5 +1071,5 @@
             </repositories>
         </profile>
     </profiles>
-    
+
 </project>

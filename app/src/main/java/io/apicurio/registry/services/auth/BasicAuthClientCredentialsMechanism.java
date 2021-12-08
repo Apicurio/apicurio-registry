@@ -143,7 +143,9 @@ public class BasicAuthClientCredentialsMechanism implements HttpAuthenticationMe
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        final String jwtToken = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight(), Optional.empty()).authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        OidcAuth oidcAuth = new OidcAuth(authServerUrl, clientCredentials.getLeft(), clientCredentials.getRight(), Optional.empty());
+        final String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        oidcAuth.close();
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

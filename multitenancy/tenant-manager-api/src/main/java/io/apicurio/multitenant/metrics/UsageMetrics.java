@@ -50,8 +50,6 @@ public class UsageMetrics {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final Object DUMMY = new Object(); // Prevents NaN values on gauges, caused by garbage collection
-
     @Inject
     MeterRegistry metrics;
 

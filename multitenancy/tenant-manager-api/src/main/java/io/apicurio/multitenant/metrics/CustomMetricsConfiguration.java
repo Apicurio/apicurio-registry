@@ -45,7 +45,7 @@ public class CustomMetricsConfiguration {
                 } else if (id.getName().startsWith(MetricsConstants.USAGE_DELETING_TENANTS)) {
                     return DistributionStatisticConfig.builder()
                             .percentiles(0.5, 0.95, 0.99)
-                            .serviceLevelObjectives(0.1 * factor, 1.0 * factor, 5.0 * factor, 10.0 * factor, 20.0 * factor, 30.0 * factor, 60.0 * factor, 90.0 * factor, 120.0 * factor)
+                            .serviceLevelObjectives(60.0 * factor, 120.0 * factor, 500 * factor, 1000 * factor, 3000 * factor, 6000 * factor, 9000 * factor, 10000 * factor)
                             .build()
                             .merge(config);
                 }

@@ -16,9 +16,9 @@
  */
 
 import React from 'react';
-import {Divider, Select, SelectGroup, SelectOption, SelectVariant,} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {Principal} from '../../../../../services/config';
+import { Divider, Select, SelectGroup, SelectOption, SelectVariant, } from '@patternfly/react-core';
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { Principal } from '../../../../../services/config';
 
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;
@@ -132,7 +132,8 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
             rval.push(
                 <SelectGroup label={"Service accounts"} key="service_accounts_group">
                     {
-                        filteredSAs.map(principalToSelectOption)
+                        filteredSAs.sort((a, b) => a.displayName && b.displayName ? a.displayName.localeCompare(b.displayName) : -1).
+                            map(principalToSelectOption)
                     }
                 </SelectGroup>,
             );
@@ -140,7 +141,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
 
         if (filteredSAs.length > 0 && filteredUsers.length > 0) {
             rval.push(
-                <Divider key='divider'/>,
+                <Divider key='divider' />,
             );
         }
 

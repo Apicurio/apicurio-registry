@@ -43,7 +43,7 @@ public class MultitenancyProperties {
     boolean mtContextPathEnabled;
 
     @Inject
-    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "true")
+    @ConfigProperty(name = "registry.multitenancy.types.subdomain.enabled", defaultValue = "false")
     boolean mtSubdomainEnabled;
 
     @Inject

@@ -21,6 +21,9 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -31,7 +34,6 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Base class for all Registry Mojo's.
@@ -64,11 +66,13 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     String password;
 
     private static RegistryClient client;
+    private static ApicurioHttpClient httpClient;
 
     protected RegistryClient getClient() {
         if (client == null) {
             if (authServerUrl != null && clientId != null && clientSecret != null) {
-                Auth auth = new OidcAuth(authServerUrl, clientId, clientSecret, Optional.empty());
+                httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+                Auth auth = new OidcAuth(httpClient, clientId, clientSecret);
                 client = RegistryClientFactory.create(registryUrl, Collections.emptyMap(), auth);
             } else if (username != null && password != null) {
                 Auth auth = new BasicAuth(username, password);

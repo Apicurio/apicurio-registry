@@ -62,7 +62,7 @@ import java.util.Map;
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class RegistryClientImpl implements RegistryClient {
+public class RegistryClientImpl implements RegistryClient, AutoCloseable {
 
     private final ApicurioHttpClient apicurioHttpClient;
     private static final Logger logger = LoggerFactory.getLogger(RegistryClientImpl.class);
@@ -463,5 +463,10 @@ public class RegistryClientImpl implements RegistryClient {
         error.setMessage(ex.getMessage());
         logger.debug("Error serializing request response", ex);
         return new RestClientException(error);
+    }
+
+    @Override
+    public void close() throws Exception {
+        apicurioHttpClient.close();
     }
 }

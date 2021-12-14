@@ -49,6 +49,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaParser<S> schemaParser;
     protected RegistryClient client;
+    protected ApicurioHttpClient authClient;
     protected boolean isKey;
     protected ArtifactResolverStrategy<S> artifactResolverStrategy;
 
@@ -198,6 +199,16 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.schemaCache.clear();
     }
 
+    @Override
+    public void close() throws Exception {
+        if (this.client != null) {
+            this.client.close();
+        }
+        if (this.authClient != null) {
+            this.authClient.close();
+        }
+    }
+
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
         Auth auth;
         if (authServerUrl != null) {
@@ -232,8 +243,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        ApicurioHttpClient httpClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
-        return new OidcAuth(httpClient, clientId, clientSecret);
+        authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
+        return new OidcAuth(authClient, clientId, clientSecret);
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

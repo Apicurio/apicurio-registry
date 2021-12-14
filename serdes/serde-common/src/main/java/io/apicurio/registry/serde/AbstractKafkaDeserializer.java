@@ -163,4 +163,13 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         }
     }
 
+    @Override
+    public void close() {
+        try {
+            this.schemaResolver.close();
+        } catch (Exception e) {
+            //FIXME handle potential exceptions properly.
+            e.printStackTrace();
+        }
+    }
 }

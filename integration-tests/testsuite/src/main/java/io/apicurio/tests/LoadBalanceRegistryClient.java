@@ -700,4 +700,9 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().getCurrentUserInfo();
     }
 
+    @Override
+    public void close() throws Exception {
+        getTarget().close();
+    }
+
 }

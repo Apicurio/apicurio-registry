@@ -26,7 +26,7 @@ import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 /**
  * @author Fabian Martinez
  */
-public interface SchemaResolver<SCHEMA, DATA> {
+public interface SchemaResolver<SCHEMA, DATA> extends AutoCloseable {
 
     /**
      * Configure, if supported.

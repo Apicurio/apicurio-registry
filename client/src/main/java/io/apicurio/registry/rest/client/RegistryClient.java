@@ -44,7 +44,7 @@ import io.apicurio.registry.types.RuleType;
  * <p>
  * Rest client compatible with the Registry API V2
  */
-public interface RegistryClient {
+public interface RegistryClient extends AutoCloseable {
 
     InputStream getLatestArtifact(String groupId, String artifactId);
 

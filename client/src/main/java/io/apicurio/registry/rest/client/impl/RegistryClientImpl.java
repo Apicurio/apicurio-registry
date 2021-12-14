@@ -62,7 +62,7 @@ import java.util.Map;
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public class RegistryClientImpl implements RegistryClient, AutoCloseable {
+public class RegistryClientImpl implements RegistryClient {
 
     private final ApicurioHttpClient apicurioHttpClient;
     private static final Logger logger = LoggerFactory.getLogger(RegistryClientImpl.class);
@@ -466,7 +466,7 @@ public class RegistryClientImpl implements RegistryClient, AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         apicurioHttpClient.close();
     }
 }

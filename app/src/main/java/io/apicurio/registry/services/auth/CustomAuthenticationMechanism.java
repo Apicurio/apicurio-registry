@@ -79,13 +79,16 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     AuditLogService auditLog;
 
-    private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();
+    private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
 
     @PostConstruct
     public void init() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+        if (authEnabled) {
+            httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+            bearerAuth = new BearerAuthenticationMechanism();
+        }
     }
 
     @Override

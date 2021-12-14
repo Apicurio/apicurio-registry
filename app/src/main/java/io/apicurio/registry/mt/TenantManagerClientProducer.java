@@ -21,10 +21,10 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
+import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.runtime.configuration.ProfileManager;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -75,7 +75,7 @@ public class TenantManagerClientProducer {
                             "but the no auth properties aren't properly configured");
                 }
 
-                ApicurioHttpClient httpClient = ApicurioHttpClientFactory.create(properties.getTenantManagerAuthUrl().get(), new AuthErrorHandler());
+                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
 
                 return OptionalBean.of(new TenantManagerClientImpl(
                         properties.getTenantManagerUrl().get(), Collections.emptyMap(),

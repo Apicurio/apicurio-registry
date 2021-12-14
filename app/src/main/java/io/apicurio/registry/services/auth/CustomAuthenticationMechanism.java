@@ -19,11 +19,11 @@ package io.apicurio.registry.services.auth;
 import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
 import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.registry.logging.audit.AuditLogService;
+import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
@@ -86,7 +86,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @PostConstruct
     public void init() {
         if (authEnabled) {
-            httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+            httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
         }
     }

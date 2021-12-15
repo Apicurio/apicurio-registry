@@ -32,6 +32,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -65,8 +67,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     @Parameter(property = "password")
     String password;
 
-    private static RegistryClient client;
-    private static ApicurioHttpClient httpClient;
+    private RegistryClient client;
+    private ApicurioHttpClient httpClient;
 
     protected RegistryClient getClient() {
         if (client == null) {
@@ -85,12 +87,26 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     public void setClient(RegistryClient client) {
-        AbstractRegistryMojo.client = client;
+        this.client = client;
     }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         executeInternal();
+        closeClients();
+    }
+
+    private void closeClients() {
+        try {
+            if (this.client != null) {
+                this.client.close();
+            }
+            if (this.httpClient != null) {
+                this.httpClient.close();
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException;

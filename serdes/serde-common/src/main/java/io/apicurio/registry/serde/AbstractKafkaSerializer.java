@@ -114,9 +114,8 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
     public void close() {
         try {
             this.schemaResolver.close();
-        } catch (Exception e) {
-            //FIXME handle potential exceptions properly.
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

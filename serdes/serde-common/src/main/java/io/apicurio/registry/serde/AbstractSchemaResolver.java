@@ -33,6 +33,7 @@ import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.apache.kafka.common.header.Headers;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -200,7 +201,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         if (this.client != null) {
             this.client.close();
         }

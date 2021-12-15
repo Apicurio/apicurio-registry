@@ -16,6 +16,7 @@
 
 package io.apicurio.tests;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -701,8 +702,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         getTarget().close();
     }
-
 }

@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.serde;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 
 import org.apache.kafka.common.header.Headers;
@@ -167,9 +169,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
     public void close() {
         try {
             this.schemaResolver.close();
-        } catch (Exception e) {
-            //FIXME handle potential exceptions properly.
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

@@ -16,6 +16,7 @@
 package io.apicurio.registry.metrics;
 
 import io.apicurio.registry.mt.TenantContext;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -35,6 +36,8 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_COUNTER;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_COUNTER_DESCRIPTION;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_DESCRIPTION;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_METHOD;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_PATH;
@@ -98,6 +101,14 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
         Timer.Sample sample = (Timer.Sample) requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME);
         sample.stop(timer);
+
+        Counter.builder(REST_REQUESTS_COUNTER)
+            .description(REST_REQUESTS_COUNTER_DESCRIPTION)
+            .tag(REST_REQUESTS_TAG_PATH, this.getPath())
+            .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
+            .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
+            .register(registry)
+            .increment();
     }
 
     private String getStatusGroup(int statusCode) {

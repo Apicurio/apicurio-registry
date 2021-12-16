@@ -49,21 +49,27 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
     public render(): React.ReactElement {
         const dropdownItems = [
             <DropdownItem key="BACKWARD"
+                          tooltip="Clients using the new artifact can read data written using the most recently added artifact"
                           data-testid="rules-compatibility-config-backward"
                           id="BACKWARD">Backward</DropdownItem>,
             <DropdownItem key="BACKWARD_TRANSITIVE"
+                          tooltip="Clients using the new artifact can read data written using all previously added artifacts"
                           data-testid="rules-compatibility-config-backwardTrans"
                           id="BACKWARD_TRANSITIVE">Backward Transitive</DropdownItem>,
             <DropdownItem key="FORWARD"
+                          tooltip="Clients using the most recently added artifact can read data written using the new artifact"
                           data-testid="rules-compatibility-config-forward"
                           id="FORWARD">Forward</DropdownItem>,
             <DropdownItem key="FORWARD_TRANSITIVE"
+                          tooltip="Clients using all previously added artifacts can read data written using the new artifact"
                           data-testid="rules-compatibility-config-forwardTrans"
                           id="FORWARD_TRANSITIVE">Forward Transitive</DropdownItem>,
             <DropdownItem key="FULL"
+                          tooltip="The new artifact is forward and backward compatible with the most recently added artifact"
                           data-testid="rules-compatibility-config-full"
                           id="FULL">Full</DropdownItem>,
             <DropdownItem key="FULL_TRANSITIVE"
+                          tooltip="The new artifact is forward and backward compatible with all previously added artifacts"
                           data-testid="rules-compatibility-config-fullTrans"
                           id="FULL_TRANSITIVE">Full Transitive</DropdownItem>,
         ];

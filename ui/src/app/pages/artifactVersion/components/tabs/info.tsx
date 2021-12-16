@@ -37,6 +37,7 @@ import {ArtifactMetaData, Rule} from "../../../../../models";
 // tslint:disable-next-line:no-empty-interface
 export interface InfoTabContentProps extends PureComponentProps {
     artifact: ArtifactMetaData;
+    isLatest: boolean;
     rules: Rule[];
     onEnableRule: (ruleType: string) => void;
     onDisableRule: (ruleType: string) => void;
@@ -106,10 +107,12 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                             <span className="label">Created</span>
                             <span className="value"><Moment date={this.props.artifact.createdOn} fromNow={true} /></span>
                         </div>
-                        <div className="metaDataItem">
-                            <span className="label">Modified</span>
-                            <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
-                        </div>
+                        <If condition={this.props.isLatest}>
+                            <div className="metaDataItem">
+                                <span className="label">Modified</span>
+                                <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
+                            </div>
+                        </If>
                         <div className="metaDataItem">
                             <span className="label">Global ID</span>
                             <span className="value">{this.props.artifact.globalId}</span>

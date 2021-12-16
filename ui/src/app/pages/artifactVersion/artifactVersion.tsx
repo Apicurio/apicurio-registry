@@ -95,6 +95,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         const tabs: React.ReactNode[] = [
             <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
+                                isLatest={this.versionParam() === "latest"}
                                 rules={this.rules()}
                                 onEnableRule={this.doEnableRule}
                                 onDisableRule={this.doDisableRule}

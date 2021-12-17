@@ -252,6 +252,18 @@ export abstract class BaseService implements Service {
             });
     }
 
+    protected apiBaseHref(): string {
+        let artifactsUrl: string|null = this.config.artifactsUrl();
+        if (artifactsUrl == null) {
+            return "";
+        }
+        if (artifactsUrl.endsWith("/")) {
+            artifactsUrl = artifactsUrl.substring(0, artifactsUrl.length - 1);
+        }
+        this.logger.debug("[BaseService] Base HREF of REST API: ", artifactsUrl);
+        return artifactsUrl;
+    }
+
     private axiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
         return {...{
                 data,
@@ -265,20 +277,15 @@ export abstract class BaseService implements Service {
 
     private unwrapErrorData(error: any): any {
         if (error.response && error.response.data) {
-            return error.response.data;
+            return {
+                message: error.message,
+                ...error.response.data,
+                status: error.response.status
+            };
         }
-        return error;
-    }
-
-    private apiBaseHref(): string {
-        let artifactsUrl: string|null = this.config.artifactsUrl();
-        if (artifactsUrl == null) {
-            return "";
-        }
-        if (artifactsUrl.endsWith("/")) {
-            artifactsUrl = artifactsUrl.substring(0, artifactsUrl.length - 1);
-        }
-        this.logger.debug("[BaseService] Base HREF of REST API: ", artifactsUrl);
-        return artifactsUrl;
+        return {
+            message: error.message,
+            status: error.response.status
+        };
     }
 }

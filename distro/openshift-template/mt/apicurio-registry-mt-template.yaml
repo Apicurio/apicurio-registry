@@ -30,6 +30,9 @@ objects:
       app: apicurio-registry
       template: multitenant-apicurio-registry
       component: apicurio-registry-envoy
+    annotations:
+      description: Exposes and load balances the apicurio-registry pods going through envoy beforehand
+      service.alpha.openshift.io/serving-cert-secret-name: apicurio-registry-envoy-tls
     name: apicurio-registry-envoy
   spec:
     ports:
@@ -129,6 +132,9 @@ objects:
         - name: db-ssl-ca
           secret:
             secretName: ${DATABASE_SSL_CA_SECRET_NAME}
+        - name: envoy-tls
+          secret:
+            secretName: apicurio-registry-envoy-tls
 
         containers:
         - name: apicurio-registry
@@ -205,6 +211,8 @@ objects:
             value: ${REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS}
           - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
             value: ${REGISTRY_AUTH_ANONYMOUS_READS_ENABLED}
+          - name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+            value: ${REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED}
           - name: REGISTRY_AUTH_ROLES_READONLY
             value: ${REGISTRY_AUTH_ROLES_READONLY}
           - name: REGISTRY_AUTH_ROLES_DEVELOPER
@@ -228,6 +236,9 @@ objects:
             value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM}
           - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
             value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE}
+
+          - name: CORS_ALLOWED_ORIGINS
+            value: ${CORS_ALLOWED_ORIGINS}
 
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}
@@ -379,6 +390,8 @@ objects:
           image: ${ENVOY_IMAGE}
           imagePullPolicy: IfNotPresent
           volumeMounts:
+          - name: envoy-tls
+            mountPath: /secrets/tls
           - name: envoy-config
             mountPath: /configs/envoy
           - name: envoy-unix-sockets
@@ -420,6 +433,16 @@ objects:
               memory: 512Mi
               cpu: 500m
 
+- kind: PodDisruptionBudget
+  apiVersion: policy/v1
+  metadata:
+    name: apicurio-registry-pdb
+  spec:
+    maxUnavailabe: "50%"
+    selector:
+      matchLabels:
+        app: apicurio-registry
+        template: multitenant-apicurio-registry
 
 parameters:
 
@@ -531,6 +554,9 @@ parameters:
 - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
   description: flag to enable/disable anonymous read access
   value: "false"
+- name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+  description: flag to enable/disable authenticated read access
+  value: "false"
 - name: REGISTRY_AUTH_ROLES_READONLY
   description: property to set the name of the role that enables ReadOnly access when using token based RBAC
   value: "sr-readonly"
@@ -580,3 +606,7 @@ parameters:
 - name: SENTRY_DSN_SECRET_NAME
   description: Secret name containing dsn for connecting to sentry
   value: sentry-dsn-secret
+
+- name: CORS_ALLOWED_ORIGINS
+  description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.
+  value: ""

@@ -163,8 +163,13 @@ public interface RegistryClient {
         return getContentByHash(contentHash, null);
     };
 
+    default ArtifactSearchResults searchArtifacts(String group, String name, String description, List<String> labels,
+            List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+        return searchArtifacts(group, name, description, labels, properties, null, null, orderBy, order, offset, limit);
+    }
+
     ArtifactSearchResults searchArtifacts(String group, String name, String description, List<String> labels,
-            List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
+            List<String> properties, Long globalId, Long contentId, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
     ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 

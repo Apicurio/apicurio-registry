@@ -110,6 +110,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
@@ -127,8 +128,10 @@ import io.quarkus.security.identity.SecurityIdentity;
  */
 public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage {
 
-    private static int DB_VERSION = 4;
+    private static int DB_VERSION = Integer.valueOf(
+        IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
     private static final Object dbMutex = new Object();
+    private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
@@ -231,6 +234,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     private boolean isDatabaseCurrent(Handle handle) {
         log.info("Checking to see if the DB is up-to-date.");
+        log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersion(handle);
         return version == DB_VERSION;
     }
@@ -1007,7 +1011,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     case description:
                         where.append("v.description LIKE ?");
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
                     case everything:
@@ -1020,65 +1024,77 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                                 + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)"
                                 + ")");
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         binders.add((query, idx) -> {
                           //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getValue().toLowerCase());
+                            query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         binders.add((query, idx) -> {
                             //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
-                            query.bind(idx, filter.getValue().toLowerCase());
+                            query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         break;
                     case labels:
                         where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId AND l.tenantId = v.tenantId)");
                         binders.add((query, idx) -> {
                           //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getValue().toLowerCase());
+                            query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         break;
                     case name:
                         where.append("(v.name LIKE ?) OR (a.artifactId LIKE ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getValue() + "%");
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
                     case group:
                         where.append("(v.groupId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getValue()));
+                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
                     case contentHash:
                         where.append("(c.contentHash = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getValue());
+                            query.bind(idx, filter.getStringValue());
                         });
                         break;
                     case canonicalHash:
                         where.append("(c.canonicalHash = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getValue());
+                            query.bind(idx, filter.getStringValue());
                         });
                         break;
                     case properties:
                         where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
                         binders.add((query, idx) -> {
                             //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
-                            query.bind(idx, filter.getValue().toLowerCase());
+                            query.bind(idx, filter.getStringValue().toLowerCase());
+                        });
+                        break;
+                    case globalId:
+                        where.append("(v.globalId = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getIntegerValue());
+                        });
+                        break;
+                    case contentId:
+                        where.append("(v.contentId = ?)");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getIntegerValue());
                         });
                         break;
                     default :
@@ -3004,32 +3020,35 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .one();
         } else {
             // no way to automatically increment the sequence in h2 with just one query
-            // good news is that this algorithm is good enough for our needs and is lock free
             // we are incresing the sequence value in a way that it's not safe for concurrent executions
-            // but we are just doing this because our h2 storage is not supposed to be used concurrently
+            // for kafkasql storage this method is not supposed to be executed concurrently
+            // but for inmemory storage that's not guaranteed
+            // that forces us to use an inmemory lock, should not cause any harm
             // caveat emptor , consider yourself as warned
-            Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Long.class)
-                    .findOne();
+            synchronized (inmemorySequencesMutex) {
+                Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                        .bind(0, sequenceName)
+                        .bind(1, tenantContext.tenantId())
+                        .mapTo(Long.class)
+                        .findOne();
 
-            if (seqExists.isPresent()) {
-                //
-                Long newValue = seqExists.get() + 1;
-                handle.createUpdate(sqlStatements.resetSequenceValue())
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, sequenceName)
-                    .bind(2, newValue)
-                    .execute();
-                return newValue;
-            } else {
-                handle.createUpdate(sqlStatements.insertSequenceValue())
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, sequenceName)
-                    .bind(2, 1)
-                    .execute();
-                return 1;
+                if (seqExists.isPresent()) {
+                    //
+                    Long newValue = seqExists.get() + 1;
+                    handle.createUpdate(sqlStatements.resetSequenceValue())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, sequenceName)
+                        .bind(2, newValue)
+                        .execute();
+                    return newValue;
+                } else {
+                    handle.createUpdate(sqlStatements.insertSequenceValue())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, sequenceName)
+                        .bind(2, 1)
+                        .execute();
+                    return 1;
+                }
             }
         }
     }

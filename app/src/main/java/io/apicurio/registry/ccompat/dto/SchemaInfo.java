@@ -17,8 +17,10 @@
 package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.apicurio.registry.ccompat.SchemaTypeFilter;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.*;
 
@@ -31,7 +33,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 @Getter
 @EqualsAndHashCode
 @ToString
-@Builder
 @RegisterForReflection
 public class SchemaInfo {
 
@@ -39,8 +40,8 @@ public class SchemaInfo {
     private String schema;
 
     @JsonProperty("schemaType")
-    @Builder.Default
-    private String schemaType = "AVRO";
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = SchemaTypeFilter.class)
+    private String schemaType;
 
 
     public SchemaInfo(String schema, String schemaType) {

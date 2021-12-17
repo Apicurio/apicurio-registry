@@ -279,7 +279,7 @@ public class TestUtils {
         }, name, maxRetries);
     }
 
-    public static <T> T retry(Callable<T> callable, String name, int maxRetries) throws Exception {
+    private static <T> T retry(Callable<T> callable, String name, int maxRetries) throws Exception {
         Throwable error = null;
         int tries = maxRetries;
         int attempt = 1;
@@ -307,7 +307,7 @@ public class TestUtils {
 
     public static void assertClientError(String expectedErrorName, int expectedCode, RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
-            assertClientError(expectedErrorName, expectedCode, runnable, false, errorCodeExtractor);
+            internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

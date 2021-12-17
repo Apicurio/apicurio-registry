@@ -37,6 +37,8 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
@@ -55,6 +57,7 @@ import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -92,6 +95,9 @@ public class RegistryExceptionMapperService {
     @Inject
     LivenessUtil livenessUtil;
 
+    @ConfigProperty(name = "registry.api.errors.include-stack-in-response", defaultValue = "false")
+    boolean includeStackTrace;
+
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
@@ -108,6 +114,7 @@ public class RegistryExceptionMapperService {
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
+        map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
@@ -172,7 +179,11 @@ public class RegistryExceptionMapperService {
 
         error.setErrorCode(code);
         error.setMessage(t.getLocalizedMessage());
-        error.setDetail(getStackTrace(t));
+        if (includeStackTrace) {
+            error.setDetail(getStackTrace(t));
+        } else {
+            error.setDetail(getRootMessage(t));
+        }
         error.setName(t.getClass().getSimpleName());
         return error;
     }
@@ -200,13 +211,17 @@ public class RegistryExceptionMapperService {
      *
      * @param t
      */
-    private String getStackTrace(Throwable t) {
+    private static String getStackTrace(Throwable t) {
         try (StringWriter writer = new StringWriter()) {
             t.printStackTrace(new PrintWriter(writer));
             return writer.toString();
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static String getRootMessage(Throwable t) {
+        return ExceptionUtils.getRootCauseMessage(t);
     }
 
 }

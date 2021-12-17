@@ -532,6 +532,22 @@
                             "type": "string"
                         },
                         "in": "query"
+                    },
+                    {
+                        "name": "globalId",
+                        "description": "Filter by globalId.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "contentId",
+                        "description": "Filter by contentId.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
                     }
                 ],
                 "responses": {

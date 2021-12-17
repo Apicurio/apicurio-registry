@@ -24,3 +24,4 @@ export * from "./searchedArtifact.model";
 export * from "./searchedVersion.model";
 export * from "./userInfo.model";
 export * from "./versionMetaData.model";
+export * from "./downloadRef.model";

@@ -267,7 +267,11 @@ public class RegistryFacade {
     }
 
     private void deployStorage(Map<String, String> appEnv) throws Exception {
-        switch (RegistryUtils.REGISTRY_STORAGE) {
+        deployStorage(appEnv, RegistryUtils.REGISTRY_STORAGE);
+    }
+
+    public void deployStorage(Map<String, String> appEnv, RegistryStorageType storage) throws Exception {
+        switch (storage) {
             case inmemory:
                 break;
             case sql:
@@ -335,6 +339,10 @@ public class RegistryFacade {
         appEnv.put("KEYCLOAK_REALM", registryAppEnv.get("KEYCLOAK_REALM"));
         appEnv.put("KEYCLOAK_API_CLIENT_ID", registryAppEnv.get("KEYCLOAK_API_CLIENT_ID"));
         appEnv.put("QUARKUS_OIDC_TLS_VERIFICATION", "none");
+
+        //config only for test purposes
+        //for TenantReaperIT , to enable tenant status transition from DELETED to READY
+        appEnv.put("ENABLE_TEST_STATUS_TRANSITION", "true");
 
         appEnv.put("REGISTRY_ROUTE_URL", TestUtils.getRegistryBaseUrl());
         appEnv.put("LOG_LEVEL", "DEBUG");
@@ -772,7 +780,7 @@ public class RegistryFacade {
         });
     }
 
-    public void stopContainer(Path logsPath, String name) throws Exception {
+    public void stopProcess(Path logsPath, String name) throws Exception {
         var process = processes.stream()
             .filter(p -> p.getName().equals(name))
             .findFirst()

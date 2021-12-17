@@ -259,7 +259,7 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public ArtifactSearchResults searchArtifacts(String group, String name, String
-            description, List<String> labels, List<String> properties, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
+            description, List<String> labels, List<String> properties, Long globalId, Long contentId, SortBy orderBy, SortOrder order, Integer offset, Integer limit) {
 
         final Map<String, List<String>> queryParams = new HashMap<>();
 
@@ -278,6 +278,12 @@ public class RegistryClientImpl implements RegistryClient {
         }
         if (properties != null && !properties.isEmpty()) {
             queryParams.put(Parameters.PROPERTIES, properties);
+        }
+        if (globalId != null && globalId > 0) {
+            queryParams.put(Parameters.GLOBAL_ID, Collections.singletonList(Long.toString(globalId)));
+        }
+        if (contentId != null && contentId > 0) {
+            queryParams.put(Parameters.CONTENT_ID, Collections.singletonList(Long.toString(contentId)));
         }
         return apicurioHttpClient.sendRequest(SearchRequestsProvider.searchArtifacts(queryParams));
     }

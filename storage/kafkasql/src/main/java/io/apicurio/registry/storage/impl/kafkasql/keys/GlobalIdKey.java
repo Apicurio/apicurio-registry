@@ -19,6 +19,8 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
+import java.util.UUID;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -27,8 +29,11 @@ public class GlobalIdKey extends AbstractMessageKey {
 
     private static final String GLOBAL_ID_PARTITION_KEY = "__apicurio_registry_global_id__";
 
+    private final String uuid = UUID.randomUUID().toString();
+
     /**
      * Creator method.
+     *
      * @param tenantId
      * @param ruleType
      */
@@ -52,6 +57,10 @@ public class GlobalIdKey extends AbstractMessageKey {
     @Override
     public String getPartitionKey() {
         return getTenantId() + GLOBAL_ID_PARTITION_KEY;
+    }
+
+    public String getUuid() {
+        return uuid;
     }
 
     /**

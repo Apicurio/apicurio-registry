@@ -20,6 +20,7 @@ import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.config.ApicurioClientConfig;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientProvider;
@@ -97,6 +98,7 @@ public class RegistryClientFactory {
     }
 
     public static boolean setProvider(ApicurioHttpClientProvider provider) {
+        OidcAuth.setProvider(provider);
         return providerReference.compareAndSet(null, provider);
     }
 

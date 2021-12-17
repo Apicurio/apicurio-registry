@@ -9,6 +9,8 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
 
+import org.slf4j.Logger;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -41,6 +43,9 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 @Named("KafkaSqlStore")
 @Logged
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
+
+    @Inject
+    Logger log;
 
     @Inject
     HandleFactory handles;
@@ -226,6 +231,23 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         handles.withHandleNoException(handle -> {
             super.resetGlobalId(handle);
             return null;
+        });
+    }
+
+    @Transactional
+    public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
+        handles.withHandleNoException(handle -> {
+           String sql = sqlStatements().updateContentCanonicalHash();
+           int rowCount = handle.createUpdate(sql)
+                 .bind(0, newCanonicalHash)
+                 .bind(1, tenantContext().tenantId())
+                 .bind(2, contentId)
+                 .bind(2, contentHash)
+                 .execute();
+           if (rowCount == 0) {
+               log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId, contentHash);
+           }
+           return null;
         });
     }
 

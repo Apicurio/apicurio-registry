@@ -149,7 +149,7 @@ public class KafkaFacade implements RegistryTestProcess {
         return c;
     }
 
-    private AdminClient adminClient() {
+    public AdminClient adminClient() {
         if (client == null) {
             client = AdminClient.create(connectionProperties());
         }

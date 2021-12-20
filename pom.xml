@@ -237,7 +237,7 @@
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.16.2</test-containers.version>
-        <keycloak.testcontainers.version>1.8.1</keycloak.testcontainers.version>
+        <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>15.0.2</keycloak-admin-client.version>
         <embedded-postgres.version>1.3.1</embedded-postgres.version>
         <strimzi.version>0.25.0</strimzi.version>

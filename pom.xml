@@ -195,12 +195,12 @@
         <!-- Dependency versions -->
         <lombok.version>1.18.22</lombok.version>
         <h2.version>1.4.199</h2.version>
-        <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.1.5.Final</apicurio-common-rest-client.version>
         <sentry.version>1.7.30</sentry.version>
+        <kafka-oauth-client.version>0.8.1</kafka-oauth-client.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -580,6 +580,12 @@
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson-dataformat-yaml.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-client</artifactId>
+                <version>${kafka-oauth-client.version}</version>
             </dependency>
 
             <!-- Tests -->

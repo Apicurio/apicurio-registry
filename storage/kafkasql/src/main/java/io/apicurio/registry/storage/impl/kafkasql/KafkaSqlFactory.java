@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
@@ -94,6 +95,27 @@ public class KafkaSqlFactory {
     )
     Properties adminProperties;
 
+    @ConfigProperty(name = "registry.kafkasql.security.enabled", defaultValue = "false")
+    boolean securityEnabled;
+
+    @ConfigProperty(name = "registry.kafkasql.security.protocol", defaultValue = "")
+    String protocol;
+
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.mechanism", defaultValue = "")
+    String saslMechanism;
+
+    @ConfigProperty(name = "registry.kafkasql.security.client-id", defaultValue = "")
+    String clientId;
+
+    @ConfigProperty(name = "registry.kafkasql.security.client-secret", defaultValue = "")
+    String clientSecret;
+
+    @ConfigProperty(name = "registry.kafkasql.security.token.endpoint", defaultValue = "")
+    String tokenEndpoint;
+
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
+    String loginCallbackHandler;
+
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
@@ -136,6 +158,9 @@ public class KafkaSqlFactory {
             }
             @Override
             public Properties adminProperties() {
+                if (securityEnabled) {
+                    configureSecurity(adminProperties);
+                }
                 return adminProperties;
             }
 
@@ -158,6 +183,10 @@ public class KafkaSqlFactory {
         props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
 
+        if (securityEnabled) {
+            configureSecurity(props);
+        }
+
         // Create the Kafka producer
         KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
         KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
@@ -178,6 +207,10 @@ public class KafkaSqlFactory {
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        if (securityEnabled) {
+            configureSecurity(props);
+        }
+
         // Create the Kafka Consumer
         KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
         KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
@@ -185,4 +218,13 @@ public class KafkaSqlFactory {
         return consumer;
     }
 
+    private void configureSecurity(Properties props) {
+        props.putIfAbsent("security.protocol", protocol);
+        props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
+                "  oauth.client.id=\"%s\" "+
+                "  oauth.client.secret=\"%s\" "+
+                "  oauth.token.endpoint.uri=\"%s\" ;", clientId, clientSecret, tokenEndpoint));
+        props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
+        props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
+    }
 }

@@ -179,10 +179,11 @@
         <keycloak-authz-client.version>${keycloak.version}</keycloak-authz-client.version>
         <httpclient.version>4.5.13</httpclient.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
+        <kafka-oauth-client.version>0.8.1</kafka-oauth-client.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
-        
+
         <!-- Specifications -->
         <annotation-api.version>1.3.2</annotation-api.version>
         <cdi-api.version>2.0</cdi-api.version>
@@ -508,6 +509,11 @@
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson-dataformat-yaml.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-client</artifactId>
+                <version>${kafka-oauth-client.version}</version>
+            </dependency>
 
             <!-- Gatling -->
             <dependency>
@@ -623,14 +629,14 @@
                 <artifactId>keycloak-core</artifactId>
                 <version>${keycloak.version}</version>
             </dependency>
-    
+
             <!-- RESTEasy Override -->
             <dependency>
                 <groupId>org.jboss.resteasy</groupId>
                 <artifactId>resteasy-core</artifactId>
                 <version>4.5.10.Final</version>
             </dependency>
-    
+
             <!-- Netty Override -->
             <dependency>
                 <groupId>io.netty</groupId>
@@ -642,7 +648,7 @@
                 <artifactId>netty-codec-http2</artifactId>
                 <version>4.1.61.Final</version>
             </dependency>
-    
+
             <!-- H2 Override -->
             <dependency>
                 <groupId>com.h2database</groupId>

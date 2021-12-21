@@ -16,20 +16,6 @@
 
 package io.apicurio.registry.auth;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.UUID;
-
-import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -40,8 +26,23 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
+import io.apicurio.rest.client.auth.Auth;
+import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.UUID;
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
@@ -67,7 +68,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     String noRolePrincipalId = "service-account-registry-api-no-role";
     String adminClientId = "registry-api";
 
-    final String groupId = "authTestGroupId";
+    ApicurioHttpClient httpClient;
+
 
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
@@ -78,16 +80,17 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth authAdmin = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        Auth authAdmin = new OidcAuth(httpClient, adminClientId, "test1");
         RegistryClient clientAdmin = createClient(authAdmin);
 
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
+        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         RegistryClient client = createClient(auth);
 
         // User is authenticated but no roles assigned yet - operations should fail.

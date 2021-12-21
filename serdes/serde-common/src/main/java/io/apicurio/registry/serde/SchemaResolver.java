@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde;
 
+import java.io.Closeable;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 
@@ -26,7 +27,7 @@ import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 /**
  * @author Fabian Martinez
  */
-public interface SchemaResolver<SCHEMA, DATA> {
+public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     /**
      * Configure, if supported.

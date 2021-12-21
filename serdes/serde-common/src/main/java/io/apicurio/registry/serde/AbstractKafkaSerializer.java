@@ -17,10 +17,10 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.rest.client.RegistryClient;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 
@@ -110,4 +110,12 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         }
     }
 
+    @Override
+    public void close() {
+        try {
+            this.schemaResolver.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

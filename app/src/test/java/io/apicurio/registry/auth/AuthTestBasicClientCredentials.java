@@ -29,7 +29,10 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -39,7 +42,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -55,6 +57,8 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
     final String groupId = "authTestGroupId";
 
+    ApicurioHttpClient httpClient;
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
@@ -64,7 +68,8 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrl, noRoleClientId, "test1", Optional.empty());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         return this.createClient(auth);
     }
 

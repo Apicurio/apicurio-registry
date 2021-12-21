@@ -20,24 +20,19 @@ import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.client.impl.ErrorHandler;
 import io.apicurio.registry.rest.client.impl.RegistryClientImpl;
 import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.config.ApicurioClientConfig;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.apicurio.rest.client.spi.ApicurioHttpClientProvider;
-import io.apicurio.rest.client.spi.ApicurioHttpClientServiceLoader;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
 public class RegistryClientFactory {
-
-    private static final AtomicReference<ApicurioHttpClientProvider> providerReference = new AtomicReference<>();
-    private static final ApicurioHttpClientServiceLoader serviceLoader = new ApicurioHttpClientServiceLoader();
 
     private static final Map<String, String> KEYS_TO_TRANSLATE;
     private static final String BASE_PATH = "apis/registry/v2/";
@@ -73,12 +68,6 @@ public class RegistryClientFactory {
     }
 
     public static RegistryClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
-        ApicurioHttpClientProvider p = providerReference.get();
-        if (p == null) {
-            providerReference.compareAndSet(null, resolveProviderInstance());
-            p = providerReference.get();
-        }
-
         if (configs.isEmpty()) {
             configs = Map.of(ClientConfig.REGISTRY_CLIENT_AUTO_BASE_PATH, BASE_PATH);
         } else if (!configs.containsKey(ClientConfig.REGISTRY_CLIENT_AUTO_BASE_PATH)) {
@@ -87,7 +76,7 @@ public class RegistryClientFactory {
 
         Map<String, Object> processedConfigs = processConfiguration(configs);
 
-        return new RegistryClientImpl(p.create(baseUrl, processedConfigs, auth, new ErrorHandler()));
+        return new RegistryClientImpl(ApicurioHttpClientFactory.create(baseUrl, processedConfigs, auth, new ErrorHandler()));
     }
 
     private static Map<String, Object> processConfiguration(Map<String, Object> configs) {
@@ -98,13 +87,6 @@ public class RegistryClientFactory {
     }
 
     public static boolean setProvider(ApicurioHttpClientProvider provider) {
-        OidcAuth.setProvider(provider);
-        return providerReference.compareAndSet(null, provider);
+        return ApicurioHttpClientFactory.setProvider(provider);
     }
-
-    private static ApicurioHttpClientProvider resolveProviderInstance() {
-        return serviceLoader.providers(true)
-                .next();
-    }
-
 }

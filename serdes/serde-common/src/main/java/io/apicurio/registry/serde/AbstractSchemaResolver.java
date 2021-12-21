@@ -28,8 +28,12 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.apache.kafka.common.header.Headers;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +50,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaParser<S> schemaParser;
     protected RegistryClient client;
+    protected ApicurioHttpClient authClient;
     protected boolean isKey;
     protected ArtifactResolverStrategy<S> artifactResolverStrategy;
 
@@ -195,6 +200,16 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.schemaCache.clear();
     }
 
+    @Override
+    public void close() throws IOException {
+        if (this.client != null) {
+            this.client.close();
+        }
+        if (this.authClient != null) {
+            this.authClient.close();
+        }
+    }
+
     private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
         Auth auth;
         if (authServerUrl != null) {
@@ -229,7 +244,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        return new OidcAuth(tokenEndpoint, clientId, clientSecret, Optional.empty());
+        authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
+        return new OidcAuth(authClient, clientId, clientSecret);
     }
 
     private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {

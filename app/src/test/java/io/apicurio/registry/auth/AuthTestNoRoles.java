@@ -28,7 +28,10 @@ import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -38,7 +41,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -54,6 +56,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     final String groupId = "authTestGroupId";
 
+    ApicurioHttpClient httpClient;
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
@@ -63,13 +67,14 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test55", Optional.empty());
+        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -79,7 +84,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(authServerUrlConfigured, noRoleClientId, "test1", Optional.empty());
+        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {

@@ -23,6 +23,9 @@ import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -33,7 +36,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -53,6 +55,8 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testUsername = "sr-test-user";
     String testPassword = "sr-test-password";
 
+    ApicurioHttpClient httpClient;
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
@@ -62,8 +66,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1", Optional.empty());
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         return this.createClient(auth);
     }
 

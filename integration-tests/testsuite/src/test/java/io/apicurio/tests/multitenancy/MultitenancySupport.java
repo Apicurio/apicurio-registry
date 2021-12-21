@@ -17,9 +17,11 @@
 package io.apicurio.tests.multitenancy;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.junit.jupiter.api.Assertions;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
@@ -43,6 +45,15 @@ public class MultitenancySupport {
 
     public MultitenancySupport() {
         //singleton
+    }
+
+    ApicurioHttpClient httpClient;
+
+    protected ApicurioHttpClient getHttpClient(String serverUrl) {
+        if (httpClient == null) {
+            httpClient = ApicurioHttpClientFactory.create(serverUrl, new AuthErrorHandler());
+        }
+        return httpClient;
     }
 
     public TenantUserClient createTenant() throws Exception {
@@ -80,14 +91,14 @@ public class MultitenancySupport {
 
     public RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
         var keycloak = registryFacade.getMTOnlyKeycloakMock();
-        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new OidcAuth(keycloak.tokenEndpoint, user.principalId, user.principalPassword, Optional.empty()));
+        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new OidcAuth(getHttpClient(keycloak.tokenEndpoint), user.principalId, user.principalPassword));
     }
 
     public synchronized TenantManagerClient getTenantManagerClient() {
         if (tenantManager == null) {
             var keycloak = registryFacade.getMTOnlyKeycloakMock();
             tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret, Optional.empty()));
+                    new OidcAuth(getHttpClient(keycloak.tokenEndpoint), keycloak.clientId, keycloak.clientSecret));
         }
         return tenantManager;
     }

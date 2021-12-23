@@ -48,7 +48,6 @@ import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.CustomRule;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -2129,7 +2128,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 assertEquals(0, count);
             }
 
-            CustomRuleBindingCreate create = new CustomRuleBindingCreate();
+            CustomRuleBinding create = new CustomRuleBinding();
             create.setCustomRuleId(cr.getId());
             given()
                 .when()
@@ -2185,7 +2184,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(404);
 
-            create = new CustomRuleBindingCreate();
+            create = new CustomRuleBinding();
             create.setCustomRuleId(crAll.getId());
             given()
                 .when()
@@ -2211,7 +2210,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 assertEquals(1, count);
             });
 
-            create = new CustomRuleBindingCreate();
+            create = new CustomRuleBinding();
             create.setCustomRuleId(crAvro.getId());
             given()
                 .when()

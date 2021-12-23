@@ -49,7 +49,6 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.CustomRule;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -402,7 +401,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void createGlobalCustomRuleBinding(CustomRuleBindingCreate create) {
+    public void createGlobalCustomRuleBinding(CustomRuleBinding create) {
         storage.createCustomRuleBinding(Optional.empty(), create.getCustomRuleId());
     }
 

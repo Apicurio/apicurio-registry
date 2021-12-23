@@ -30,7 +30,6 @@ import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -381,7 +380,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
-    public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBindingCreate create) {
+    public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding create) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("body", create);

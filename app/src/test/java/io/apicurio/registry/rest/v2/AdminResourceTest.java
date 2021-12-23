@@ -54,7 +54,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.CustomRule;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -930,7 +929,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 assertEquals(0, count);
             }
 
-            CustomRuleBindingCreate create = new CustomRuleBindingCreate();
+            CustomRuleBinding create = new CustomRuleBinding();
             create.setCustomRuleId(cr.getId());
             given()
                 .when()

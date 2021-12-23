@@ -2806,7 +2806,7 @@
                         "type": "string"
                     },
                     "customRuleType": {
-                        "$ref": "#/components/schemas/RuleType"
+                        "$ref": "#/components/schemas/CustomRuleType"
                     },
                     "supportedArtifactType": {
                         "$ref": "#/components/schemas/ArtifactType"
@@ -2842,7 +2842,7 @@
                         "type": "string"
                     },
                     "customRuleType": {
-                        "$ref": "#/components/schemas/RuleType"
+                        "$ref": "#/components/schemas/CustomRuleType"
                     },
                     "supportedArtifactType": {
                         "$ref": "#/components/schemas/ArtifactType"

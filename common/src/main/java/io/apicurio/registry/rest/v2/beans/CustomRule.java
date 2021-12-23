@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.CustomRuleType;
 
 
 /**
@@ -49,7 +49,7 @@ public class CustomRule {
      */
     @JsonProperty("customRuleType")
     @JsonPropertyDescription("")
-    private RuleType customRuleType;
+    private CustomRuleType customRuleType;
     /**
      * 
      */
@@ -102,7 +102,7 @@ public class CustomRule {
      * 
      */
     @JsonProperty("customRuleType")
-    public RuleType getCustomRuleType() {
+    public CustomRuleType getCustomRuleType() {
         return customRuleType;
     }
 
@@ -112,7 +112,7 @@ public class CustomRule {
      * 
      */
     @JsonProperty("customRuleType")
-    public void setCustomRuleType(RuleType customRuleType) {
+    public void setCustomRuleType(CustomRuleType customRuleType) {
         this.customRuleType = customRuleType;
     }
 

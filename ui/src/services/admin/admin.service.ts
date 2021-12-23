@@ -16,7 +16,7 @@
  */
 
 import {BaseService} from "../baseService";
-import {DownloadRef, RoleMapping, Rule} from "../../models";
+import {CustomRule, CustomRuleBinding, CustomRuleUpdate, DownloadRef, RoleMapping, Rule} from "../../models";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global
@@ -65,6 +65,62 @@ export class AdminService extends BaseService {
 
         const endpoint: string = this.endpoint("/v2/admin/rules/:rule", {
             "rule": type
+        });
+        return this.httpDelete(endpoint);
+    }
+
+    public getCustomRules(): Promise<CustomRule[]> {
+        this.logger.info("[AdminService] Getting the list of custom rules.");
+        const endpoint: string = this.endpoint("/v2/admin/customRules");
+        return this.httpGet<CustomRule[]>(endpoint);
+    }
+
+    public createCustomRule(data: CustomRule): Promise<CustomRule> {
+        this.logger.info("[AdminService] Creating global custom rule:", data.id);
+
+        const endpoint: string = this.endpoint("/v2/admin/customRules");
+        return this.httpPostWithReturn(endpoint, data);
+    }
+
+    public updateCustomRule(ruleId: string, data: CustomRuleUpdate): Promise<void> {
+        this.logger.info("[AdminService] Creating global custom rule:", ruleId);
+
+        const endpoint: string = this.endpoint("/v2/admin/customRules/:rule", {
+            "rule": ruleId
+        });
+        return this.httpPut(endpoint, data);
+    }
+
+    public deleteCustomRule(id: string): Promise<null> {
+        this.logger.info("[AdminService] Deleting global custom rule:", id);
+
+        const endpoint: string = this.endpoint("/v2/admin/customRules/:rule", {
+            "rule": id
+        });
+        return this.httpDelete(endpoint);
+    }
+
+    public getCustomRuleBindings(): Promise<CustomRuleBinding[]> {
+        this.logger.info("[AdminService] Getting the list of custom rule bindingss.");
+        const endpoint: string = this.endpoint("/v2/admin/customRuleBindings");
+        return this.httpGet<CustomRuleBinding[]>(endpoint);
+    }
+
+    public createCustomRuleBinding(customRuleId: string): Promise<CustomRuleBinding> {
+        this.logger.info("[AdminService] Creating global custom rule binding:", customRuleId);
+
+        const endpoint: string = this.endpoint("/v2/admin/customRuleBindings");
+        const body: any = {
+            customRuleId: customRuleId
+        };
+        return this.httpPostWithReturn(endpoint, body);
+    }
+
+    public deleteCustomRuleBinding(customRuleId: string): Promise<null> {
+        this.logger.info("[AdminService] Deleting global custom rule binding:", customRuleId);
+
+        const endpoint: string = this.endpoint("/v2/admin/customRuleBindings/:rule", {
+            "rule": customRuleId
         });
         return this.httpDelete(endpoint);
     }

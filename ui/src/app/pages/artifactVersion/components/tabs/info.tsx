@@ -29,7 +29,7 @@ import {DownloadIcon, EditIcon} from "@patternfly/react-icons";
 import Moment from "react-moment";
 import {IfFeature} from "../../../../components/common/ifFeature";
 import {If} from "../../../../components/common/if";
-import {ArtifactMetaData, Rule} from "../../../../../models";
+import {ArtifactMetaData, CustomRule, Rule} from "../../../../../models";
 
 /**
  * Properties
@@ -44,6 +44,10 @@ export interface InfoTabContentProps extends PureComponentProps {
     onConfigureRule: (ruleType: string, config: string) => void;
     onDownloadArtifact: () => void;
     onEditMetaData: () => void;
+    customRules: CustomRule[];
+    enabledCustomRules: string[];
+    onEnableCustomRule: (customRuleId: string) => void;
+    onDisableCustomRule: (customRuleId: string) => void;
 }
 
 /**
@@ -144,6 +148,10 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                               onEnableRule={this.props.onEnableRule}
                               onDisableRule={this.props.onDisableRule}
                               onConfigureRule={this.props.onConfigureRule}
+                              customRules={this.props.customRules}
+                              enabledCustomRules={this.props.enabledCustomRules}
+                              onEnableCustomRule={this.props.onEnableCustomRule}
+                              onDisableCustomRule={this.props.onDisableCustomRule}
                     />
                 </FlexItem>
             </Flex>

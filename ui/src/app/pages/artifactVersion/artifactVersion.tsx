@@ -34,7 +34,7 @@ import {Link} from "react-router-dom";
 import {EditMetaDataModal} from "./components/modals";
 import {InvalidContentModal} from "../../components/modals";
 import {IfFeature} from "../../components";
-import {ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion} from "../../../models";
+import {ArtifactMetaData, ArtifactTypes, ContentTypes, CustomRule, Rule, SearchedVersion} from "../../../models";
 import {CreateVersionData, EditableMetaData, Services} from "../../../services";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 
@@ -65,6 +65,8 @@ export interface ArtifactVersionPageState extends PageState {
     uploadFormData: string | null;
     versions: SearchedVersion[] | null;
     invalidContentError: any | null;
+    customRules: CustomRule[] | null;
+    enabledCustomRules: string[] | null;
 }
 
 function is404(e: any) {
@@ -102,6 +104,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                 onConfigureRule={this.doConfigureRule}
                                 onDownloadArtifact={this.doDownloadArtifact}
                                 onEditMetaData={this.openEditMetaDataModal}
+                                customRules={this.customRules()}
+                                enabledCustomRules={this.enabledCustomRules()}
+                                onEnableCustomRule={this.doEnableCustomRule}
+                                onDisableCustomRule={this.doDisableCustomRule}
                 />
             </Tab>,
             <Tab eventKey={1} title="Documentation" key="documentation">
@@ -216,7 +222,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             pleaseWaitMessage: "",
             rules: null,
             uploadFormData: null,
-            versions: null
+            versions: null,
+            customRules: null,
+            enabledCustomRules: null
         };
     }
 
@@ -232,6 +240,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         return this.getPathParam("version");
     }
 
+    //TODO create some gateway API endpoint that gathers all of this in one call?
     // @ts-ignore
     protected createLoaders(): Promise[] | null {
         let groupId: string|null = this.groupIdParam();
@@ -254,7 +263,9 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 }
             ),
             Services.getGroupsService().getArtifactRules(groupId, artifactId).then(rules => this.setSingleState("rules", rules)),
-            Services.getGroupsService().getArtifactVersions(groupId, artifactId).then(versions => this.setSingleState("versions", versions.reverse()))
+            Services.getGroupsService().getArtifactVersions(groupId, artifactId).then(versions => this.setSingleState("versions", versions.reverse())),
+            Services.getGroupsService().getArtifactAvailableCustomRules(groupId, artifactId).then(crs => this.setSingleState("customRules", crs)),
+            Services.getGroupsService().getArtifactCustomRuleBindings(groupId, artifactId).then(bindings => this.setSingleState("enabledCustomRules", bindings.map(b => b.customRuleId))),
         ];
     }
 
@@ -280,6 +291,14 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private rules(): Rule[] {
         return this.state.rules ? this.state.rules : [];
+    }
+
+    private customRules(): CustomRule[] {
+        return this.state.customRules ? this.state.customRules : []
+    }
+
+    private enabledCustomRules(): string[] {
+        return this.state.enabledCustomRules ? this.state.enabledCustomRules : []
     }
 
     private doEnableRule = (ruleType: string): void => {
@@ -314,6 +333,22 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 return r;
             }
         }));
+    };
+
+    private doEnableCustomRule = (customRuleId: string): void => {
+        Services.getLoggerService().debug("[ArtifactVersionPage] Enabling custom rule:", customRuleId);
+        Services.getGroupsService().createArtifactCustomRuleBinding(this.groupId(), this.artifactId(), customRuleId).catch(error => {
+            this.handleServerError(error, `Error enabling "${ customRuleId }" artifact custom rule.`);
+        });
+        this.setSingleState("enabledCustomRules", [...this.enabledCustomRules(), customRuleId]);
+    };
+
+    private doDisableCustomRule = (customRuleId: string): void => {
+        Services.getLoggerService().debug("[ArtifactVersionPage] Disabling custom rule:", customRuleId);
+        Services.getGroupsService().deleteArtifactCustomRuleBinding(this.groupId(), this.artifactId(), customRuleId).catch(error => {
+            this.handleServerError(error, `Error disabling "${ customRuleId }" artifact custom rule.`);
+        });
+        this.setSingleState("enabledCustomRules", this.enabledCustomRules().filter(r => r !== customRuleId));
     };
 
     private doDownloadArtifact = (): void => {
@@ -422,6 +457,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
                 Services.getLoggerService().info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(this.linkTo(artifactVersionLocation))();
+                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             }).catch( error => {
                 this.pleaseWait(false, "");
                 if (error && (error.error_code === 400 || error.error_code === 409)) {

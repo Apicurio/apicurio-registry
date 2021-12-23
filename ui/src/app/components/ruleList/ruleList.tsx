@@ -24,15 +24,15 @@ import {
     DataListCell,
     DataListItem,
     DataListItemCells,
-    DataListItemRow, EmptyStateBody
+    DataListItemRow, Modal
 } from '@patternfly/react-core';
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
+import {CodeBranchIcon, OkIcon, ServiceIcon, TrashIcon} from "@patternfly/react-icons";
 import {CompatibilityDropdown} from "./compatibility-dropdown";
 import {ValidityDropdown} from "./validity-dropdown";
 import {IfFeature} from "../common/ifFeature";
 import {IfAuth} from "../common";
-import {Rule} from "../../../models";
+import {Rule, CustomRule} from "../../../models";
 
 
 export interface RuleListProps extends PureComponentProps {
@@ -40,6 +40,10 @@ export interface RuleListProps extends PureComponentProps {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     rules: Rule[];
+    enabledCustomRules: string[],//list of custom rule ids of the enabled custom rules
+    customRules: CustomRule[];
+    onEnableCustomRule: (ruleId: string) => void;
+    onDisableCustomRule: (ruleId: string) => void;
 }
 
 // tslint:disable-next-line:no-empty-interface
@@ -94,54 +98,85 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
         }
 
         return (
-            <DataList aria-label="Artifact rules">
-                <DataListItem aria-labelledby="validity-rule-name">
-                    <DataListItemRow className={this.getRuleRowClasses("VALIDITY")}>
-                        <DataListItemCells dataListCells={[
-                            <DataListCell key="rule-name">
-                                <OkIcon className="rule-icon" />
-                                <span id="validity-rule-name">Validity rule</span>
-                            </DataListCell>,
-                            <DataListCell key="rule-description">Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
-                        ]}
-                        />
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                <DataListAction
-                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                    id="selectable-action-action1"
-                                    aria-label="Actions"
-                                >
-                                    { validityRuleActions}
-                                </DataListAction>
-                            </IfFeature>
-                        </IfAuth>
-                    </DataListItemRow>
-                </DataListItem>
-                <DataListItem aria-labelledby="compatibility-rule-name">
-                    <DataListItemRow className={this.getRuleRowClasses("COMPATIBILITY")}>
-                        <DataListItemCells dataListCells={[
-                            <DataListCell key="rule-name">
-                                <CodeBranchIcon className="rule-icon" />
-                                <span id="compatibility-rule-name">Compatibility rule</span>
-                            </DataListCell>,
-                            <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (for example, Backwards Compatibility).</DataListCell>
-                        ]}
-                        />
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                <DataListAction
-                                    aria-labelledby="selectable-action-item1 selectable-action-action1"
-                                    id="selectable-action-action2"
-                                    aria-label="Actions"
-                                >
-                                    { compatibilityRuleActions }
-                                </DataListAction>
-                            </IfFeature>
-                        </IfAuth>
-                    </DataListItemRow>
-                </DataListItem>
-            </DataList>
+            <React.Fragment>
+                <DataList aria-label="Artifact rules">
+                    <DataListItem aria-labelledby="validity-rule-name">
+                        <DataListItemRow className={this.getRuleRowClasses("VALIDITY")}>
+                            <DataListItemCells dataListCells={[
+                                <DataListCell key="rule-name">
+                                    <OkIcon className="rule-icon" />
+                                    <span id="validity-rule-name">Validity rule</span>
+                                </DataListCell>,
+                                <DataListCell key="rule-description">Ensure that content is <em>valid</em> when updating this artifact.</DataListCell>
+                            ]}
+                            />
+                            <IfAuth isDeveloper={true}>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <DataListAction
+                                        aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                        id="selectable-action-action1"
+                                        aria-label="Actions"
+                                    >
+                                        { validityRuleActions}
+                                    </DataListAction>
+                                </IfFeature>
+                            </IfAuth>
+                        </DataListItemRow>
+                    </DataListItem>
+                    <DataListItem aria-labelledby="compatibility-rule-name">
+                        <DataListItemRow className={this.getRuleRowClasses("COMPATIBILITY")}>
+                            <DataListItemCells dataListCells={[
+                                <DataListCell key="rule-name">
+                                    <CodeBranchIcon className="rule-icon" />
+                                    <span id="compatibility-rule-name">Compatibility rule</span>
+                                </DataListCell>,
+                                <DataListCell key="rule-description">Enforce a compatibility level when updating this artifact (for example, Backwards Compatibility).</DataListCell>
+                            ]}
+                            />
+                            <IfAuth isDeveloper={true}>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <DataListAction
+                                        aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                        id="selectable-action-action2"
+                                        aria-label="Actions"
+                                    >
+                                        { compatibilityRuleActions }
+                                    </DataListAction>
+                                </IfFeature>
+                            </IfAuth>
+                        </DataListItemRow>
+                    </DataListItem>
+                </DataList>
+                <DataList aria-label="Custom rules">
+                    {
+                        this.props.customRules.map( (customRule, idx) =>
+                            <DataListItem aria-labelledby={"custom-rule-name-"+customRule.id}>
+                                <DataListItemRow className={this.getCustomRuleRowClasses(customRule.id)}>
+                                    <DataListItemCells dataListCells={[
+                                        <DataListCell key="rule-name">
+                                            <ServiceIcon className="rule-icon" />
+                                            <span id={"custom-rule-name-"+customRule.id}><b>{customRule.id}</b> custom rule</span>
+                                        </DataListCell>,
+                                        <DataListCell key="rule-description">{customRule.description}</DataListCell>
+                                    ]}
+                                    />
+                                    <IfAuth isDeveloper={true}>
+                                        <IfFeature feature="readOnly" isNot={true}>
+                                            <DataListAction
+                                                aria-labelledby="selectable-action-item1 selectable-action-action1"
+                                                id="selectable-action-action1"
+                                                aria-label="Actions"
+                                            >
+                                                {this.buildCustomRuleActions(customRule)}
+                                            </DataListAction>
+                                        </IfFeature>
+                                    </IfAuth>
+                                </DataListItemRow>
+                            </DataListItem>
+                        )
+                    }
+                </DataList>
+            </React.Fragment>
         );
     }
 
@@ -190,6 +225,49 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
     private doConfigureRule = (ruleType: string): ((config: string) => void) => {
         return (config: string) => {
             this.props.onConfigureRule(ruleType, config);
+        };
+    };
+
+    private buildCustomRuleActions(customRule: CustomRule): React.ReactElement {
+        if (this.isCustomRuleEnabled(customRule.id)) {
+            return (
+                <Button variant="plain"
+                    key="delete-action"
+                    data-testid={"custom-rules-disable-" + customRule.id}
+                    title="Disable the custom rule"
+                    onClick={this.doDisableCustomRule(customRule.id)}><TrashIcon /></Button>
+            )
+        } else {
+            return (
+                <Button variant="secondary"
+                    key="enable-action"
+                    data-testid={"custom-rules-enable-" + customRule.id}
+                    onClick={this.doEnableCustomRule(customRule.id)}>Enable</Button>
+            )
+        }
+    }
+
+    private isCustomRuleEnabled(id: string): boolean {
+        return this.props.enabledCustomRules.filter(binding => binding === id).length > 0;
+    }
+
+    private getCustomRuleRowClasses(id: string): string {
+        const classes: string[] = [ "rule" ];
+        if (!this.isCustomRuleEnabled(id)) {
+            classes.push("disabled");
+        }
+        return classes.join(' ');
+    }
+
+    private doEnableCustomRule = (ruleId: string): (() => void) => {
+        return () => {
+            this.props.onEnableCustomRule(ruleId);
+        };
+    };
+
+    private doDisableCustomRule = (ruleId: string): (() => void) => {
+        return () => {
+            this.props.onDisableCustomRule(ruleId);
         };
     };
 

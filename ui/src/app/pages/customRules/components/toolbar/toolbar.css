@@ -1,0 +1,17 @@
+.custom-rules-toolbar {
+    padding-left: 8px;
+    padding-right: 24px;
+}
+
+.custom-rules-toolbar > div {
+    width: 100%;
+}
+
+#custom-rules-toolbar-1 .tbi-filter-type {
+    margin-right: 0;
+}
+
+#custom-rules-toolbar-1 .custom-rules-paging-item {
+    flex-grow: 1;
+    text-align: right;
+}

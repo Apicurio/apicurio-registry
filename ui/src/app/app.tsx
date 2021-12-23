@@ -20,6 +20,7 @@ import {Page} from "@patternfly/react-core";
 import {BrowserRouter as Router, Route, Switch} from 'react-router-dom';
 import {AppHeader} from "./components/header";
 import {RulesPage} from "./pages/rules";
+import {CustomRulesPage} from "./pages/customRules";
 import {ArtifactsPage} from "./pages/artifacts";
 import {ArtifactRedirectPage} from "./pages/artifact";
 import {ArtifactVersionPage} from "./pages/artifactVersion";
@@ -62,6 +63,7 @@ export default class App extends React.PureComponent<{}, {}> {
                     <Switch>
                         <Route path='/' exact={true} component={RootRedirectPage}/>
                         <Route path='/rules' exact={true} component={RulesPage}/>
+                        <Route path='/customRules' exact={true} component={CustomRulesPage}/>
                         <Route path='/roles' exact={true} component={RolesPage}/>
                         <Route path='/artifacts' exact={true} component={ArtifactsPage}/>
                         <Route path='/artifacts/:groupId/:artifactId' exact={true} component={ArtifactRedirectPage}/>

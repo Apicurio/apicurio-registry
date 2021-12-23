@@ -21,7 +21,9 @@ import {
     ArtifactMetaData,
     Rule,
     VersionMetaData,
-    ContentTypes
+    ContentTypes,
+    CustomRule,
+    CustomRuleBinding
 } from "../../models";
 import {BaseService} from "../baseService";
 import YAML from "yaml";
@@ -184,6 +186,8 @@ export class GroupsService extends BaseService {
         this.logger.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
         const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
         return this.httpGet<string[]>(endpoint).then( ruleTypes => {
+            //this double http call makes no sense
+            //TODO unify custom rules and rules into the same API, maybe create v3 admin api?
             return Promise.all(ruleTypes.map(rt => this.getArtifactRule(groupId, artifactId, rt)));
         });
     }
@@ -233,6 +237,46 @@ export class GroupsService extends BaseService {
             groupId,
             artifactId,
             "rule": type
+        });
+        return this.httpDelete(endpoint);
+    }
+
+    public getArtifactAvailableCustomRules(groupId: string|null, artifactId: string): Promise<CustomRule[]> {
+        groupId = this.normalizeGroupId(groupId);
+
+        this.logger.info("[GroupsService] Getting the list of custom rules available for artifact: ", groupId, artifactId);
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/customRules", { groupId, artifactId });
+        return this.httpGet<CustomRule[]>(endpoint);
+    }
+
+    public getArtifactCustomRuleBindings(groupId: string|null, artifactId: string): Promise<CustomRuleBinding[]> {
+        groupId = this.normalizeGroupId(groupId);
+
+        this.logger.info("[GroupsService] Getting the list of custom rule bindings for artifact: ", groupId, artifactId);
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/customRuleBindings", { groupId, artifactId });
+        return this.httpGet<CustomRuleBinding[]>(endpoint);
+    }
+
+    public createArtifactCustomRuleBinding(groupId: string|null, artifactId: string, customRuleId: string): Promise<CustomRuleBinding> {
+        groupId = this.normalizeGroupId(groupId);
+
+        this.logger.info("[GroupsService] Creating atifact custom rule binding:", customRuleId);
+
+        const body: any = {
+            customRuleId: customRuleId
+        }
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/customRuleBindings", { groupId, artifactId });
+        return this.httpPostWithReturn(endpoint, body);
+    }
+
+    public deleteArtifactCustomRuleBinding(groupId: string|null, artifactId: string, customRuleId: string): Promise<void> {
+        groupId = this.normalizeGroupId(groupId);
+
+        this.logger.info("[GroupsService] Deleting artifact custom rule binding:", customRuleId);
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/customRuleBindings/:customRuleId", {
+            groupId,
+            artifactId,
+            "customRuleId": customRuleId
         });
         return this.httpDelete(endpoint);
     }

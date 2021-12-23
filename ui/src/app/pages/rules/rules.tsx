@@ -20,7 +20,7 @@ import "./rules.css";
 import {Button, PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RuleList} from "../../components/ruleList";
-import {Rule} from "../../../models";
+import {CustomRule, Rule} from "../../../models";
 import {Services} from "../../../services";
 import {RootPageHeader} from "../../components";
 
@@ -39,6 +39,8 @@ export interface RulesPageProps extends PageProps {
 // tslint:disable-next-line:no-empty-interface
 export interface RulesPageState extends PageState {
     rules: Rule[] | null;
+    customRules: CustomRule[] | null;
+    enabledCustomRules: string[] | null;
 }
 
 /**
@@ -66,7 +68,12 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                         <RuleList rules={this.rules()}
                                   onEnableRule={this.doEnableRule}
                                   onDisableRule={this.doDisableRule}
-                                  onConfigureRule={this.doConfigureRule} />
+                                  onConfigureRule={this.doConfigureRule}
+                                  customRules={this.customRules()}
+                                  enabledCustomRules={this.enabledCustomRules()}
+                                  onEnableCustomRule={this.doEnableCustomRule}
+                                  onDisableCustomRule={this.doDisableCustomRule}
+                                />
                     </React.Fragment>
                 </PageSection>
             </React.Fragment>
@@ -75,18 +82,31 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     protected initializePageState(): RulesPageState {
         return {
-            rules: null
+            rules: null,
+            customRules: null,
+            enabledCustomRules: null
         };
     }
 
     // @ts-ignore
-    protected createLoaders(): Promise {
-        return Services.getAdminService().getRules().then( rules => {
+    protected createLoaders(): Promise[] {
+        return [
+            Services.getAdminService().getRules().then( rules => {
                 this.setMultiState({
-                    isLoading: false,
                     rules
                 });
-            });
+            }),
+            Services.getAdminService().getCustomRules().then( rules => {
+                this.setMultiState({
+                    customRules: rules
+                });
+            }),
+            Services.getAdminService().getCustomRuleBindings().then( customRuleBindings => {
+                this.setMultiState({
+                    enabledCustomRules: customRuleBindings.map(b => b.customRuleId)
+                });
+            }),
+        ];
     }
 
     private rules(): Rule[] {
@@ -95,6 +115,14 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
         } else {
             return [];
         }
+    }
+
+    private customRules(): CustomRule[] {
+        return this.state.customRules ? this.state.customRules : [];
+    }
+
+    private enabledCustomRules(): string[] {
+        return this.state.enabledCustomRules ? this.state.enabledCustomRules : [];
     }
 
     private doEnableRule = (ruleType: string): void => {
@@ -129,6 +157,22 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                 return r;
             }
         }));
+    };
+
+    private doEnableCustomRule = (customRuleId: string): void => {
+        Services.getLoggerService().debug("[RulesPage] Creating global custom rule binding:", customRuleId);
+        Services.getAdminService().createCustomRuleBinding(customRuleId).catch(error => {
+            this.handleServerError(error, `Error creating "${ customRuleId }" global custom rule binding.`);
+        });
+        this.setSingleState("enabledCustomRules", [...this.enabledCustomRules(), customRuleId]);
+    };
+
+    private doDisableCustomRule = (customRuleId: string): void => {
+        Services.getLoggerService().debug("[RulesPage] Removing global custom rule binding:", customRuleId);
+        Services.getAdminService().deleteCustomRuleBinding(customRuleId).catch(error => {
+            this.handleServerError(error, `Error removing "${ customRuleId }" global custom rule binding.`);
+        });
+        this.setSingleState("enabledCustomRules", this.enabledCustomRules().filter(r => r !== customRuleId));
     };
 
 }

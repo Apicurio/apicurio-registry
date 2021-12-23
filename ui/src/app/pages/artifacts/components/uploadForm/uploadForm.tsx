@@ -34,17 +34,7 @@ import {ArtifactTypes} from "../../../../../models";
 import {CreateArtifactData} from "../../../../../services";
 
 
-const artifactTypes: any[] = [
-    { id: ArtifactTypes.AVRO, label: "Avro Schema" },
-    { id: ArtifactTypes.PROTOBUF, label: "Protocol Buffer Schema" },
-    { id: ArtifactTypes.JSON, label: "JSON Schema" },
-    { id: ArtifactTypes.OPENAPI, label: "OpenAPI" },
-    { id: ArtifactTypes.ASYNCAPI, label: "AsyncAPI" },
-    { id: ArtifactTypes.GRAPHQL, label: "GraphQL" },
-    { id: ArtifactTypes.KCONNECT, label: "Kafka Connect Schema" },
-    { id: ArtifactTypes.WSDL, label: "WSDL" },
-    { id: ArtifactTypes.XSD, label: "XML Schema" },
-];
+const artifactTypes: any[] = ArtifactTypes.LabeledArtifactTypes;
 
 /**
  * Properties

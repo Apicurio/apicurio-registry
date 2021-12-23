@@ -27,6 +27,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class RuleViolationError
     extends Error
 {
@@ -160,14 +165,4 @@ public class RuleViolationError
         this.name = name;
     }
 
-    @Override
-    public String toString() {
-        return "RuleViolationError{" +
-                "causes=" + causes +
-                ", message='" + message + '\'' +
-                ", errorCode=" + errorCode +
-                ", detail='" + detail + '\'' +
-                ", name='" + name + '\'' +
-                '}';
-    }
 }

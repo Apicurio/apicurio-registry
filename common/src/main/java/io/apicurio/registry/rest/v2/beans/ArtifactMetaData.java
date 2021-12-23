@@ -41,6 +41,11 @@ import io.apicurio.registry.types.ArtifactType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class ArtifactMetaData {
 
     @JsonProperty("name")
@@ -436,24 +441,4 @@ public class ArtifactMetaData {
         this.contentId = contentId;
     }
 
-    @Override
-    public String toString() {
-        return "ArtifactMetaData{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", modifiedBy='" + modifiedBy + '\'' +
-                ", modifiedOn=" + modifiedOn +
-                ", id='" + id + '\'' +
-                ", version='" + version + '\'' +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                ", groupId='" + groupId + '\'' +
-                ", contentId=" + contentId +
-                '}';
-    }
 }

@@ -26,6 +26,11 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class EditableMetaData {
 
     @JsonProperty("name")
@@ -100,13 +105,4 @@ public class EditableMetaData {
         this.properties = properties;
     }
 
-    @Override
-    public String toString() {
-        return "EditableMetaData{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                '}';
-    }
 }

@@ -39,6 +39,11 @@ import io.apicurio.registry.types.ArtifactType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class VersionMetaData {
 
     /**
@@ -375,22 +380,4 @@ public class VersionMetaData {
         this.contentId = contentId;
     }
 
-    @Override
-    public String toString() {
-        return "VersionMetaData{" +
-                "version='" + version + '\'' +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdBy='" + createdBy + '\'' +
-                ", createdOn=" + createdOn +
-                ", type=" + type +
-                ", globalId=" + globalId +
-                ", state=" + state +
-                ", id='" + id + '\'' +
-                ", labels=" + labels +
-                ", properties=" + properties +
-                ", groupId='" + groupId + '\'' +
-                ", contentId=" + contentId +
-                '}';
-    }
 }

@@ -294,6 +294,230 @@
                 }
             ]
         },
+        "/admin/customRules": {
+            "summary": "Manage the custom rules.",
+            "get": {
+                "tags": [
+                    "Custom rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CustomRule"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of created custom rules."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listCustomRules",
+                "summary": "List custom rules",
+                "description": "Gets a list of all the currently configured custom rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomRule"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Custom rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule was created."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createCustomRule",
+                "summary": "Create custom rule",
+                "description": "Adds a rule to the list of custom rules.\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* The custom rule already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/customRules/{rule}": {
+            "summary": "Manage the configuration of a single custom rule.",
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomRuleUpdate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Custom rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The custom rule's configuration was successfully updated."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateCustomRule",
+                "summary": "Update custom rule configuration",
+                "description": "Updates the configuration for an existent custom rule.\n\nThis operation can fail for the following reasons:\n\n* Invalid rule config (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Custom rules",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteCustomRule",
+                "summary": "Delete custom rule",
+                "description": "Deletes a single custom rule. \n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* Rule cannot be deleted (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "rule",
+                    "description": "The unique rule identifier of a custom rule.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/admin/customRuleBindings": {
+            "summary": "Manage the custom rule bindings, to enable/disable them.",
+            "get": {
+                "tags": [
+                    "Custom rule bindings",
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CustomRuleBinding"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of globally enabled custom rules."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listGlobalCustomRuleBindings",
+                "summary": "List global custom rule bindings",
+                "description": "Gets a list of all the currently enabled custom rules (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomRuleBinding"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Custom rule bindings",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule binding was created."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createGlobalCustomRuleBinding",
+                "summary": "Create global custom rule binding",
+                "description": "Adds a custom rule to the list of enabled custom rules.\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* The custom rule binding already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/customRuleBindings/{rule}": {
+            "summary": "Manage the configuration of a single custom rule binding.",
+            "delete": {
+                "tags": [
+                    "Custom rule bindings",
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule binding was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteGlobalCustomRuleBinding",
+                "summary": "Delete global custom rule binding",
+                "description": "Deletes a single global custom rule binding. \n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* Rule cannot be deleted (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "rule",
+                    "description": "The unique rule identifier of a custom rule.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "/admin/loggers": {
             "summary": "Manage logger settings/configurations.",
             "get": {
@@ -1429,6 +1653,187 @@
                 }
             ]
         },
+        "/groups/{groupId}/artifacts/{artifactId}/customRules": {
+            "summary": "Manage the custom rules at artifact level.",
+            "get": {
+                "tags": [
+                    "Artifact custom rules"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CustomRuleInfo"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of custom rules available to this artifact."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactAvailableCustomRules",
+                "summary": "List artifact available custom rules",
+                "description": "Gets a list of all the currently available custom rules for this artifact(if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/customRuleBindings": {
+            "summary": "Manage the custom rule bindings at artifact level, to enable/disable them.",
+            "get": {
+                "tags": [
+                    "Artifact custom rule bindings"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CustomRuleBinding"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "The list of artifact enabled custom rules."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listArtifactCustomRuleBindings",
+                "summary": "List artifact custom rule bindings",
+                "description": "Gets a list of all the currently enabled custom rules for this artifact (if any).\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomRuleBinding"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Artifact custom rule bindings"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule binding was created."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createArtifactCustomRuleBinding",
+                "summary": "Create artifact custom rule binding",
+                "description": "Adds a custom rule to the list of enabled custom rules for this artifact.\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* The custom rule binding already exists (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/{rule}": {
+            "summary": "Manage the configuration of a single custom rule binding at artifact level.",
+            "delete": {
+                "tags": [
+                    "Artifact custom rule bindings"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The custom rule binding was successfully deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteArtifactCustomRuleBinding",
+                "summary": "Delete artifact custom rule binding",
+                "description": "Deletes a single artifact custom rule binding. \n\nThis operation can fail for the following reasons:\n\n* Invalid rule name/type (HTTP error `400`)\n* No rule with name/type `rule` exists (HTTP error `404`)\n* Rule cannot be deleted (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "rule",
+                    "description": "The unique rule identifier of a custom rule.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "/groups/{groupId}/artifacts/{artifactId}/test": {
             "summary": "Test whether content would pass update rules.",
             "put": {
@@ -2365,6 +2770,129 @@
                     }
                 }
             },
+            "WebhookCustomRuleConfig": {
+                "title": "Root Type for WebhookCustomRuleConfig",
+                "description": "",
+                "required": [
+                    "url"
+                ],
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "secret": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "url": "http://localhost:3000/validate",
+                    "secret": "my-secret"
+                }
+            },
+            "CustomRule": {
+                "title": "Root Type for CustomRule",
+                "description": "",
+                "required": [
+                    "customRuleType",
+                    "id"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "customRuleType": {
+                        "$ref": "#/components/schemas/RuleType"
+                    },
+                    "supportedArtifactType": {
+                        "$ref": "#/components/schemas/ArtifactType"
+                    },
+                    "webhookConfig": {
+                        "$ref": "#/components/schemas/WebhookCustomRuleConfig"
+                    }
+                },
+                "example": {
+                    "customRuleType": "webhook",
+                    "id": "webhook-1",
+                    "description": "An example webhook custom rule",
+                    "supportedArtifactType": "OPENAPI",
+                    "webhookConfig": {
+                        "url": "http://localhost:3000/validate",
+                        "secret": "my-secret"
+                    }
+                }
+            },
+            "CustomRuleInfo": {
+                "title": "Root Type for CustomRuleInfo",
+                "description": "",
+                "required": [
+                    "customRuleType",
+                    "id"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "customRuleType": {
+                        "$ref": "#/components/schemas/RuleType"
+                    },
+                    "supportedArtifactType": {
+                        "$ref": "#/components/schemas/ArtifactType"
+                    }
+                },
+                "example": {
+                    "customRuleType": "webhook",
+                    "id": "webhook-1",
+                    "description": "An example webhook custom rule",
+                    "supportedArtifactType": "OPENAPI"
+                }
+            },
+            "CustomRuleUpdate": {
+                "title": "Root Type for CustomRuleUpdate",
+                "description": "",
+                "required": [
+                ],
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "webhookConfig": {
+                        "$ref": "#/components/schemas/WebhookCustomRuleConfig"
+                    }
+                },
+                "example": {
+                    "description": "An example webhook custom rule",
+                    "webhookConfig": {
+                        "url": "http://localhost:3000/validate",
+                        "secret": "my-secret"
+                    }
+                }
+            },
+            "CustomRuleBinding": {
+                "title": "Root Type for CustomRuleBinding",
+                "description": "",
+                "required": [
+                    "customRuleId"
+                ],
+                "type": "object",
+                "properties": {
+                    "customRuleId": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "customRuleId": "foo"
+                }
+            },
             "Rule": {
                 "title": "Root Type for Rule",
                 "description": "",
@@ -2412,6 +2940,15 @@
                     "error_code": 500,
                     "message": "An error occurred somewhere."
                 }
+            },
+            "CustomRuleType": {
+                "description": "",
+                "enum": [
+                    "webhook"
+                ],
+                "type": "string",
+                "example": "webhook",
+                "x-codegen-package": "io.apicurio.registry.types"
             },
             "RuleType": {
                 "description": "",
@@ -3376,7 +3913,27 @@
     ],
     "x-codegen": {
         "bean-annotations": [
-            "io.quarkus.runtime.annotations.RegisterForReflection"
+            "io.quarkus.runtime.annotations.RegisterForReflection",
+            {
+                "annotation": "lombok.Builder",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.AllArgsConstructor",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.NoArgsConstructor",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.EqualsAndHashCode",
+                "excludeEnums": true
+            },
+            {
+                "annotation": "lombok.ToString",
+                "excludeEnums": true
+            }
         ]
     }
 }

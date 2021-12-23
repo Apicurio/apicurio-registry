@@ -2,7 +2,6 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.CustomRule;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -116,43 +115,106 @@ public interface AdminResource {
   @DELETE
   void deleteGlobalRule(@PathParam("rule") RuleType rule);
 
-  @Path("/customRuleBindings")
-  @GET
-  @Produces("application/json")
-  List<CustomRuleBinding> listGlobalCustomRuleBindings();
-
-  @Path("/customRuleBindings/")
-  @POST
-  @Consumes("application/json")
-  void createGlobalCustomRuleBinding(CustomRuleBindingCreate create);
-
-  @Path("/customRuleBindings/{id}")
-  @DELETE
-  void deleteGlobalCustomRuleBinding(@PathParam("id") String ruleId);
-
+  /**
+   * Gets a list of all the currently configured custom rules (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
   @Path("/customRules")
   @GET
   @Produces("application/json")
   List<CustomRule> listCustomRules();
 
-//  @Path("/customRules/{id}")
-//  @GET
-//  @Produces("application/json")
-//  CustomRule getCustomRule(@PathParam("id") String ruleId);
-
+  /**
+   * Adds a rule to the list of custom rules.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * The rule type is unknown (HTTP error `400`)
+   * * The custom rule already exists (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
   @Path("/customRules")
   @POST
   @Consumes("application/json")
   void createCustomRule(CustomRule data);
 
-  @Path("/customRules/{id}")
+  /**
+   * Updates the configuration for an existent custom rule.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Invalid rule config (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/customRules/{rule}")
   @PUT
   @Consumes("application/json")
-  void updateCustomRule(@PathParam("id") String ruleId, CustomRuleUpdate data);
+  void updateCustomRule(@PathParam("rule") String rule, CustomRuleUpdate data);
 
-  @Path("/customRules/{id}")
+  /**
+   * Deletes a single custom rule. 
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
+   * * Rule cannot be deleted (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/customRules/{rule}")
   @DELETE
-  void deleteCustomRule(@PathParam("id") String ruleId);
+  void deleteCustomRule(@PathParam("rule") String rule);
+
+  /**
+   * Gets a list of all the currently enabled custom rules (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/customRuleBindings")
+  @GET
+  @Produces("application/json")
+  List<CustomRuleBinding> listGlobalCustomRuleBindings();
+
+  /**
+   * Adds a custom rule to the list of enabled custom rules.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * The rule type is unknown (HTTP error `400`)
+   * * The custom rule binding already exists (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/customRuleBindings")
+  @POST
+  @Consumes("application/json")
+  void createGlobalCustomRuleBinding(CustomRuleBinding data);
+
+  /**
+   * Deletes a single global custom rule binding. 
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
+   * * Rule cannot be deleted (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/customRuleBindings/{rule}")
+  @DELETE
+  void deleteGlobalCustomRuleBinding(@PathParam("rule") String rule);
 
   /**
    * List all of the configured logging levels.  These override the default

@@ -35,6 +35,11 @@ import io.apicurio.registry.types.ArtifactType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class SearchedVersion {
 
     /**
@@ -344,20 +349,4 @@ public class SearchedVersion {
         this.contentId = contentId;
     }
 
-    @Override
-    public String toString() {
-        return "SearchedVersion{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", createdOn=" + createdOn +
-                ", createdBy='" + createdBy + '\'' +
-                ", type=" + type +
-                ", labels=" + labels +
-                ", state=" + state +
-                ", globalId=" + globalId +
-                ", version='" + version + '\'' +
-                ", properties=" + properties +
-                ", contentId=" + contentId +
-                '}';
-    }
 }

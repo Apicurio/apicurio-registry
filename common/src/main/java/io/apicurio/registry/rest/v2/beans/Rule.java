@@ -22,6 +22,11 @@ import io.apicurio.registry.types.RuleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class Rule {
 
     /**
@@ -74,11 +79,4 @@ public class Rule {
         this.type = type;
     }
 
-    @Override
-    public String toString() {
-        return "Rule{" +
-                "config='" + config + '\'' +
-                ", type=" + type +
-                '}';
-    }
 }

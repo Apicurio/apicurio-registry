@@ -18,6 +18,11 @@ import io.apicurio.registry.types.LogLevel;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class LogConfiguration {
 
     /**
@@ -49,10 +54,4 @@ public class LogConfiguration {
         this.level = level;
     }
 
-    @Override
-    public String toString() {
-        return "LogConfiguration{" +
-                "level=" + level +
-                '}';
-    }
 }

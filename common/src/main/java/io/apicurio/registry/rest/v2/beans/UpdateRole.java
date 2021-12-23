@@ -21,6 +21,11 @@ import io.apicurio.registry.types.RoleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class UpdateRole {
 
     /**
@@ -52,10 +57,4 @@ public class UpdateRole {
         this.role = role;
     }
 
-    @Override
-    public String toString() {
-        return "UpdateRole{" +
-                "role=" + role +
-                '}';
-    }
 }

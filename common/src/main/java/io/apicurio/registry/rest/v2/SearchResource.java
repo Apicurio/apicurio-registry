@@ -30,7 +30,6 @@ public interface SearchResource {
       @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby,
       @QueryParam("labels") List<String> labels, @QueryParam("properties") List<String> properties,
       @QueryParam("description") String description, @QueryParam("group") String group,
-      //TODO get Long from apicurio studio
       @QueryParam("globalId") Integer globalId, @QueryParam("contentId") Integer contentId);
 
   /**

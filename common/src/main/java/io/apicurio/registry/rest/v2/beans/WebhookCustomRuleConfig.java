@@ -1,61 +1,68 @@
-/*
- * Copyright 2021 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package io.apicurio.registry.rest.v2.beans;
 
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 
 /**
- * @author Fabian Martinez
+ * Root Type for WebhookCustomRuleConfig
+ * <p>
+ * 
+ * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({
+    "url",
+    "secret"
+})
+@Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.Builder
+@lombok.AllArgsConstructor
+@lombok.NoArgsConstructor
+@lombok.EqualsAndHashCode
+@lombok.ToString
 public class WebhookCustomRuleConfig {
 
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("url")
     private String url;
+    @JsonProperty("secret")
     private String secret;
 
-    public WebhookCustomRuleConfig() {
-        super();
-    }
-
     /**
-     * @return the url
+     * 
+     * (Required)
+     * 
      */
+    @JsonProperty("url")
     public String getUrl() {
         return url;
     }
 
     /**
-     * @param url the url to set
+     * 
+     * (Required)
+     * 
      */
+    @JsonProperty("url")
     public void setUrl(String url) {
         this.url = url;
     }
 
-    /**
-     * @return the secret
-     */
+    @JsonProperty("secret")
     public String getSecret() {
         return secret;
     }
 
-    /**
-     * @param secret the secret to set
-     */
+    @JsonProperty("secret")
     public void setSecret(String secret) {
         this.secret = secret;
     }

@@ -3,7 +3,6 @@ package io.apicurio.registry.rest.v2;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
-import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -294,28 +293,65 @@ public interface GroupsResource {
   void deleteArtifactRule(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule);
 
+  /**
+   * Gets a list of all the currently available custom rules for this artifact(if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
   @Path("/{groupId}/artifacts/{artifactId}/customRules")
   @GET
   @Produces("application/json")
   List<CustomRuleInfo> listArtifactAvailableCustomRules(@PathParam("groupId") String groupId,
-          @PathParam("artifactId") String artifactId);
+      @PathParam("artifactId") String artifactId);
 
+  /**
+   * Gets a list of all the currently enabled custom rules for this artifact (if any).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
   @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings")
   @GET
   @Produces("application/json")
   List<CustomRuleBinding> listArtifactCustomRuleBindings(@PathParam("groupId") String groupId,
-          @PathParam("artifactId") String artifactId);
+      @PathParam("artifactId") String artifactId);
 
-  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+  /**
+   * Adds a custom rule to the list of enabled custom rules for this artifact.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * The rule type is unknown (HTTP error `400`)
+   * * The custom rule binding already exists (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings")
   @POST
   @Consumes("application/json")
   void createArtifactCustomRuleBinding(@PathParam("groupId") String groupId,
-          @PathParam("artifactId") String artifactId, CustomRuleBindingCreate create);
+      @PathParam("artifactId") String artifactId, CustomRuleBinding data);
 
-  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings/{id}")
+  /**
+   * Deletes a single artifact custom rule binding. 
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Invalid rule name/type (HTTP error `400`)
+   * * No rule with name/type `rule` exists (HTTP error `404`)
+   * * Rule cannot be deleted (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings/{rule}")
   @DELETE
   void deleteArtifactCustomRuleBinding(@PathParam("groupId") String groupId,
-          @PathParam("artifactId") String artifactId, @PathParam("id") String customRuleId);
+      @PathParam("artifactId") String artifactId, @PathParam("rule") String rule);
 
   /**
    * Tests whether an update to the artifact's content *would* succeed for the provided content.

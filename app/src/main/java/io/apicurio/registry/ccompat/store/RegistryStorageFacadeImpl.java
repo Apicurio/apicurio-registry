@@ -240,7 +240,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema));
             }
         } catch (RuleViolationException ex) {
-            if (ex.getRuleType() == RuleType.VALIDITY) {
+            if (ex.isNativeRule() && RuleType.VALIDITY.value().equals(ex.getRule())) {
                 throw new UnprocessableEntityException(ex.getMessage(), ex);
             } else {
                 throw new ConflictException(ex.getMessage(), ex);

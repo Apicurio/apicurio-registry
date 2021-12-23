@@ -18,7 +18,6 @@ package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.RuleType;
 
 /**
  * A service used to apply configured rules to a given content update.  In other words,
@@ -41,22 +40,6 @@ public interface RulesService {
      */
     public void applyRules(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
                     RuleApplicationType ruleApplicationType) throws RuleViolationException;
-
-    /**
-     * Applies a single, specific rule to the content update for the given artifact.
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param artifactContent
-     * @param ruleType
-     * @param ruleConfiguration
-     * @param ruleApplicationType
-     * @throws RuleViolationException
-     */
-    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
-                   RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
-            throws RuleViolationException;
-
 
     /**
      * Applies configured rules to the content update, relative to ANY artifact version.

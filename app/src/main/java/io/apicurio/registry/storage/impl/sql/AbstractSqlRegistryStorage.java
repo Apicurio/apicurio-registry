@@ -54,6 +54,7 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -62,6 +63,7 @@ import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
@@ -69,11 +71,15 @@ import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CustomRuleBindingDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -98,6 +104,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.CustomRuleDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
@@ -2715,6 +2722,191 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             return null;
         });
 
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listCustomRuleBindings(java.util.Optional)
+     */
+    @Override
+    public List<CustomRuleBindingDto> listCustomRuleBindings(Optional<ArtifactIdDto> artifactIdDto) {
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        return handles.withHandleNoException(handle -> {
+           String sql = sqlStatements.selectAllCustomRuleBindings();
+           return handle.createQuery(sql)
+                   .bind(0, tenantContext.tenantId())
+                   .bind(1, groupId)
+                   .bind(2, artifactId)
+                   .map(rs -> {
+                       CustomRuleBindingDto dto = new CustomRuleBindingDto();
+                       dto.setCustomRuleId(rs.getString("ruleId"));
+                       return dto;
+                   })
+                   .list();
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createCustomRuleBinding(java.util.Optional, java.lang.String)
+     */
+    @Override
+    @Transactional
+    public void createCustomRuleBinding(Optional<ArtifactIdDto> artifactIdDto, String ruleId) {
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        handles.withHandleNoException(handle -> {
+            try {
+                return handle.createUpdate(sqlStatements.insertCustomRuleBinding())
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, groupId)
+                        .bind(2, artifactId)
+                        .bind(3, ruleId)
+                        .execute();
+            } catch (Exception e) {
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    throw new AlreadyExistsException("Custom rule binding already exists", e);
+                }
+                throw new RegistryStorageException(e);
+            }
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteCustomRuleBinding(java.util.Optional, java.lang.String)
+     */
+    @Override
+    @Transactional
+    public void deleteCustomRuleBinding(Optional<ArtifactIdDto> artifactIdDto, String ruleId) {
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        if (handles.withHandleNoException(handle -> {
+           return handle.createUpdate(sqlStatements.deleteCustomRuleBinding())
+               .bind(0, tenantContext.tenantId())
+               .bind(1, groupId)
+               .bind(2, artifactId)
+               .bind(3, ruleId)
+               .execute() <= 0;
+        })) {
+            throw new NotFoundException("Custom rule binding for rule " + ruleId + " not found");
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listArtifactAvailableCustomRules(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CustomRuleDto> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements.selectArtifactAvailableCustomRules();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, tenantContext.tenantId())
+                    .bind(2, groupId)
+                    .bind(3, artifactId)
+                    .map(CustomRuleDtoMapper.instance)
+                    .list();
+         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listCustomRules()
+     */
+    @Override
+    public List<CustomRuleDto> listCustomRules() {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements.selectAllCustomRules();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(CustomRuleDtoMapper.instance)
+                    .list();
+         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getCustomRule(java.lang.String)
+     */
+    @Override
+    public CustomRuleDto getCustomRule(String ruleId) {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements.selectCustomRuleById();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, ruleId)
+                    .map(CustomRuleDtoMapper.instance)
+                    .findOne()
+                    .orElseThrow(() -> new NotFoundException("Custom rule " + ruleId + " not found"));
+         });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createCustomRule(io.apicurio.registry.storage.dto.CustomRuleDto)
+     */
+    @Override
+    @Transactional
+    public void createCustomRule(CustomRuleDto data) {
+        handles.withHandleNoException(handle -> {
+            try {
+                handle.createUpdate(sqlStatements.insertCustomRule())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, data.getId())
+                    .bind(2, data.getSupportedArtifactType() == null ? null : data.getSupportedArtifactType().value())
+                    .bind(3, data.getCustomRuleType().value())
+                    .bind(4, data.getConfig())
+                    .bind(5, data.getDescription())
+                    .execute();
+            } catch (Exception e) {
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    throw new AlreadyExistsException("Custom rule already exists", e);
+                }
+                throw new RegistryStorageException(e);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateCustomRule(io.apicurio.registry.storage.dto.CustomRuleDto)
+     */
+    @Override
+    @Transactional
+    public void updateCustomRule(String customRuleId, EditableCustomRuleDto data) {
+        if (handles.withHandleNoException(handle -> {
+            try {
+                return handle.createUpdate(sqlStatements.updateCustomRule())
+                    .bind(0, data.getConfig())
+                    .bind(1, data.getDescription())
+                    .bind(2, tenantContext.tenantId())
+                    .bind(3, customRuleId)
+                    .execute() <= 0;
+            } catch (Exception e) {
+                throw new RegistryStorageException(e);
+            }
+        })) {
+            throw new NotFoundException("Custom rule " + customRuleId + " not found");
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteCustomRule(java.lang.String)
+     */
+    @Override
+    @Transactional
+    public void deleteCustomRule(String ruleId) {
+        handles.withHandleNoException(handle -> {
+            if (handle.createUpdate(sqlStatements.deleteCustomRule())
+                .bind(0, tenantContext.tenantId())
+                .bind(1, ruleId)
+                .execute() <= 0) {
+                throw new NotFoundException("Custom rule " + ruleId + " not found");
+            } else {
+                //remove associated customrulebindings
+                handle.createUpdate(sqlStatements.deleteCustomRuleBindingsByRuleId())
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, ruleId)
+                    .execute();
+            }
+            return null;
+        });
     }
 
     protected void deleteAllOrphanedContent() {

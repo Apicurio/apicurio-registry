@@ -47,6 +47,8 @@ import io.apicurio.registry.types.RegistryException;
 @ApplicationScoped
 public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
 
+    //TODO add limits to custom rules and custom rule bindings
+
     @Inject
     ThreadContext threadContext;
 

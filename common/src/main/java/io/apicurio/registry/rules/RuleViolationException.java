@@ -22,7 +22,6 @@ import java.util.Set;
 
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
-import lombok.Getter;
 
 /**
  * Exception thrown when a configured rule is violated, rejecting an artifact content
@@ -33,13 +32,12 @@ public class RuleViolationException extends RegistryException {
 
     private static final long serialVersionUID = 8437151164241883773L;
 
-    @Getter
-    private final RuleType ruleType;
+    private final boolean nativeRule;
 
-    @Getter
+    private final String  rule;
+
     private final Optional<String> ruleConfiguration;
 
-    @Getter
     private final Set<RuleViolation> causes;
 
     /**
@@ -51,7 +49,8 @@ public class RuleViolationException extends RegistryException {
      */
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Throwable cause) {
         super(message, cause);
-        this.ruleType = ruleType;
+        this.nativeRule = true;
+        this.rule = ruleType.value();
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
         this.causes = new HashSet<>();
     }
@@ -65,7 +64,8 @@ public class RuleViolationException extends RegistryException {
      */
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolation> causes) {
         super(message);
-        this.ruleType = ruleType;
+        this.nativeRule = true;
+        this.rule = ruleType.value();
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
         this.causes = causes;
     }
@@ -81,8 +81,57 @@ public class RuleViolationException extends RegistryException {
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
             Set<RuleViolation> causes, Throwable cause) {
         super(message, cause);
-        this.ruleType = ruleType;
+        this.nativeRule = true;
+        this.rule = ruleType.value();
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
         this.causes = causes;
     }
+
+    /**
+     * Constructor.
+     * @param message
+     * @param ruleType
+     * @param ruleConfiguration
+     * @param causes
+     */
+    public RuleViolationException(String message, String rule, String ruleConfiguration, Set<RuleViolation> causes, boolean nativeRule) {
+        super(message);
+        this.rule = rule;
+        this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
+        this.causes = causes;
+        this.nativeRule = nativeRule;
+    }
+
+    public static RuleViolationException customRuleException(String message, String rule, String ruleConfiguration, Set<RuleViolation> causes) {
+        return new RuleViolationException(message, rule, ruleConfiguration, causes, false);
+    }
+
+    /**
+     * @return the nativeRule
+     */
+    public boolean isNativeRule() {
+        return nativeRule;
+    }
+
+    /**
+     * @return the rule
+     */
+    public String getRule() {
+        return rule;
+    }
+
+    /**
+     * @return the ruleConfiguration
+     */
+    public Optional<String> getRuleConfiguration() {
+        return ruleConfiguration;
+    }
+
+    /**
+     * @return the causes
+     */
+    public Set<RuleViolation> getCauses() {
+        return causes;
+    }
+
 }

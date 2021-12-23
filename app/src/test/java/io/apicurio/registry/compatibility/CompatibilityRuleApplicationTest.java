@@ -136,7 +136,14 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "Test", ArtifactType.AVRO, "BACKWARD", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            RuleContext context = RuleContext.builder()
+                .groupId("TestGroup")
+                .artifactId("Test")
+                .artifactType(ArtifactType.AVRO)
+                .configuration("BACKWARD")
+                .currentContent(ContentHandle.create(v1Schema))
+                .updatedContent(ContentHandle.create(v2Schema))
+                .build();
             compatibility.execute(context);
         });
     }
@@ -147,7 +154,14 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = JsonSchemas.incompatibleJsonSchema;
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class, () -> {
-            RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON, "FORWARD_TRANSITIVE", ContentHandle.create(v1Schema), ContentHandle.create(v2Schema));
+            RuleContext context = RuleContext.builder()
+            .groupId("TestGroup")
+            .artifactId("TestJson")
+            .artifactType(ArtifactType.JSON)
+            .configuration("FORWARD_TRANSITIVE")
+            .currentContent(ContentHandle.create(v1Schema))
+            .updatedContent(ContentHandle.create(v2Schema))
+            .build();
             compatibility.execute(context);
         });
 

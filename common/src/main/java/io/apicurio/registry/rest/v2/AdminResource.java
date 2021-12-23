@@ -1,5 +1,9 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -111,6 +115,44 @@ public interface AdminResource {
   @Path("/rules/{rule}")
   @DELETE
   void deleteGlobalRule(@PathParam("rule") RuleType rule);
+
+  @Path("/customRuleBindings")
+  @GET
+  @Produces("application/json")
+  List<CustomRuleBinding> listGlobalCustomRuleBindings();
+
+  @Path("/customRuleBindings/")
+  @POST
+  @Consumes("application/json")
+  void createGlobalCustomRuleBinding(CustomRuleBindingCreate create);
+
+  @Path("/customRuleBindings/{id}")
+  @DELETE
+  void deleteGlobalCustomRuleBinding(@PathParam("id") String ruleId);
+
+  @Path("/customRules")
+  @GET
+  @Produces("application/json")
+  List<CustomRule> listCustomRules();
+
+//  @Path("/customRules/{id}")
+//  @GET
+//  @Produces("application/json")
+//  CustomRule getCustomRule(@PathParam("id") String ruleId);
+
+  @Path("/customRules")
+  @POST
+  @Consumes("application/json")
+  void createCustomRule(CustomRule data);
+
+  @Path("/customRules/{id}")
+  @PUT
+  @Consumes("application/json")
+  void updateCustomRule(@PathParam("id") String ruleId, CustomRuleUpdate data);
+
+  @Path("/customRules/{id}")
+  @DELETE
+  void deleteCustomRule(@PathParam("id") String ruleId);
 
   /**
    * List all of the configured logging levels.  These override the default

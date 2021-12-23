@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
@@ -44,6 +46,9 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -2094,7 +2099,144 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Create the same artifact
         createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
-        
+
     }
-    
+
+    @Test
+    public void testArtifactCustomRuleBindings() throws Exception {
+        try {
+            var cr = AdminResourceTest.createCustomRule("test-b-1", ArtifactType.OPENAPI);
+            var crAvro = AdminResourceTest.createCustomRule("test-b-2", ArtifactType.AVRO);
+            var crAll = AdminResourceTest.createCustomRule("test-b-3", null);
+
+            String artifactContent = resourceToString("openapi-empty.json");
+
+            // Create OpenAPI artifact - indicate the type via a header param
+            String artifactId = "testArtifactCustomRuleBindings/EmptyAPI";
+            createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent);
+
+            {
+                long count = Stream.of(given()
+                        .when()
+                            .pathParam("groupId", GROUP)
+                            .pathParam("artifactId", artifactId)
+                            .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .count();
+                assertEquals(0, count);
+            }
+
+            CustomRuleBindingCreate create = new CustomRuleBindingCreate();
+            create.setCustomRuleId(cr.getId());
+            given()
+                .when()
+                    .contentType(CT_JSON).body(create)
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                .then()
+                    .statusCode(204);
+
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                        .when()
+                            .pathParam("groupId", GROUP)
+                            .pathParam("artifactId", artifactId)
+                            .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .filter(crb -> crb.getCustomRuleId().equals(cr.getId()))
+                        .count();
+                assertEquals(1, count);
+            });
+
+            given()
+                .when()
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/" + cr.getId())
+                .then()
+                    .statusCode(204);
+
+            {
+                long count = Stream.of(given()
+                        .when()
+                            .pathParam("groupId", GROUP)
+                            .pathParam("artifactId", artifactId)
+                            .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .count();
+                assertEquals(0, count);
+            }
+
+            given()
+                .when()
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .delete("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/safdsf")
+                .then()
+                    .statusCode(404);
+
+            create = new CustomRuleBindingCreate();
+            create.setCustomRuleId(crAll.getId());
+            given()
+                .when()
+                    .contentType(CT_JSON).body(create)
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                .then()
+                    .statusCode(204);
+
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                        .when()
+                            .pathParam("groupId", GROUP)
+                            .pathParam("artifactId", artifactId)
+                            .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .filter(crb -> crb.getCustomRuleId().equals(crAll.getId()))
+                        .count();
+                assertEquals(1, count);
+            });
+
+            create = new CustomRuleBindingCreate();
+            create.setCustomRuleId(crAvro.getId());
+            given()
+                .when()
+                    .contentType(CT_JSON).body(create)
+                    .pathParam("groupId", GROUP)
+                    .pathParam("artifactId", artifactId)
+                    .post("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+                .then()
+                    .statusCode(400);
+
+            long availableCustomRulesCount = Stream.of(given()
+                    .when()
+                        .pathParam("groupId", GROUP)
+                        .pathParam("artifactId", artifactId)
+                        .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/customRules/")
+                    .then()
+                        .statusCode(200)
+                        .contentType(ContentType.JSON)
+                        .extract().as(CustomRule[].class))
+                    .count();
+            assertEquals(2, availableCustomRulesCount);
+
+        } finally {
+            AdminResourceTest.deleteAllCustomRules();
+        }
+    }
+
 }

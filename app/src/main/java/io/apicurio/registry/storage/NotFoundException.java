@@ -19,17 +19,21 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public abstract class NotFoundException extends StorageException {
+public class NotFoundException extends StorageException {
 
     private static final long serialVersionUID = 7134307797211927863L;
 
     public NotFoundException() {
     }
-    
+
+    public NotFoundException(String reason) {
+        super(reason);
+    }
+
     public NotFoundException(Throwable cause) {
         super(cause);
     }
-    
+
     public NotFoundException(String reason, Throwable cause) {
         super(reason, cause);
     }

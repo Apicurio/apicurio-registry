@@ -18,16 +18,21 @@
 package io.apicurio.registry.storage;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CustomRuleBindingDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -656,4 +661,26 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    // custom rules bindings
+
+    public List<CustomRuleBindingDto> listCustomRuleBindings(Optional<ArtifactIdDto> artifactId);
+
+    void createCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId);
+
+    void deleteCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId);
+
+    //custom rules
+
+    List<CustomRuleDto> listCustomRules();
+
+    List<CustomRuleDto> listArtifactAvailableCustomRules(String groupId, String artifactId);
+
+    CustomRuleDto getCustomRule(String ruleId);
+
+    void createCustomRule(CustomRuleDto data);
+
+    void updateCustomRule(String ruleId, EditableCustomRuleDto data);
+
+    void deleteCustomRule(String ruleId);
 }

@@ -917,4 +917,85 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllCustomRuleBindings()
+     */
+    @Override
+    public String selectAllCustomRuleBindings() {
+        return "SELECT b.ruleId FROM customrulebindings b WHERE b.tenantId = ? AND b.groupId = ? AND b.artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertCustomRuleBinding()
+     */
+    @Override
+    public String insertCustomRuleBinding() {
+        return "INSERT INTO customrulebindings (tenantId, groupId, artifactId, ruleId) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteCustomRuleBinding()
+     */
+    @Override
+    public String deleteCustomRuleBinding() {
+        return "DELETE FROM customrulebindings b WHERE b.tenantId = ? AND b.groupId = ? AND b.artifactId = ? AND b.ruleId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteCustomRuleBindingsByRuleId()
+     */
+    @Override
+    public String deleteCustomRuleBindingsByRuleId() {
+        return "DELETE FROM customrulebindings b WHERE b.tenantId = ? AND b.ruleId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllCustomRules()
+     */
+    @Override
+    public String selectAllCustomRules() {
+        return "SELECT r.* FROM customrules r WHERE r.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactAvailableCustomRules()
+     */
+    @Override
+    public String selectArtifactAvailableCustomRules() {
+        return "SELECT r.* FROM customrules r "
+                + "WHERE r.tenantId = ? AND (r.supportedArtifactType IS NULL OR r.supportedArtifactType = (SELECT a.type FROM artifacts a WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?))";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCustomRuleById()
+     */
+    @Override
+    public String selectCustomRuleById() {
+        return "SELECT r.* FROM customrules r WHERE r.tenantId = ? AND r.ruleId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertCustomRule()
+     */
+    @Override
+    public String insertCustomRule() {
+        return "INSERT INTO customrules (tenantId, ruleId, supportedArtifactType, customRuleType, configuration, description) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateCustomRule()
+     */
+    @Override
+    public String updateCustomRule() {
+        return "UPDATE customrules SET (configuration, description) = (?, ?) WHERE tenantId = ? AND ruleId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteCustomRule()
+     */
+    @Override
+    public String deleteCustomRule() {
+        return "DELETE FROM customrules r WHERE r.tenantId = ? AND r.ruleId = ?";
+    }
+
 }

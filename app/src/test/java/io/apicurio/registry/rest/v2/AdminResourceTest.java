@@ -52,13 +52,19 @@ import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
+import io.apicurio.registry.rest.v2.beans.WebhookCustomRuleConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.CustomRuleType;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -850,5 +856,294 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     }
 
+    public static CustomRule createCustomRule(String id, ArtifactType supportedArtifactType) throws Exception {
+        // Add a global rule
+        CustomRule cr = new CustomRule();
+        cr.setCustomRuleType(CustomRuleType.webhook);
+        cr.setDescription("desc");
+        cr.setId(id);
+        cr.setSupportedArtifactType(supportedArtifactType);
+        WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
+        config.setUrl("http://localhost:3000/validate");
+        config.setSecret("test secret");
+        cr.setWebhookConfig(config);
+        given()
+            .when()
+                .contentType(CT_JSON).body(cr)
+                .post("/registry/v2/admin/customRules")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the rule was added.
+        TestUtils.retry(() -> {
+            long count = Stream.of(given()
+                .when()
+                    .get("/registry/v2/admin/customRules/")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .extract().as(CustomRule[].class))
+                .filter(c -> c.getId().equals(cr.getId()))
+                .count();
+            assertEquals(1, count);
+        });
+        return cr;
+    }
+
+    public static void deleteAllCustomRules() {
+        Stream.of(given()
+                .when()
+                    .get("/registry/v2/admin/customRules/")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .extract().as(CustomRule[].class))
+            .forEach(cr -> {
+                deleteCustomRule(cr.getId());
+            });
+    }
+
+    private static void deleteCustomRule(String id) {
+        given()
+            .when()
+                .delete("/registry/v2/admin/customRules/" + id)
+            .then()
+                .statusCode(204);
+    }
+
+    @Test
+    public void testGlobalCustomRuleBindings() throws Exception {
+        try {
+            var cr =createCustomRule("test-b-1", null);
+            createCustomRule("test-b-2", null);
+
+            {
+                long count = Stream.of(given()
+                        .when()
+                            .get("/registry/v2/admin/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .count();
+                assertEquals(0, count);
+            }
+
+            CustomRuleBindingCreate create = new CustomRuleBindingCreate();
+            create.setCustomRuleId(cr.getId());
+            given()
+                .when()
+                    .contentType(CT_JSON).body(create)
+                    .post("/registry/v2/admin/customRuleBindings")
+                .then()
+                    .statusCode(204);
+
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                        .when()
+                            .get("/registry/v2/admin/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .filter(crb -> crb.getCustomRuleId().equals(cr.getId()))
+                        .count();
+                assertEquals(1, count);
+            });
+
+            given()
+                .when()
+                    .delete("/registry/v2/admin/customRuleBindings/" + cr.getId())
+                .then()
+                    .statusCode(204);
+
+            {
+                long count = Stream.of(given()
+                        .when()
+                            .get("/registry/v2/admin/customRuleBindings/")
+                        .then()
+                            .statusCode(200)
+                            .contentType(ContentType.JSON)
+                            .extract().as(CustomRuleBinding[].class))
+                        .count();
+                assertEquals(0, count);
+            }
+
+            given()
+                .when()
+                    .delete("/registry/v2/admin/customRuleBindings/foo")
+                .then()
+                    .statusCode(404);
+        } finally {
+            deleteAllCustomRules();
+        }
+    }
+
+    @Test
+    public void testCustomRules() throws Exception {
+        try {
+            // Add a global rule
+            CustomRule cr = new CustomRule();
+            cr.setCustomRuleType(CustomRuleType.webhook);
+            cr.setDescription("desc");
+            cr.setId("test1");
+            cr.setSupportedArtifactType(null);
+            WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
+            config.setUrl("http://localhost:3000/validate");
+            config.setSecret("test secret");
+            cr.setWebhookConfig(config);
+            given()
+                .when()
+                    .contentType(CT_JSON).body(cr)
+                    .post("/registry/v2/admin/customRules")
+                .then()
+                    .statusCode(204)
+                    .body(anything());
+
+            // Verify the rule was added.
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                    .when()
+                        .get("/registry/v2/admin/customRules/")
+                    .then()
+                        .statusCode(200)
+                        .contentType(ContentType.JSON)
+                        .extract().as(CustomRule[].class))
+                    .filter(c -> c.getId().equals("test1"))
+                    .count();
+                assertEquals(1, count);
+            });
+
+            // Try to add the rule again - should get a 409
+            TestUtils.retry(() -> {
+                given()
+                    .when()
+                        .contentType(CT_JSON).body(cr)
+                        .post("/registry/v2/admin/customRules")
+                    .then()
+                        .statusCode(409)
+                        .body("error_code", equalTo(409));
+//                        .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+            });
+
+            CustomRule cr2 = new CustomRule();
+            cr2.setCustomRuleType(CustomRuleType.webhook);
+            cr2.setDescription("desc 2");
+            cr2.setId("test2");
+            cr2.setSupportedArtifactType(ArtifactType.AVRO);
+            cr2.setWebhookConfig(config);
+            // Add another global rule
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .body(cr2)
+                    .post("/registry/v2/admin/customRules")
+                .then()
+                    .statusCode(204)
+                    .body(anything());
+
+            // Get the list of rules (should be 2 of them)
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                    .when()
+                        .get("/registry/v2/admin/customRules/")
+                    .then()
+                        .statusCode(200)
+                        .contentType(ContentType.JSON)
+                        .extract().as(CustomRule[].class))
+                    .count();
+                assertEquals(2, count);
+            });
+
+
+            // Update a rule's config
+            config.setUrl("foo");
+            CustomRuleUpdate cr2update = new CustomRuleUpdate();
+            cr2update.setDescription("foo");
+            cr2update.setWebhookConfig(config);
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .body(cr2update)
+                    .put("/registry/v2/admin/customRules/test2")
+                .then()
+                    .statusCode(204)
+                    .body(anything());
+
+            //TODO get list and verify update
+
+
+            // Try to update a rule's config for a rule that doesn't exist.
+//            rule.setType("RuleDoesNotExist");
+//            rule.setConfig("rdne-config");
+//            given()
+//                .when().contentType(CT_JSON).body(rule).put("/registry/v2/admin/rules/RuleDoesNotExist")
+//                .then()
+//                .statusCode(404)
+//                .contentType(ContentType.JSON)
+//                .body("error_code", equalTo(404))
+//                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+
+            // Delete a rule
+            given()
+                .when()
+                    .delete("/registry/v2/admin/customRules/test2")
+                .then()
+                    .statusCode(204)
+                    .body(anything());
+
+            TestUtils.retry(() -> {
+                long count = Stream.of(given()
+                    .when()
+                        .get("/registry/v2/admin/customRules/")
+                    .then()
+                        .statusCode(200)
+                        .contentType(ContentType.JSON)
+                        .extract().as(CustomRule[].class))
+                    .count();
+                assertEquals(1, count);
+            });
+
+            // Delete all rules
+            given()
+                .when()
+                    .delete("/registry/v2/admin/customRules/test1")
+                .then()
+                    .statusCode(204);
+
+            // Get the list of rules (no rules now)
+            TestUtils.retry(() -> {
+                given()
+                    .when()
+                        .get("/registry/v2/admin/customRules")
+                    .then()
+                        .statusCode(200)
+                        .contentType(ContentType.JSON)
+                        .body("[0]", nullValue());
+            });
+
+            given()
+                .when()
+                    .delete("/registry/v2/admin/customRules/foo")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404));
+//                    .body("message", equalTo("No rule named 'VALIDITY' was found."));
+
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .body(cr2update)
+                    .put("/registry/v2/admin/customRules/test2")
+                .then()
+                    .statusCode(404)
+                    .contentType(ContentType.JSON)
+                    .body("error_code", equalTo(404));
+        } finally {
+            deleteAllCustomRules();
+        }
+    }
 
 }

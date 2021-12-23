@@ -19,17 +19,21 @@ package io.apicurio.registry.storage;
 /**
  * @author eric.wittmann@gmail.com
  */
-public abstract class AlreadyExistsException extends StorageException {
+public class AlreadyExistsException extends StorageException {
 
     private static final long serialVersionUID = 5055445625652989500L;
 
     public AlreadyExistsException() {
     }
-    
+
+    public AlreadyExistsException(String reason) {
+        super(reason);
+    }
+
     public AlreadyExistsException(Throwable cause) {
         super(cause);
     }
-    
+
     public AlreadyExistsException(String reason, Throwable cause) {
         super(reason, cause);
     }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
@@ -34,6 +35,8 @@ import javax.ws.rs.core.Response;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.registry.logging.audit.AuditingConstants;
+
 import org.slf4j.Logger;
 
 import io.apicurio.registry.auth.Authorized;
@@ -44,6 +47,10 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
@@ -56,8 +63,10 @@ import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -75,6 +84,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPP
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.requireParameter;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -372,6 +382,96 @@ public class AdminResourceImpl implements AdminResource {
   
     private String createDownloadHref(String downloadId) {
         return "/apis/registry/v2/downloads/" + downloadId;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalCustomRuleBindings()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public List<CustomRuleBinding> listGlobalCustomRuleBindings() {
+        return storage.listCustomRuleBindings(Optional.empty())
+                    .stream()
+                    .map(V2ApiUtil::dtoToCustomRuleBinding)
+                    .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalCustomRuleBinding(java.lang.String)
+     */
+    @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE})
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void createGlobalCustomRuleBinding(CustomRuleBindingCreate create) {
+        storage.createCustomRuleBinding(Optional.empty(), create.getCustomRuleId());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalCustomRuleBinding(java.lang.String)
+     */
+    @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID})
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void deleteGlobalCustomRuleBinding(String ruleId) {
+        storage.deleteCustomRuleBinding(Optional.empty(), ruleId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listCustomRules()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public List<CustomRule> listCustomRules() {
+        return storage.listCustomRules()
+                .stream()
+                .map(crd -> {
+                    return V2ApiUtil.dtoToCustomRule(crd);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#createCustomRule(io.apicurio.registry.rest.v2.beans.CustomRule)
+     */
+    @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE})
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void createCustomRule(CustomRule data) {
+        requireParameter("body", data);
+        requireParameter("customRuleId", data.getId());
+        requireParameter("customRuleType", data.getCustomRuleType());
+        //TODO check if customRuleType supports the supportedArtifactType choosen
+        storage.createCustomRule(V2ApiUtil.customRuleToDto(data));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateCustomRule(java.lang.String, io.apicurio.registry.rest.v2.beans.CustomRule)
+     */
+    @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID, "1", AuditingConstants.KEY_CUSTOM_RULE})
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void updateCustomRule(String ruleId, CustomRuleUpdate data) {
+        requireParameter("body", data);
+        requireParameter("customRuleId", ruleId);
+
+        //only config and description can be updated
+        //because if we allow to update things like custom rule type and supportedArtifactType
+        //all customRuleBindings will have to be reviewed and updated
+
+        CustomRuleDto current = storage.getCustomRule(ruleId);
+
+        EditableCustomRuleDto dto = V2ApiUtil.editableCustomRuleToDto(current.getCustomRuleType(), data);
+        storage.updateCustomRule(ruleId, dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteCustomRule(java.lang.String)
+     */
+    @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID})
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void deleteCustomRule(String ruleId) {
+        storage.deleteCustomRule(ruleId);
     }
 
 }

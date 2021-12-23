@@ -27,6 +27,8 @@ public interface AuditingConstants {
     String KEY_CANONICAL = "canonical";
     String KEY_RULE = "rule";
     String KEY_RULE_TYPE = "rule_type";
+    String KEY_CUSTOM_RULE = "custom_rule";
+    String KEY_CUSTOM_RULE_ID = "custom_rule_id";
     String KEY_EDITABLE_METADATA = "editable_metadata";
     String KEY_LOGGER = "logger";
     String KEY_LOG_CONFIGURATION = "log_configuration";

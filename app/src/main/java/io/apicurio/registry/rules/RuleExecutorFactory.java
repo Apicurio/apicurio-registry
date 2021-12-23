@@ -20,7 +20,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.custom.WebhookRuleExecutor;
 import io.apicurio.registry.rules.validity.ValidityRuleExecutor;
+import io.apicurio.registry.types.CustomRuleType;
+import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;
 
 /**
@@ -29,11 +32,14 @@ import io.apicurio.registry.types.RuleType;
  */
 @ApplicationScoped
 public class RuleExecutorFactory {
-    
+
     @Inject
     CompatibilityRuleExecutor compatibility;
     @Inject
     ValidityRuleExecutor validity;
+
+    @Inject
+    WebhookRuleExecutor webhookRuleExecutor;
 
     public RuleExecutor createExecutor(RuleType ruleType) {
         switch (ruleType) {
@@ -45,5 +51,15 @@ public class RuleExecutorFactory {
                 throw new RuntimeException("Rule type not supported");
         }
     }
+
+    public RuleExecutor getCustomRuleExecutor(CustomRuleType customRuleType) {
+        switch (customRuleType) {
+            case webhook:
+                return webhookRuleExecutor;
+            default:
+                throw new RegistryException("Custom rule type not supported");
+        }
+    }
+
 
 }

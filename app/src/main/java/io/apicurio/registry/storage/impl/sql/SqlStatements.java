@@ -534,4 +534,19 @@ public interface SqlStatements {
 
     public String deleteExpiredDownloads();
 
+    /*
+     * Custom rules statements
+     */
+    public String selectAllCustomRuleBindings();
+    public String insertCustomRuleBinding();
+    public String deleteCustomRuleBinding();
+    public String deleteCustomRuleBindingsByRuleId();
+
+    public String selectAllCustomRules();
+    public String selectArtifactAvailableCustomRules();
+    public String selectCustomRuleById();
+    public String insertCustomRule();
+    public String updateCustomRule();
+    public String deleteCustomRule();
+
 }

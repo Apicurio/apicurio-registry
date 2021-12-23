@@ -19,6 +19,8 @@ package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactType;
@@ -30,6 +32,7 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -68,13 +71,22 @@ public class RulesServiceImpl implements RulesService {
             currentArtifactContent = currentArtifact.getContent();
         }
 
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType, currentArtifactContent, artifactContent, rules);
+        applyRulesAndCustomRules(groupId, artifactId, artifactType, currentArtifactContent, artifactContent, rules);
     }
 
-    private void applyGlobalAndArtifactRules(String groupId, String artifactId, ArtifactType artifactType,
+    private void applyRulesAndCustomRules(String groupId, String artifactId, ArtifactType artifactType,
             ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent,
             List<RuleType> artifactRules) {
 
+        applyArtifactOrGlobalRules(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent, artifactRules);
+
+        applyCustomRules(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent);
+
+    }
+
+    private void applyArtifactOrGlobalRules(String groupId, String artifactId, ArtifactType artifactType,
+            ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent,
+            List<RuleType> artifactRules) {
         Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
             .collect(Collectors.toMap(ruleType -> ruleType, ruleType -> storage.getArtifactRule(groupId, artifactId, ruleType)));
 
@@ -98,19 +110,45 @@ public class RulesServiceImpl implements RulesService {
         }
     }
 
-    /**
-     * @see io.apicurio.registry.rules.RulesService#applyRule(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rules.RuleApplicationType)
-     */
-    @Override
-    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
-                          RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
-    throws RuleViolationException {
-        ContentHandle currentArtifactContent = null;
-        if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            StoredArtifactDto currentArtifact = storage.getArtifact(groupId, artifactId);
-            currentArtifactContent = currentArtifact.getContent();
+    private void applyCustomRules(String groupId, String artifactId, ArtifactType artifactType,
+            ContentHandle currentArtifactContent, ContentHandle updatedArtifactContent) {
+        Map<String, CustomRuleDto> allCustomRulesConfig = storage.listArtifactAvailableCustomRules(groupId, artifactId)
+            .stream()
+            .collect(Collectors.toMap(cr -> cr.getId(), cr -> cr));
+
+        if (allCustomRulesConfig.isEmpty()) {
+            return;
         }
-        applyRule(groupId, artifactId, artifactType, currentArtifactContent, artifactContent, ruleType, ruleConfiguration);
+
+        List<CustomRuleDto> customRulesToExecute = storage.listCustomRuleBindings(Optional.of(ArtifactIdDto.of(groupId, artifactId)))
+                .stream()
+                .map(crb -> allCustomRulesConfig.get(crb.getCustomRuleId()))
+                .collect(Collectors.toList());
+
+        if (customRulesToExecute.isEmpty()) {
+            customRulesToExecute = storage.listCustomRuleBindings(Optional.empty())
+                .stream()
+                .map(crb -> allCustomRulesConfig.get(crb.getCustomRuleId()))
+                .filter(cr -> cr != null)
+                .collect(Collectors.toList());
+        }
+
+        if (customRulesToExecute.isEmpty()) {
+            return;
+        }
+
+        for (CustomRuleDto cr : customRulesToExecute) {
+            RuleExecutor executor = factory.getCustomRuleExecutor(cr.getCustomRuleType());
+            executor.execute(RuleContext.builder()
+                                .ruleId(cr.getId())
+                                .configuration(cr.getConfig())
+                                .groupId(groupId)
+                                .artifactId(artifactId)
+                                .artifactType(artifactType)
+                                .currentContent(currentArtifactContent)
+                                .updatedContent(updatedArtifactContent)
+                                .build());
+        }
     }
 
     /**
@@ -126,8 +164,16 @@ public class RulesServiceImpl implements RulesService {
     private void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle currentContent,
                            ContentHandle updatedContent, RuleType ruleType, String ruleConfiguration) {
         RuleExecutor executor = factory.createExecutor(ruleType);
-        RuleContext context = new RuleContext(groupId, artifactId, artifactType, ruleConfiguration, currentContent, updatedContent);
-        executor.execute(context);
+
+        executor.execute(RuleContext.builder()
+                            .ruleId(ruleType.value())
+                            .configuration(ruleConfiguration)
+                            .groupId(groupId)
+                            .artifactId(artifactId)
+                            .artifactType(artifactType)
+                            .currentContent(currentContent)
+                            .updatedContent(updatedContent)
+                            .build());
     }
 
     /**
@@ -137,6 +183,6 @@ public class RulesServiceImpl implements RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
             throws RuleViolationException {
         StoredArtifactDto versionContent = storage.getArtifactVersion(groupId, artifactId, artifactVersion);
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType, versionContent.getContent(), updatedContent, storage.getArtifactRules(groupId, artifactId));
+        applyRulesAndCustomRules(groupId, artifactId, artifactType, versionContent.getContent(), updatedContent, storage.getArtifactRules(groupId, artifactId));
     }
 }

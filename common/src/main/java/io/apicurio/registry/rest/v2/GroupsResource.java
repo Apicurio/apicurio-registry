@@ -2,6 +2,9 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -290,6 +293,29 @@ public interface GroupsResource {
   @DELETE
   void deleteArtifactRule(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule);
+
+  @Path("/{groupId}/artifacts/{artifactId}/customRules")
+  @GET
+  @Produces("application/json")
+  List<CustomRuleInfo> listArtifactAvailableCustomRules(@PathParam("groupId") String groupId,
+          @PathParam("artifactId") String artifactId);
+
+  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings")
+  @GET
+  @Produces("application/json")
+  List<CustomRuleBinding> listArtifactCustomRuleBindings(@PathParam("groupId") String groupId,
+          @PathParam("artifactId") String artifactId);
+
+  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings/")
+  @POST
+  @Consumes("application/json")
+  void createArtifactCustomRuleBinding(@PathParam("groupId") String groupId,
+          @PathParam("artifactId") String artifactId, CustomRuleBindingCreate create);
+
+  @Path("/{groupId}/artifacts/{artifactId}/customRuleBindings/{id}")
+  @DELETE
+  void deleteArtifactCustomRuleBinding(@PathParam("groupId") String groupId,
+          @PathParam("artifactId") String artifactId, @PathParam("id") String customRuleId);
 
   /**
    * Tests whether an update to the artifact's content *would* succeed for the provided content.

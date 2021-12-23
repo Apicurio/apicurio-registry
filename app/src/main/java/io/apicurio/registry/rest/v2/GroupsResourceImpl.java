@@ -22,13 +22,16 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.registry.logging.audit.AuditingConstants;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
-import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -45,9 +48,11 @@ import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -77,8 +82,10 @@ import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
@@ -94,6 +101,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.requireParameter;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
@@ -337,6 +345,67 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("rule", rule);
 
         storage.deleteArtifactRule(gidOrNull(groupId), artifactId, rule);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactAvailableCustomRules(java.lang.String, java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    public List<CustomRuleInfo> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        return storage.listArtifactAvailableCustomRules(gidOrNull(groupId), artifactId)
+                .stream()
+                .map(V2ApiUtil::customRuleDtoToCustomRuleInfo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#listArtifactCustomRuleBindings(java.lang.String, java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    public List<CustomRuleBinding> listArtifactCustomRuleBindings(String groupId, String artifactId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        return storage.listCustomRuleBindings(Optional.of(ArtifactIdDto.of(gidOrNull(groupId), artifactId)))
+                    .stream()
+                    .map(V2ApiUtil::dtoToCustomRuleBinding)
+                    .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactCustomRuleBinding(io.apicurio.registry.rest.v2.beans.CustomRuleBindingCreate)
+     */
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", AuditingConstants.KEY_CUSTOM_RULE})
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBindingCreate create) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("body", create);
+        requireParameter("customRuleId", create.getCustomRuleId());
+        CustomRuleDto rule = storage.getCustomRule(create.getCustomRuleId());
+        ArtifactType artifactType = storage.getArtifactMetaData(gidOrNull(groupId), artifactId).getType();
+        if (rule.getSupportedArtifactType() == null || rule.getSupportedArtifactType() == artifactType) {
+            storage.createCustomRuleBinding(Optional.of(ArtifactIdDto.of(gidOrNull(groupId), artifactId)), create.getCustomRuleId());
+        } else {
+            throw new BadRequestException("this custom rule does not support this artifactType");
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactCustomRuleBinding(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", AuditingConstants.KEY_CUSTOM_RULE_ID})
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    public void deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("customRuleId", customRuleId);
+        storage.deleteCustomRuleBinding(Optional.of(ArtifactIdDto.of(gidOrNull(groupId), artifactId)), customRuleId);
     }
 
     /**
@@ -650,12 +719,6 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     private String getContentType() {
         return request.getContentType();
-    }
-
-    private static final void requireParameter(String parameterName, Object parameterValue) {
-        if (parameterValue == null) {
-            throw new MissingRequiredParameterException(parameterName);
-        }
     }
 
     private static void maxOneOf(String parameterOneName, Object parameterOneValue, String parameterTwoName, Object parameterTwoValue) {

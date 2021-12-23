@@ -17,9 +17,9 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.types.ArtifactType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import io.apicurio.registry.content.ContentHandle;
-
-import java.util.Objects;
 
 /**
  * Contains all of the information needed by a rule executor, including the rule-specific
@@ -27,32 +27,21 @@ import java.util.Objects;
  *
  * @author Ales Justin
  */
+@AllArgsConstructor
+@Builder
 public class RuleContext {
+
+    /**
+     * Rule identifier, could be the RuleType or the custom rule id.
+     */
+    private final String ruleId;
+    private final String configuration;
+
     private final String groupId;
     private final String artifactId;
     private final ArtifactType artifactType;
-    private final String configuration;
     private final ContentHandle currentContent;
     private final ContentHandle updatedContent;
-
-    /**
-     * Constructor.
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param configuration
-     * @param currentContent
-     * @param updatedContent
-     */
-    public RuleContext(String groupId, String artifactId, ArtifactType artifactType, String configuration,
-                       ContentHandle currentContent, ContentHandle updatedContent) {
-        this.groupId = groupId;
-        this.artifactId = Objects.requireNonNull(artifactId);
-        this.artifactType = Objects.requireNonNull(artifactType);
-        this.configuration = Objects.requireNonNull(configuration);
-        this.currentContent = currentContent; // Current Content will be null when creating an artifact.
-        this.updatedContent = Objects.requireNonNull(updatedContent);
-    }
 
     /**
      * @return the groupId
@@ -94,5 +83,12 @@ public class RuleContext {
      */
     public ContentHandle getUpdatedContent() {
         return updatedContent;
+    }
+
+    /**
+     * @return the ruleId
+     */
+    public String getRuleId() {
+        return ruleId;
     }
 }

@@ -21,24 +21,41 @@ import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v2.beans.WebhookCustomRuleConfig;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CustomRuleBindingDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.CustomRuleType;
+import io.apicurio.registry.types.RegistryException;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public final class V2ApiUtil {
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
@@ -273,4 +290,95 @@ public final class V2ApiUtil {
         return results;
     }
 
+    public static CustomRule dtoToCustomRule(CustomRuleDto crd) {
+        CustomRule cr = new CustomRule();
+        cr.setCustomRuleType(crd.getCustomRuleType());
+        cr.setSupportedArtifactType(crd.getSupportedArtifactType());
+        cr.setId(crd.getId());
+        cr.setDescription(crd.getDescription());
+
+        try {
+            switch (crd.getCustomRuleType()) {
+                case webhook:
+                    cr.setWebhookConfig(mapper.readValue(crd.getConfig(), WebhookCustomRuleConfig.class));
+                    break;
+                default:
+                    throw new RegistryException("Custom rule type not implemented");
+            }
+        } catch (IOException e) {
+            throw new RegistryException(e);
+        }
+
+        return cr;
+    }
+
+    public static EditableCustomRuleDto editableCustomRuleToDto(CustomRuleType type, CustomRuleUpdate ecr) {
+        EditableCustomRuleDto dto = new EditableCustomRuleDto();
+        dto.setDescription(ecr.getDescription());
+        Object configObj;
+        switch (type) {
+            case webhook:
+                configObj = requireParameter("custom rule config", ecr.getWebhookConfig());
+                break;
+            default:
+                throw new RegistryException("Custom rule type not implemented");
+        }
+
+        String config;
+        try {
+            config = mapper.writeValueAsString(configObj);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        dto.setConfig(config);
+        return dto;
+    }
+
+    public static CustomRuleDto customRuleToDto(CustomRule crd) {
+        CustomRuleDto cr = new CustomRuleDto();
+        cr.setCustomRuleType(crd.getCustomRuleType());
+        cr.setSupportedArtifactType(crd.getSupportedArtifactType());
+        cr.setId(crd.getId());
+        cr.setDescription(crd.getDescription());
+
+        Object configObj;
+        switch (crd.getCustomRuleType()) {
+            case webhook:
+                configObj = requireParameter("custom rule config", crd.getWebhookConfig());
+                break;
+            default:
+                throw new RegistryException("Custom rule type not implemented");
+        }
+
+        String config;
+        try {
+            config = mapper.writeValueAsString(configObj);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        cr.setConfig(config);
+        return cr;
+    }
+
+    public static CustomRuleInfo customRuleDtoToCustomRuleInfo(CustomRuleDto crd) {
+        CustomRuleInfo cr = new CustomRuleInfo();
+        cr.setCustomRuleType(crd.getCustomRuleType());
+        cr.setSupportedArtifactType(crd.getSupportedArtifactType());
+        cr.setId(crd.getId());
+        cr.setDescription(crd.getDescription());
+        return cr;
+    }
+
+    public static CustomRuleBinding dtoToCustomRuleBinding(CustomRuleBindingDto dto) {
+        CustomRuleBinding crb = new CustomRuleBinding();
+        crb.setCustomRuleId(dto.getCustomRuleId());
+        return crb;
+    }
+
+    public static final <T> T requireParameter(String parameterName, T parameterValue) {
+        if (parameterValue == null) {
+            throw new MissingRequiredParameterException(parameterName);
+        }
+        return parameterValue;
+    }
 }

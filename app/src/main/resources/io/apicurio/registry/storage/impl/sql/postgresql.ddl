@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 6);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 7);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
@@ -21,6 +21,12 @@ CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
+
+CREATE TABLE customrules (tenantId VARCHAR(128) NOT NULL, ruleId VARCHAR(32) NOT NULL, supportedArtifactType VARCHAR(32), customRuleType VARCHAR(32) NOT NULL, configuration TEXT NOT NULL, description VARCHAR(1024));
+ALTER TABLE customrules ADD PRIMARY KEY (tenantId, ruleId);
+
+CREATE TABLE customrulebindings (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, ruleId VARCHAR(32) NOT NULL);
+ALTER TABLE customrulebindings ADD PRIMARY KEY (tenantId, groupId, artifactId, ruleId);
 
 CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);

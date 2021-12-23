@@ -223,7 +223,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
                 res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata);
             }
         } catch (RuleViolationException ex) {
-            if (ex.getRuleType() == RuleType.VALIDITY) {
+            if (ex.isNativeRule() && RuleType.VALIDITY.value().equals(ex.getRule())) {
                 throw new UnprocessableEntityException(ex.getMessage(), ex);
             } else {
                 throw new ConflictException(ex.getMessage(), ex);

@@ -31,6 +31,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -42,6 +43,8 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CustomRuleBindingKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CustomRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalRuleKey;
@@ -55,6 +58,8 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CustomRuleBindingValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CustomRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalRuleValue;
@@ -249,6 +254,22 @@ public class KafkaSqlSubmitter {
         return submitDownload(tenantId, downloadId, action, null);
     }
 
+    /* ******************************************************************************************
+     * CustomRules
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitCustomRule(String tenantId, ActionType action, CustomRuleDto customRule) {
+        CustomRuleKey key = CustomRuleKey.create(tenantId, customRule.getId());
+        CustomRuleValue value = CustomRuleValue.create(action, customRule);
+        return send(key, value);
+    }
+//    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action) {
+//        return submitLogConfig(tenantId, action, null);
+//    }
+    public CompletableFuture<UUID> submitCustomRuleBinding(String tenantId, ActionType action, String customRuleId) {
+        CustomRuleBindingKey key = CustomRuleBindingKey.create(tenantId, customRuleId);
+        CustomRuleBindingValue value = CustomRuleBindingValue.create(action);
+        return send(key, value);
+    }
 
     /* ******************************************************************************************
      * Global actions

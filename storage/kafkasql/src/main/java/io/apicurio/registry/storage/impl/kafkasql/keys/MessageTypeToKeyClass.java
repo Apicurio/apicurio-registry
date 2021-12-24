@@ -71,6 +71,12 @@ public class MessageTypeToKeyClass {
                 case Download:
                     index.put(type, DownloadKey.class);
                     break;
+                case CustomRuleBinding:
+                    index.put(type, CustomRuleBindingKey.class);
+                    break;
+                case CustomRule:
+                    index.put(type, CustomRuleKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

@@ -36,7 +36,9 @@ public enum MessageType {
     ContentId(9),
     RoleMapping(10),
     GlobalAction(11),
-    Download(12)
+    Download(12),
+    CustomRule(13),
+    CustomRuleBinding(14)
     ;
 
     private final byte ord;

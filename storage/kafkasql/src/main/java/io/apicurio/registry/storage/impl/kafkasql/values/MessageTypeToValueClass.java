@@ -70,6 +70,12 @@ public class MessageTypeToValueClass {
                 case Download:
                     index.put(type, DownloadValue.class);
                     break;
+                case CustomRuleBinding:
+                    index.put(type, CustomRuleBindingValue.class);
+                    break;
+                case CustomRule:
+                    index.put(type, CustomRuleValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

@@ -37,11 +37,15 @@ import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.CustomRuleBindingDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -98,6 +102,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -1160,6 +1165,83 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         // Note: this is OK to do because the only caller of this method is the DownloadReaper, which
         // runs on every node in the cluster.
         sqlStore.deleteAllExpiredDownloads();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listCustomRuleBindings(java.util.Optional)
+     */
+    @Override
+    public List<CustomRuleBindingDto> listCustomRuleBindings(Optional<ArtifactIdDto> artifactId) {
+        return sqlStore.listCustomRuleBindings(artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createCustomRuleBinding(java.util.Optional, java.lang.String)
+     */
+    @Override
+    public void createCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId) {
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRuleBinding(tenantContext.tenantId(), ActionType.CREATE, ruleId));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteCustomRuleBinding(java.util.Optional, java.lang.String)
+     */
+    @Override
+    public void deleteCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listCustomRules()
+     */
+    @Override
+    public List<CustomRuleDto> listCustomRules() {
+        return sqlStore.listCustomRules();
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#listArtifactAvailableCustomRules(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CustomRuleDto> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        return sqlStore.listArtifactAvailableCustomRules(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getCustomRule(java.lang.String)
+     */
+    @Override
+    public CustomRuleDto getCustomRule(String ruleId) {
+        return sqlStore.getCustomRule(ruleId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createCustomRule(io.apicurio.registry.storage.dto.CustomRuleDto)
+     */
+    @Override
+    public void createCustomRule(CustomRuleDto data) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateCustomRule(java.lang.String, io.apicurio.registry.storage.dto.EditableCustomRuleDto)
+     */
+    @Override
+    public void updateCustomRule(String ruleId, EditableCustomRuleDto data) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteCustomRule(java.lang.String)
+     */
+    @Override
+    public void deleteCustomRule(String ruleId) {
+        // TODO Auto-generated method stub
+
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

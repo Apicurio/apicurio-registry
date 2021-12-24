@@ -9,6 +9,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 @io.quarkus.runtime.annotations.RegisterForReflection
 public enum CustomRuleType {
 
+    //DO NOT CHANGE EXISTING TYPES, OR EXISTING DATA IN SQL AND KAFKASQL STORAGE WON'T BE READABLE
+
     webhook("webhook");
     private final String value;
     private final static Map<String, CustomRuleType> CONSTANTS = new HashMap<String, CustomRuleType>();

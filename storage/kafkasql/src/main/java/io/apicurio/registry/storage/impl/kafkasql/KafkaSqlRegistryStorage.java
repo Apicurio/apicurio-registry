@@ -1180,7 +1180,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void createCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId) {
-        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRuleBinding(tenantContext.tenantId(), ActionType.CREATE, ruleId));
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRuleBinding(tenantContext.tenantId(), ActionType.CREATE, artifactId, ruleId));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1189,8 +1189,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteCustomRuleBinding(Optional<ArtifactIdDto> artifactId, String ruleId) {
-        // TODO Auto-generated method stub
-
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRuleBinding(tenantContext.tenantId(), ActionType.DELETE, artifactId, ruleId));
+        coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -1222,8 +1222,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void createCustomRule(CustomRuleDto data) {
-        // TODO Auto-generated method stub
-
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRule(tenantContext.tenantId(), ActionType.CREATE, data));
+        coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -1231,8 +1231,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void updateCustomRule(String ruleId, EditableCustomRuleDto data) {
-        // TODO Auto-generated method stub
-
+        CustomRuleDto dto = new CustomRuleDto();
+        dto.setConfig(data.getConfig());
+        dto.setDescription(data.getDescription());
+        dto.setId(ruleId);
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRule(tenantContext.tenantId(), ActionType.UPDATE, dto));
+        coordinator.waitForResponse(reqId);
     }
 
     /**
@@ -1240,8 +1244,8 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void deleteCustomRule(String ruleId) {
-        // TODO Auto-generated method stub
-
+        UUID reqId = ConcurrentUtil.get(submitter.submitCustomRule(tenantContext.tenantId(), ActionType.DELETE, ruleId));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

@@ -18,6 +18,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,6 +32,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -259,15 +261,19 @@ public class KafkaSqlSubmitter {
      * ****************************************************************************************** */
     public CompletableFuture<UUID> submitCustomRule(String tenantId, ActionType action, CustomRuleDto customRule) {
         CustomRuleKey key = CustomRuleKey.create(tenantId, customRule.getId());
-        CustomRuleValue value = CustomRuleValue.create(action, customRule);
+        CustomRuleValue value = CustomRuleValue.create(action, customRule.getConfig(), customRule.getDescription(), customRule.getCustomRuleType(), customRule.getSupportedArtifactType());
         return send(key, value);
     }
-//    public CompletableFuture<UUID> submitLogConfig(String tenantId, ActionType action) {
-//        return submitLogConfig(tenantId, action, null);
-//    }
-    public CompletableFuture<UUID> submitCustomRuleBinding(String tenantId, ActionType action, String customRuleId) {
+
+    public CompletableFuture<UUID> submitCustomRule(String tenantId, ActionType action, String customRuleId) {
+        CustomRuleKey key = CustomRuleKey.create(tenantId, customRuleId);
+        CustomRuleValue value = CustomRuleValue.create(action, null, null, null, null);
+        return send(key, value);
+    }
+
+    public CompletableFuture<UUID> submitCustomRuleBinding(String tenantId, ActionType action, Optional<ArtifactIdDto> artifactId, String customRuleId) {
         CustomRuleBindingKey key = CustomRuleBindingKey.create(tenantId, customRuleId);
-        CustomRuleBindingValue value = CustomRuleBindingValue.create(action);
+        CustomRuleBindingValue value = CustomRuleBindingValue.create(action, artifactId);
         return send(key, value);
     }
 

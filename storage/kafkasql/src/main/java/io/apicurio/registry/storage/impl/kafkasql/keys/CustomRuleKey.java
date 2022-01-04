@@ -25,7 +25,10 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public class CustomRuleKey extends AbstractMessageKey {
 
-    private static final String CUSTOM_RULE_PARTITION_KEY = "__apicurio_registry_custom_rule__";
+    /**
+     * Sharing partition key between customrules and customrulebindings to ensure custom rules are created before any customrulebinding can be created
+     */
+    public static final String ALL_CUSTOM_RULESPARTITION_KEY = "__apicurio_registry_customrules__";
 
     private String customRuleId;
 
@@ -61,7 +64,7 @@ public class CustomRuleKey extends AbstractMessageKey {
      */
     @Override
     public String getPartitionKey() {
-        return getTenantId() + CUSTOM_RULE_PARTITION_KEY;
+        return getTenantId() + ALL_CUSTOM_RULESPARTITION_KEY;
     }
 
     /**

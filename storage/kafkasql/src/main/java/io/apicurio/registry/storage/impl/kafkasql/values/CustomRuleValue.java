@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
-import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.CustomRuleType;
@@ -40,13 +39,13 @@ public class CustomRuleValue extends AbstractMessageValue {
      * @param action
      * @param config
      */
-    public static final CustomRuleValue create(ActionType action, CustomRuleDto customRule) {
+    public static final CustomRuleValue create(ActionType action, String config, String description, CustomRuleType customRuleType, ArtifactType supportedArtifactType) {
         CustomRuleValue value = new CustomRuleValue();
         value.setAction(action);
-        value.config = customRule.getConfig();
-        value.description = customRule.getDescription();
-        value.customRuleType = customRule.getCustomRuleType();
-        value.supportedArtifactType = customRule.getSupportedArtifactType();
+        value.config = config;
+        value.description = description;
+        value.customRuleType = customRuleType;
+        value.supportedArtifactType = supportedArtifactType;
         return value;
     }
 

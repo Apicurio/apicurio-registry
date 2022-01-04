@@ -16,6 +16,9 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.values;
 
+import java.util.Optional;
+
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.ToString;
@@ -27,13 +30,20 @@ import lombok.ToString;
 @ToString
 public class CustomRuleBindingValue extends AbstractMessageValue {
 
+    private String groupId;
+    private String artifactId;
+
     /**
      * Creator method.
      * @param action
      */
-    public static final CustomRuleBindingValue create(ActionType action) {
+    public static final CustomRuleBindingValue create(ActionType action, Optional<ArtifactIdDto> artifactId) {
         CustomRuleBindingValue value = new CustomRuleBindingValue();
         value.setAction(action);
+        if (artifactId.isPresent()) {
+            value.groupId = artifactId.get().getGroupId();
+            value.artifactId = artifactId.get().getArtifactId();
+        }
         return value;
     }
 
@@ -43,6 +53,20 @@ public class CustomRuleBindingValue extends AbstractMessageValue {
     @Override
     public MessageType getType() {
         return MessageType.CustomRuleBinding;
+    }
+
+    /**
+     * @return the groupId
+     */
+    public String getGroupId() {
+        return groupId;
+    }
+
+    /**
+     * @return the artifactId
+     */
+    public String getArtifactId() {
+        return artifactId;
     }
 
 }

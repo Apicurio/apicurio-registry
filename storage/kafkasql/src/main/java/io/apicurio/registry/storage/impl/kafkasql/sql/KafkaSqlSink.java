@@ -18,6 +18,9 @@ import io.apicurio.registry.mt.TenantContextLoader;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
+import io.apicurio.registry.storage.dto.ArtifactIdDto;
+import io.apicurio.registry.storage.dto.CustomRuleDto;
+import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
@@ -29,6 +32,8 @@ import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CustomRuleBindingKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.CustomRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalActionKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.GlobalIdKey;
@@ -43,6 +48,8 @@ import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CustomRuleBindingValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.CustomRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalActionValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.GlobalIdValue;
@@ -173,6 +180,10 @@ public class KafkaSqlSink {
                     return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
                 case Download:
                     return processDownload((DownloadKey) key, (DownloadValue) value);
+                case CustomRule:
+                    return processCustomRule((CustomRuleKey) key, (CustomRuleValue) value);
+                case CustomRuleBinding:
+                    return processCustomRuleBinding((CustomRuleBindingKey) key, (CustomRuleBindingValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -180,6 +191,62 @@ public class KafkaSqlSink {
         } finally {
             log.debug("Clearing tenant id after message processed");
             tenantContext.clearContext();
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "customrulebinding".
+     * @param key
+     * @param value
+     * @return
+     */
+    private Object processCustomRuleBinding(CustomRuleBindingKey key, CustomRuleBindingValue value) {
+        Optional<ArtifactIdDto> artifactId;
+        if (value.getGroupId() == null && value.getArtifactId() == null) {
+            artifactId = Optional.empty();
+        } else {
+            artifactId = Optional.of(ArtifactIdDto.of(value.getGroupId(), value.getArtifactId()));
+        }
+        switch (value.getAction()) {
+            case CREATE:
+                sqlStore.createCustomRuleBinding(artifactId, key.getCustomRuleId());
+                return null;
+            case DELETE:
+                sqlStore.deleteCustomRuleBinding(artifactId, key.getCustomRuleId());
+                return null;
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "customrule".
+     * @param key
+     * @param value
+     * @return
+     */
+    private Object processCustomRule(CustomRuleKey key, CustomRuleValue value) {
+        switch (value.getAction()) {
+            case CREATE:
+                CustomRuleDto dto = new CustomRuleDto();
+                dto.setId(key.getCustomRuleId());
+                dto.setConfig(value.getConfig());
+                dto.setCustomRuleType(value.getCustomRuleType());
+                dto.setDescription(value.getDescription());
+                dto.setSupportedArtifactType(value.getSupportedArtifactType());
+                sqlStore.createCustomRule(dto);
+                return null;
+            case UPDATE:
+                EditableCustomRuleDto edto = new EditableCustomRuleDto();
+                edto.setConfig(value.getConfig());
+                edto.setDescription(edto.getDescription());
+                sqlStore.updateCustomRule(key.getCustomRuleId(), edto);
+                return null;
+            case DELETE:
+                sqlStore.deleteCustomRule(key.getCustomRuleId());
+                return null;
+            default:
+                return unsupported(key, value);
         }
     }
 

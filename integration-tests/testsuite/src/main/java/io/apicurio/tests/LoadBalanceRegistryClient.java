@@ -30,6 +30,10 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -709,8 +713,97 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().getCurrentUserInfo();
     }
 
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listCustomRules()
+     */
+    @Override
+    public List<CustomRule> listCustomRules() {
+        return getTarget().listCustomRules();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#createCustomRule(io.apicurio.registry.rest.v2.beans.CustomRule)
+     */
+    @Override
+    public void createCustomRule(CustomRule data) {
+        getTarget().createCustomRule(data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#updateCustomRule(java.lang.String, io.apicurio.registry.rest.v2.beans.CustomRuleUpdate)
+     */
+    @Override
+    public void updateCustomRule(String customRuleId, CustomRuleUpdate data) {
+        getTarget().updateCustomRule(customRuleId, data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteCustomRule(java.lang.String)
+     */
+    @Override
+    public void deleteCustomRule(String customRuleId) {
+        getTarget().deleteCustomRule(customRuleId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listGlobalCustomRuleBindings()
+     */
+    @Override
+    public List<CustomRuleBinding> listGlobalCustomRuleBindings() {
+        return getTarget().listGlobalCustomRuleBindings();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#createGlobalCustomRuleBinding(io.apicurio.registry.rest.v2.beans.CustomRuleBinding)
+     */
+    @Override
+    public void createGlobalCustomRuleBinding(CustomRuleBinding data) {
+        getTarget().createGlobalCustomRuleBinding(data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteGlobalCustomRuleBinding(java.lang.String)
+     */
+    @Override
+    public void deleteGlobalCustomRuleBinding(String customRuleId) {
+        getTarget().deleteGlobalCustomRuleBinding(customRuleId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactAvailableCustomRules(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CustomRuleInfo> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        return getTarget().listArtifactAvailableCustomRules(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listArtifactCustomRuleBindings(java.lang.String, java.lang.String)
+     */
+    @Override
+    public List<CustomRuleBinding> listArtifactCustomRuleBindings(String groupId, String artifactId) {
+        return getTarget().listArtifactCustomRuleBindings(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#createArtifactCustomRuleBinding(java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.CustomRuleBinding)
+     */
+    @Override
+    public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding data) {
+        getTarget().createArtifactCustomRuleBinding(groupId, artifactId, data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifactCustomRuleBinding(java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId) {
+        getTarget().deleteArtifactCustomRuleBinding(groupId, artifactId, customRuleId);
+    }
+
     @Override
     public void close() throws IOException {
         getTarget().close();
     }
+
 }

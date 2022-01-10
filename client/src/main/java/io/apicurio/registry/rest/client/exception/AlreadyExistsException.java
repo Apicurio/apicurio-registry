@@ -22,7 +22,7 @@ import io.apicurio.registry.rest.v2.beans.Error;
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
-public abstract class AlreadyExistsException extends ConflictException {
+public class AlreadyExistsException extends ConflictException {
 
     private static final long serialVersionUID = 1L;
 

@@ -40,6 +40,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -223,6 +226,68 @@ public class AdminRequestsProvider {
                 .pathParams(List.of(principalId))
                 .responseType(new TypeReference<RoleMapping>() {
                 })
+                .build();
+    }
+
+    public static Request<List<CustomRule>> listCustomRules() {
+        return new Request.RequestBuilder<List<CustomRule>>()
+                .operation(GET)
+                .path(Routes.CUSTOM_RULES_BASE_PATH)
+                .responseType(new TypeReference<List<CustomRule>>() {})
+                .build();
+    }
+
+    public static Request<Void> createCustomRule(CustomRule data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(Routes.CUSTOM_RULES_BASE_PATH)
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {})
+                .build();
+    }
+
+    public static Request<Void> updateCustomRule(String customRuleId, CustomRuleUpdate data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(Routes.CUSTOM_RULE_PATH)
+                .pathParams(List.of(customRuleId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {})
+                .build();
+    }
+
+    public static Request<Void> deleteCustomRule(String customRuleId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(Routes.CUSTOM_RULE_PATH)
+                .pathParams(List.of(customRuleId))
+                .responseType(new TypeReference<Void>() {})
+                .build();
+    }
+
+    public static Request<List<CustomRuleBinding>> listCustomRuleBindings() {
+        return new Request.RequestBuilder<List<CustomRuleBinding>>()
+                .operation(GET)
+                .path(Routes.CUSTOM_RULE_BINDINGS_BASE_PATH)
+                .responseType(new TypeReference<List<CustomRuleBinding>>() {})
+                .build();
+    }
+
+    public static Request<Void> createCustomRuleBinding(CustomRuleBinding data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(POST)
+                .path(Routes.CUSTOM_RULE_BINDINGS_BASE_PATH)
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {})
+                .build();
+    }
+
+    public static Request<Void> deleteCustomRuleBinding(String customRuleId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(Routes.CUSTOM_RULE_BINDING_PATH)
+                .pathParams(List.of(customRuleId))
+                .responseType(new TypeReference<Void>() {})
                 .build();
     }
 

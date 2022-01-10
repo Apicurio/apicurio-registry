@@ -29,6 +29,10 @@ import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -409,6 +413,77 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public UserInfo getCurrentUserInfo() {
         return apicurioHttpClient.sendRequest(UsersRequestsProvider.getCurrentUserInfo());
+    }
+
+    @Override
+    public List<CustomRule> listCustomRules() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listCustomRules());
+    }
+
+    @Override
+    public void createCustomRule(CustomRule data) {
+        try {
+            apicurioHttpClient.sendRequest(AdminRequestsProvider.createCustomRule(data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void updateCustomRule(String customRuleId, CustomRuleUpdate data) {
+        try {
+            apicurioHttpClient.sendRequest(AdminRequestsProvider.updateCustomRule(customRuleId, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteCustomRule(String customRuleId) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteCustomRule(customRuleId));
+    }
+
+    @Override
+    public List<CustomRuleBinding> listGlobalCustomRuleBindings() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listCustomRuleBindings());
+    }
+
+    @Override
+    public void createGlobalCustomRuleBinding(CustomRuleBinding data) {
+        try {
+            apicurioHttpClient.sendRequest(AdminRequestsProvider.createCustomRuleBinding(data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteGlobalCustomRuleBinding(String customRuleId) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteCustomRuleBinding(customRuleId));
+    }
+
+    @Override
+    public List<CustomRuleInfo> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.listArtifactAvailableCustomRules(groupId, artifactId));
+    }
+
+    @Override
+    public List<CustomRuleBinding> listArtifactCustomRuleBindings(String groupId, String artifactId) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.listArtifactCustomRuleBindings(groupId, artifactId));
+    }
+
+    @Override
+    public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding data) {
+        try {
+            apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactCustomRuleBinding(groupId, artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId) {
+        apicurioHttpClient.sendRequest(GroupRequestsProvider.deleteArtifactCustomRuleBinding(groupId, artifactId, customRuleId));
     }
 
     @Override

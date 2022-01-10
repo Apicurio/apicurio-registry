@@ -914,7 +914,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGlobalCustomRuleBindings() throws Exception {
         try {
-            var cr =createCustomRule("test-b-1", null);
+            var cr = createCustomRule("test-b-1", null);
             createCustomRule("test-b-2", null);
 
             {

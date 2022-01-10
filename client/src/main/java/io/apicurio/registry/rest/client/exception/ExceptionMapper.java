@@ -27,6 +27,10 @@ public class ExceptionMapper {
             return ex;
         }
         switch (ex.getError().getName()) {
+            case "NotFoundException":
+                return new NotFoundException(ex.getError());
+            case "AlreadyExistsException":
+                return new AlreadyExistsException(ex.getError());
             case "ArtifactAlreadyExistsException":
                 return new ArtifactAlreadyExistsException(ex.getError());
             case "ArtifactNotFoundException":

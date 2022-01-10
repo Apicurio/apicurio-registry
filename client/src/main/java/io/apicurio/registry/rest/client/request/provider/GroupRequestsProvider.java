@@ -21,6 +21,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
@@ -325,4 +327,46 @@ public class GroupRequestsProvider {
                 })
                 .build();
     }
+
+    public static Request<List<CustomRuleInfo>> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        return new Request.RequestBuilder<List<CustomRuleInfo>>()
+                .operation(Operation.GET)
+                .path(Routes.ARTIFACT_CUSTOM_RULES_BASE_PATH)
+                .pathParams(List.of(groupId, artifactId))
+                .responseType(new TypeReference<List<CustomRuleInfo>>() {
+                })
+                .build();
+    }
+
+    public static Request<List<CustomRuleBinding>> listArtifactCustomRuleBindings(String groupId, String artifactId) {
+        return new Request.RequestBuilder<List<CustomRuleBinding>>()
+                .operation(Operation.GET)
+                .path(Routes.ARTIFACT_CUSTOM_RULE_BINDINGS_BASE_PATH)
+                .pathParams(List.of(groupId, artifactId))
+                .responseType(new TypeReference<List<CustomRuleBinding>>() {
+                })
+                .build();
+    }
+
+    public static Request<Void> createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding data) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.POST)
+                .path(Routes.ARTIFACT_CUSTOM_RULE_BINDINGS_BASE_PATH)
+                .pathParams(List.of(groupId, artifactId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<Void> deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.DELETE)
+                .path(Routes.ARTIFACT_CUSTOM_RULE_BINDING_PATH)
+                .pathParams(List.of(groupId, artifactId, customRuleId))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
 }

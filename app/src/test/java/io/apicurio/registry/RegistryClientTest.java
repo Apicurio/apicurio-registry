@@ -19,12 +19,18 @@ package io.apicurio.registry;
 import io.apicurio.registry.logging.audit.MockAuditLogService;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.client.exception.AlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.BadRequestException;
+import io.apicurio.registry.rest.client.exception.NotFoundException;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -37,9 +43,11 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v2.beans.WebhookCustomRuleConfig;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.CustomRuleType;
 import io.apicurio.registry.types.LogLevel;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -70,7 +78,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1411,6 +1418,227 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             Assertions.assertThrows(RateLimitedClientException.class, () -> client.getContentByGlobalId(5));
         } finally {
             mock.stop();
+        }
+    }
+
+    public CustomRule createCustomRule(String id, ArtifactType supportedArtifactType) throws Exception {
+        // Add a global rule
+        CustomRule cr = new CustomRule();
+        cr.setCustomRuleType(CustomRuleType.webhook);
+        cr.setDescription("desc");
+        cr.setId(id);
+        cr.setSupportedArtifactType(supportedArtifactType);
+        WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
+        config.setUrl("http://localhost:3000/validate");
+        config.setSecret("test secret");
+        cr.setWebhookConfig(config);
+
+        clientV2.createCustomRule(cr);
+
+        // Verify the rule was added.
+        TestUtils.retry(() -> {
+            long count = clientV2.listCustomRules().stream()
+                .filter(c -> c.getId().equals(cr.getId()))
+                .count();
+            assertEquals(1, count);
+        });
+        return cr;
+    }
+
+    public void deleteAllCustomRules() {
+        clientV2.listCustomRules().stream()
+            .forEach(cr -> {
+                deleteCustomRule(cr.getId());
+            });
+    }
+
+    private void deleteCustomRule(String id) {
+        clientV2.deleteCustomRule(id);
+    }
+
+    @Test
+    public void testGlobalCustomRuleBindings() throws Exception {
+        try {
+            var cr = createCustomRule("test-b-1", null);
+            createCustomRule("test-b-2", null);
+
+            {
+                long count = clientV2.listGlobalCustomRuleBindings().size();
+                assertEquals(0, count);
+            }
+
+            CustomRuleBinding create = new CustomRuleBinding();
+            create.setCustomRuleId(cr.getId());
+            clientV2.createGlobalCustomRuleBinding(create);
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listGlobalCustomRuleBindings().size();
+                assertEquals(1, count);
+            });
+
+            clientV2.deleteGlobalCustomRuleBinding(cr.getId());
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listGlobalCustomRuleBindings().size();
+                assertEquals(0, count);
+            });
+
+            Assertions.assertThrows(NotFoundException.class, () -> clientV2.deleteGlobalCustomRuleBinding("foo"));
+
+        } finally {
+            deleteAllCustomRules();
+        }
+    }
+
+    @Test
+    public void testCustomRules() throws Exception {
+        try {
+            // Add a global rule
+            CustomRule cr = new CustomRule();
+            cr.setCustomRuleType(CustomRuleType.webhook);
+            cr.setDescription("desc");
+            cr.setId("test1");
+            cr.setSupportedArtifactType(null);
+            WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
+            config.setUrl("http://localhost:3000/validate");
+            config.setSecret("test secret");
+            cr.setWebhookConfig(config);
+            clientV2.createCustomRule(cr);
+
+            // Verify the rule was added.
+            TestUtils.retry(() -> {
+                long count = clientV2.listCustomRules().size();
+                assertEquals(1, count);
+            });
+
+            // Try to add the rule again - should get a 409
+            TestUtils.retry(() -> {
+                Assertions.assertThrows(AlreadyExistsException.class, () -> clientV2.createCustomRule(cr));
+            });
+
+            CustomRule cr2 = new CustomRule();
+            cr2.setCustomRuleType(CustomRuleType.webhook);
+            cr2.setDescription("desc 2");
+            cr2.setId("test2");
+            cr2.setSupportedArtifactType(ArtifactType.AVRO);
+            cr2.setWebhookConfig(config);
+            // Add another global rule
+            clientV2.createCustomRule(cr2);
+
+
+            // Get the list of rules (should be 2 of them)
+            TestUtils.retry(() -> {
+                long count = clientV2.listCustomRules().size();
+                assertEquals(2, count);
+            });
+
+
+            // Update a rule's config
+            config.setUrl("foo");
+            CustomRuleUpdate cr2update = new CustomRuleUpdate();
+            cr2update.setDescription("foo");
+            cr2update.setWebhookConfig(config);
+            clientV2.updateCustomRule(cr2.getId(), cr2update);
+
+            //TODO get list and verify update
+
+
+            // Try to update a rule's config for a rule that doesn't exist.
+//            rule.setType("RuleDoesNotExist");
+//            rule.setConfig("rdne-config");
+//            given()
+//                .when().contentType(CT_JSON).body(rule).put("/registry/v2/admin/rules/RuleDoesNotExist")
+//                .then()
+//                .statusCode(404)
+//                .contentType(ContentType.JSON)
+//                .body("error_code", equalTo(404))
+//                .body("message", equalTo("No rule named 'RuleDoesNotExist' was found."));
+
+            // Delete a rule
+            clientV2.deleteCustomRule(cr2.getId());
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listCustomRules().size();
+                assertEquals(1, count);
+            });
+
+            // Delete all rules
+            clientV2.deleteCustomRule(cr.getId());
+
+            // Get the list of rules (no rules now)
+            TestUtils.retry(() -> {
+                long count = clientV2.listCustomRules().size();
+                assertEquals(0, count);
+            });
+
+            Assertions.assertThrows(NotFoundException.class, () -> clientV2.deleteGlobalCustomRuleBinding("foo"));
+            Assertions.assertThrows(NotFoundException.class, () -> clientV2.updateCustomRule(cr2.getId(), cr2update));
+
+        } finally {
+            deleteAllCustomRules();
+        }
+    }
+
+    @Test
+    public void testArtifactCustomRuleBindings() throws Exception {
+        try {
+            var cr = createCustomRule("test-b-1", ArtifactType.OPENAPI);
+            var crAvro = createCustomRule("test-b-2", ArtifactType.AVRO);
+            var crAll = createCustomRule("test-b-3", null);
+
+
+            String groupId = "testfoo";
+            // Create OpenAPI artifact - indicate the type via a header param
+            String artifactId = "testArtifactCustomRuleBindings/jsonAPI";
+            createArtifact(groupId, artifactId, ArtifactType.OPENAPI, ARTIFACT_OPENAPI_JSON_CONTENT);
+
+            {
+                long count = clientV2.listArtifactCustomRuleBindings(groupId, artifactId).size();
+                assertEquals(0, count);
+            }
+
+            CustomRuleBinding create = new CustomRuleBinding();
+            create.setCustomRuleId(cr.getId());
+            clientV2.createArtifactCustomRuleBinding(groupId, artifactId, create);
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listArtifactCustomRuleBindings(groupId, artifactId)
+                        .stream()
+                        .filter(crb -> crb.getCustomRuleId().equals(cr.getId()))
+                        .count();
+                assertEquals(1, count);
+            });
+
+            clientV2.deleteArtifactCustomRuleBinding(groupId, artifactId, cr.getId());
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listArtifactCustomRuleBindings(groupId, artifactId).size();
+                assertEquals(0, count);
+            });
+
+            Assertions.assertThrows(NotFoundException.class, () -> clientV2.deleteArtifactCustomRuleBinding(groupId, artifactId, cr.getId()));
+
+            create = new CustomRuleBinding();
+            create.setCustomRuleId(crAll.getId());
+            clientV2.createArtifactCustomRuleBinding(groupId, artifactId, create);
+
+            TestUtils.retry(() -> {
+                long count = clientV2.listArtifactCustomRuleBindings(groupId, artifactId)
+                        .stream()
+                        .filter(crb -> crb.getCustomRuleId().equals(crAll.getId()))
+                        .count();
+                assertEquals(1, count);
+            });
+
+            CustomRuleBinding createBad = new CustomRuleBinding();
+            createBad.setCustomRuleId(crAvro.getId());
+            Assertions.assertThrows(BadRequestException.class, () -> clientV2.createArtifactCustomRuleBinding(groupId, artifactId, createBad));
+
+            long availableCustomRulesCount = clientV2.listArtifactAvailableCustomRules(groupId, artifactId).size();
+            assertEquals(2, availableCustomRulesCount);
+
+        } finally {
+            deleteAllCustomRules();
         }
     }
 

@@ -38,6 +38,11 @@ public class Routes {
     protected static final String ARTIFACT_STATE = ARTIFACT_BASE_PATH + "/state";
     protected static final String ARTIFACT_TEST = ARTIFACT_BASE_PATH + "/test";
 
+    protected static final String ARTIFACT_CUSTOM_RULES_BASE_PATH = ARTIFACT_BASE_PATH + "/customRules";
+
+    protected static final String ARTIFACT_CUSTOM_RULE_BINDINGS_BASE_PATH = ARTIFACT_BASE_PATH + "/customRuleBindings";
+    protected static final String ARTIFACT_CUSTOM_RULE_BINDING_PATH = ARTIFACT_CUSTOM_RULE_BINDINGS_BASE_PATH + "/%s";
+
     protected static final String VERSION_METADATA = ARTIFACT_VERSION + "/meta";
     protected static final String VERSION_STATE = ARTIFACT_VERSION + "/state";
 
@@ -55,6 +60,12 @@ public class Routes {
     protected static final String LOG_PATH = LOGS_BASE_PATH + "/%s";
 
     protected static final String CURRENT_USER_PATH = USERS_BASE_PATH + "/me";
+
+    protected static final String CUSTOM_RULES_BASE_PATH = ADMIN_BASE_PATH + "/customRules";
+    protected static final String CUSTOM_RULE_PATH = CUSTOM_RULES_BASE_PATH + "/%s";
+
+    protected static final String CUSTOM_RULE_BINDINGS_BASE_PATH = ADMIN_BASE_PATH + "/customRuleBindings";
+    protected static final String CUSTOM_RULE_BINDING_PATH = CUSTOM_RULE_BINDINGS_BASE_PATH + "/%s";
 
     protected static final String EXPORT_PATH = ADMIN_BASE_PATH + "/export";
     protected static final String IMPORT_PATH = ADMIN_BASE_PATH + "/import";

@@ -24,6 +24,10 @@ import java.util.Map;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.CustomRule;
+import io.apicurio.registry.rest.v2.beans.CustomRuleBinding;
+import io.apicurio.registry.rest.v2.beans.CustomRuleInfo;
+import io.apicurio.registry.rest.v2.beans.CustomRuleUpdate;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -211,6 +215,28 @@ public interface RegistryClient extends Closeable {
     void deleteRoleMapping(String principalId);
 
     UserInfo getCurrentUserInfo();
+
+    List<CustomRule> listCustomRules();
+
+    void createCustomRule(CustomRule data);
+
+    void updateCustomRule(String customRuleId, CustomRuleUpdate data);
+
+    void deleteCustomRule(String customRuleId);
+
+    List<CustomRuleBinding> listGlobalCustomRuleBindings();
+
+    void createGlobalCustomRuleBinding(CustomRuleBinding data);
+
+    void deleteGlobalCustomRuleBinding(String customRuleId);
+
+    List<CustomRuleInfo> listArtifactAvailableCustomRules(String groupId, String artifactId);
+
+    List<CustomRuleBinding> listArtifactCustomRuleBindings(String groupId, String artifactId);
+
+    void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding data);
+
+    void deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId);
 
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 

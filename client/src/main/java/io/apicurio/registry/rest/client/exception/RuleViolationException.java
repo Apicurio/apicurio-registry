@@ -16,7 +16,10 @@
 
 package io.apicurio.registry.rest.client.exception;
 
-import io.apicurio.registry.rest.v2.beans.Error;
+import java.util.List;
+
+import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -25,7 +28,12 @@ public class RuleViolationException extends RestClientException {
 
     private static final long serialVersionUID = 1L;
 
-    public RuleViolationException(Error error) {
+    public RuleViolationException(RuleViolationError error) {
         super(error);
     }
+
+    public List<RuleViolationCause> getCauses() {
+        return ((RuleViolationError)getError()).getCauses();
+    }
+
 }

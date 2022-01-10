@@ -16,71 +16,73 @@
 
 package io.apicurio.registry.rest.client.exception;
 
+import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 
 /**
  * @author Carles Arnal 'carles.arnal@redhat.com'
  */
 public class ExceptionMapper {
 
-    public static RestClientException map(RestClientException ex) throws RestClientException {
-        if (ex == null || ex.getError() == null || ex.getError().getName() == null) {
-            return ex;
+    public static RestClientException map(Error error) throws RestClientException {
+        if (error == null || error.getName() == null) {
+            return new RestClientException(error);
         }
-        switch (ex.getError().getName()) {
+        switch (error.getName()) {
             case "NotFoundException":
-                return new NotFoundException(ex.getError());
+                return new NotFoundException(error);
             case "AlreadyExistsException":
-                return new AlreadyExistsException(ex.getError());
+                return new AlreadyExistsException(error);
             case "ArtifactAlreadyExistsException":
-                return new ArtifactAlreadyExistsException(ex.getError());
+                return new ArtifactAlreadyExistsException(error);
             case "ArtifactNotFoundException":
-                return new ArtifactNotFoundException(ex.getError());
+                return new ArtifactNotFoundException(error);
             case "RuleNotFoundException":
-                return new RuleNotFoundException(ex.getError());
+                return new RuleNotFoundException(error);
             case "RuleAlreadyExistsException":
-                return new RuleAlreadyExistsException(ex.getError());
+                return new RuleAlreadyExistsException(error);
             case "RoleMappingNotFoundException":
-                return new RoleMappingNotFoundException(ex.getError());
+                return new RoleMappingNotFoundException(error);
             case "RoleMappingAlreadyExistsException":
-                return new RoleMappingAlreadyExistsException(ex.getError());
+                return new RoleMappingAlreadyExistsException(error);
             case "VersionNotFoundException":
-                return new VersionNotFoundException(ex.getError());
+                return new VersionNotFoundException(error);
             case "DefaultRuleDeletionException":
-                return new DefaultRuleDeletionException(ex.getError());
+                return new DefaultRuleDeletionException(error);
             case "RuleViolationException":
-                return new RuleViolationException(ex.getError());
+                return new RuleViolationException((RuleViolationError)error);
             case "BadRequestException":
-                return new BadRequestException(ex.getError());
+                return new BadRequestException(error);
             case "InvalidArtifactStateException":
-                return new InvalidArtifactStateException(ex.getError());
+                return new InvalidArtifactStateException(error);
             case "UnprocessableEntityException":
-                return new UnprocessableEntityException(ex.getError());
+                return new UnprocessableEntityException(error);
             case "UnprocessableSchemaException":
-                return new UnprocessableSchemaException(ex.getError());
+                return new UnprocessableSchemaException(error);
             case "InvalidArtifactTypeException":
-                return new InvalidArtifactTypeException(ex.getError());
+                return new InvalidArtifactTypeException(error);
             case "LimitExceededException":
-                return new LimitExceededException(ex.getError());
+                return new LimitExceededException(error);
             case "TenantNotFoundException":
-                return new TenantNotFoundException(ex.getError());
+                return new TenantNotFoundException(error);
             case "TenantNotAuthorizedException":
-                return new TenantNotAuthorizedException(ex.getError());
+                return new TenantNotAuthorizedException(error);
             case "ContentNotFoundException":
-                return new ContentNotFoundException(ex.getError());
+                return new ContentNotFoundException(error);
             case "InvalidGroupIdException":
-                return new InvalidGroupIdException(ex.getError());
+                return new InvalidGroupIdException(error);
             case "MissingRequiredParameterException":
-                return new MissingRequiredParameterException(ex.getError());
+                return new MissingRequiredParameterException(error);
             case "LogConfigurationNotFoundException":
-                return new LogConfigurationNotFoundException(ex.getError());
+                return new LogConfigurationNotFoundException(error);
             case "GroupNotFoundException":
-                return new GroupNotFoundException(ex.getError());
+                return new GroupNotFoundException(error);
             case "TenantManagerClientException":
-                return new TenantManagerClientException(ex.getError());
+                return new TenantManagerClientException(error);
             case "ParametersConflictException":
-                return new ParametersConflictException(ex.getError());
+                return new ParametersConflictException(error);
             default:
-                return ex;
+                return new RestClientException(error);
         }
     }
 }

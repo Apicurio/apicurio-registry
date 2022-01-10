@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ExceptionMapper;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
+import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
@@ -58,9 +59,10 @@ public class ErrorHandler implements RestClientErrorHandler {
                 //rate limited - too many requests error
                 return new RateLimitedClientException("Too many requests");
             }
-            Error error = mapper.readValue(body, Error.class);
+            //because RuleViolationError extends Error this shouldn't be a problem
+            Error error = mapper.readValue(body, RuleViolationError.class);
             logger.debug("Error returned by Registry application: {}", error.getMessage());
-            return ExceptionMapper.map(new RestClientException(error));
+            return ExceptionMapper.map(error);
         } catch (Exception e) {
             Throwable cause = extractRootCause(e);
             if (cause instanceof RestClientException) {

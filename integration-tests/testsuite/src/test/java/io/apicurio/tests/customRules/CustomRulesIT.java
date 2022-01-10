@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
@@ -61,8 +62,9 @@ class CustomRulesIT extends ApicurioV2BaseIT {
     @Test
     void testCustomWebhookGlobal() throws Exception {
         AtomicInteger reqCounter = new AtomicInteger(0);
-        Vertx.vertx().createHttpServer(new HttpServerOptions().setPort(3333))
+        var server = Vertx.vertx().createHttpServer(new HttpServerOptions().setPort(3333))
             .requestHandler(req -> {
+                LOGGER.info("received webhook request");
                 if ("/validate".equals(req.path()) && req.method() == HttpMethod.POST) {
                     reqCounter.incrementAndGet();
                     req.body()
@@ -75,6 +77,7 @@ class CustomRulesIT extends ApicurioV2BaseIT {
                         })
                         .onSuccess(werr -> {
                             WebhookExecuteRuleResponse wres = new WebhookExecuteRuleResponse();
+                            LOGGER.info("Executing custom webhook for artifact {}", werr.getArtifactId());
                             if (werr.getArtifactId().contains("fail")) {
                                 wres.setSuccess(false);
                                 wres.setErrorCauses(Set.of(new RuleViolation("fail test", "hello")));
@@ -97,66 +100,77 @@ class CustomRulesIT extends ApicurioV2BaseIT {
                     LOGGER.info("webhook server, path not found {}", req.path());
                     req.response().setStatusCode(404).end();
                 }
-            });
+            })
+            .listen()
+            .toCompletionStage()
+            .toCompletableFuture()
+            .get(10, TimeUnit.SECONDS);
 
-        CustomRule cr = new CustomRule();
-        cr.setCustomRuleType(CustomRuleType.webhook);
-        cr.setDescription("desc");
-        cr.setId("test-webhook");
-        cr.setSupportedArtifactType(null);
-        WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
-        config.setUrl("http://localhost:3333/validate");
-        config.setSecret("test secret");
-        cr.setWebhookConfig(config);
-
-        registryClient.createCustomRule(cr);
-
-        // Verify the rule was added.
-        retryOp((c) -> {
-            long count = c.listCustomRules().size();
-            assertEquals(1, count);
-        });
-
-        //enable the custom rule globally
-        CustomRuleBinding binding = new CustomRuleBinding();
-        binding.setCustomRuleId(cr.getId());
-        registryClient.createGlobalCustomRuleBinding(binding);
-
-        retryOp((c) -> {
-            long count = c.listGlobalCustomRuleBindings().size();
-            assertEquals(1, count);
-        });
-
-        String groupId = TestUtils.generateArtifactId();
-        String artifactId = TestUtils.generateArtifactId();
-
-        String v1Content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
-        String v2Content = resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
-
-        createArtifact(groupId, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(v1Content));
-        createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
-
-        Assertions.assertThrows(RuleViolationException.class, () -> createArtifact(groupId, "test-fail", ArtifactType.PROTOBUF, IoUtil.toStream(v1Content)));
 
         try {
-            createArtifact(groupId, "test-fail", ArtifactType.PROTOBUF, IoUtil.toStream(v1Content));
-            Assertions.fail();
-        } catch (RuleViolationException rvex) {
 
-            Object error = rvex.getError();
+            CustomRule cr = new CustomRule();
+            cr.setCustomRuleType(CustomRuleType.webhook);
+            cr.setDescription("desc");
+            cr.setId("test-webhook");
+            cr.setSupportedArtifactType(null);
+            WebhookCustomRuleConfig config = new WebhookCustomRuleConfig();
+            config.setUrl("http://localhost:3333/validate");
+            config.setSecret("test secret");
+            cr.setWebhookConfig(config);
 
-            Assertions.assertTrue(error instanceof RuleViolationError);
+            registryClient.createCustomRule(cr);
 
-            RuleViolationError rve = (RuleViolationError) error;
-            assertEquals(1, rve.getCauses().size());
-            assertEquals("fail test", rve.getCauses().get(0).getDescription());
-            assertEquals("hello", rve.getCauses().get(0).getContext());
+            // Verify the rule was added.
+            retryOp((c) -> {
+                long count = c.listCustomRules().size();
+                assertEquals(1, count);
+            });
 
-        } catch (Exception e) {
-            Assertions.fail(e);
+            //enable the custom rule globally
+            CustomRuleBinding binding = new CustomRuleBinding();
+            binding.setCustomRuleId(cr.getId());
+            registryClient.createGlobalCustomRuleBinding(binding);
+
+            retryOp((c) -> {
+                long count = c.listGlobalCustomRuleBindings().size();
+                assertEquals(1, count);
+            });
+
+            String groupId = TestUtils.generateArtifactId();
+            String artifactId = "test-ok";
+
+            String v1Content = resourceToString("artifactTypes/" + "protobuf/tutorial_v1.proto");
+            String v2Content = resourceToString("artifactTypes/" + "protobuf/tutorial_v2.proto");
+
+            createArtifact(groupId, artifactId, ArtifactType.PROTOBUF, IoUtil.toStream(v1Content));
+            createArtifactVersion(groupId, artifactId, IoUtil.toStream(v2Content));
+
+            Assertions.assertThrows(RuleViolationException.class, () -> createArtifact(groupId, "test-fail", ArtifactType.PROTOBUF, IoUtil.toStream(v1Content)));
+
+            try {
+                createArtifact(groupId, "test-fail-2", ArtifactType.PROTOBUF, IoUtil.toStream(v1Content));
+                Assertions.fail();
+            } catch (RuleViolationException rvex) {
+
+                Object error = rvex.getError();
+
+                Assertions.assertTrue(error instanceof RuleViolationError);
+
+                RuleViolationError rve = (RuleViolationError) error;
+                assertEquals(1, rve.getCauses().size());
+                assertEquals("fail test", rve.getCauses().get(0).getDescription());
+                assertEquals("hello", rve.getCauses().get(0).getContext());
+
+            } catch (Exception e) {
+                Assertions.fail(e);
+            }
+
+            assertEquals(4, reqCounter.get());
+
+        } finally {
+            server.close();
         }
-
-        assertEquals(3, reqCounter.get());
 
     }
 

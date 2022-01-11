@@ -151,15 +151,15 @@ public class WebhookRuleExecutor implements RuleExecutor {
                         }
                     })
                     .otherwise(ex -> {
-                        logger.error("Error making webhook request to {}", config.getUrl(), ex);
+                        logger.error("Error making webhook request to {} ", config.getUrl(), ex);
                         WebhookExecuteRuleResponse response = new WebhookExecuteRuleResponse();
                         response.setSuccess(false);
-                        response.setErrorCauses(Set.of(new RuleViolation("exception sending request to webhook:" + ex.getMessage(), "")));
+                        response.setErrorCauses(Set.of(new RuleViolation("exception sending request to webhook: " + ex.getMessage(), "")));
                         return response;
                     })
                     .toCompletionStage();
         } catch (Exception e) {
-            logger.error("Error sending webhook request to {}", config.getUrl(), e);
+            logger.error("Error sending webhook request to {} ", config.getUrl(), e);
             throw new RegistryException(e);
         }
     }

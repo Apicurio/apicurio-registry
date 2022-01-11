@@ -48,7 +48,12 @@ jobs:
           make IMAGE_TAG=latest-ci build-kafkasql-image
 
       - name: Kubernetes Tests
-        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=acceptance ./.github/scripts/test_apicurio_kubernetes.sh
+        env:
+          CURRENT_ENV: "k8s"
+          CI_BUILD: "true"
+          APICURIO_IMAGES_TAG: "latest-ci"
+          E2E_APICURIO_TESTS_PROFILE: "acceptance"
+        run: ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()
@@ -90,7 +95,12 @@ jobs:
           make IMAGE_TAG=latest-ci build-kafkasql-image
 
       - name: Kubernetes Tests
-        run: CI_BUILD=true APICURIO_IMAGES_TAG="latest-ci" E2E_APICURIO_TESTS_PROFILE=clustered ./.github/scripts/test_apicurio_kubernetes.sh
+        env:
+          CURRENT_ENV: "k8s"
+          CI_BUILD: "true"
+          APICURIO_IMAGES_TAG: "latest-ci"
+          E2E_APICURIO_TESTS_PROFILE: "clustered"
+        run: ./.github/scripts/test_apicurio_kubernetes.sh
 
       - name: Collect logs
         if: failure()

@@ -46,6 +46,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Tag(Constants.SMOKE)
+@DisabledIfEnvironmentVariable(named = Constants.CURRENT_ENV, matches = Constants.CURRENT_ENV_K8S_REGEX)
 class CustomRulesIT extends ApicurioV2BaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomRulesIT.class);

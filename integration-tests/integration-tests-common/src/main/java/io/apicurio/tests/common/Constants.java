@@ -84,6 +84,7 @@ public interface Constants {
      */
     public static final String CURRENT_ENV = "CURRENT_ENV";
     public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
+    public static final String CURRENT_ENV_K8S_REGEX = ".*k8s.*";
 
     /**
      * Env var used by the e2e testsuite to provide an already deployed kafka cluster in kubernetes in order to use it in the tests

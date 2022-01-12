@@ -53,7 +53,6 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
@@ -213,6 +212,10 @@ public class GroupsResourceImpl implements GroupsResource {
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
+
+        if (data.getProperties() != null) {
+            data.getProperties().forEach((k,v) -> requireParameter("property value", v));
+        }
 
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
@@ -428,7 +431,9 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-
+        if (data.getProperties() != null) {
+            data.getProperties().forEach((k,v) -> requireParameter("property value", v));
+        }
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
@@ -488,7 +493,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<>();
-        filters.add(new SearchFilter(SearchFilterType.group, gidOrNull(groupId)));
+        filters.add(SearchFilter.ofGroup(gidOrNull(groupId)));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
         return V2ApiUtil.dtoToSearchResults(resultsDto);

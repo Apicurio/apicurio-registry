@@ -21,7 +21,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -174,6 +176,116 @@ public class SearchResourceTest extends AbstractResourceTestBase {
                 .then()
                     .statusCode(200)
                     .body("count", equalTo(1));
+        });
+    }
+
+    @Test
+    public void testSearchByProperties() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create 5 artifacts with various properties
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            waitForArtifact(group, artifactId);
+
+            Map<String, String> props = new HashMap<>();
+            props.put("all-key", "all-value");
+            props.put("key-" + idx, "value-" + idx);
+            props.put("another-key-" + idx, "another-value-" + idx);
+
+            // Update the artifact meta-data
+            EditableMetaData metaData = new EditableMetaData();
+            metaData.setName(title);
+            metaData.setDescription("Some description of an API");
+            metaData.setProperties(props);
+            given()
+                .when()
+                    .contentType(CT_JSON)
+                    .pathParam("groupId", group)
+                    .pathParam("artifactId", artifactId)
+                    .body(metaData)
+                    .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+                .then()
+                    .statusCode(204);
+        }
+
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "all-key:all-value")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(200)
+                    .body("count", equalTo(5));
+        });
+
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1:value-1")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(200)
+                    .body("count", equalTo(1));
+        });
+
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1:value-1")
+                    .queryParam("properties", "another-key-1:another-value-1")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(200)
+                    .body("count", equalTo(1));
+        });
+
+        //negative test cases
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1:value-1")
+                    .queryParam("properties", "key-2:value-2")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(200)
+                    .body("count", equalTo(0));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1:value-1:")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(200)
+                    .body("count", equalTo(0));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(400);
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", "key-1:")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(400);
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .queryParam("properties", ":value-1")
+                    .get("/registry/v2/search/artifacts")
+                .then()
+                    .statusCode(400);
         });
     }
 

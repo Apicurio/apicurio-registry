@@ -63,15 +63,6 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
      * The result of this method is passed to the SchemaResolver, which then can use this schema to resolve the exact
      * artifact version in Apicurio Registry or to create the artifact if configured to do so.
      *
-     * @param data
-     * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
-     */
-    protected ParsedSchema<T> getSchemaFromData(U data) {
-        return getSchemaFromData(null, data);
-    }
-
-    /**
-     * See {@link AbstractKafkaSerializer#getSchemaFromData(Object)}
      * @param headers can be null
      * @param data
      * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.

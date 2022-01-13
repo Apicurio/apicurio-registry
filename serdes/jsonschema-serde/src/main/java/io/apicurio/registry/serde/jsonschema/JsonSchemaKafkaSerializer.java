@@ -136,9 +136,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
 //     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
 //     */
 //    @Override
-//    protected ParsedSchema<SchemaValidator> getSchemaFromData(T data) {
-//        // TODO Auto-generated method stub
-//        return super.getSchemaFromData(data);
+//    protected ParsedSchema<SchemaValidator> getSchemaFromData(Headers headers, T data) {
+//        return super.getSchemaFromData(headers, data);
 //    }
 
     /**

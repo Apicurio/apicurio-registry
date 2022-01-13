@@ -88,7 +88,8 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                 this.setMultiState({
                     accountId: this.props.defaultRole.principalId,
                     accountName: this.props.defaultRole.principalName,
-                    role: this.props.defaultRole.role
+                    role: this.props.defaultRole.role,
+                    currentRole: this.props.defaultRole.role
                 });
             }
         }
@@ -339,9 +340,9 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
     private modalDescription() {
         if (Services.getConfigService().featureMultiTenant()) {
-            return "Manage access to resources in this Service Registry instance by assigning permissions to an account.";
+            return "Grant access to resources in this Service Registry instance by assigning a role to an account.";
         } else {
-            return "Manage access to resources in the Registry by assigning permissions to an account.";
+            return "Grant access to resources in the Registry by assigning permissions to an account";
         }
     }
 

@@ -40,7 +40,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     constructor(props: Readonly<SelectPrincipalAccountProps>) {
         super(props);
     }
-    
+
     componentDidUpdate(prevProps: SelectPrincipalAccountProps){
         if (this.props.id && this.props.id !== prevProps.id) {
             this.setSingleState("id", this.props.id);
@@ -77,7 +77,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     }
 
     public render(): React.ReactElement {
-        const { isUpdateAccess, defaultRole }=this.props;
+        const {isUpdateAccess, defaultRole} = this.props;
         const children: React.ReactElement[] = this.filter(null, "");
 
         return (

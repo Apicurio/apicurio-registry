@@ -25,12 +25,8 @@ import {
     FormGroup,
     Modal, Popover,
     Radio,
-    Select,
-    SelectOption,
     SelectOptionObject,
-    SelectVariant,
-    TextInput,
-    Tooltip
+    TextInput
 } from '@patternfly/react-core';
 import {Principal, Services} from "../../../../../services";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
@@ -64,6 +60,8 @@ export interface GrantAccessModalState extends PureComponentState {
     accountName: string | undefined;
     role: string | undefined;
     escapeClosesModal: boolean;
+    isFetchingMappingRole: boolean;
+    currentRole: string | undefined;
 }
 
 
@@ -75,26 +73,36 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     constructor(props: Readonly<GrantAccessModalProps>) {
         super(props);
     }
-    componentDidUpdate(prevProps: GrantAccessModalProps) {
+
+    public componentDidMount() {
+        this.setMultiState({
+            accountId: "",
+            accountName: "",
+            role: undefined
+        });
+    }
+
+    public componentDidUpdate(prevProps: GrantAccessModalProps, prevState: GrantAccessModalState) {
         if (this.props.defaultRole !== prevProps.defaultRole) {
             if (this.props.defaultRole) {
                 this.setMultiState({
                     accountId: this.props.defaultRole.principalId,
                     accountName: this.props.defaultRole.principalName,
+                    currentRole: this.props.defaultRole.role,
                     role: this.props.defaultRole.role
                 });
-            } else {
-                this.setMultiState({
-                    accountId: "",
-                    accountName: "",
-                    role: undefined
-                });
             }
+        }
+
+        if (prevState.accountId !== this.state.accountId || prevState.role !== this.state.role) {
+            this.setSingleState("isValid", this.checkValid(this.state.accountId, this.state.role));
         }
     }
 
     public render(): React.ReactElement {
-        const principals: Principal[] | undefined = Services.getConfigService().principals();
+        const {isFetchingMappingRole, accountId} = this.state;
+        const {isUpdateAccess, defaultRole} = this.props;
+        const principals: Principal[] | undefined =Services.getConfigService().principals();
 
         return (
             <Modal
@@ -102,15 +110,15 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                 description={this.modalDescription()}
                 variant="medium"
                 isOpen={this.props.isOpen}
-                onClose={this.props.onClose}
+                onClose={this.closeModal}
                 className="grant-access-modal pf-m-redhat-font"
                 onEscapePress={this.escapePressed}
                 onKeyPress={this.onKey}
                 onKeyDown={this.onKey}
                 onKeyUp={this.onKey}
                 actions={[
-                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid}>Save</Button>,
-                    <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
+                    <Button key="grant" variant="primary" data-testid="modal-btn-grant" onClick={this.doGrantAccess} isDisabled={!this.state.isValid || isFetchingMappingRole}>Save</Button>,
+                    <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.closeModal}>Cancel</Button>
                 ]}
             >
                 <Form>
@@ -141,38 +149,17 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                         isRequired
                         fieldId="grant-access-account-id"
                     >
-                        {principals ? <SelectPrincipalAccount
+                         {principals ?
+                          <SelectPrincipalAccount
                             id={this.state.accountId}
                             onToggle={this.onAccountSelectToggle}
                             onIdUpdate={(id: string) => {
                                 this.onAccountIDSelect(null, id, false);
                             }}
-                            initialOptions={principals? principals: []}/> :
-                            this.props.roles !== null ?
-                            <Select
-                                id="grant-access-principal"
-                                name="grant-access-principal"
-                                variant={SelectVariant.typeahead}
-                                typeAheadAriaLabel="Select an account"
-                                onToggle={this.onAccountIDToggle}
-                                onSelect={this.onAccountIDSelect}
-                                onClear={this.onAccountIDClearSelection}
-                                selections={this.state.accountId}
-                                isOpen={this.state.isAccountIDSelectOpen}
-                                isInputValuePersisted={true}
-                                placeholderText={this.props.isUpdateAccess ? this.props.defaultRole?.principalId : "Select an account"}
-                                maxHeight = {'100px'}
-                                menuAppendTo="parent"
-                                isDisabled={this.props.isUpdateAccess}
-                            >
-                                {this.props.roles.map((option, index) => (
-                                    <SelectOption
-                                        key={index}
-                                        value={option.principalId}
-
-                                    />
-                                ))}
-                            </Select> :
+                            initialOptions={principals || []}
+                            isUpdateAccess={isUpdateAccess}
+                            defaultRole={defaultRole}
+                            />:
                             <TextInput
                                 isRequired
                                 type="text"
@@ -180,9 +167,12 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                                 name="grant-access-principal"
                                 aria-describedby="grant-access-principal-helper"
                                 onChange={this.handlePrincipalChange}
+                                value={accountId}
+                                isDisabled={isUpdateAccess}
                             />
                         }
                     </FormGroup>
+                    {accountId &&
                     <FormGroup
                         label="Role"
                         isRequired
@@ -191,31 +181,37 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
                         <Radio id="grant-access-role-admin"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label="Administrator"
+                            label={this.appendString("Administrator",RoleTypes.ADMIN)}
                             description="Assign roles to other accounts on this Service Registry instance, configure global rules, and access data import and export features."
                             value={RoleTypes.ADMIN}
                             onChange={this.handleRoleChange}
                             isChecked={this.state.role == RoleTypes.ADMIN}
+                            isDisabled={isFetchingMappingRole}
                         />
 
                         <Radio id="grant-access-role-manager"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label="Manager"
+                            label={this.appendString("Manager",RoleTypes.DEVELOPER)}
                             description="Read and write artifacts on this Service Registry instance."
                             value={RoleTypes.DEVELOPER}
                             onChange={this.handleRoleChange}
-                            isChecked={this.state.role == RoleTypes.DEVELOPER} />
+                            isChecked={this.state.role == RoleTypes.DEVELOPER}
+                            isDisabled={isFetchingMappingRole}
+                            />
 
                         <Radio id="grant-access-role-viewer"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label="Viewer"
+                            label={this.appendString("Viewer",RoleTypes.READ_ONLY)}
                             description="Read artifacts on this Service Registry instance."
                             value={RoleTypes.READ_ONLY}
                             onChange={this.handleRoleChange}
-                            isChecked={this.state.role == RoleTypes.READ_ONLY}/>
+                            isChecked={this.state.role == RoleTypes.READ_ONLY}
+                            isDisabled={isFetchingMappingRole}
+                            />
                     </FormGroup>
+                   }
                 </Form>
 
             </Modal>
@@ -224,23 +220,42 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
     protected initializeState(): GrantAccessModalState {
         return {
-            isAccountIDSelectOpen: false,
-            isValid: false,
             accountId: "",
             accountName: "",
-            role: undefined,
-            escapeClosesModal: true
+            currentRole: undefined,
+            escapeClosesModal: true,
+            isAccountIDSelectOpen: false,
+            isFetchingMappingRole: false,
+            isValid: false,
+            role: undefined
         };
     }
 
-    public reset(): void {
+    private closeModal = () => {
+        const {onClose} = this.props;
+        if (onClose) {
+            onClose();
+        }
+        this.reset();
+    }
+
+    private appendString(roleName: string, roleType: RoleTypes): string {
+        const {currentRole} = this.state;
+        if (currentRole === roleType) {
+            return `${roleName} (current role)`;
+        }
+        return roleName;
+    }
+
+    private reset(): void {
         this.setMultiState(this.initializeState());
     }
 
     private onAccountIDClearSelection = () => {
         this.setMultiState({
           accountID: "",
-          isAccountIDSelectOpen: false
+          isAccountIDSelectOpen: false,
+          role: undefined
         });
       };
 
@@ -251,29 +266,46 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
         })
     };
 
+    private getRoleMapping = () => {
+        const {accountId} = this.state;
+        if (accountId) {
+            this.setSingleState("isFetchingMappingRole", true);
+            Services.getAdminService().getRoleMapping(accountId).then(({role}) => {
+                this.setMultiState({
+                    role,
+                    isFetchingMappingRole: false,
+                    currentRole: role
+                });
+            }).catch((e) => {
+                this.setMultiState({
+                    role: RoleTypes.READ_ONLY,
+                    isFetchingMappingRole: false
+                });
+            });
+        }
+    };
+
     private onAccountIDSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         if (isPlaceholder) {
             this.onAccountIDClearSelection();
-        }  else {
+        } else {
             const newState: any = {
                 accountId: selection,
                 accountName: this.getAccountName(selection as string),
-                isValid: this.checkValid(selection, this.state.role),
                 isAccountIDSelectOpen: false
             };
-            this.setMultiState(newState);
+            this.setMultiState(newState, () => {
+                this.getRoleMapping();
+            });
         }
       };
 
-    private onAccountIDToggle = (isOpen: boolean) => {
-        this.setSingleState("isAccountIDSelectOpen", isOpen);
-      };
 
     private handleRoleChange = (isChecked: boolean, event: any): void => {
         this.setMultiState({
             isValid: this.checkValid(this.state.accountId, event.target.value),
             role: event.target.value
-        })
+        });
     };
 
     private doGrantAccess = (): void => {
@@ -289,10 +321,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     }
 
     private checkValid(accountId: SelectOptionObject | string | undefined, role: string | undefined): boolean {
-        if (!accountId) {
-            return false;
-        }
-        if (!role) {
+        if (!accountId || !role) {
             return false;
         }
         return true;
@@ -312,15 +341,15 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
 
     private modalDescription() {
         if (Services.getConfigService().featureMultiTenant()) {
-            return "Manage access to resources in this Service Registry instance by assigning permissions to an account.";
+            return "Grant access to resources in this Service Registry instance by assigning a role to an account.";
         } else {
-            return "Manage access to resources in the Registry by assigning permissions to an account.";
+            return "Grant access to resources in the Registry by assigning permissions to an account";
         }
     }
 
     private escapePressed = (): void => {
         if (this.state.escapeClosesModal) {
-            this.props.onClose();
+           this.closeModal();
         }
     };
 

@@ -67,6 +67,16 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
      * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
      */
     protected ParsedSchema<T> getSchemaFromData(U data) {
+        return getSchemaFromData(null, data);
+    }
+
+    /**
+     * See {@link AbstractKafkaSerializer#getSchemaFromData(Object)}
+     * @param headers can be null
+     * @param data
+     * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
+     */
+    protected ParsedSchema<T> getSchemaFromData(Headers headers, U data) {
         return null;
     }
 
@@ -87,7 +97,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         }
         try {
 
-            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(data)));
+            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(headers, data)));
 
             SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(topic, headers, data, schemaFromData);
 

@@ -284,7 +284,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
         this.pleaseWait(true, "Granting access, please wait...");
         Services.getAdminService().updateRoleMapping(principal.id, role).then((mapping) => {
             const currentRoleMappings = this.state.roles;
-            currentRoleMappings.map((role, index) => {
+            currentRoleMappings.forEach((role, index) => {
                 if (role.principalId === mapping.principalId) {
                     currentRoleMappings[index] = {
                         ...mapping,

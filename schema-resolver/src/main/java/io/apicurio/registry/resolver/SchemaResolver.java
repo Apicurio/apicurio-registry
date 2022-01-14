@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
 import java.io.Closeable;
 import java.util.Map;
-import org.apache.kafka.common.header.Headers;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 
 /**
  * @author Fabian Martinez
@@ -40,17 +39,16 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     public void setClient(RegistryClient client);
 
-    public void setArtifactResolverStrategy(ArtifactResolverStrategy<SCHEMA> artifactResolverStrategy);
+    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<SCHEMA, Data<DATA>> artifactResolverStrategy);
 
     /**
      * Used by Serializers to lookup the schema for a given kafka record.
      * @param topic
-     * @param headers, can be null
-     * @param data
+     * @param data, generic object, can be an object with metadata and the actual message body
      * @param parsedSchema, can be null
      * @return SchemaLookupResult
      */
-    public SchemaLookupResult<SCHEMA> resolveSchema(String topic, Headers headers, DATA data, ParsedSchema<SCHEMA> parsedSchema);
+    public SchemaLookupResult<SCHEMA> resolveSchema(Data<DATA> data, ParsedSchema<SCHEMA> parsedSchema);
 
     /**
      * Used by Deserializers to lookup the schema for a given kafka record.

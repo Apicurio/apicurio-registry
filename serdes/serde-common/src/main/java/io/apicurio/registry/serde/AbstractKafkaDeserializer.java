@@ -24,6 +24,10 @@ import java.nio.ByteBuffer;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaDeserializerConfig;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;

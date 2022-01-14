@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
 /**
  * @author Fabian Martinez

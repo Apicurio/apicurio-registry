@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * @author Fabian Martinez

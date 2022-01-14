@@ -21,6 +21,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.headers.HeadersHandler;

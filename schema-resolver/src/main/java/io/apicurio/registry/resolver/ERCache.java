@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 import java.time.Duration;
 import java.time.Instant;

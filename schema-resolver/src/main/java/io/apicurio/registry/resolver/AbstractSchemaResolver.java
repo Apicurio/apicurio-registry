@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -31,7 +31,6 @@ import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,14 +51,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected RegistryClient client;
     protected ApicurioHttpClient authClient;
     protected boolean isKey;
-    protected ArtifactResolverStrategy<S> artifactResolverStrategy;
+    protected ArtifactReferenceResolverStrategy<S> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
+     * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
@@ -69,7 +68,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
+                throw new IllegalArgumentException("Missing registry base url, set " + SchemaResolverConfig.REGISTRY_URL);
             }
 
             String authServerURL = config.getAuthServiceUrl();
@@ -93,7 +92,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         Object ais = config.getArtifactResolverStrategy();
-        Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
+        Utils.instantiate(ArtifactReferenceResolverStrategy.class, ais, this::setArtifactResolverStrategy);
 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
@@ -132,7 +131,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */
     @Override
-    public void setArtifactResolverStrategy(ArtifactResolverStrategy<S> artifactResolverStrategy) {
+    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S> artifactResolverStrategy) {
         this.artifactResolverStrategy = artifactResolverStrategy;
     }
 
@@ -144,15 +143,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * Resolve an artifact reference given the topic name, message headers, data, and optional parsed schema.  This will use
+     * Resolve an artifact reference given the topic name, message, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
      * values (groupId, artifactId, version).
      * @param topic
-     * @param headers
      * @param data
      * @param parsedSchema
      */
-    protected ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
+    protected ArtifactReference resolveArtifactReference(String topic, T data, ParsedSchema<S> parsedSchema) {
 
         S schema = null;
         if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
@@ -193,7 +191,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#reset()
+     * @see io.apicurio.registry.resolver.SchemaResolver#reset()
      */
     @Override
     public void reset() {
@@ -224,10 +222,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
-            throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
+            throw new IllegalArgumentException("Missing registry auth realm, set " + SchemaResolverConfig.AUTH_REALM);
         }
 
-        final String tokenEndpoint =  authServerUrl + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
+        final String tokenEndpoint =  authServerUrl + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
         return configureAuthWithUrl(config, tokenEndpoint);
     }
@@ -236,12 +234,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
-            throw new IllegalArgumentException("Missing registry auth clientId, set " + SerdeConfig.AUTH_CLIENT_ID);
+            throw new IllegalArgumentException("Missing registry auth clientId, set " + SchemaResolverConfig.AUTH_CLIENT_ID);
         }
         final String clientSecret = config.getAuthClientSecret();
 
         if (clientSecret == null) {
-            throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
+            throw new IllegalArgumentException("Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
         }
 
         authClient = ApicurioHttpClientFactory.create(tokenEndpoint, new AuthErrorHandler());
@@ -253,7 +251,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String password = config.getAuthPassword();
 
         if (password == null) {
-            throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
+            throw new IllegalArgumentException("Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
         }
 
         Auth auth = new BasicAuth(username, password);

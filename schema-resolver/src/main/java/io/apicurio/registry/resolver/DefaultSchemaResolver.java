@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import org.apache.kafka.common.header.Headers;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -41,7 +40,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean findLatest;
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
+     * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()
      */
     @Override
     public void reset() {
@@ -49,7 +48,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
+     * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
@@ -63,14 +62,14 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
-    public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
+    public SchemaLookupResult<S> resolveSchema(String topic, T data, ParsedSchema<S> parsedSchema) {
         Objects.requireNonNull(topic);
         Objects.requireNonNull(data);
 
-        final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
+        final ArtifactReference artifactReference = resolveArtifactReference(topic, data, parsedSchema);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
@@ -95,7 +94,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.serde.strategy.ArtifactReference)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReference)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {

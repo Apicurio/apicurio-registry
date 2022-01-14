@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -36,7 +36,7 @@ public class LazyLoadedParsedSchema<T> implements ParsedSchema<T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.ParsedSchema#getParsedSchema()
+     * @see io.apicurio.registry.resolver.ParsedSchema#getParsedSchema()
      */
     @Override
     public T getParsedSchema() {
@@ -47,7 +47,7 @@ public class LazyLoadedParsedSchema<T> implements ParsedSchema<T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.ParsedSchema#getRawSchema()
+     * @see io.apicurio.registry.resolver.ParsedSchema#getRawSchema()
      */
     @Override
     public byte[] getRawSchema() {

@@ -17,6 +17,7 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.rest.client.RegistryClient;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;

@@ -19,6 +19,8 @@ package io.apicurio.registry.serde;
 import java.util.Map;
 import java.util.Objects;
 
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.utils.Utils;
 

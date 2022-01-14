@@ -8,22 +8,17 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
         <version>2.1.6-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>apicurio-registry-serde-common</artifactId>
+    <artifactId>apicurio-registry-schema-resolver</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-serde-common</name>
+    <name>apicurio-registry-schema-resolver</name>
 
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-schema-resolver</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
+            <artifactId>apicurio-registry-client</artifactId>
         </dependency>
     </dependencies>
     

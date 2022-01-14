@@ -35,6 +35,7 @@ import io.apicurio.registry.storage.dto.CustomRuleDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableCustomRuleDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.rest.FeatureDisabledException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -56,6 +57,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public final class V2ApiUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    public static final String CUSTOM_RULES = "custom rules";
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
@@ -381,4 +384,11 @@ public final class V2ApiUtil {
         }
         return parameterValue;
     }
+
+    public static void featureEnabled(boolean enabled, String message) {
+        if (!enabled) {
+            throw new FeatureDisabledException("Feature not enabled, " + message);
+        }
+    }
+
 }

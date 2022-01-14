@@ -50,9 +50,13 @@ export class RootPageHeader extends PureComponent<RootPageHeaderProps, RootPageH
     public render(): React.ReactElement {
         let tabs: any[] = [
             <Tab eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
-            <Tab eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />,
-            <Tab eventKey={2} title={<TabTitleText>Custom rules</TabTitleText>} />
+            <Tab eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
         ];
+        if (Services.getConfigService().featureCustomRules()) {
+            tabs.push(
+                <Tab eventKey={2} title={<TabTitleText>Custom rules</TabTitleText>} />
+            );
+        }
         if (Services.getConfigService().featureRoleManagement()) {
             tabs.push(
                 <Tab eventKey={3} title={<TabTitleText>Access</TabTitleText>} />

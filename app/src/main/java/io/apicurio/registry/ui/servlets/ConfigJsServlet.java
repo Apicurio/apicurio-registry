@@ -81,6 +81,8 @@ public class ConfigJsServlet extends HttpServlet {
             config.features.readOnly = uiConfig.isFeatureReadOnly();
             config.features.breadcrumbs = true;
 
+            config.features.customRules = uiConfig.isFeatureCustomRules();
+
             configureAuth(config);
 
             g.writeObject(config);

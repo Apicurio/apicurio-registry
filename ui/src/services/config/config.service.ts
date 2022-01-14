@@ -36,7 +36,8 @@ const DEFAULT_CONFIG: ConfigType = {
     features: {
         readOnly: false,
         breadcrumbs: true,
-        roleManagement: true
+        roleManagement: true,
+        customRules: true
     },
     ui: {
         contextPath: "/",
@@ -166,5 +167,9 @@ export class ConfigService implements Service {
     
     public featureMultiTenant(): boolean {
         return this.features().multiTenant || false;
+    }
+
+    public featureCustomRules(): boolean {
+        return this.features().customRules || false;
     }
 }

@@ -149,6 +149,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
     private static final String GLOBAL_ID_SEQUENCE = "globalId";
     private static final String CONTENT_ID_SEQUENCE = "contentId";
+    private static final String EMPTY_STRING = "";
 
     @Inject
     Logger log;
@@ -2729,8 +2730,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public List<CustomRuleBindingDto> listCustomRuleBindings(Optional<ArtifactIdDto> artifactIdDto) {
-        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
-        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> EMPTY_STRING);
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> EMPTY_STRING);
         return handles.withHandleNoException(handle -> {
            String sql = sqlStatements.selectAllCustomRuleBindings();
            return handle.createQuery(sql)
@@ -2752,8 +2753,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override
     @Transactional
     public void createCustomRuleBinding(Optional<ArtifactIdDto> artifactIdDto, String ruleId) {
-        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
-        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> EMPTY_STRING);
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> EMPTY_STRING);
         handles.withHandleNoException(handle -> {
             try {
                 return handle.createUpdate(sqlStatements.insertCustomRuleBinding())
@@ -2777,8 +2778,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override
     @Transactional
     public void deleteCustomRuleBinding(Optional<ArtifactIdDto> artifactIdDto, String ruleId) {
-        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> "");
-        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> "");
+        String groupId = artifactIdDto.map(ArtifactIdDto::getGroupId).orElseGet(() -> EMPTY_STRING);
+        String artifactId = artifactIdDto.map(ArtifactIdDto::getArtifactId).orElseGet(() -> EMPTY_STRING);
         if (handles.withHandleNoException(handle -> {
            return handle.createUpdate(sqlStatements.deleteCustomRuleBinding())
                .bind(0, tenantContext.tenantId())

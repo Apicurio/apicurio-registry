@@ -243,6 +243,9 @@ objects:
           - name: TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS
             value: ${TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS}
 
+          - name: REGISTRY_CUSTOM_RULES_ENABLED
+            value: ${REGISTRY_CUSTOM_RULES_ENABLED}
+
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -785,3 +788,7 @@ parameters:
 - name: CORS_ALLOWED_ORIGINS
   description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.
   value: ""
+
+- name: REGISTRY_CUSTOM_RULES_ENABLED
+  description: feature flag for custom rules
+  value: "false"

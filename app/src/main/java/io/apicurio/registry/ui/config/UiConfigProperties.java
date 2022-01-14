@@ -26,6 +26,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.registry.rules.custom.CustomRulesProperties;
 import io.apicurio.registry.utils.RegistryProperties;
 import org.slf4j.Logger;
 
@@ -38,6 +39,9 @@ public class UiConfigProperties {
 
     @Inject
     Logger log;
+
+    @Inject
+    CustomRulesProperties customRulesProperties;
 
     @Inject
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
@@ -93,6 +97,10 @@ public class UiConfigProperties {
 
     public boolean isKeycloakAuthEnabled() {
         return tenantEnabled;
+    }
+
+    public boolean isFeatureCustomRules() {
+        return customRulesProperties.isCustomRulesEnabled();
     }
 
 }

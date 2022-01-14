@@ -49,6 +49,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import io.apicurio.registry.mt.TenantNotFoundException;
 import io.apicurio.registry.mt.limits.LimitExceededException;
+import io.apicurio.registry.rest.FeatureDisabledException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.Error;
@@ -129,6 +130,7 @@ public class RegistryExceptionMapperService {
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(FeatureDisabledException.class, HTTP_NOT_FOUND); //TODO return 404 or 409 or what status code?
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

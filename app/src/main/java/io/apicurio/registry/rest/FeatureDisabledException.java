@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ui.beans;
+package io.apicurio.registry.rest;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
+import io.apicurio.registry.types.RegistryException;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Fabian Martinez
  */
-@RegisterForReflection
-public class ConfigJsFeatures {
+public class FeatureDisabledException extends RegistryException {
 
-    public boolean readOnly;
-    public boolean breadcrumbs;
-    public boolean multiTenant;
-    public boolean roleManagement;
-    public boolean customRules;
+    /**
+     *
+     */
+    private static final long serialVersionUID = 473415687621335481L;
+
+    public FeatureDisabledException(String message) {
+        super(message);
+    }
 
 }

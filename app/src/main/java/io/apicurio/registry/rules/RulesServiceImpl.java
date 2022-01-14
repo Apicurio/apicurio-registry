@@ -18,6 +18,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rules.custom.CustomRulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactIdDto;
 import io.apicurio.registry.storage.dto.CustomRuleDto;
@@ -54,6 +55,9 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     RulesProperties rulesProperties;
 
+    @Inject
+    CustomRulesProperties customRulesProperties;
+
     /**
      * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.rules.RuleApplicationType)
      */
@@ -80,7 +84,9 @@ public class RulesServiceImpl implements RulesService {
 
         applyArtifactOrGlobalRules(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent, artifactRules);
 
-        applyCustomRules(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent);
+        if (customRulesProperties.isCustomRulesEnabled()) {
+            applyCustomRules(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent);
+        }
 
     }
 

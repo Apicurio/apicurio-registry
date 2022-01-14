@@ -59,6 +59,7 @@ import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
+import io.apicurio.registry.rules.custom.CustomRulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
@@ -83,6 +84,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPP
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.featureEnabled;
 import static io.apicurio.registry.rest.v2.V2ApiUtil.requireParameter;
 
 /**
@@ -108,6 +110,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DataExporter exporter;
+
+    @Inject
+    CustomRulesProperties customRulesProperties;
 
     @Context
     HttpServletRequest request;
@@ -389,6 +394,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<CustomRuleBinding> listGlobalCustomRuleBindings() {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         return storage.listCustomRuleBindings(Optional.empty())
                     .stream()
                     .map(V2ApiUtil::dtoToCustomRuleBinding)
@@ -402,6 +408,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createGlobalCustomRuleBinding(CustomRuleBinding create) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         storage.createCustomRuleBinding(Optional.empty(), create.getCustomRuleId());
     }
 
@@ -412,6 +419,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteGlobalCustomRuleBinding(String ruleId) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         storage.deleteCustomRuleBinding(Optional.empty(), ruleId);
     }
 
@@ -421,6 +429,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public List<CustomRule> listCustomRules() {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         return storage.listCustomRules()
                 .stream()
                 .map(crd -> {
@@ -436,6 +445,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void createCustomRule(CustomRule data) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("body", data);
         requireParameter("customRuleId", data.getId());
         requireParameter("customRuleType", data.getCustomRuleType());
@@ -450,6 +460,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID, "1", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void updateCustomRule(String ruleId, CustomRuleUpdate data) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("body", data);
         requireParameter("customRuleId", ruleId);
 
@@ -470,6 +481,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = {"0", AuditingConstants.KEY_CUSTOM_RULE_ID})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void deleteCustomRule(String ruleId) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         storage.deleteCustomRule(ruleId);
     }
 

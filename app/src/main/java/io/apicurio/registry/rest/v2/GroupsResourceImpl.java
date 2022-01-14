@@ -41,6 +41,7 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.custom.CustomRulesProperties;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
@@ -100,6 +101,7 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.rest.v2.V2ApiUtil.featureEnabled;
 import static io.apicurio.registry.rest.v2.V2ApiUtil.requireParameter;
 
 /**
@@ -123,6 +125,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    CustomRulesProperties customRulesProperties;
 
     @Context
     HttpServletRequest request;
@@ -352,6 +357,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public List<CustomRuleInfo> listArtifactAvailableCustomRules(String groupId, String artifactId) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         return storage.listArtifactAvailableCustomRules(gidOrNull(groupId), artifactId)
@@ -366,6 +372,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public List<CustomRuleBinding> listArtifactCustomRuleBindings(String groupId, String artifactId) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         return storage.listCustomRuleBindings(Optional.of(ArtifactIdDto.of(gidOrNull(groupId), artifactId)))
@@ -381,6 +388,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", AuditingConstants.KEY_CUSTOM_RULE})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void createArtifactCustomRuleBinding(String groupId, String artifactId, CustomRuleBinding create) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("body", create);
@@ -401,6 +409,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", AuditingConstants.KEY_CUSTOM_RULE_ID})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
     public void deleteArtifactCustomRuleBinding(String groupId, String artifactId, String customRuleId) {
+        featureEnabled(customRulesProperties.isCustomRulesEnabled(), V2ApiUtil.CUSTOM_RULES);
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("customRuleId", customRuleId);

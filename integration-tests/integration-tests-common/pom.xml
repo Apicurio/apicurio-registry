@@ -30,7 +30,7 @@
         <!--junit 4 version, required by testcontainers, should be aligned with the version from testcontainers -->
         <junit4.version>4.13.2</junit4.version>
 
-        <debezium.version>1.7.1.Final</debezium.version>
+        <debezium.version>1.8.0.Final</debezium.version>
     </properties>
 
     <repositories>

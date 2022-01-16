@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.resolver;
 
-import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -51,10 +51,12 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
-        super.configure(configs, isKey, schemaParser);
+    public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
+        super.configure(configs, schemaParser);
 
-        DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
+        if (artifactResolverStrategy.loadSchema() && !schemaParser.supportsExtractSchemaFromData()) {
+            throw new IllegalStateException("Wrong configuration");
+        }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
@@ -65,19 +67,32 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
-    public SchemaLookupResult<S> resolveSchema(String topic, T data, ParsedSchema<S> parsedSchema) {
-        Objects.requireNonNull(topic);
+    public SchemaLookupResult<S> resolveSchema(Record<T> data) {
         Objects.requireNonNull(data);
+        Objects.requireNonNull(data.payload());
 
-        final ArtifactReference artifactReference = resolveArtifactReference(topic, data, parsedSchema);
+
+        ParsedSchema<S> parsedSchema = null;
+        if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
+            parsedSchema = schemaParser.getSchemaFromData(data);
+        }
+
+        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
         }
 
         if (autoCreateArtifact) {
-            //keep operations with parsedSchema in it's own if sentences, because parsedSchema methods may have side effects
-            if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+//            if (parsedSchema == null) {
+//                parsedSchema = schemaParser.getSchemaFromData(data);
+//            }
+            //the current schema parser may not support to extract the schema from the data (i.e. jsonschema)
+//            if (parsedSchema.getRawSchema() != null) {
+            if (schemaParser.supportsExtractSchemaFromData()) {
+                if (parsedSchema == null) {
+                    parsedSchema = schemaParser.getSchemaFromData(data);
+                }
                 return handleAutoCreateArtifact(parsedSchema, artifactReference);
             }
         }
@@ -86,7 +101,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
         }
 
-        if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+//        if (parsedSchema == null) {
+//            parsedSchema = schemaParser.getSchemaFromData(data);
+//        }
+        //the current schema parser may not support to extract the schema from the data (i.e. jsonschema)
+//        if (parsedSchema.getRawSchema() != null) {
+        if (schemaParser.supportsExtractSchemaFromData()) {
+            if (parsedSchema == null) {
+                parsedSchema = schemaParser.getSchemaFromData(data);
+            }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }
 
@@ -94,7 +117,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReference)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -130,10 +153,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsed)
+                    .setRawSchema(schema);
+
             return result
                 .contentId(contentIdKey)
-                .rawSchema(schema)
-                .schema(parsed)
+                .parsedSchema(ps)
+//                .rawSchema(schema)
+//                .schema(parsed)
                 .build();
         });
     }
@@ -157,8 +185,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             loadFromArtifactMetaData(artifactMetadata, result);
 
-            result.rawSchema(parsedSchema.getRawSchema());
-            result.schema(parsedSchema.getParsedSchema());
+//            result.rawSchema(parsedSchema.getRawSchema());
+//            result.schema(parsedSchema.getParsedSchema());
+            result.parsedSchema(parsedSchema);
 
             return result.build();
         });
@@ -177,8 +206,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             loadFromArtifactMetaData(artifactMetadata, result);
 
-            result.rawSchema(parsedSchema.getRawSchema());
-            result.schema(parsedSchema.getParsedSchema());
+//            result.rawSchema(parsedSchema.getRawSchema());
+//            result.schema(parsedSchema.getParsedSchema());
+            result.parsedSchema(parsedSchema);
 
             return result.build();
         });
@@ -206,9 +236,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);
 
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsed)
+                    .setRawSchema(schema);
+
+
             result
-                .rawSchema(schema)
-                .schema(parsed);
+                .parsedSchema(ps);
+//                .rawSchema(schema)
+//                .schema(parsed);
 
             return result.build();
         });

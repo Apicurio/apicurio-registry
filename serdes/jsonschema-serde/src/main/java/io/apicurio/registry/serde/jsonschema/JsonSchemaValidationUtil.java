@@ -19,7 +19,8 @@ package io.apicurio.registry.serde.jsonschema;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.ValidationMessage;
-import io.apicurio.registry.serde.ParsedSchema;
+
+import io.apicurio.registry.resolver.ParsedSchema;
 
 import java.io.IOException;
 import java.util.Set;

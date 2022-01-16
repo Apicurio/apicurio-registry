@@ -17,16 +17,28 @@
 package io.apicurio.registry.resolver.config;
 
 import static io.apicurio.registry.resolver.SchemaResolverConfig.*;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
+
+
 /**
  * @author Fabian Martinez
  */
 public class DefaultSchemaResolverConfig {
+
+    private static final Map<String, Object> DEFAULTS = Map.of(
+                ARTIFACT_RESOLVER_STRATEGY, DynamicArtifactReferenceResolverStrategy.class.getName(),
+                AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT,
+                AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT,
+                FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT,
+                CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT,
+                RETRY_COUNT, RETRY_COUNT_DEFAULT,
+                RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT
+            );
 
     private Map<String, ?> originals;
 
@@ -157,6 +169,9 @@ public class DefaultSchemaResolverConfig {
     }
 
     private Object get(String key) {
+        if (!this.originals.containsKey(key) && DEFAULTS.containsKey(key)) {
+            return DEFAULTS.get(key);
+        }
         return this.originals.get(key);
     }
 

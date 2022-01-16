@@ -30,10 +30,10 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.header.Headers;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.utils.Utils;
 
 /**
@@ -43,7 +43,8 @@ import io.apicurio.registry.serde.utils.Utils;
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
 
     private final DecoderFactory decoderFactory = DecoderFactory.get();
-    private AvroSchemaParser parser = new AvroSchemaParser();
+    private AvroSchemaParser<U> parser;
+//    = new AvroSchemaParser();
     private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding configEncoding;
     private AvroSerdeHeaders avroHeaders;
@@ -65,7 +66,6 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         AvroKafkaSerdeConfig config = new AvroKafkaSerdeConfig(configs);
-        super.configure(config, isKey);
         configEncoding = config.getAvroEncoding();
 
         Class adp = config.getAvroDatumProvider();
@@ -74,13 +74,18 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         avroDatumProvider.configure(config);
 
         avroHeaders = new AvroSerdeHeaders(isKey);
+
+        //important to instantiate the SchemaParser before calling super.configure
+        parser = new AvroSchemaParser<>(avroDatumProvider);
+
+        super.configure(config, isKey);
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<Schema> schemaParser() {
+    public SchemaParser<Schema, U> schemaParser() {
         return parser;
     }
 

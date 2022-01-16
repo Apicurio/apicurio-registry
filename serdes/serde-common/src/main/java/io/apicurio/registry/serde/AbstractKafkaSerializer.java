@@ -17,20 +17,22 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-
+import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * @author Fabian Martinez
@@ -49,7 +51,7 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         super(schemaResolver);
     }
 
-    public AbstractKafkaSerializer(RegistryClient client, ArtifactResolverStrategy<T> artifactResolverStrategy, SchemaResolver<T, U> schemaResolver) {
+    public AbstractKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> artifactResolverStrategy, SchemaResolver<T, U> schemaResolver) {
         super(client, schemaResolver);
         getSchemaResolver().setArtifactResolverStrategy(artifactResolverStrategy);
     }
@@ -59,17 +61,17 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         super.configure(new BaseKafkaSerDeConfig(configs), isKey);
     }
 
-    /**
-     * This method is useful in serdes such as AVRO, where the schema can be extracted from the data of the kafka record.
-     * The result of this method is passed to the SchemaResolver, which then can use this schema to resolve the exact
-     * artifact version in Apicurio Registry or to create the artifact if configured to do so.
-     *
-     * @param data
-     * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
-     */
-    protected ParsedSchema<T> getSchemaFromData(U data) {
-        return null;
-    }
+//    /**
+//     * This method is useful in serdes such as AVRO, where the schema can be extracted from the data of the kafka record.
+//     * The result of this method is passed to the SchemaResolver, which then can use this schema to resolve the exact
+//     * artifact version in Apicurio Registry or to create the artifact if configured to do so.
+//     *
+//     * @param data
+//     * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
+//     */
+//    protected ParsedSchema<T> getSchemaFromData(U data) {
+//        return null;
+//    }
 
     protected abstract void serializeData(ParsedSchema<T> schema, U data, OutputStream out) throws IOException;
 
@@ -88,22 +90,24 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         }
         try {
 
-            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(data)));
+//            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(data)));
 
-            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(topic, headers, data, schemaFromData);
+            KafkaSerdesMetadata resolverMetadata = new KafkaSerdesMetadata(topic, isKey(), headers);
 
-            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
-                    .setRawSchema(schema.getRawSchema())
-                    .setParsedSchema(schema.getSchema());
+            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(new KafkaSerdesRecord<>(resolverMetadata, data));
+
+//            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
+//                    .setRawSchema(schema.getRawSchema())
+//                    .setParsedSchema(schema.getSchema());
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             if (headersHandler != null && headers != null) {
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
-                serializeData(headers, parsedSchema, data, out);
+                serializeData(headers, schema.getParsedSchema(), data, out);
             } else {
                 out.write(MAGIC_BYTE);
                 getIdHandler().writeId(schema.toArtifactReference(), out);
-                serializeData(parsedSchema, data, out);
+                serializeData(schema.getParsedSchema(), data, out);
             }
             return out.toByteArray();
         } catch (IOException e) {

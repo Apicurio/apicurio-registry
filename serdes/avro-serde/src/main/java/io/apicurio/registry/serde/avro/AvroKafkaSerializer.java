@@ -29,15 +29,13 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.header.Headers;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.ParsedSchemaImpl;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.utils.Utils;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -46,7 +44,8 @@ import io.apicurio.registry.utils.IoUtil;
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();
-    private AvroSchemaParser parser = new AvroSchemaParser();
+    private AvroSchemaParser<U> parser;
+//    = new AvroSchemaParser();
     private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding encoding;
     private AvroSerdeHeaders avroHeaders;
@@ -64,7 +63,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     }
 
     public AvroKafkaSerializer(RegistryClient client,
-            ArtifactResolverStrategy<Schema> artifactResolverStrategy,
+            ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
             SchemaResolver<Schema, U> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
@@ -78,7 +77,6 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         AvroKafkaSerdeConfig config = new AvroKafkaSerdeConfig(configs);
-        super.configure(config, isKey);
         encoding = config.getAvroEncoding();
 
         Class<?> adp = config.getAvroDatumProvider();
@@ -87,26 +85,31 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
         avroDatumProvider.configure(config);
 
         avroHeaders = new AvroSerdeHeaders(isKey);
+
+        //important to instantiate the SchemaParser before calling super.configure
+        parser = new AvroSchemaParser<>(avroDatumProvider);
+
+        super.configure(config, isKey);
     }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<Schema> schemaParser() {
+    public SchemaParser<Schema, U> schemaParser() {
         return parser;
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
-     */
-    @Override
-    protected ParsedSchema<Schema> getSchemaFromData(U data) {
-        Schema schema = avroDatumProvider.toSchema(data);
-        return new ParsedSchemaImpl<Schema>()
-                .setParsedSchema(schema)
-                .setRawSchema(IoUtil.toBytes(schema.toString()));
-    }
+//    /**
+//     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
+//     */
+//    @Override
+//    protected ParsedSchema<Schema> getSchemaFromData(U data) {
+//        Schema schema = avroDatumProvider.toSchema(data);
+//        return new ParsedSchemaImpl<Schema>()
+//                .setParsedSchema(schema)
+//                .setRawSchema(IoUtil.toBytes(schema.toString()));
+//    }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)

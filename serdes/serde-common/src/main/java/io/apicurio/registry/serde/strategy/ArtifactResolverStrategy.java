@@ -16,14 +16,22 @@
 
 package io.apicurio.registry.serde.strategy;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
+
 /**
+ * This interface is only kept for backwards compatibility
+ *
  * A {@link ArtifactResolverStrategy} is used by the Kafka serializer/deserializer to determine
  * the {@link ArtifactReference} under which the message schemas are located or should be registered
  * in the registry. The default is {@link TopicIdStrategy}.
  *
  * @author Fabian Martinez
  */
-public interface ArtifactResolverStrategy<T> {
+public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverStrategy<T, Object> {
 
     /**
      * For a given topic and message, returns the {@link ArtifactReference} under which the message schemas are located or should be registered
@@ -36,11 +44,35 @@ public interface ArtifactResolverStrategy<T> {
      */
     ArtifactReference artifactReference(String topic, boolean isKey, T schema);
 
-    /**
-     * Whether or not to load and pass the parsed schema to the {@link ArtifactResolverStrategy#artifactReference(String, boolean, Object)} lookup method
-     */
-    default boolean loadSchema() {
-        return true;
+    @Override
+    default io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
+        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
+        KafkaSerdesMetadata metadata = kdata.metadata();
+        ArtifactReference ref = artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema.getParsedSchema());
+        return io.apicurio.registry.resolver.strategy.ArtifactReference.builder()
+                .contentId(ref.getContentId())
+                .globalId(ref.getGlobalId())
+                .groupId(ref.getGroupId())
+                .artifactId(ref.getArtifactId())
+                .version(ref.getVersion())
+                .build();
     }
+
+//    /**
+//     * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
+//     */
+//    @Override
+//    default io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
+//        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
+//        KafkaSerdesMetadata metadata = kdata.metadata();
+//        ArtifactReference ref = artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema.getParsedSchema());
+//        return io.apicurio.registry.resolver.strategy.ArtifactReference.builder()
+//                .contentId(ref.getContentId())
+//                .globalId(ref.getGlobalId())
+//                .groupId(ref.getGroupId())
+//                .artifactId(ref.getArtifactId())
+//                .version(ref.getVersion())
+//                .build();
+//    }
 
 }

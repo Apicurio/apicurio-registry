@@ -23,8 +23,9 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
  */
 public class SchemaLookupResult<T> {
 
-    private byte[] rawSchema;
-    private T schema;
+//    private byte[] rawSchema;
+//    private T schema;
+    private ParsedSchema<T> parsedSchema;
 
     private long globalId;
     private long contentId;
@@ -36,18 +37,25 @@ public class SchemaLookupResult<T> {
         //empty initialize manually
     }
 
-    /**
-     * @return the rawSchema
-     */
-    public byte[] getRawSchema() {
-        return rawSchema;
-    }
+//    /**
+//     * @return the rawSchema
+//     */
+//    public byte[] getRawSchema() {
+//        return rawSchema;
+//    }
+//
+//    /**
+//     * @return the schema
+//     */
+//    public T getSchema() {
+//        return schema;
+//    }
 
     /**
-     * @return the schema
+     * @return the parsedSchema
      */
-    public T getSchema() {
-        return schema;
+    public ParsedSchema<T> getParsedSchema() {
+        return parsedSchema;
     }
 
     /**
@@ -107,13 +115,18 @@ public class SchemaLookupResult<T> {
             this.result = new SchemaLookupResult<>();
         }
 
-        public SchemaLookupResultBuilder<T> rawSchema(byte[] rawSchema) {
-            this.result.rawSchema = rawSchema;
-            return SchemaLookupResultBuilder.this;
-        }
+//        public SchemaLookupResultBuilder<T> rawSchema(byte[] rawSchema) {
+//            this.result.rawSchema = rawSchema;
+//            return SchemaLookupResultBuilder.this;
+//        }
+//
+//        public SchemaLookupResultBuilder<T> schema(T schema) {
+//            this.result.schema = schema;
+//            return SchemaLookupResultBuilder.this;
+//        }
 
-        public SchemaLookupResultBuilder<T> schema(T schema) {
-            this.result.schema = schema;
+        public SchemaLookupResultBuilder<T> parsedSchema(ParsedSchema<T> parsedSchema) {
+            this.result.parsedSchema = parsedSchema;
             return SchemaLookupResultBuilder.this;
         }
 

@@ -19,6 +19,7 @@ package io.apicurio.registry.resolver;
 import java.util.Properties;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 
@@ -38,7 +39,11 @@ public class SchemaResolverConfig {
      * <em>Serializer</em> serde class.
      */
     public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy";
-    public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = TopicIdStrategy.class.getName();
+
+    /**
+     * Note this default artifact resolver strategy differs in behavior from the classic Kafka serdes ArtifactResolverStrategy
+     */
+    public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = DynamicArtifactReferenceResolverStrategy.class.getName();
 
 
     /**

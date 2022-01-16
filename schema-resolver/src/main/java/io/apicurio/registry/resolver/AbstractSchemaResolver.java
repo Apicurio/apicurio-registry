@@ -17,8 +17,9 @@
 package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
@@ -47,24 +48,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
 
-    protected SchemaParser<S> schemaParser;
+    protected DefaultSchemaResolverConfig config;
+    protected SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
     protected ApicurioHttpClient authClient;
-    protected boolean isKey;
-    protected ArtifactReferenceResolverStrategy<S> artifactResolverStrategy;
+    protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
-    /**
-     * @see io.apicurio.registry.resolver.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.resolver.SchemaParser)
-     */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
+    public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
         this.schemaParser = schemaParser;
-        this.isKey = isKey;
-        DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
+        this.config = new DefaultSchemaResolverConfig(configs);
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
@@ -100,7 +97,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         schemaCache.configureArtifactReferenceKeyExtractor(SchemaLookupResult::toArtifactReference);
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
-        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getParsedSchema().getRawSchema()).map(IoUtil::toString).orElse(null));
         schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
         schemaCache.checkInitialized();
 
@@ -131,15 +128,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */
     @Override
-    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S> artifactResolverStrategy) {
+    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
         this.artifactResolverStrategy = artifactResolverStrategy;
-    }
-
-    /**
-     * @param isKey the isKey to set
-     */
-    public void setIsKey(boolean isKey) {
-        this.isKey = isKey;
     }
 
     /**
@@ -150,14 +140,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param data
      * @param parsedSchema
      */
-    protected ArtifactReference resolveArtifactReference(String topic, T data, ParsedSchema<S> parsedSchema) {
 
-        S schema = null;
-        if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
-            schema = parsedSchema.getParsedSchema();
-        }
+    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
+//        S schema = null;
+//        if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
+//            schema = parsedSchema.getParsedSchema();
+//        }
 
-        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, schema);
+        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
                 .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
@@ -175,6 +165,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsed)
+                    .setRawSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -184,8 +177,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 //                  .artifactId(null)
 //                  .version(0)
                 .globalId(globalIdKey)
-                .rawSchema(schema)
-                .schema(parsed)
+                .parsedSchema(ps)
+//                .rawSchema(schema)
+//                .schema(parsed)
                 .build();
         });
     }

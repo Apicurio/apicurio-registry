@@ -21,6 +21,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
@@ -66,7 +67,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
     public abstract void configure(Map<String, ?> configs, boolean isKey);
 
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
-        super.configure(config.originals(), isKey, schemaParser());
+        super.configure(config.originals(), schemaParser());
         key = isKey;
         if (idHandler == null) {
             Object idh = config.getIdHandler();
@@ -89,7 +90,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
         }
     }
 
-    public abstract SchemaParser<T> schemaParser();
+    public abstract SchemaParser<T, U> schemaParser();
 
     public IdHandler getIdHandler() {
         return idHandler;

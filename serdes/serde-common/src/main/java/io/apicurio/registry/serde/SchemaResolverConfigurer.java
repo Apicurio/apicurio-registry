@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.utils.Utils;
 
@@ -65,7 +67,9 @@ public class SchemaResolverConfigurer<T, U> {
         this.schemaResolver = Objects.requireNonNull(schemaResolver);
     }
 
-    protected void configure(Map<String, ?> configs, boolean isKey, SchemaParser<T> schemaParser) {
+    protected void configure(Map<String, Object> configs, SchemaParser<T, U> schemaParser) {
+        Objects.requireNonNull(configs);
+        Objects.requireNonNull(schemaParser);
         if (this.schemaResolver == null) {
             Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
             if (null == sr) {
@@ -74,7 +78,11 @@ public class SchemaResolverConfigurer<T, U> {
                 Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
             }
         }
-        getSchemaResolver().configure(configs, isKey, schemaParser);
+        // enforce default artifactResolverStrategy for kafka apps
+        if (!configs.containsKey(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY)) {
+            configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
+        }
+        getSchemaResolver().configure(configs, schemaParser);
     }
 
 }

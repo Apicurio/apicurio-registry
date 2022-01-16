@@ -16,12 +16,12 @@
 
 package io.apicurio.registry.resolver.strategy;
 
-import io.apicurio.registry.resolver.Data;
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.data.Record;
 
 /**
  * A {@link ArtifactReferenceResolverStrategy} is used by the Kafka serializer/deserializer to determine
- * the {@link ArtifactReference} under which the message schemas are located or should be registered
+ * the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
  * in the registry. The default is {@link TopicIdStrategy}.
  *
  * @author Fabian Martinez
@@ -29,15 +29,15 @@ import io.apicurio.registry.resolver.ParsedSchema;
 public interface ArtifactReferenceResolverStrategy<SCHEMA, DATA> {
 
     /**
-     * For a given topic and message, returns the {@link ArtifactReference} under which the message schemas are located or should be registered
+     * For a given topic and message, returns the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
      * in the registry.
      *
      * @param topic the Kafka topic name to which the message is being published.
      * @param isKey true when encoding a message key, false for a message value.
      * @param schema the schema of the message being serialized/deserialized, can be null if we don't know it beforehand
-     * @return the {@link ArtifactReference} under which the message schemas are located or should be registered
+     * @return the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
      */
-    ArtifactReference artifactReference(Data<DATA> data, ParsedSchema<SCHEMA> parsedSchema);
+    ArtifactReference artifactReference(Record<DATA> data, ParsedSchema<SCHEMA> parsedSchema);
 
     /**
      * Whether or not to load and pass the parsed schema to the {@link ArtifactReferenceResolverStrategy#artifactReference(String, boolean, Object)} lookup method

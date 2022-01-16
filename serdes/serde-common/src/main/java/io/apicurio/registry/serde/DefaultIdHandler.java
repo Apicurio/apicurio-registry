@@ -7,9 +7,9 @@ import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * @author Ales Justin
@@ -19,18 +19,12 @@ public class DefaultIdHandler implements IdHandler {
 
     private IdOption idOption = IdOption.globalId;
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#configure(java.util.Map, boolean)
-     */
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
         BaseKafkaSerDeConfig config = new BaseKafkaSerDeConfig(configs);
         idOption = config.useIdOption();
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#writeId(io.apicurio.registry.serde.strategy.ArtifactReference, java.io.OutputStream)
-     */
     @Override
     public void writeId(ArtifactReference reference, OutputStream out) throws IOException {
         long id;
@@ -45,9 +39,6 @@ public class DefaultIdHandler implements IdHandler {
         out.write(ByteBuffer.allocate(idSize).putLong(id).array());
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#writeId(io.apicurio.registry.serde.strategy.ArtifactReference, java.nio.ByteBuffer)
-     */
     @Override
     public void writeId(ArtifactReference reference, ByteBuffer buffer) {
         long id;
@@ -62,9 +53,6 @@ public class DefaultIdHandler implements IdHandler {
         buffer.putLong(id);
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#readId(java.nio.ByteBuffer)
-     */
     @Override
     public ArtifactReference readId(ByteBuffer buffer) {
         if (idOption == IdOption.contentId) {
@@ -74,9 +62,6 @@ public class DefaultIdHandler implements IdHandler {
         }
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#idSize()
-     */
     @Override
     public int idSize() {
         return idSize;

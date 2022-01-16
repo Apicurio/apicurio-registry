@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.resolver;
+package io.apicurio.registry.resolver.data;
 
 /**
- * Data defines a object and it's associated metadata.
- * that can be message to be sent or simply record or object that can be serialized and deserialized.
+ * Record defines an object that is known as the data or the payload of the record and it's associated metadata.
+ * A record can be message to be sent or simply an object that can be serialized and deserialized.
  *
  * @author Fabian Martinez
  */
-public interface Data<T> {
+public interface Record<T> {
 
     Metadata metadata();
 

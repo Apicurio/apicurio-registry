@@ -20,13 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
@@ -47,7 +49,7 @@ import java.util.Map;
  * @author Fabian Martinez
  * @author Carles Arnal
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T>, SchemaParser<JsonSchema> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T>, SchemaParser<JsonSchema, T> {
 
     protected static ObjectMapper mapper = new ObjectMapper();
 
@@ -59,7 +61,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     }
 
     public JsonSchemaKafkaSerializer(RegistryClient client,
-                                     ArtifactResolverStrategy<JsonSchema> artifactResolverStrategy,
+                                     ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
                                      SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
@@ -107,7 +109,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<JsonSchema> schemaParser() {
+    public SchemaParser<JsonSchema, T> schemaParser() {
         return this;
     }
 
@@ -132,6 +134,19 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     // - via annotation in the object being serialized
     // - via config property
     //if we do this users will be able to automatically registering the schema when using this serde
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     */
+    @Override
+    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data) {
+        //not supported for jsonschema type
+        return null;
+    }
+
+    //TODO we could implement some way of providing the jsonschema beforehand:
+    // - via annotation in the object being serialized
+    // - via config property
+    //if we do this users will be able to automatically registering the schema when using this serde
 //    /**
 //     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
 //     */
@@ -140,6 +155,14 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
 //        // TODO Auto-generated method stub
 //        return super.getSchemaFromData(data);
 //    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#supportsExtractSchemaFromData()
+     */
+    @Override
+    public boolean supportsExtractSchemaFromData() {
+        return false;
+    }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)

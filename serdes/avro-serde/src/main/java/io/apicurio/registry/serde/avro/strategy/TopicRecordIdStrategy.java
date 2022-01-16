@@ -18,24 +18,43 @@ package io.apicurio.registry.serde.avro.strategy;
 
 import org.apache.avro.Schema;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * @author Fabian Martinez
  */
 public class TopicRecordIdStrategy extends RecordIdStrategy {
 
+//    /**
+//     * @see io.apicurio.registry.serde.avro.strategy.RecordIdStrategy#artifactReference(java.lang.String, boolean, org.apache.avro.Schema)
+//     */
+//    @Override
+//    public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
+//        ArtifactReference reference = super.artifactReference(topic, isKey, schema);
+//        return ArtifactReference.builder()
+//                .groupId(reference.getGroupId())
+//                .artifactId(topic + "-" + reference.getArtifactId())
+//                .version(reference.getVersion())
+//                .build();
+//    }
+
     /**
-     * @see io.apicurio.registry.serde.avro.strategy.RecordIdStrategy#artifactReference(java.lang.String, boolean, org.apache.avro.Schema)
+     * @see io.apicurio.registry.serde.avro.strategy.RecordIdStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
-    public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
-        ArtifactReference reference = super.artifactReference(topic, isKey, schema);
+    public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<Schema> parsedSchema) {
+        ArtifactReference reference = super.artifactReference(data, parsedSchema);
+        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
         return ArtifactReference.builder()
                 .groupId(reference.getGroupId())
-                .artifactId(topic + "-" + reference.getArtifactId())
+                .artifactId(kdata.metadata().getTopic() + "-" + reference.getArtifactId())
                 .version(reference.getVersion())
                 .build();
     }
+
+
 
 }

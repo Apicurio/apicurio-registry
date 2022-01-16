@@ -22,11 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.types.ArtifactType;
@@ -46,7 +48,7 @@ import java.util.Map;
  * @author Fabian Martinez
  * @author Carles Arnal
  */
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T>, SchemaParser<JsonSchema> {
+public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T>, SchemaParser<JsonSchema, T> {
 
     protected static ObjectMapper mapper = new ObjectMapper();
 
@@ -106,7 +108,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<JsonSchema> schemaParser() {
+    public SchemaParser<JsonSchema, T> schemaParser() {
         return this;
     }
 
@@ -125,6 +127,23 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     public JsonSchema parseSchema(byte[] rawSchema) {
         JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
         return factory.getSchema(IoUtil.toStream(rawSchema));
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     */
+    @Override
+    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data) {
+        //not supported for jsonschema type
+        return null;
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#supportsExtractSchemaFromData()
+     */
+    @Override
+    public boolean supportsExtractSchemaFromData() {
+        return false;
     }
 
     /**

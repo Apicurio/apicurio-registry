@@ -16,21 +16,41 @@
 
 package io.apicurio.registry.serde.strategy;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+
 /**
  * @author eric.wittmann@gmail.com
  */
-public class SimpleTopicIdStrategy<T> implements ArtifactResolverStrategy<T> {
+public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
+
+//    /**
+//     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#artifactReference(java.lang.String, boolean, java.lang.Object)
+//     */
+//    @Override
+//    public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
+//        return ArtifactReference.builder()
+//                .groupId(null)
+//                .artifactId(topic)
+//                .build();
+//    }
 
     /**
-     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#artifactReference(java.lang.String, boolean, java.lang.Object)
+     * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
-    public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
+    public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
+        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
         return ArtifactReference.builder()
                 .groupId(null)
-                .artifactId(topic)
+                .artifactId(kdata.metadata().getTopic())
                 .build();
     }
+
+
 
     /**
      * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#loadSchema()

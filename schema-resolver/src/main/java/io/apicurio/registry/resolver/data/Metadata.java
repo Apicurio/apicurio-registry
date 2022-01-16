@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver.data;
 
-import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * @author Fabian Martinez
  */
-public interface SchemaParser<S> {
+public interface Metadata {
 
-    public ArtifactType artifactType();
-
-    public S parseSchema(byte[] rawSchema);
+    public ArtifactReference artifactReference();
 
 }

@@ -19,8 +19,10 @@ package io.apicurio.registry.resolver;
 import java.io.Closeable;
 import java.util.Map;
 
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 
 /**
@@ -34,12 +36,12 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
      * @param configs the configs
      * @param isKey are we handling key or value
      */
-    default void configure(Map<String, ?> configs, boolean isKey, SchemaParser<SCHEMA> schemaMapper) {
+    default void configure(Map<String, ?> configs, SchemaParser<SCHEMA, DATA> schemaMapper) {
     }
 
     public void setClient(RegistryClient client);
 
-    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<SCHEMA, Data<DATA>> artifactResolverStrategy);
+    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);
 
     /**
      * Used by Serializers to lookup the schema for a given kafka record.
@@ -48,11 +50,11 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
      * @param parsedSchema, can be null
      * @return SchemaLookupResult
      */
-    public SchemaLookupResult<SCHEMA> resolveSchema(Data<DATA> data, ParsedSchema<SCHEMA> parsedSchema);
+    public SchemaLookupResult<SCHEMA> resolveSchema(Record<DATA> data);
 
     /**
      * Used by Deserializers to lookup the schema for a given kafka record.
-     * The schema resolver may use different pieces of information from the {@link ArtifactReference} depending on the configuration of the schema resolver.
+     * The schema resolver may use different pieces of information from the {@link ArtifactReferenceImpl} depending on the configuration of the schema resolver.
      * @param reference
      * @return SchemaLookupResult
      */

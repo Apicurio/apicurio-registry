@@ -25,7 +25,6 @@ import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.google.protobuf.Message;
 
 import io.apicurio.registry.protobuf.ProtobufDifference;
@@ -39,7 +38,6 @@ import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCh
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin

@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.header.Header;
@@ -41,6 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -146,7 +145,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> restClient.getArtifactMetaData(null, "test-group-avro.myrecord3"));
     }
 
-    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactResolverStrategy<?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
+    private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<ArtifactMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
              Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {

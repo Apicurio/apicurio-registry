@@ -176,10 +176,44 @@ public class DefaultSchemaResolverConfig {
     }
 
     private String getString(String key) {
-        return (String) get(key);
+        return (String) returnAs(key, get(key), String.class);
     }
 
     private Boolean getBoolean(String key) {
-        return (Boolean) get(key);
+        return (Boolean) returnAs(key, get(key), Boolean.class);
+    }
+
+    private Object returnAs(String key, Object value, Class<?> type) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = null;
+        if (value instanceof String) {
+            trimmed = ((String) value).trim();
+        }
+
+        if (type == Boolean.class) {
+            if (value instanceof String) {
+                if (trimmed.equalsIgnoreCase("true"))
+                    return true;
+                else if (trimmed.equalsIgnoreCase("false"))
+                    return false;
+                else {
+                    throw new IllegalStateException("Wrong configuration. Expected value to be either true or false for key " + key + " received value " + value);
+                }
+            } else if (value instanceof Boolean) {
+                return value;
+            } else {
+                throw new IllegalStateException("Wrong configuration. Expected value to be either true or false for key " + key + " received value " + value);
+            }
+        } else if (type == String.class) {
+            if (value instanceof String) {
+                return trimmed;
+            } else {
+                throw new IllegalStateException("Expected value to be a string for key " + key + ", but it was a " + value.getClass().getName());
+            }
+        }
+        throw new IllegalStateException("Unknown type to return config as" + type);
     }
 }

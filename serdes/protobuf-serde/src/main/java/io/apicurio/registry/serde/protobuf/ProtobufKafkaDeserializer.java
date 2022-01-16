@@ -55,7 +55,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
-    private ProtobufSchemaParser parser = new ProtobufSchemaParser();
+    private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;

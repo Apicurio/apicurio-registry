@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
@@ -95,7 +97,7 @@ public class KafkaSqlFactory {
     )
     Properties adminProperties;
 
-    @ConfigProperty(name = "registry.kafkasql.security.enabled", defaultValue = "false")
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.enabled", defaultValue = "false")
     boolean securityEnabled;
 
     @ConfigProperty(name = "registry.kafkasql.security.protocol", defaultValue = "")
@@ -104,17 +106,32 @@ public class KafkaSqlFactory {
     @ConfigProperty(name = "registry.kafkasql.security.sasl.mechanism", defaultValue = "")
     String saslMechanism;
 
-    @ConfigProperty(name = "registry.kafkasql.security.client-id", defaultValue = "")
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.client-id", defaultValue = "")
     String clientId;
 
-    @ConfigProperty(name = "registry.kafkasql.security.client-secret", defaultValue = "")
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.client-secret", defaultValue = "")
     String clientSecret;
 
-    @ConfigProperty(name = "registry.kafkasql.security.token.endpoint", defaultValue = "")
+    @ConfigProperty(name = "registry.kafkasql.security.sasl.token.endpoint", defaultValue = "")
     String tokenEndpoint;
 
     @ConfigProperty(name = "registry.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
     String loginCallbackHandler;
+
+    @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.location")
+    Optional<String> trustStoreLocation;
+
+    @ConfigProperty(name = "registry.kafkasql.ssl.truststore.password")
+    Optional<String> trustStorePassword;
+
+    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.location")
+    Optional<String> keyStoreLocation;
+
+    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.password")
+    Optional<String> keyStorePassword;
+
+    @ConfigProperty(name = "registry.kafkasql.ssl.key.password")
+    Optional<String> keyPassword;
 
     @ApplicationScoped
     @Produces
@@ -158,9 +175,7 @@ public class KafkaSqlFactory {
             }
             @Override
             public Properties adminProperties() {
-                if (securityEnabled) {
-                    configureSecurity(adminProperties);
-                }
+                tryToConfigureSecurity(adminProperties);
                 return adminProperties;
             }
 
@@ -183,9 +198,7 @@ public class KafkaSqlFactory {
         props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
 
-        if (securityEnabled) {
-            configureSecurity(props);
-        }
+        tryToConfigureSecurity(props);
 
         // Create the Kafka producer
         KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
@@ -207,9 +220,7 @@ public class KafkaSqlFactory {
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        if (securityEnabled) {
-            configureSecurity(props);
-        }
+        tryToConfigureSecurity(props);
 
         // Create the Kafka Consumer
         KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
@@ -218,13 +229,27 @@ public class KafkaSqlFactory {
         return consumer;
     }
 
-    private void configureSecurity(Properties props) {
-        props.putIfAbsent("security.protocol", protocol);
-        props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                "  oauth.client.id=\"%s\" "+
-                "  oauth.client.secret=\"%s\" "+
-                "  oauth.token.endpoint.uri=\"%s\" ;", clientId, clientSecret, tokenEndpoint));
-        props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
-        props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
+    private void tryToConfigureSecurity(Properties props) {
+        //Try to configure sasl for authentication
+        if (securityEnabled) {
+            props.putIfAbsent("security.protocol", protocol);
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
+                    "  oauth.client.id=\"%s\" "+
+                    "  oauth.client.secret=\"%s\" "+
+                    "  oauth.token.endpoint.uri=\"%s\" ;", clientId, clientSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
+        }
+        //Try to configure the trustStore, if specified
+        if (trustStoreLocation.isPresent() && trustStorePassword.isPresent()) {
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword.get());
+        }
+        //Finally, try to configure the keystore, if specified
+        if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyPassword.isPresent()) {
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStoreLocation.get());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword.get());
+            props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword.get());
+        }
     }
 }

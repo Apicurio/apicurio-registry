@@ -16,10 +16,10 @@
 
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
-import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -79,7 +79,7 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
         }
         if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
             AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
-            super.configure(configs, isKey, ser.schemaParser());
+            super.configure((Map<String, Object>)configs, isKey, ser.schemaParser());
             ser.setSchemaResolver(getSchemaResolver());
             ser.configure(configs, isKey);
         }

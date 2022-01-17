@@ -1587,9 +1587,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             var crAll = createCustomRule("test-b-3", null);
 
 
-            String groupId = "testfoo";
             // Create OpenAPI artifact - indicate the type via a header param
-            String artifactId = "testArtifactCustomRuleBindings/jsonAPI";
+            String groupId = "testArtifactCustomRuleBindings/jsonAPI";
+            String artifactId = generateArtifactId();
             createArtifact(groupId, artifactId, ArtifactType.OPENAPI, ARTIFACT_OPENAPI_JSON_CONTENT);
 
             {

@@ -23,10 +23,10 @@ import org.slf4j.LoggerFactory;
 
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.headers.HeadersHandler;
-import io.apicurio.registry.serde.utils.Utils;
 
 import java.nio.ByteBuffer;
 import java.util.Map;

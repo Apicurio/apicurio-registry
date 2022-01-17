@@ -23,8 +23,8 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * Base class for any kind of serializer/deserializer that depends on {@link SchemaResolver}

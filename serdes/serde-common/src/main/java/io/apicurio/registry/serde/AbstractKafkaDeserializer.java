@@ -28,12 +28,12 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaDeserializerConfig;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
-import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * @author Ales Justin

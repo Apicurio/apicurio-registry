@@ -27,7 +27,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
  */
-@Deprecated
 public class ArtifactReference extends ArtifactReferenceImpl {
 
     private ArtifactReference() {

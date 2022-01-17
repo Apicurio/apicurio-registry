@@ -23,7 +23,7 @@ import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 
 /**
- * This interface is only kept for backwards compatibility
+ * This interface is kept for backwards compatibility
  *
  * A {@link ArtifactResolverStrategy} is used by the Kafka serializer/deserializer to determine
  * the {@link ArtifactReference} under which the message schemas are located or should be registered
@@ -31,7 +31,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
  *
  * @author Fabian Martinez
  */
-@Deprecated
 public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverStrategy<T, Object> {
 
     /**
@@ -49,14 +48,7 @@ public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverSt
     default io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
         KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
         KafkaSerdeMetadata metadata = kdata.metadata();
-        ArtifactReference ref = artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema == null ? null : parsedSchema.getParsedSchema());
-        return io.apicurio.registry.resolver.strategy.ArtifactReference.builder()
-                .contentId(ref.getContentId())
-                .globalId(ref.getGlobalId())
-                .groupId(ref.getGroupId())
-                .artifactId(ref.getArtifactId())
-                .version(ref.getVersion())
-                .build();
+        return artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema == null ? null : parsedSchema.getParsedSchema());
     }
 
 //    /**

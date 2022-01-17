@@ -121,6 +121,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
+        if (reference == null) {
+            throw new IllegalStateException("artifact reference cannot be null");
+        }
         //TODO add here more conditions whenever we support referencing by contentHash or some other thing
         if (reference.getContentId() != null) {
             return resolveSchemaByContentId(reference.getContentId());

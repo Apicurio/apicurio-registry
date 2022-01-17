@@ -33,9 +33,9 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * @author Ales Justin

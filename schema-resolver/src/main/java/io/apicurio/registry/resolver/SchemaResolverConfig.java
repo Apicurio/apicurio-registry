@@ -43,6 +43,7 @@ public class SchemaResolverConfig {
     /**
      * Note this default artifact resolver strategy differs in behavior from the classic Kafka serdes ArtifactResolverStrategy
      */
+    //TODO add test for this
     public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = DynamicArtifactReferenceResolverStrategy.class.getName();
 
 

@@ -32,9 +32,9 @@ import org.apache.kafka.common.header.Headers;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * @author Ales Justin

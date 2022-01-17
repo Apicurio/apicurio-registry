@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.serde.strategy;
 
-import org.apache.kafka.common.header.Headers;
-
 /**
  * A {@link ArtifactResolverStrategy} is used by the Kafka serializer/deserializer to determine
  * the {@link ArtifactReference} under which the message schemas are located or should be registered
@@ -37,10 +35,6 @@ public interface ArtifactResolverStrategy<T> {
      * @return the {@link ArtifactReference} under which the message schemas are located or should be registered
      */
     ArtifactReference artifactReference(String topic, boolean isKey, T schema);
-
-    default ArtifactReference artifactReference(String topic, boolean isKey, T schema, Headers headers) {
-        return artifactReference(topic, isKey, schema);
-    }
 
     /**
      * Whether or not to load and pass the parsed schema to the {@link ArtifactResolverStrategy#artifactReference(String, boolean, Object)} lookup method

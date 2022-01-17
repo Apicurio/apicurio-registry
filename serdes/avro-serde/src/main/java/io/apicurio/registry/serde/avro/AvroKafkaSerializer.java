@@ -101,7 +101,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
      */
     @Override
-    protected ParsedSchema<Schema> getSchemaFromData(Headers headers, U data) {
+    protected ParsedSchema<Schema> getSchemaFromData(U data) {
         Schema schema = avroDatumProvider.toSchema(data);
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)

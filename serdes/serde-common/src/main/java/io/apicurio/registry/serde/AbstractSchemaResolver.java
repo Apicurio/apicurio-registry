@@ -159,7 +159,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             schema = parsedSchema.getParsedSchema();
         }
 
-        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, schema, headers);
+        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, schema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
                 .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)

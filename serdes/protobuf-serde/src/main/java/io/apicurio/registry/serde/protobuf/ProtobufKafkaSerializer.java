@@ -94,7 +94,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
      */
     @Override
-    protected ParsedSchema<ProtobufSchema> getSchemaFromData(Headers headers, U data) {
+    protected ParsedSchema<ProtobufSchema> getSchemaFromData(U data) {
         ProtoFileElement protoFileElement = parser.toProtoFileElement(data.getDescriptorForType().getFile());
         ProtobufSchema protobufSchema = new ProtobufSchema(data.getDescriptorForType().getFile(), protoFileElement);
 

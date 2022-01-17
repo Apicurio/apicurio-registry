@@ -56,6 +56,8 @@ public class SerdeConfig {
     public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver";
     public static final String SCHEMA_RESOLVER_DEFAULT = DefaultSchemaResolver.class.getName();
 
+    public static final String IS_KEY = "apicurio.registry.is-key";
+
     /**
      * Optional, boolean to indicate whether serializer classes should attempt to create an artifact in the registry.
      * Note: JsonSchema serializer does not support this feature yet.

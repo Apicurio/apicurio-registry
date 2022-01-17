@@ -20,8 +20,8 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
-import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 
 /**
  * @author Ales Justin
@@ -30,8 +30,8 @@ public class TopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, 
 
     @Override
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
-        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
-        KafkaSerdesMetadata metadata = kdata.metadata();
+        KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
+        KafkaSerdeMetadata metadata = kdata.metadata();
         return ArtifactReference.builder()
                 .groupId(null)
                 .artifactId(String.format("%s-%s", metadata.getTopic(), metadata.isKey() ? "key" : "value"))

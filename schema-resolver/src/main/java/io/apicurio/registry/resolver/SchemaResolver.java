@@ -43,6 +43,8 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);
 
+    public SchemaParser<SCHEMA, DATA> getSchemaParser();
+
     /**
      * Used by Serializers to lookup the schema for a given kafka record.
      * @param topic

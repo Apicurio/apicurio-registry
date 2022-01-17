@@ -26,8 +26,8 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
-import io.apicurio.registry.serde.data.KafkaSerdesRecord;
-import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -92,9 +92,9 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
 
 //            ParsedSchema<T> schemaFromData = new LazyLoadedParsedSchema<T>(() -> Optional.ofNullable(getSchemaFromData(data)));
 
-            KafkaSerdesMetadata resolverMetadata = new KafkaSerdesMetadata(topic, isKey(), headers);
+            KafkaSerdeMetadata resolverMetadata = new KafkaSerdeMetadata(topic, isKey(), headers);
 
-            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(new KafkaSerdesRecord<>(resolverMetadata, data));
+            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(new KafkaSerdeRecord<>(resolverMetadata, data));
 
 //            ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
 //                    .setRawSchema(schema.getRawSchema())

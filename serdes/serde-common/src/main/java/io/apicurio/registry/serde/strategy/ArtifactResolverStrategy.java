@@ -19,8 +19,8 @@ package io.apicurio.registry.serde.strategy;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.data.KafkaSerdesRecord;
-import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 
 /**
  * This interface is only kept for backwards compatibility
@@ -31,6 +31,7 @@ import io.apicurio.registry.serde.data.KafkaSerdesMetadata;
  *
  * @author Fabian Martinez
  */
+@Deprecated
 public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverStrategy<T, Object> {
 
     /**
@@ -46,9 +47,9 @@ public interface ArtifactResolverStrategy<T> extends ArtifactReferenceResolverSt
 
     @Override
     default io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
-        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
-        KafkaSerdesMetadata metadata = kdata.metadata();
-        ArtifactReference ref = artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema.getParsedSchema());
+        KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
+        KafkaSerdeMetadata metadata = kdata.metadata();
+        ArtifactReference ref = artifactReference(metadata.getTopic(), metadata.isKey(), parsedSchema == null ? null : parsedSchema.getParsedSchema());
         return io.apicurio.registry.resolver.strategy.ArtifactReference.builder()
                 .contentId(ref.getContentId())
                 .globalId(ref.getGlobalId())

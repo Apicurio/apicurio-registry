@@ -24,13 +24,13 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 /**
  * @author Fabian Martinez
  */
-public class KafkaSerdesMetadata implements Metadata {
+public class KafkaSerdeMetadata implements Metadata {
 
     private String topic;
     private boolean isKey;
     private Headers headers;
 
-    public KafkaSerdesMetadata(String topic, boolean isKey, Headers headers) {
+    public KafkaSerdeMetadata(String topic, boolean isKey, Headers headers) {
         this.topic = topic;
         this.isKey = isKey;
         this.headers = headers;

@@ -21,12 +21,12 @@ import io.apicurio.registry.resolver.data.Record;
 /**
  * @author Fabian Martinez
  */
-public class KafkaSerdesRecord<T> implements Record<T> {
+public class KafkaSerdeRecord<T> implements Record<T> {
 
-    private KafkaSerdesMetadata metadata;
+    private KafkaSerdeMetadata metadata;
     private T payload;
 
-    public KafkaSerdesRecord(KafkaSerdesMetadata metadata, T payload) {
+    public KafkaSerdeRecord(KafkaSerdeMetadata metadata, T payload) {
         this.metadata = metadata;
         this.payload = payload;
     }
@@ -35,7 +35,7 @@ public class KafkaSerdesRecord<T> implements Record<T> {
      * @see io.apicurio.registry.resolver.data.Record#metadata()
      */
     @Override
-    public KafkaSerdesMetadata metadata() {
+    public KafkaSerdeMetadata metadata() {
         return metadata;
     }
 

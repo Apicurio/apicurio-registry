@@ -67,7 +67,7 @@ public class SchemaResolverConfigurer<T, U> {
         this.schemaResolver = Objects.requireNonNull(schemaResolver);
     }
 
-    protected void configure(Map<String, Object> configs, SchemaParser<T, U> schemaParser) {
+    protected void configure(Map<String, Object> configs, boolean isKey, SchemaParser<T, U> schemaParser) {
         Objects.requireNonNull(configs);
         Objects.requireNonNull(schemaParser);
         if (this.schemaResolver == null) {
@@ -82,6 +82,8 @@ public class SchemaResolverConfigurer<T, U> {
         if (!configs.containsKey(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY)) {
             configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
         }
+        // isKey is passed via config property
+        configs.put(SerdeConfig.IS_KEY, isKey);
         getSchemaResolver().configure(configs, schemaParser);
     }
 

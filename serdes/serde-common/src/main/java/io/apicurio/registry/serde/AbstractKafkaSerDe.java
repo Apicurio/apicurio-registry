@@ -67,7 +67,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
     public abstract void configure(Map<String, ?> configs, boolean isKey);
 
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
-        super.configure(config.originals(), schemaParser());
+        super.configure(config.originals(), isKey, schemaParser());
         key = isKey;
         if (idHandler == null) {
             Object idh = config.getIdHandler();

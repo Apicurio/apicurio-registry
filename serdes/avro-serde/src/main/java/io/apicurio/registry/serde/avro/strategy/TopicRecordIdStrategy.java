@@ -20,7 +20,7 @@ import org.apache.avro.Schema;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.data.Record;
-import io.apicurio.registry.serde.data.KafkaSerdesRecord;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
@@ -47,7 +47,7 @@ public class TopicRecordIdStrategy extends RecordIdStrategy {
     @Override
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<Schema> parsedSchema) {
         ArtifactReference reference = super.artifactReference(data, parsedSchema);
-        KafkaSerdesRecord<Object> kdata = (KafkaSerdesRecord<Object>) data;
+        KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
         return ArtifactReference.builder()
                 .groupId(reference.getGroupId())
                 .artifactId(kdata.metadata().getTopic() + "-" + reference.getArtifactId())

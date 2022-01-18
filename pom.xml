@@ -141,7 +141,7 @@
         <json-schema-validator.version>1.0.52</json-schema-validator.version>
         <wire-schema.version>3.2.2</wire-schema.version>
         <protobuf.version>3.15.8</protobuf.version>
-        <xmlsec.version>2.1.5</xmlsec.version>
+        <xmlsec.version>2.3.0</xmlsec.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
 
         <!-- Picocli -->
@@ -178,6 +178,7 @@
         <keycloak.version>13.0.0</keycloak.version>
         <keycloak-authz-client.version>${keycloak.version}</keycloak-authz-client.version>
         <httpclient.version>4.5.13</httpclient.version>
+        <kafka-clients.version>2.8.1</kafka-clients.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -362,6 +363,11 @@
             </dependency>
 
             <!-- Third Party Libraries -->
+            <dependency><!-- Overrides the version from the Quarkus BOM -->
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-data-models</artifactId>

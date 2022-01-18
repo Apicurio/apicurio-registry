@@ -59,7 +59,7 @@ public class SchemaResolverConfigurer<T, U> {
         getSchemaResolver().setClient(client);
     }
 
-    protected SchemaResolver<T, U> getSchemaResolver() {
+    public SchemaResolver<T, U> getSchemaResolver() {
         return schemaResolver;
     }
 

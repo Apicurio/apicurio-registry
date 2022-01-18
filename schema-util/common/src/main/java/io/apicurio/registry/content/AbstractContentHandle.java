@@ -45,4 +45,9 @@ abstract class AbstractContentHandle implements ContentHandle {
     public int hashCode() {
         return Arrays.hashCode(bytes());
     }
+
+    @Override
+    public int sizeHint() {
+        return bytes().length;
+    }
 }

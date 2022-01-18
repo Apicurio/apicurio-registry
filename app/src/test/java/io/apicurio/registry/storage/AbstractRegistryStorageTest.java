@@ -31,7 +31,6 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactState;
@@ -886,7 +885,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.singleton(new SearchFilter(SearchFilterType.name, "testSearchArtifacts"));
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts"));
         ArtifactSearchResultsDto results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(50, results.getCount());
@@ -894,7 +893,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(10, results.getArtifacts().size());
 
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.name, "testSearchArtifacts-19-name"));
+        filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts-19-name"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -903,7 +902,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-19-name", results.getArtifacts().get(0).getName());
 
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.description, "testSearchArtifacts-33-description"));
+        filters = Collections.singleton(SearchFilter.ofDescription("testSearchArtifacts-33-description"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -919,7 +918,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(10, results.getArtifacts().size());
 
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.everything, "testSearchArtifacts"));
+        filters = Collections.singleton(SearchFilter.ofEverything("testSearchArtifacts"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 1000);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(50, results.getCount());
@@ -929,7 +928,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-02-name", results.getArtifacts().get(1).getName());
 
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "label-17"));
+        filters = Collections.singleton(SearchFilter.ofLabel("label-17"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -938,7 +937,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-17-name", results.getArtifacts().get(0).getName());
 
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.everything, "label-17"));
+        filters = Collections.singleton(SearchFilter.ofEverything("label-17"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -1156,7 +1155,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         // Search for the artifacts using Tenant 2 (0 results expected)
         tenantCtx.setContext(tenantId2);
-        Set<SearchFilter> filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "testMultiTenant_Search"));
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofLabel("testMultiTenant_Search"));
         ArtifactSearchResultsDto searchResults = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 100);
         Assertions.assertNotNull(searchResults);
         Assertions.assertEquals(0, searchResults.getCount());

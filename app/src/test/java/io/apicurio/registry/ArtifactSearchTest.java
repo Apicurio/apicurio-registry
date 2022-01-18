@@ -96,16 +96,16 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
             Assertions.assertEquals(1, ires.getCount());
 
 
-            ArtifactSearchResults propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey"), SortBy.name, SortOrder.asc, 0, 10);
+            ArtifactSearchResults propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue"), SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toLowerCase()), SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null,  List.of("testCaseInsensitiveSearchKey:testCaseInsensitiveSearchValue".toUpperCase()), SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
-            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey"), SortBy.name, SortOrder.asc, 0, 10);
+            propertiesSearch = clientV2.searchArtifacts(groupId, null, null, null, List.of("TESTCaseInsensitiveSEARCHKey:TESTCaseInsensitiveSearchVALUE"), SortBy.name, SortOrder.asc, 0, 10);
             Assertions.assertNotNull(propertiesSearch);
             Assertions.assertEquals(1, propertiesSearch.getCount());
         });

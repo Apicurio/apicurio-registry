@@ -199,7 +199,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.1.5.Final</apicurio-common-rest-client.version>
-        <sentry.version>1.7.30</sentry.version>
+        <sentry.version>5.5.3</sentry.version>
         <kafka-oauth-client.version>0.8.1</kafka-oauth-client.version>
 
         <!-- Search -->

@@ -1638,19 +1638,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     // Update the 'latest' version of the artifact to the globalId of the highest remaining version
                     String latestVersion = versions.get(versions.size() - 1);
                     sql = sqlStatements.updateArtifactLatestGlobalId();
-                    handle.createUpdate(sql)
+                    int latestUpdateRows = handle.createUpdate(sql)
                           .bind(0, tenantContext.tenantId())
                           .bind(1, normalizeGroupId(groupId))
                           .bind(2, artifactId)
                           .bind(3, latestVersion)
                           .bind(4, tenantContext.tenantId())
-                          .bind(5, groupId)
+                          .bind(5, normalizeGroupId(groupId))
                           .bind(6, artifactId)
                           .execute();
+                    if (latestUpdateRows == 0) {
+                        throw new RegistryStorageException("latest column was not updated");
+                    }
                 }
 
                 if (rows == 0) {
                     throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                if (rows > 1) {
+                    throw new RegistryStorageException("Multiple versions deleted, artifact latest column left null");
                 }
 
                 return null;

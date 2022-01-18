@@ -18,10 +18,10 @@ package io.apicurio.registry.logging.audit;
 
 public interface AuditingConstants {
 
-    String KEY_GROUP_ID = "artifact_id";
+    String KEY_GROUP_ID = "group_id";
     String KEY_ARTIFACT_ID = "artifact_id";
     String KEY_UPDATE_STATE = "update_state";
-    String KEY_VERSION = "update_state";
+    String KEY_VERSION = "version";
     String KEY_ARTIFACT_TYPE = "artifact_type";
     String KEY_IF_EXISTS = "if_exists";
     String KEY_CANONICAL = "canonical";

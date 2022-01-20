@@ -94,8 +94,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         Record<GenericRecord> record = new CustomResolverRecord(avroRecord, ArtifactReference.builder().artifactId(artifactId).build());
         var lookup = resolver.resolveSchema(record);
 
-//        assertNull(lookup.getGroupId());
-        assertEquals("default", lookup.getGroupId());
+        assertNull(lookup.getGroupId());
         assertEquals(artifactId, lookup.getArtifactId());
         assertEquals(schema.toString(), lookup.getParsedSchema().getRawSchema());
         assertNull(lookup.getParsedSchema().getParsedSchema());

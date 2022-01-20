@@ -29,20 +29,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
  */
 public class RecordIdStrategy implements ArtifactReferenceResolverStrategy<Schema, Object> {
 
-//    /**
-//     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#artifactReference(java.lang.String, boolean, java.lang.Object)
-//     */
-//    @Override
-//    public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
-//        if (schema != null && schema.getType() == Schema.Type.RECORD) {
-//            return ArtifactReference.builder()
-//                    .groupId(schema.getNamespace())
-//                    .artifactId(schema.getName())
-//                    .build();
-//        }
-//        throw new SerializationException("The message must only be an Avro record schema!");
-//    }
-
     /**
      * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */

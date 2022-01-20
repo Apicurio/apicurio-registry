@@ -29,15 +29,18 @@ public interface SchemaParser<S, U> {
     public S parseSchema(byte[] rawSchema);
 
     /**
-     * This method is useful in serdes such as AVRO, where the schema can be extracted from the data of the kafka record.
-     * The result of this method is passed to the SchemaResolver, which then can use this schema to resolve the exact
-     * artifact version in Apicurio Registry or to create the artifact if configured to do so.
+     * In some artifact types, such as AVRO, it is possible to extract the schema from the java object.
+     * But this can be easily extended to other formats by using a custom {@link Record} implementation that adds additional fields
+     * that allows to build a {@link ParsedSchema}
      *
      * @param data
      * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
      */
     public ParsedSchema<S> getSchemaFromData(Record<U> data);
 
+    /**
+     * Flag that indicates if {@link SchemaParser#getSchemaFromData(Record)} is implemented or not.
+     */
     default boolean supportsExtractSchemaFromData() {
         return true;
     }

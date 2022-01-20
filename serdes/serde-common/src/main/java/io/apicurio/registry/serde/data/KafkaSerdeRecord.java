@@ -44,7 +44,6 @@ public class KafkaSerdeRecord<T> implements Record<T> {
      */
     @Override
     public T payload() {
-        // TODO Auto-generated method stub
         return payload;
     }
 

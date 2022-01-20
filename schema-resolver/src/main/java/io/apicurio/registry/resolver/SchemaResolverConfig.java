@@ -16,17 +16,14 @@
 
 package io.apicurio.registry.resolver;
 
-import java.util.Properties;
-
+import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 
 /**
- * Contains all of the Serde configuration properties.  These are all the property names used when
- * configuring serde classes in Kafka apps via a {@link Properties} object.  Serde classes can be
- * used by creating them directly as well, in which case these property names are not relevant.
+ * Contains the {@link DefaultSchemaResolver} configuration properties.
  * @author eric.wittmann@gmail.com
  * @author Fabian Martinez
  */
@@ -34,16 +31,15 @@ public class SchemaResolverConfig {
 
     /**
      * Fully qualified Java classname of a class that implements {@link ArtifactReferenceResolverStrategy} and is
-     * responsible for mapping between the Kafka serde information and an artifactId.  For example
-     * there is a strategy to use the topic name as the schema's artifactId.  Only used by the
-     * <em>Serializer</em> serde class.
+     * responsible for mapping between the Record being resolved and an artifactId. For example
+     * there is a strategy to use the topic name as the schema's artifactId. Only used by {@link SchemaResolver#resolveSchema(io.apicurio.registry.resolver.data.Record)}
      */
     public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy";
 
     /**
+     * Uses the ArtifactReference available for each record. Requires {@link Metadata#artifactReference()} to be set.
      * Note this default artifact resolver strategy differs in behavior from the classic Kafka serdes ArtifactResolverStrategy
      */
-    //TODO add test for this
     public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = DynamicArtifactReferenceResolverStrategy.class.getName();
 
 

@@ -46,16 +46,13 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
     public SchemaParser<SCHEMA, DATA> getSchemaParser();
 
     /**
-     * Used by Serializers to lookup the schema for a given kafka record.
-     * @param topic
-     * @param data, generic object, can be an object with metadata and the actual message body
-     * @param parsedSchema, can be null
+     * Used to register or to lookup a schema in the registry
+     * @param data, record containing metadata about it that can be used by the resolver to lookup a schema in the registry
      * @return SchemaLookupResult
      */
     public SchemaLookupResult<SCHEMA> resolveSchema(Record<DATA> data);
 
     /**
-     * Used by Deserializers to lookup the schema for a given kafka record.
      * The schema resolver may use different pieces of information from the {@link ArtifactReferenceImpl} depending on the configuration of the schema resolver.
      * @param reference
      * @return SchemaLookupResult

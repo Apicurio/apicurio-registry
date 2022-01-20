@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
+ * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.SchemaLookupResult}
  * @author Fabian Martinez
  */
 @Deprecated
@@ -160,5 +161,4 @@ public class SchemaLookupResult<T> {
         }
 
     }
-
 }

@@ -143,19 +143,6 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         return null;
     }
 
-    //TODO we could implement some way of providing the jsonschema beforehand:
-    // - via annotation in the object being serialized
-    // - via config property
-    //if we do this users will be able to automatically registering the schema when using this serde
-//    /**
-//     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
-//     */
-//    @Override
-//    protected ParsedSchema<SchemaValidator> getSchemaFromData(T data) {
-//        // TODO Auto-generated method stub
-//        return super.getSchemaFromData(data);
-//    }
-
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#supportsExtractSchemaFromData()
      */

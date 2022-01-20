@@ -84,8 +84,4 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
     }
 
-//    private byte[] serializeSchema(ProtoFileElement protoFileElement) {
-//        return IoUtil.toBytes(protoFileElement.toSchema());
-//    }
-
 }

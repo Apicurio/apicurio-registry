@@ -20,27 +20,25 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.data.Record;
 
 /**
- * A {@link ArtifactReferenceResolverStrategy} is used by the Kafka serializer/deserializer to determine
- * the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
- * in the registry. The default is {@link TopicIdStrategy}.
+ * This interface is used by the SchemaResolver to determine
+ * the {@link ArtifactReference} under which the message schemas are located or should be registered
+ * in the registry.
  *
  * @author Fabian Martinez
  */
 public interface ArtifactReferenceResolverStrategy<SCHEMA, DATA> {
 
     /**
-     * For a given topic and message, returns the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
+     * For a given Record, returns the {@link ArtifactReference} under which the message schemas are located or should be registered
      * in the registry.
-     *
-     * @param topic the Kafka topic name to which the message is being published.
-     * @param isKey true when encoding a message key, false for a message value.
-     * @param schema the schema of the message being serialized/deserialized, can be null if we don't know it beforehand
-     * @return the {@link ArtifactReferenceImpl} under which the message schemas are located or should be registered
+     * @param data record for which we want to resolve the ArtifactReference
+     * @param parsedSchema the schema of the record being resolved, can be null if {@link ArtifactReferenceResolverStrategy#loadSchema()} is set to false
+     * @return the {@link ArtifactReference} under which the message schemas are located or should be registered
      */
     ArtifactReference artifactReference(Record<DATA> data, ParsedSchema<SCHEMA> parsedSchema);
 
     /**
-     * Whether or not to load and pass the parsed schema to the {@link ArtifactReferenceResolverStrategy#artifactReference(String, boolean, Object)} lookup method
+     * Whether or not to load and pass the parsed schema to the {@link ArtifactReferenceResolverStrategy#artifactReference(Record, ParsedSchema)} lookup method
      */
     default boolean loadSchema() {
         return true;

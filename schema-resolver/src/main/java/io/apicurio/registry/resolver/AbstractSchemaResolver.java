@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Default implemntation of {@link SchemaResolver}
+ * Base implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
@@ -141,20 +141,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * Resolve an artifact reference given the topic name, message, and optional parsed schema.  This will use
+     * Resolve an artifact reference for the given record, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
      * values (groupId, artifactId, version).
-     * @param topic
      * @param data
      * @param parsedSchema
+     * @return artifact reference
      */
-
     protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
-//        S schema = null;
-//        if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
-//            schema = parsedSchema.getParsedSchema();
-//        }
-
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
@@ -186,8 +180,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 //                  .version(0)
                 .globalId(globalIdKey)
                 .parsedSchema(ps)
-//                .rawSchema(schema)
-//                .schema(parsed)
                 .build();
         });
     }
@@ -200,6 +192,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.schemaCache.clear();
     }
 
+    /**
+     * @see java.io.Closeable#close()
+     */
     @Override
     public void close() throws IOException {
         if (this.client != null) {

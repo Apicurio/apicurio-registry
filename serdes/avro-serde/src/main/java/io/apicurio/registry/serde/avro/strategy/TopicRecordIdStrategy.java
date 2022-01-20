@@ -28,19 +28,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
  */
 public class TopicRecordIdStrategy extends RecordIdStrategy {
 
-//    /**
-//     * @see io.apicurio.registry.serde.avro.strategy.RecordIdStrategy#artifactReference(java.lang.String, boolean, org.apache.avro.Schema)
-//     */
-//    @Override
-//    public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
-//        ArtifactReference reference = super.artifactReference(topic, isKey, schema);
-//        return ArtifactReference.builder()
-//                .groupId(reference.getGroupId())
-//                .artifactId(topic + "-" + reference.getArtifactId())
-//                .version(reference.getVersion())
-//                .build();
-//    }
-
     /**
      * @see io.apicurio.registry.serde.avro.strategy.RecordIdStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */

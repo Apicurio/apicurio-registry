@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
-import io.apicurio.registry.rest.client.config.ClientConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
@@ -56,6 +55,9 @@ public class SerdeConfig {
     public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver";
     public static final String SCHEMA_RESOLVER_DEFAULT = DefaultSchemaResolver.class.getName();
 
+    /**
+     * Property used internally to mark that a component is being configured for a kafka message key.
+     */
     public static final String IS_KEY = "apicurio.registry.is-key";
 
     /**
@@ -205,35 +207,35 @@ public class SerdeConfig {
      *
      * <code>apicurio.registry.request.headers.Authorization=BASIC Y2tlbnQ6a3J5cHQwbnIwY2tzIQ==</code>
      */
-    public static final String REQUEST_HEADERS_PREFIX = ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
+    public static final String REQUEST_HEADERS_PREFIX = SchemaResolverConfig.REQUEST_HEADERS_PREFIX;
     /**
      * Location of a trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+    public static final String REQUEST_TRUSTSTORE_LOCATION = SchemaResolverConfig.REQUEST_TRUSTSTORE_LOCATION;
     /**
      * Type of trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+    public static final String REQUEST_TRUSTSTORE_TYPE = SchemaResolverConfig.REQUEST_TRUSTSTORE_TYPE;
     /**
      * Password of the trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+    public static final String REQUEST_TRUSTSTORE_PASSWORD = SchemaResolverConfig.REQUEST_TRUSTSTORE_PASSWORD;
     /**
      * Location of a keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+    public static final String REQUEST_KEYSTORE_LOCATION = SchemaResolverConfig.REQUEST_KEYSTORE_LOCATION;
     /**
      * Type of keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
+    public static final String REQUEST_KEYSTORE_TYPE = SchemaResolverConfig.REQUEST_KEYSTORE_TYPE;
     /**
      * Password of the keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+    public static final String REQUEST_KEYSTORE_PASSWORD = SchemaResolverConfig.REQUEST_KEYSTORE_PASSWORD;
     /**
      * Key password used when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEY_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
+    public static final String REQUEST_KEY_PASSWORD = SchemaResolverConfig.REQUEST_KEY_PASSWORD;
 
     /**
      * Boolean used to enable or disable validation. Not applicable to all serde classes.  For example, the

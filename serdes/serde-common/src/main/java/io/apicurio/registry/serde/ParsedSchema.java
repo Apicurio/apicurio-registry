@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Red Hat
+ * Copyright 2021 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.apicurio.registry.serde;
 
 /**
+ * This interface is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.ParsedSchema}
  * @author Fabian Martinez
  */
 @Deprecated

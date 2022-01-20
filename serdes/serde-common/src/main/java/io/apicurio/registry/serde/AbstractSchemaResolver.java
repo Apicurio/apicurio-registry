@@ -42,7 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Default implemntation of {@link SchemaResolver}
+ * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
+ * Base implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
@@ -67,7 +68,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.schemaParser = schemaMapper;
 
         Object isKeyFromConfig = configs.get(SerdeConfig.IS_KEY);
-        //TODO is key have to come always, we set it
+        //is key have to come always, we set it
         configure(configs, (Boolean) isKeyFromConfig, new SchemaParser() {
 
             /**

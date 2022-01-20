@@ -19,8 +19,7 @@ package io.apicurio.registry.resolver.strategy;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
 
 /**
- * This class holds the information that reference one Artifact in Apicurio Registry. It will always make
- * reference to an artifact in a group. Optionally it can reference to a specific version.
+ * @see ArtifactReference
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
@@ -214,14 +213,6 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
                 + ", globalId=" + globalId + ", contentId=" + contentId + "]";
     }
-
-//    public static ArtifactReference fromGlobalId(Long globalId) {
-//        return builder().globalId(globalId).build();
-//    }
-//
-//    public static ArtifactReferenceBuilder builder(){
-//        return new ArtifactReferenceBuilder();
-//    }
 
     public static class ArtifactReferenceBuilder {
 

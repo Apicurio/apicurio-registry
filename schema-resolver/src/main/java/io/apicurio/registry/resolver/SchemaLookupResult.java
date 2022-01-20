@@ -23,8 +23,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
  */
 public class SchemaLookupResult<T> {
 
-//    private byte[] rawSchema;
-//    private T schema;
     private ParsedSchema<T> parsedSchema;
 
     private long globalId;
@@ -36,20 +34,6 @@ public class SchemaLookupResult<T> {
     private SchemaLookupResult() {
         //empty initialize manually
     }
-
-//    /**
-//     * @return the rawSchema
-//     */
-//    public byte[] getRawSchema() {
-//        return rawSchema;
-//    }
-//
-//    /**
-//     * @return the schema
-//     */
-//    public T getSchema() {
-//        return schema;
-//    }
 
     /**
      * @return the parsedSchema
@@ -114,16 +98,6 @@ public class SchemaLookupResult<T> {
         SchemaLookupResultBuilder() {
             this.result = new SchemaLookupResult<>();
         }
-
-//        public SchemaLookupResultBuilder<T> rawSchema(byte[] rawSchema) {
-//            this.result.rawSchema = rawSchema;
-//            return SchemaLookupResultBuilder.this;
-//        }
-//
-//        public SchemaLookupResultBuilder<T> schema(T schema) {
-//            this.result.schema = schema;
-//            return SchemaLookupResultBuilder.this;
-//        }
 
         public SchemaLookupResultBuilder<T> parsedSchema(ParsedSchema<T> parsedSchema) {
             this.result.parsedSchema = parsedSchema;

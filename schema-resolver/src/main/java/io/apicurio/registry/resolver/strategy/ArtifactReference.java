@@ -19,7 +19,11 @@ package io.apicurio.registry.resolver.strategy;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl.ArtifactReferenceBuilder;
 
 /**
+ * This class holds the information that reference one Artifact in Apicurio Registry. It will always make
+ * reference to an artifact in a group. Optionally it can reference to a specific version.
+ *
  * @author Fabian Martinez
+ * @author Jakub Senko <jsenko@redhat.com>
  */
 public interface ArtifactReference {
 

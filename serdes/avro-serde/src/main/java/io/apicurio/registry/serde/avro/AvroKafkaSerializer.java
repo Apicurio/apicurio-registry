@@ -45,7 +45,6 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
     private final EncoderFactory encoderFactory = EncoderFactory.get();
     private AvroSchemaParser<U> parser;
-//    = new AvroSchemaParser();
     private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding encoding;
     private AvroSerdeHeaders avroHeaders;
@@ -99,17 +98,6 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     public SchemaParser<Schema, U> schemaParser() {
         return parser;
     }
-
-//    /**
-//     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
-//     */
-//    @Override
-//    protected ParsedSchema<Schema> getSchemaFromData(U data) {
-//        Schema schema = avroDatumProvider.toSchema(data);
-//        return new ParsedSchemaImpl<Schema>()
-//                .setParsedSchema(schema)
-//                .setRawSchema(IoUtil.toBytes(schema.toString()));
-//    }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)

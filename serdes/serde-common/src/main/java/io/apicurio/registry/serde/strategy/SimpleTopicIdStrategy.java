@@ -27,17 +27,6 @@ import io.apicurio.registry.serde.data.KafkaSerdeRecord;
  */
 public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
 
-//    /**
-//     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#artifactReference(java.lang.String, boolean, java.lang.Object)
-//     */
-//    @Override
-//    public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
-//        return ArtifactReference.builder()
-//                .groupId(null)
-//                .artifactId(topic)
-//                .build();
-//    }
-
     /**
      * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */
@@ -49,8 +38,6 @@ public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrate
                 .artifactId(kdata.metadata().getTopic())
                 .build();
     }
-
-
 
     /**
      * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#loadSchema()

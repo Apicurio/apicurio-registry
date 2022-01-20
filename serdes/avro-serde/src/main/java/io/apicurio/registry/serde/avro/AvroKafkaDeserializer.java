@@ -44,7 +44,6 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
 
     private final DecoderFactory decoderFactory = DecoderFactory.get();
     private AvroSchemaParser<U> parser;
-//    = new AvroSchemaParser();
     private AvroDatumProvider<U> avroDatumProvider;
     private AvroEncoding configEncoding;
     private AvroSerdeHeaders avroHeaders;

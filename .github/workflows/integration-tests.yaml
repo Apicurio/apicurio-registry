@@ -15,7 +15,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [master, 2.0.x]
 
 jobs:
   integration-tests:
@@ -72,12 +72,15 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql clustered
         run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
-      - name: Run Integration Tests - multitenancy
-        run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+        # workaround
+      # - name: Run Integration Tests - multitenancy
+      #   run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql migration
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
       - name: Run Integration Tests - kafkasql migration
         run: ./mvnw verify -Pintegration-tests -Pmigration -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
+      - name: Run Integration Tests - sql dbupgrade
+        run: ./mvnw verify -Pintegration-tests -Pdbupgrade -Psql -pl integration-tests/testsuite -DtrimStackTrace=false -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
       - name: Run Legacy Tests - kafkasql
         env:

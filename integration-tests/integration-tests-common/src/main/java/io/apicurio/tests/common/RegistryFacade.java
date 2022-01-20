@@ -187,13 +187,27 @@ public class RegistryFacade {
                     runTenantManager(appEnv);
                 }
 
-                runRegistry(path, appEnv);
+                runRegistry(appEnv, "default", "8081");
             }
         }
 
     }
 
+    public Map<String, String> initRegistryAppEnv() {
+        Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("LOG_LEVEL", "DEBUG");
+        appEnv.put("REGISTRY_LOG_LEVEL", "TRACE");
+
+        loadProvidedAppEnv(appEnv);
+
+        return appEnv;
+    }
+
     private void deployStorage(Map<String, String> appEnv) throws Exception {
+        deployStorage(appEnv, RegistryUtils.REGISTRY_STORAGE);
+    }
+
+    public void deployStorage(Map<String, String> appEnv, RegistryStorageType storage) throws Exception {
         switch (RegistryUtils.REGISTRY_STORAGE) {
             case inmemory:
                 break;
@@ -464,7 +478,9 @@ public class RegistryFacade {
         processes.add(kafkaFacade);
     }
 
-    private void runRegistry(String path, Map<String, String> appEnv) {
+    public void runRegistry(Map<String, String> appEnv, String nameSuffix, String port) throws IOException {
+        appEnv.put("QUARKUS_HTTP_PORT", port);
+        String path = getJarPath();
         Exec executor = new Exec();
         LOGGER.info("Starting Registry app from: {} env: {}", path, appEnv);
         CompletableFuture.supplyAsync(() -> {
@@ -474,7 +490,7 @@ public class RegistryFacade {
                 cmd.add("java");
                 cmd.addAll(Arrays.asList(
                         // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                        "-Dquarkus.http.port=8081",
+//                        "-Dquarkus.http.port=8081",
                         "-jar", path));
                 int timeout = executor.execute(cmd, appEnv);
                 return timeout == 0;
@@ -488,7 +504,7 @@ public class RegistryFacade {
 
             @Override
             public String getName() {
-                return "registry";
+                return "registry-" + nameSuffix;
             }
 
             @Override
@@ -512,6 +528,15 @@ public class RegistryFacade {
             }
 
         });
+    }
+
+    public void stopProcess(Path logsPath, String name) throws Exception {
+      var process = processes.stream()
+          .filter(p -> p.getName().equals(name))
+          .findFirst()
+          .get();
+      stopAndCollectProcessLogs(logsPath, process);
+      processes.remove(process);
     }
 
     private String findTenantManagerRunner() {
@@ -611,41 +636,46 @@ public class RegistryFacade {
 
     public void stopAndCollectLogs(Path logsPath) throws IOException {
         LOGGER.info("Stopping registry");
-        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
         if (logsPath != null) {
             Files.createDirectories(logsPath);
         }
 
         processes.descendingIterator().forEachRemaining(p -> {
-            //registry and tenant manager processes are not a container and have to be stopped before being able to read log output
-            if (!p.isContainer()) {
-                try {
-                    p.close();
-                    Thread.sleep(3000);
-                } catch (Exception e) {
-                    LOGGER.error("error stopping registry", e);
-                }
-            }
-            if (logsPath != null) {
-                Path filePath = logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log");
-                LOGGER.info("Storing registry logs to " + filePath.toString());
-                TestUtils.writeFile(filePath, p.getStdOut());
-                String stdErr = p.getStdErr();
-                if (stdErr != null && !stdErr.isEmpty()) {
-                    TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stderr.log"), stdErr);
-                }
-            }
-            if (!p.getName().equals("registry")) {
-                try {
-                    p.close();
-                } catch (Exception e) {
-                    LOGGER.error("error stopping registry", e);
-                }
-            }
+            stopAndCollectProcessLogs(logsPath, p);
         });
         processes.clear();
+    }
+
+    private void stopAndCollectProcessLogs(Path logsPath, RegistryTestProcess p) {
+        //registry and tenant manager processes are not a container and have to be stopped before being able to read log output
+        if (!p.isContainer()) {
+            try {
+                p.close();
+                Thread.sleep(3000);
+            } catch (Exception e) {
+                LOGGER.error("error stopping registry", e);
+            }
+        }
+        if (logsPath != null) {
+            final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            String currentDate = simpleDateFormat.format(Calendar.getInstance().getTime());
+
+            Path filePath = logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stdout.log");
+            LOGGER.info("Storing registry logs to " + filePath.toString());
+            TestUtils.writeFile(filePath, p.getStdOut());
+            String stdErr = p.getStdErr();
+            if (stdErr != null && !stdErr.isEmpty()) {
+                TestUtils.writeFile(logsPath.resolve(currentDate + "-" + p.getName() + "-" + "stderr.log"), stdErr);
+            }
+        }
+        if (!p.getName().equals("registry")) {
+            try {
+                p.close();
+            } catch (Exception e) {
+                LOGGER.error("error stopping registry", e);
+            }
+        }
     }
 
     /**

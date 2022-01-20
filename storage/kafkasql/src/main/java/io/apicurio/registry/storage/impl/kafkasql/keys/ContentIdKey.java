@@ -18,6 +18,8 @@ package io.apicurio.registry.storage.impl.kafkasql.keys;
 
 import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 
+import java.util.UUID;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -25,8 +27,11 @@ public class ContentIdKey extends AbstractMessageKey {
 
     private static final String CONTENT_ID_PARTITION_KEY = "__apicurio_registry_content_id__";
 
+    private final String uuid = UUID.randomUUID().toString();
+
     /**
      * Creator method.
+     *
      * @param tenantId
      * @param ruleType
      */
@@ -49,6 +54,10 @@ public class ContentIdKey extends AbstractMessageKey {
     @Override
     public String getPartitionKey() {
         return getTenantId() + CONTENT_ID_PARTITION_KEY;
+    }
+
+    public String getUuid() {
+        return uuid;
     }
 
     /**

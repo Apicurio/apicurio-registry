@@ -23,10 +23,13 @@ import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.SubjectsResource;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
 import javax.interceptor.Interceptors;
+
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import java.util.List;
 
 /**
@@ -50,6 +53,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject) throws Exception {
 

@@ -35,7 +35,6 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -130,14 +129,14 @@ public class RegistryStoragePerformanceTest {
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
 
         long startNameSearch = System.currentTimeMillis();
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.name, "testStoragePerformance-9999"));
+        filters = Collections.singleton(SearchFilter.ofName("testStoragePerformance-9999"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endNameSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         long startAllNameSearch = System.currentTimeMillis();
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.name, "testStoragePerformance"));
+        filters = Collections.singleton(SearchFilter.ofName("testStoragePerformance"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endAllNameSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
@@ -145,21 +144,21 @@ public class RegistryStoragePerformanceTest {
 
         long startLabelSearch = System.currentTimeMillis();
 
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "label-" + (NUM_ARTIFACTS-1)));
+        filters = Collections.singleton(SearchFilter.ofLabel("label-" + (NUM_ARTIFACTS-1)));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         long startAllLabelSearch = System.currentTimeMillis();
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.labels, "the-label"));
+        filters = Collections.singleton(SearchFilter.ofLabel("the-label"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endAllLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
 
         long startEverythingSearch = System.currentTimeMillis();
-        filters = Collections.singleton(new SearchFilter(SearchFilterType.everything, "test"));
+        filters = Collections.singleton(SearchFilter.ofEverything("test"));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endEverythingSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);

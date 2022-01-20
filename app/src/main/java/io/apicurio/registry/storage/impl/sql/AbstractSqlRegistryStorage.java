@@ -37,6 +37,7 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -1077,10 +1078,16 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         });
                         break;
                     case properties:
-                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
+                        Pair<String, String> property = filter.getPropertyFilterValue();
+                        //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
+                        String propKey = property.getKey().toLowerCase();
+                        String propValue = property.getValue().toLowerCase();
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.pvalue = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
                         binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
+                            query.bind(idx, propKey);
+                        });
+                        binders.add((query, idx) -> {
+                            query.bind(idx, propValue);
                         });
                         break;
                     case globalId:
@@ -1638,19 +1645,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     // Update the 'latest' version of the artifact to the globalId of the highest remaining version
                     String latestVersion = versions.get(versions.size() - 1);
                     sql = sqlStatements.updateArtifactLatestGlobalId();
-                    handle.createUpdate(sql)
+                    int latestUpdateRows = handle.createUpdate(sql)
                           .bind(0, tenantContext.tenantId())
                           .bind(1, normalizeGroupId(groupId))
                           .bind(2, artifactId)
                           .bind(3, latestVersion)
                           .bind(4, tenantContext.tenantId())
-                          .bind(5, groupId)
+                          .bind(5, normalizeGroupId(groupId))
                           .bind(6, artifactId)
                           .execute();
+                    if (latestUpdateRows == 0) {
+                        throw new RegistryStorageException("latest column was not updated");
+                    }
                 }
 
                 if (rows == 0) {
                     throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                if (rows > 1) {
+                    throw new RegistryStorageException("Multiple versions deleted, artifact latest column left null");
                 }
 
                 return null;

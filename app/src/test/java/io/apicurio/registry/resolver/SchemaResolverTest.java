@@ -96,7 +96,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
         assertNull(lookup.getGroupId());
         assertEquals(artifactId, lookup.getArtifactId());
-        assertEquals(schema.toString(), lookup.getParsedSchema().getRawSchema());
+        assertEquals(schema.toString(), new String(lookup.getParsedSchema().getRawSchema()));
         assertNull(lookup.getParsedSchema().getParsedSchema());
 
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().artifactId("foo").build())));

@@ -142,16 +142,15 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         public void test() throws Exception {
             Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
 
-            if (batchCount > 1) {
-                setAutoClose(false);
-            }
+            boolean autoCloseByProduceOrConsume = batchCount == 1;
+            setAutoClose(autoCloseByProduceOrConsume);
 
             try {
                 for (int i = 0; i < batchCount; i++) {
                     this.produceMessages(producer, topic, dataGenerator, batchSize);
                 }
             } finally {
-                if (batchCount > 1) {
+                if (!autoCloseByProduceOrConsume) {
                     producer.close();
                 }
             }
@@ -163,7 +162,14 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
             Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
 
             int messageCount = batchCount * batchSize;
-            this.consumeMessages(consumer, topic, messageCount, dataValidator);
+            try {
+                this.consumeMessages(consumer, topic, messageCount, dataValidator);
+            } finally {
+                if (!autoCloseByProduceOrConsume) {
+                    consumer.close();
+                }
+            }
+
         }
 
     }

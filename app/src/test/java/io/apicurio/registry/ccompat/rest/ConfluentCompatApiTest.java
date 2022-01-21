@@ -20,7 +20,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
@@ -691,16 +690,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         assertEquals(2, versionsApicurio.size());
 
-        var searchApicurio = given()
-                .when()
-                .get("/registry/v2/search/artifacts")
-                .then()
-                .statusCode(200)
-                .extract().as(ArtifactSearchResults.class)
-                .getArtifacts();
-
-        assertEquals(1, searchApicurio.size());
-
         //delete version 2
         given()
             .when()
@@ -756,15 +745,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .get("/registry/v2/groups/default/artifacts/{subject}", SUBJECT)
             .then()
             .statusCode(200);
-        searchApicurio = given()
-                .when()
-                .get("/registry/v2/search/artifacts")
-                .then()
-                .statusCode(200)
-                .extract().as(ArtifactSearchResults.class)
-                .getArtifacts();
-
-        assertEquals(1, searchApicurio.size());
     }
 
 }

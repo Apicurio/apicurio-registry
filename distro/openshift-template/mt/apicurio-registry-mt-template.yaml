@@ -224,7 +224,9 @@ objects:
 
           # TODO tenant-manager certificate?
           - name: TENANT_MANAGER_URL
-            value: https://tenant-manager-envoy:9001
+            value: ${TENANT_MANAGER_URL}
+          - name: REGISTRY_TENANT_MANAGER_SSL_CA_PATH
+            value: ${TENANT_MANAGER_CA_BUNDLE}
           - name: TENANT_MANAGER_AUTH_URL
             value: ${KEYCLOAK_URL}
           - name: TENANT_MANAGER_REALM
@@ -753,6 +755,10 @@ parameters:
   description: property to set the claim value that must match to activate admin-override
   value: "true"
 
+- name: TENANT_MANAGER_URL
+  value: http://tenant-manager:8585
+- name: TENANT_MANAGER_CA_BUNDLE
+  description: path to tenant-manager service CA bundle
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager
   required: true

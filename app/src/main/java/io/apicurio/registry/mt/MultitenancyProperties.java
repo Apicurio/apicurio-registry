@@ -83,6 +83,10 @@ public class MultitenancyProperties {
     Optional<String> tenantManagerUrl;
 
     @Inject
+    @ConfigProperty(name = "registry.tenant.manager.ssl.ca.path")
+    Optional<String> tenantManagerCAFilePath;
+
+    @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
     Optional<Boolean> tenantManagerAuthEnabled;
 
@@ -182,6 +186,13 @@ public class MultitenancyProperties {
      */
     public Optional<String> getTenantManagerUrl() {
         return tenantManagerUrl;
+    }
+
+    /**
+     * @return the tenantManagerCAFilePath
+     */
+    public Optional<String> getTenantManagerCAFilePath() {
+        return tenantManagerCAFilePath;
     }
 
     /**

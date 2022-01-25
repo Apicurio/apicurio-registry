@@ -43,6 +43,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -1483,6 +1484,37 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("version", anything())
                 .body("name", equalTo("Empty API (Updated)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
+    }
+
+    @Test
+    public void testPropertyValueNotNull() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        int idx = 0;
+        String title = "Empty API " + idx;
+        String artifactId = "Empty-" + idx;
+        this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+        waitForArtifact(group, artifactId);
+
+        Map<String, String> props = new HashMap<>();
+        props.put("test-key", null);
+
+        // Update the artifact meta-data
+        EditableMetaData metaData = new EditableMetaData();
+        metaData.setName(title);
+        metaData.setDescription("Some description of an API");
+        metaData.setProperties(props);
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .body(metaData)
+                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
+            .then()
+                .statusCode(400);
+
     }
 
     @Test

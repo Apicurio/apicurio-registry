@@ -20,13 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,16 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryFacade facade = RegistryFacade.getInstance();
 
+    ApicurioHttpClient httpClient;
+
+    protected ApicurioHttpClient getHttpClient() {
+        AuthServerInfo authServerInfo = facade.getAuthServerInfo();
+        if (httpClient == null) {
+            httpClient = ApicurioHttpClientFactory.create(authServerInfo.getAuthServerUrlConfigured(), new AuthErrorHandler());
+        }
+        return httpClient;
+    }
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(TestUtils.getRegistryBaseUrl(), Collections.emptyMap(), auth);
     }
@@ -59,7 +71,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testWrongCreds() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getReadOnlyClientId(), UUID.randomUUID().toString(), Optional.empty());
+        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getReadOnlyClientId(), UUID.randomUUID().toString());
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup("foo");
@@ -69,7 +81,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testReadOnly() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getReadOnlyClientId(), authServerInfo.getReadOnlyClientSecret(), Optional.empty());
+        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getReadOnlyClientId(), authServerInfo.getReadOnlyClientSecret());
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();
@@ -81,7 +93,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.createArtifact("ccc", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret(), Optional.empty());
+            Auth devAuth = new OidcAuth(getHttpClient(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -92,7 +104,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDevRole() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth devAuth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret(), Optional.empty());
+        Auth devAuth = new OidcAuth(getHttpClient(), authServerInfo.getDeveloperClientId(), authServerInfo.getDeveloperClientSecret());
         RegistryClient client = createClient(devAuth);
 
         String groupId = TestUtils.generateGroupId();
@@ -121,7 +133,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testAdminRole() throws Exception {
         AuthServerInfo authServerInfo = facade.getAuthServerInfo();
-        Auth auth = new OidcAuth(authServerInfo.getAuthServerUrlConfigured(), authServerInfo.getAdminClientId(), authServerInfo.getAdminClientSecret(), Optional.empty());
+        Auth auth = new OidcAuth(getHttpClient(), authServerInfo.getAdminClientId(), authServerInfo.getAdminClientSecret());
         RegistryClient client = createClient(auth);
 
         String groupId = TestUtils.generateGroupId();

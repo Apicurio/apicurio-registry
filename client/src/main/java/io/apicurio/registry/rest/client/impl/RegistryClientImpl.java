@@ -464,4 +464,9 @@ public class RegistryClientImpl implements RegistryClient {
         logger.debug("Error serializing request response", ex);
         return new RestClientException(error);
     }
+
+    @Override
+    public void close() {
+        apicurioHttpClient.close();
+    }
 }

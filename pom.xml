@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.1.4-14</version>
+    <version>2.1.6-15</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -143,7 +143,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
-        <mas.build.number>14</mas.build.number>
+        <mas.build.number>15</mas.build.number>
 
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
@@ -162,14 +162,14 @@
 
         <!-- Schema types -->
         <avro.version>1.11.0</avro.version>
-        <json-schema-validator.version>1.0.64</json-schema-validator.version>
+        <json-schema-validator.version>1.0.65</json-schema-validator.version>
         <wire-schema.version>3.7.1</wire-schema.version>
         <wire-compiler.version>3.7.1</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>70.1</icu4j.version>
-        <protobuf.version>3.19.1</protobuf.version>
-        <xmlsec.version>2.1.7</xmlsec.version>
-        <protobuf.googleapi.types.version>2.5.1</protobuf.googleapi.types.version>
+        <protobuf.version>3.19.3</protobuf.version>
+        <xmlsec.version>2.3.0</xmlsec.version>
+        <protobuf.googleapi.types.version>2.7.1</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
         <google.truth.extension.version>1.1.3</google.truth.extension.version>
 
@@ -183,7 +183,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.19</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.20</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>17.3</graphql.version>
@@ -196,12 +196,13 @@
         <!-- Dependency versions -->
         <lombok.version>1.18.22</lombok.version>
         <h2.version>1.4.199</h2.version>
-        <retrofit.version>2.9.0</retrofit.version>
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.1.3.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.1.5.Final</apicurio-common-rest-client.version>
         <sentry.version>1.7.30</sentry.version>
+        <kafka-oauth-client.version>0.8.1</kafka-oauth-client.version>
+        <kafka-clients.version>2.8.1</kafka-clients.version>
 
         <!-- Search -->
         <connect.version>2.6.0</connect.version>
@@ -211,23 +212,23 @@
 
         <!-- Scala -->
         <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-        <scala.version>2.13.7</scala.version>
+        <scala.version>2.13.8</scala.version>
 
         <!-- Plugin Versions -->
-        <version.compiler.plugin>3.8.1</version.compiler.plugin>
+        <version.compiler.plugin>3.9.0</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.3.1</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
-        <version.jar.plugin>3.2.0</version.jar.plugin>
+        <version.jar.plugin>3.2.2</version.jar.plugin>
         <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
         <version.dependency.plugin>3.2.0</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>
-        <version.frontend-maven.plugin>1.12.0</version.frontend-maven.plugin>
+        <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>8.45.1</version.puppycrawl>
@@ -237,9 +238,9 @@
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.16.2</test-containers.version>
-        <keycloak.testcontainers.version>1.8.1</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>15.0.2</keycloak-admin-client.version>
+        <test-containers.version>1.16.3</test-containers.version>
+        <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
+        <keycloak-admin-client.version>16.1.0</keycloak-admin-client.version>
         <embedded-postgres.version>1.3.1</embedded-postgres.version>
         <strimzi.version>0.25.0</strimzi.version>
         <wiremock-jre8.version>2.32.0</wiremock-jre8.version>
@@ -460,6 +461,11 @@
             </dependency>
 
             <!-- Third Party Libraries -->
+            <dependency><!-- Overrides the version from the Quarkus BOM -->
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-data-models</artifactId>
@@ -581,6 +587,12 @@
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson-dataformat-yaml.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-client</artifactId>
+                <version>${kafka-oauth-client.version}</version>
             </dependency>
 
             <!-- Tests -->
@@ -775,7 +787,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.5.4</version>
+                    <version>4.5.6</version>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
                         <args>

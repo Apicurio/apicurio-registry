@@ -23,6 +23,8 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.rest.ConfigResource;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.registry.logging.audit.AuditingConstants;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -31,6 +33,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
 import javax.interceptor.Interceptors;
+
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -87,6 +90,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_RULE})
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(
             CompatibilityLevelDto request) {
@@ -99,6 +103,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
+    @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,

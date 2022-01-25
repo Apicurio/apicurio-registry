@@ -21,7 +21,10 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -31,7 +34,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.enterprise.inject.Typed;
 import java.util.Collections;
-import java.util.Optional;
 
 
 @QuarkusTest
@@ -45,20 +47,23 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
 
     String clientId = "registry-api";
 
+    ApicurioHttpClient httpClient;
+
     private TenantManagerClient createClient(OidcAuth auth) {
         return new TenantManagerClientImpl("http://localhost:8081/", Collections.emptyMap(), auth);
     }
 
     @Override
     protected TenantManagerClient createRestClient() {
-        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "test1", Optional.empty());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+        OidcAuth auth = new OidcAuth(httpClient, clientId, "test1");
         return this.createClient(auth);
     }
 
     @SuppressWarnings("deprecation")
     @Test
     public void testWrongCreds() throws Exception {
-        OidcAuth auth = new OidcAuth(authServerUrl, clientId, "wrongsecret", Optional.empty());
+        OidcAuth auth = new OidcAuth(httpClient, clientId, "wrongsecret");
         TenantManagerClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, client::listTenants);
     }

@@ -49,9 +49,11 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
     public render(): React.ReactElement {
         const dropdownItems = [
             <DropdownItem key="FULL"
+                          tooltip="Syntactic and semantic validation"
                           id="FULL"
                           data-testid="rules-validity-config-full">Full</DropdownItem>,
             <DropdownItem key="SYNTAX_ONLY"
+                          tooltip="Only syntactic validation"
                           id="SYNTAX_ONLY"
                           data-testid="rules-validity-config-syntaxOnly">Syntax Only</DropdownItem>,
         ];

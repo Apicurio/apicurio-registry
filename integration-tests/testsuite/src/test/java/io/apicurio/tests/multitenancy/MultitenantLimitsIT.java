@@ -23,9 +23,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -55,6 +57,15 @@ import io.apicurio.tests.common.auth.CustomJWTAuth;
 public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
     private RegistryFacade registryFacade = RegistryFacade.getInstance();
+
+    ApicurioHttpClient httpClient;
+
+    protected ApicurioHttpClient getHttpClient(String baseEndpoint) {
+        if (httpClient == null) {
+            httpClient = ApicurioHttpClientFactory.create(baseEndpoint, new AuthErrorHandler());
+        }
+        return httpClient;
+    }
 
     @Test
     public void testLimits() {
@@ -168,7 +179,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         var keycloak = registryFacade.getMTOnlyKeycloakMock();
 
         TenantManagerClient tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret, Optional.empty()));
+                    new OidcAuth(getHttpClient(keycloak.tokenEndpoint), keycloak.clientId, keycloak.clientSecret));
 
         tenantManager.createTenant(tenantReq);
 

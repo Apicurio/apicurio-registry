@@ -40,4 +40,6 @@ public interface ContentHandle {
     byte[] bytes();
 
     String content();
+
+    int sizeHint();
 }

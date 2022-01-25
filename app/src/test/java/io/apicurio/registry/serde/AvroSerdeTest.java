@@ -302,8 +302,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
         record.put("bar", "somebar");
 
-        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient);
-                AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient)) {
+        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient)) {
+                AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<GenericData.Record>(restClient);
             byte[] bytes = serializer1.serialize(subject, record);
 
             TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt());

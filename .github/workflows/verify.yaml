@@ -80,17 +80,14 @@ jobs:
     name: Build native images
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
-    strategy:
-      matrix:
-        jdk-version: [11, 17]
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK ${{ matrix.jdk-version }}
+      - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: ${{ matrix.jdk-version }}
+          version: 11
           architecture: x64
 
       - name: Cache Dependencies

@@ -22,8 +22,10 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
 import io.apicurio.rest.client.JdkHttpClientProvider;
+import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.config.ApicurioClientConfig;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.runtime.configuration.ProfileManager;
 
@@ -31,7 +33,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Fabian Martinez
@@ -65,6 +68,12 @@ public class TenantManagerClientProducer {
                         "but the no \"registry.tenant.manager.url\" is provided");
             }
 
+            Map<String, Object> clientConfigs = new HashMap<>();
+            if (properties.getTenantManagerCAFilePath().isPresent() && !properties.getTenantManagerCAFilePath().get().isBlank()) {
+                clientConfigs.put(ApicurioClientConfig.APICURIO_REQUEST_CA_BUNDLE_LOCATION, properties.getTenantManagerCAFilePath().get());
+            }
+
+            Auth auth = null;
             if (properties.isTenantManagerAuthEnabled()) {
 
                 if (properties.getTenantManagerAuthUrl().isEmpty() ||
@@ -75,21 +84,15 @@ public class TenantManagerClientProducer {
                             "but the no auth properties aren't properly configured");
                 }
 
-                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
+                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), clientConfigs, null, new AuthErrorHandler());
 
-                return OptionalBean.of(new TenantManagerClientImpl(
-                        properties.getTenantManagerUrl().get(), Collections.emptyMap(),
-                        new OidcAuth(httpClient,
-                                properties.getTenantManagerClientId().get(),
-                                properties.getTenantManagerClientSecret().get()
-                        )
-                ));
-
-            } else {
-                return OptionalBean.of(new TenantManagerClientImpl(
-                        properties.getTenantManagerUrl().get())
-                );
+                auth = new OidcAuth(httpClient,
+                        properties.getTenantManagerClientId().get(),
+                        properties.getTenantManagerClientSecret().get());
             }
+
+            return OptionalBean.of(new TenantManagerClientImpl(properties.getTenantManagerUrl().get(), clientConfigs, auth));
+
         }
 
         return OptionalBean.empty();

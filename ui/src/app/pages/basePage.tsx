@@ -20,9 +20,10 @@ import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentSt
 import {Services} from "../../services";
 import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner} from "@patternfly/react-core";
 import {AccessErrorPage} from "../components/errorPage/accessErrorPage";
+import {RateLimitErrorPage} from "../components/errorPage/rateLimitErrorPage";
 
 // TODO this should be configurable via standard UI config settings
-const MAX_RETRIES: number = 5;
+const MAX_RETRIES: number = 1;
 
 export enum PageErrorType {
     React, Server
@@ -76,7 +77,11 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
         if (this.isError()) {
             if (this.is403Error()) {
                 return (
-                    <AccessErrorPage error={this.state.error} />
+                    <AccessErrorPage error={this.state.error}/>
+                );
+            } else if (this.is419Error()) {
+                return (
+                    <RateLimitErrorPage error={this.state.error}/>
                 );
             } else {
                 return (
@@ -185,6 +190,10 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     private is403Error(): boolean {
         return this.state.error && this.state.error.error.status && (this.state.error.error.status == 403);
+    }
+
+    private is419Error(): boolean {
+        return this.state.error && this.state.error.error.status && (this.state.error.error.status == 419);
     }
 
     private handleError(errorType: PageErrorType, error: any, errorMessage: any): void {

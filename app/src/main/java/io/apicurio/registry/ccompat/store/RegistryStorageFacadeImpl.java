@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -30,6 +31,7 @@ import javax.inject.Inject;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -37,12 +39,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -51,6 +48,7 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 
 /**
@@ -60,6 +58,8 @@ import io.apicurio.registry.util.VersionUtil;
 @ApplicationScoped
 public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
+    private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
+
     @Inject
     @Current
     RegistryStorage storage;
@@ -67,7 +67,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Inject
     RulesService rulesService;
 
-    @Inject FacadeConverter converter;
+    @Inject
+    FacadeConverter converter;
 
     @Inject
     CCompatConfig cconfig;
@@ -101,18 +102,20 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public SchemaContent getSchemaContent(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
+    public SchemaInfo getSchemaById(int contentId) throws ArtifactNotFoundException, RegistryStorageException {
+        ContentHandle contentHandle;
         if (cconfig.legacyIdModeEnabled) {
-            long globalId = contentId;
-            ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
-            if (ArtifactState.DISABLED.equals(metaData.getState())) {
-                throw new ArtifactNotFoundException(null, String.valueOf(globalId));
-            }
-            StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
-            return converter.convert(artifact.getContent());
+            StoredArtifactDto artifactVersion = storage.getArtifactVersion(contentId);
+            contentHandle = artifactVersion.getContent();
         } else {
-            return converter.convert(storage.getArtifactByContentId(contentId));
+            contentHandle = storage.getArtifactByContentId(contentId);
+            List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(contentId);
+            if (artifacts == null || artifacts.isEmpty()) {
+                //the contentId points to an orphaned content
+                throw new ArtifactNotFoundException("ContentId: " + contentId);
+            }
         }
+        return FacadeConverter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(contentHandle.content()), null, null));
     }
 
     @Override
@@ -122,7 +125,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                     if (ArtifactState.DISABLED.equals(storage.getArtifactVersionMetaData(null, subject, version).getState())) {
                         throw new VersionNotFoundException(null, subject, version);
                     }
-                    return converter.convert(subject, storage.getArtifactVersion(null, subject, version));
+                    StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null));
                 });
     }
 
@@ -152,23 +156,28 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             ContentHandle content = ContentHandle.create(schema);
             // Don't canonicalize the content when getting it - Confluent does not.
             ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
-            long id = dto.getContentId();
-            if (cconfig.legacyIdModeEnabled) {
-                id = dto.getGlobalId();
-            }
-            return CompletableFuture.completedFuture(id);
+            return cconfig.legacyIdModeEnabled ? CompletableFuture.completedFuture(dto.getGlobalId()) : CompletableFuture.completedFuture(dto.getContentId());
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
         }
 
-        // TODO Should this creation and updating of an artifact be a different operation?
-        // TODO method that returns a completion stage should not throw an exception
-        CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, ArtifactType.fromValue(schemaType));
-        Function<? super ArtifactMetaDataDto, ? extends Long> getIdFn = ArtifactMetaDataDto::getContentId;
-        if (cconfig.legacyIdModeEnabled) {
-            getIdFn = ArtifactMetaDataDto::getGlobalId;
+        // We validate the schema at creation time by inferring the type from the content
+        try {
+            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(schema), null, null);
+            if (schemaType != null && !artifactType.value().equals(schemaType)) {
+                throw new UnprocessableEntityException(String.format("Given schema is not from type: %s", schemaType));
+            }
+
+            CompletionStage<ArtifactMetaDataDto> artifactMeta = createOrUpdateArtifact(subject, schema, artifactType);
+            Function<? super ArtifactMetaDataDto, ? extends Long> getIdFn = ArtifactMetaDataDto::getContentId;
+            if (cconfig.legacyIdModeEnabled) {
+                getIdFn = ArtifactMetaDataDto::getGlobalId;
+            }
+            return artifactMeta.thenApply(getIdFn);
+        } catch (InvalidArtifactTypeException ex) {
+            //If no artifact type can be inferred, throw invalid schema ex
+            throw new UnprocessableEntityException(ex.getMessage());
         }
-        return artifactMeta.thenApply(getIdFn);
     }
 
     @Override
@@ -212,6 +221,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
             }
         });
+    }
+
+    /**
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     */
+    private ContentHandle removeQuotedBrackets(String content) {
+        return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
     private CompletionStage<ArtifactMetaDataDto> createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType) {

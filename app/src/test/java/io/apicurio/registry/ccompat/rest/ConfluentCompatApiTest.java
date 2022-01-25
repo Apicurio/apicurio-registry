@@ -51,12 +51,17 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
 
+    private static final String SCHEMA_SIMPLE_DEFAULT_QUOTED = "{\"name\": \"EloquaContactRecordData\", \"type\": \"record\", \"fields\": [{\"name\": \"eloqua_contact_record\", \"type\": {\"name\": \"EloquaContactRecord\", \"type\": \"record\", \"fields\": [{\"name\": \"contact_id\", \"type\": \"string\", \"default\": \"\"}, {\"name\": \"field_map\", \"type\": {\"type\": \"map\", \"values\": \"string\"}, \"default\": \"{}\"}]}}]}";
     public static final String SCHEMA_SIMPLE_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\"}";
 
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
             + "\"schemaType\": \"AVRO\"}";
 
-//    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
+    private static final String PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"message SearchRequest { required string query = 1; optional int32 page_number = 2;  optional int32 result_per_page = 3; }\",\"schemaType\": \"PROTOBUF\"}";
+
+    private static final String JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"f1\\\":{\\\"type\\\":\\\"string\\\"}}}\"}\",\"schemaType\": \"JSON\"}";
+
+    private static final String SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED = "{\"schema\": \"{\\\"name\\\": \\\"EloquaContactRecordData\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"eloqua_contact_record\\\", \\\"type\\\": {\\\"name\\\": \\\"EloquaContactRecord\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"contact_id\\\", \\\"type\\\": \\\"string\\\", \\\"default\\\": \\\"\\\"}, {\\\"name\\\": \\\"field_map\\\", \\\"type\\\": {\\\"type\\\": \\\"map\\\", \\\"values\\\": \\\"string\\\"}, \\\"default\\\": \\\"{}\\\"}]}}]}\"}";
 
     private static final String SCHEMA_1_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
             "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"} ] }\"}\"";
@@ -96,6 +101,34 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
+    }
+
+    /**
+     * Endpoint: /subjects/(string: subject)/versions
+     */
+    @Test
+    public void testDefaultQuoted() throws Exception {
+        final String SUBJECT = "subject1";
+        // POST
+        ValidatableResponse res = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+        /*int id = */res.extract().jsonPath().getInt("id");
+
+        this.waitForArtifact(SUBJECT);
+
+        // Verify
+        given()
+                .when()
+                .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("", equalTo(new JsonPath(SCHEMA_SIMPLE_DEFAULT_QUOTED).getMap("")));
     }
 
     /**
@@ -332,29 +365,41 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGetSchemaById() throws Exception {
-        final String SUBJECT = "subjectTestSchema";
+        //VERIFY AVRO, no schema type should be returned
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        //VERIFY JSON, JSON must be returned as schemaType
+        registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
+        //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
+        registerSchemaAndVerify(PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_proto", "PROTOBUF");
+    }
 
-        // POST
+    private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
+        registerSchemaInSubject(schema, subject);
+        this.waitForArtifact(subject);
+        final Integer avroSchemaGlobalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
+        verifySchemaType(avroSchemaGlobalId, schemaTye);
+    }
+
+    private void registerSchemaInSubject(String schema, String subject) {
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .body(schema)
+                .post("/ccompat/v6/subjects/{subject}/versions", subject)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+    }
 
-        this.waitForArtifact(SUBJECT);
-
-        final Integer globalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
-
+    private void verifySchemaType(long globalId, String schemaType) {
         //Verify
-        Assertions.assertNull(given()
+        Assertions.assertEquals(given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get("/ccompat/v6/schemas/ids/{id}", globalId)
                 .then()
-                .extract().body().jsonPath().get("schemaType"));
+                .extract()
+                .body().jsonPath().get("schemaType"), schemaType);
     }
 
     /**

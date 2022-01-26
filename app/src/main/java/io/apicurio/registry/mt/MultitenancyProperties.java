@@ -102,6 +102,10 @@ public class MultitenancyProperties {
     @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
     Optional<String> tenantManagerClientSecret;
 
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.token.expiration.reduction.ms")
+    Optional<Long> tenantManagerAuthTokenExpirationReductionMs;
+
     @PostConstruct
     void init() {
         this.reaperEvery.orElseThrow(() -> new IllegalArgumentException("Missing required configuration property 'registry.multitenancy.reaper.every'"));
@@ -221,5 +225,9 @@ public class MultitenancyProperties {
      */
     public Optional<String> getTenantManagerClientSecret() {
         return tenantManagerClientSecret;
+    }
+
+    public Optional<Long> getTenantManagerAuthTokenExpirationReductionMs() {
+        return tenantManagerAuthTokenExpirationReductionMs;
     }
 }

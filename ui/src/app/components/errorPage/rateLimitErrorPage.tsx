@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2021 JBoss Inc
+ * Copyright 2022 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,13 @@ import {
     PageSectionVariants,
     Title
 } from '@patternfly/react-core';
-import {LockedIcon} from "@patternfly/react-icons";
+import {ExclamationCircleIcon} from "@patternfly/react-icons";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-tomorrow";
 import {ErrorPage, ErrorPageProps} from "./errorPage";
 
 
-export class AccessErrorPage extends ErrorPage {
+export class RateLimitErrorPage extends ErrorPage {
 
     constructor(props: Readonly<ErrorPageProps>) {
         super(props);
@@ -46,10 +46,11 @@ export class AccessErrorPage extends ErrorPage {
                 <PageSection className="ps_error" variant={PageSectionVariants.light}>
                     <div className="centerizer">
                         <EmptyState variant={EmptyStateVariant.large}>
-                            <EmptyStateIcon icon={LockedIcon} />
-                            <Title headingLevel="h5" size="lg">Access permissions needed</Title>
+                            <EmptyStateIcon icon={ExclamationCircleIcon} />
+                            <Title headingLevel="h5" size="lg">Current usage is too high</Title>
                             <EmptyStateBody>
-                                To access this Service Registry instance, contact your organization administrators.
+                                This Service Registry instance is throttled due to a high request rate. Ensure
+                                that existing applications are properly configured to cache the schemas.
                             </EmptyStateBody>
                             <EmptyStateSecondaryActions>
                                 <Button variant="link"

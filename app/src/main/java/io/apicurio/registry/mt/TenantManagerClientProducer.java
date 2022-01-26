@@ -33,6 +33,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,7 +86,7 @@ public class TenantManagerClientProducer {
                             "but the no auth properties aren't properly configured");
                 }
 
-                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), clientConfigs, null, new AuthErrorHandler());
+                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
 
                 auth = new OidcAuth(httpClient,
                         properties.getTenantManagerClientId().get(),

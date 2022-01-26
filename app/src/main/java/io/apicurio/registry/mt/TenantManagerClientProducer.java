@@ -34,6 +34,9 @@ import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +47,9 @@ import java.util.Map;
  */
 @ApplicationScoped
 public class TenantManagerClientProducer {
+
+    @Inject
+    Logger log;
 
     @Inject
     @Current
@@ -88,9 +94,16 @@ public class TenantManagerClientProducer {
 
                 ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
 
+                Duration tokenExpirationReduction = null;
+                if (properties.getTenantManagerAuthTokenExpirationReductionMs().isPresent()) {
+                    log.info("Using configured tenant-manager auth token expiration reduction {}", properties.getTenantManagerAuthTokenExpirationReductionMs().get());
+                    tokenExpirationReduction = Duration.ofMillis(properties.getTenantManagerAuthTokenExpirationReductionMs().get());
+                }
+
                 auth = new OidcAuth(httpClient,
                         properties.getTenantManagerClientId().get(),
-                        properties.getTenantManagerClientSecret().get());
+                        properties.getTenantManagerClientSecret().get(),
+                        tokenExpirationReduction);
             }
 
             return OptionalBean.of(new TenantManagerClientImpl(properties.getTenantManagerUrl().get(), clientConfigs, auth));

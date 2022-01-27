@@ -8,13 +8,12 @@
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
-When using Kafka-based storage in {kafka-streams}, {registry} supports accessing a Kafka cluster that requires OAuth authentication. To enable this support, you must to set some environment variables in your {registry} deployment.
+When using Kafka-based storage in {kafka-streams}, {registry} supports accessing a Kafka cluster that requires OAuth authentication. To enable this support, you must set some environment variables in your {registry} deployment.
 
-When you set these environment variables, the Kafka producer and consumer applications in {registry} will use this configuration to authenticate to the Kafka cluster over OAuth.
-
+When these environment variables are set, the Kafka producer and consumer applications in {registry} will use this configuration to authenticate to the Kafka cluster over OAuth.
 
 .Prerequisites
-* You must have already configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage[].
+* You have already configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage[].
 
 .Procedure
 
@@ -29,16 +28,15 @@ When you set these environment variables, the Kafka producer and consumer applic
 | Enables SASL OAuth authentication for {registry} storage in Kafka. You must set this variable to `true` for the other variables to have effect.
 | `false`
 | `CLIENT_ID`
-| The client ID used to authenticate to Kafka. 
+| The client ID used to authenticate to the Kafka cluster. 
 | `-`
 | `CLIENT_SECRET`
-| The client secret used to authenticate to Kafka. 
+| The client secret used to authenticate to the Kafka cluster. 
 | `-`
 | `OAUTH_TOKEN_ENDPOINT_URI`
 | The URL of the OAuth identity server.
 | `\http://localhost:8090`
 |===
-
 
 .Additional resources
 

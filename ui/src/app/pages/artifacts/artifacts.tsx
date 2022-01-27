@@ -385,7 +385,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private onImportFileChange = (value: string | File, filename: string, event: any): void => {
-        Services.getLoggerService().debug("====> onImportFileChange: ", value, filename, event);
         if (value == "" && filename == "") {
             this.setMultiState({
                 importFilename: "",

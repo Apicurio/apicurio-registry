@@ -19,16 +19,19 @@ package io.apicurio.registry.utils.converter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.ParsedSchemaImpl;
-import io.apicurio.registry.serde.SchemaLookupResult;
-import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
+import io.apicurio.registry.utils.converter.json.JsonConverterMetadata;
+import io.apicurio.registry.utils.converter.json.JsonConverterRecord;
 import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 
 import org.apache.kafka.common.header.Headers;
@@ -48,11 +51,11 @@ import java.util.Objects;
  * @author Ales Justin
  * @author Fabian Martinez
  */
-public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode>, AutoCloseable {
+public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final ObjectMapper mapper;
     private FormatStrategy formatStrategy;
-
+    private boolean isKey;
 
     public ExtJsonConverter() {
         this(null);
@@ -72,7 +75,8 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey, this);
+        super.configure((Map<String, Object>)configs, isKey, this);
+        this.isKey = isKey;
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
         jsonConverter.configure(wrapper, isKey);
@@ -88,13 +92,9 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
         if (schema == null && value == null) {
             return null;
         }
-        JsonNode jsonSchema = jsonConverter.asJsonSchema(schema);
-        String schemaString = jsonSchema != null ? jsonSchema.toString() : null;
-        ParsedSchema<JsonNode> parsedSchema = new ParsedSchemaImpl<JsonNode>()
-                .setParsedSchema(jsonSchema)
-                .setRawSchema(IoUtil.toBytes(schemaString));
 
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(topic, headers, value, parsedSchema);
+        JsonConverterRecord<Object> record = new JsonConverterRecord<Object>(new JsonConverterMetadata(topic, isKey, headers, schema), value);
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(record);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 
@@ -110,7 +110,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
 
-        Schema schema = jsonConverter.asConnectSchema(schemaLookupResult.getSchema());
+        Schema schema = jsonConverter.asConnectSchema(schemaLookupResult.getParsedSchema().getParsedSchema());
 
         byte[] payload = ip.getPayload();
         SchemaAndValue sav = jsonConverter.toConnectData(topic, payload);
@@ -136,6 +136,19 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(io.apicurio.registry.resolver.data.Record)
+     */
+    @Override
+    public ParsedSchema<JsonNode> getSchemaFromData(Record<Object> data) {
+        JsonConverterRecord<Object> jcr = (JsonConverterRecord<Object>) data;
+        JsonNode jsonSchema = jsonConverter.asJsonSchema(jcr.metadata().getSchema());
+        String schemaString = jsonSchema != null ? jsonSchema.toString() : null;
+        return new ParsedSchemaImpl<JsonNode>()
+                .setParsedSchema(jsonSchema)
+                .setRawSchema(IoUtil.toBytes(schemaString));
     }
 
     /**

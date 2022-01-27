@@ -18,20 +18,24 @@ package io.apicurio.registry.serde.protobuf;
 
 import org.apache.kafka.common.errors.SerializationException;
 
+import com.google.protobuf.Message;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
-import io.apicurio.registry.serde.SchemaParser;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Fabian Martinez
  */
-public class ProtobufSchemaParser implements SchemaParser<ProtobufSchema> {
+public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
 
     /**
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
@@ -57,16 +61,27 @@ public class ProtobufSchemaParser implements SchemaParser<ProtobufSchema> {
     }
 
     /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     */
+    @Override
+    public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data) {
+        ProtoFileElement protoFileElement = toProtoFileElement(data.payload().getDescriptorForType().getFile());
+        ProtobufSchema protobufSchema = new ProtobufSchema(data.payload().getDescriptorForType().getFile(), protoFileElement);
+
+        byte[] rawSchema = IoUtil.toBytes(protoFileElement.toSchema());
+
+        return new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(protobufSchema)
+                .setRawSchema(rawSchema);
+    }
+
+    /**
      * This method converts the Descriptor to a ProtoFileElement that allows to get a textual representation .proto file
      * @param fileDescriptor
      * @return textual protobuf representation
      */
     public ProtoFileElement toProtoFileElement(FileDescriptor fileDescriptor) {
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
-    }
-
-    public byte[] serializeSchema(ProtoFileElement protoFileElement) {
-        return IoUtil.toBytes(protoFileElement.toSchema());
     }
 
 }

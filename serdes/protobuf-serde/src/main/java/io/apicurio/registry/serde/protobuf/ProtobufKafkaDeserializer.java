@@ -36,14 +36,15 @@ import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.SchemaResolver;
-import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
-import io.apicurio.registry.serde.utils.Utils;
+import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 
 /**
  * @author Ales Justin
@@ -54,7 +55,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
-    private ProtobufSchemaParser parser = new ProtobufSchemaParser();
+    private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
@@ -111,7 +112,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<ProtobufSchema> schemaParser() {
+    public SchemaParser<ProtobufSchema, U> schemaParser() {
         return parser;
     }
 

@@ -17,7 +17,17 @@
 
 import React from "react";
 import "./artifacts.css";
-import {Button, Flex, FlexItem, Modal, PageSection, PageSectionVariants, Spinner} from '@patternfly/react-core';
+import {
+    Button, FileUpload,
+    Flex,
+    FlexItem,
+    Form,
+    FormGroup,
+    Modal,
+    PageSection,
+    PageSectionVariants,
+    Spinner
+} from '@patternfly/react-core';
 import {ArtifactList} from "./components/artifactList";
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {ArtifactsPageToolbar, ArtifactsPageToolbarFilterCriteria} from "./components/toolbar";
@@ -29,6 +39,7 @@ import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging
 import {SearchedArtifact} from "../../../models";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 import {RootPageHeader} from "../../components";
+import {ProgressModal} from "../../components/modals/progressModal";
 
 
 /**
@@ -45,7 +56,9 @@ export interface ArtifactsPageProps extends PageProps {
 export interface ArtifactsPageState extends PageState {
     criteria: ArtifactsPageToolbarFilterCriteria;
     isUploadModalOpen: boolean;
+    isImportModalOpen: boolean;
     isUploadFormValid: boolean;
+    isImportFormValid: boolean;
     isInvalidContentModalOpen: boolean;
     isPleaseWaitModalOpen: boolean;
     isSearching: boolean;
@@ -54,6 +67,10 @@ export interface ArtifactsPageState extends PageState {
     uploadFormData: CreateArtifactData | null;
     invalidContentError: any | null;
     initFromSearch: string;
+    importFilename: string;
+    importFile: File | null;
+    isImporting: boolean;
+    importProgress: number;
 }
 
 /**
@@ -86,6 +103,8 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                               onPerPageSelect={this.onPerPageSelect}
                                               onSetPage={this.onSetPage}
                                               onUploadArtifact={this.onUploadArtifact}
+                                              onExportArtifacts={this.onExportArtifacts}
+                                              onImportArtifacts={this.onImportArtifacts}
                                               onCriteriaChange={this.onFilterChange}/>
                     </PageSection>
                 </If>
@@ -119,8 +138,40 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
+                <Modal
+                    title="Upload multiple artifacts"
+                    variant="large"
+                    isOpen={this.state.isImportModalOpen}
+                    onClose={this.onImportModalClose}
+                    className="import-artifacts-modal pf-m-redhat-font"
+                    actions={[
+                        <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={this.doImport} isDisabled={!this.state.isImportFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onImportModalClose}>Cancel</Button>
+                    ]}
+                >
+                    <Form>
+                        <FormGroup
+                            label="ZIP File"
+                            isRequired={true}
+                            fieldId="form-file"
+                        >
+                            <FileUpload
+                                id="import-content"
+                                data-testid="form-import"
+                                filename={this.state.importFilename}
+                                filenamePlaceholder="Drag and drop or choose a ZIP file"
+                                isRequired={true}
+                                onChange={this.onImportFileChange}
+
+                            />
+                        </FormGroup>
+                    </Form>
+                </Modal>
                 <PleaseWaitModal message="Creating artifact, please wait..."
                                  isOpen={this.state.isPleaseWaitModalOpen} />
+                <ProgressModal message="Importing artifacts, please wait..."
+                               progress={this.state.importProgress}
+                               isOpen={this.state.isImporting} />
             </React.Fragment>
         );
     }
@@ -148,12 +199,18 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return {
             criteria,
             initFromSearch,
+            isImporting: false,
+            importProgress: 0,
+            importFilename: "",
+            importFile: null,
             invalidContentError: null,
             isInvalidContentModalOpen: false,
             isPleaseWaitModalOpen: false,
             isSearching: false,
             isUploadFormValid: false,
+            isImportFormValid: false,
             isUploadModalOpen: false,
+            isImportModalOpen: false,
             paging: {
                 page: 1,
                 pageSize: 10
@@ -172,9 +229,26 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setSingleState("isUploadModalOpen", true);
     };
 
+    private onImportArtifacts = (): void => {
+        this.setSingleState("isImportModalOpen", true);
+    };
+
+    private onExportArtifacts = (): void => {
+        Services.getAdminService().exportAs("all-artifacts.zip").then(dref => {
+            const link = document.createElement("a");
+            link.href = dref.href;
+            link.download = `all-artifacts.zip`;
+            link.click();
+        }).catch(error => this.handleServerError(error, "Failed to export artifacts"));
+    };
+
     private onUploadModalClose = (): void => {
         this.setSingleState("isUploadModalOpen", false);
     };
+
+    private onImportModalClose = (): void => {
+        this.setSingleState("isImportModalOpen", false);
+    }
 
     private onArtifactsLoaded(results: ArtifactsSearchResults): void {
         this.setMultiState({
@@ -182,6 +256,31 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             results
         });
     }
+
+    private doImport = (): void => {
+        this.setMultiState({
+            isImporting: true,
+            importProgress: 0,
+            isImportModalOpen: false
+        });
+        if (this.state.importFile != null) {
+            Services.getAdminService().importFrom(this.state.importFile, (event: any) => {
+                let progress: number = 0;
+                if (event.lengthComputable) {
+                    progress = Math.round(100 * (event.loaded / event.total));
+                }
+                this.setSingleState("importProgress", progress);
+            }).then(() => {
+                setTimeout(() => {
+                    this.setMultiState({
+                        isImporting: false,
+                        importProgress: 100,
+                        isImportModalOpen: false
+                    }, this.search);
+                }, 1500);
+            }).catch(error => this.handleServerError(error, "Error importing multiple artifacts"));
+        }
+    };
 
     private doUploadArtifact = (): void => {
         this.onUploadModalClose();
@@ -283,6 +382,23 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
 
     private onUploadFormChange = (data: CreateArtifactData): void => {
         this.setSingleState("uploadFormData", data);
+    };
+
+    private onImportFileChange = (value: string | File, filename: string, event: any): void => {
+        Services.getLoggerService().debug("====> onImportFileChange: ", value, filename, event);
+        if (value == "" && filename == "") {
+            this.setMultiState({
+                importFilename: "",
+                importFile: null,
+                isImportFormValid: false
+            });
+        } else {
+            this.setMultiState({
+                importFilename: filename,
+                importFile: value,
+                isImportFormValid: true
+            });
+        }
     };
 
     private closeInvalidContentModal = (): void => {

@@ -120,15 +120,15 @@ public class SearchResourceImpl implements SearchResource {
                    String propertyKey;
                    String propertyValue;
                    if (delimiterIndex == 0) {
-                       throw new BadRequestException("property search filter wrong formatted, missing left side of  ':' delimiter");
+                       throw new BadRequestException("property search filter wrong formatted, missing left side of ':' delimiter");
                    }
                    if (delimiterIndex == (prop.length() - 1)) {
-                       throw new BadRequestException("property search filter wrong formatted, missing right side of  ':' delimiter");
+                       throw new BadRequestException("property search filter wrong formatted, missing right side of ':' delimiter");
                    }
                    if (delimiterIndex < 0) {
                        propertyKey = prop;
-                       propertyValue = "";
-                   }else{
+                       propertyValue = null;
+                   } else{
                        propertyKey = prop.substring(0, delimiterIndex);
                        propertyValue = prop.substring(delimiterIndex + 1);
                    }

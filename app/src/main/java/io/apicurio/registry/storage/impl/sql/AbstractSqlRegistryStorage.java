@@ -1086,7 +1086,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         binders.add((query, idx) -> {
                             query.bind(idx, propKey);
                         });
-                        if(propValue != ""){
+                        if (propValue != null) {
                             where.append("AND p.pvalue = ? ");
                             binders.add((query, idx) -> {
                                 query.bind(idx, propValue);

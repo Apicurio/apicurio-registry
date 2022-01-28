@@ -117,17 +117,21 @@ public class SearchResourceImpl implements SearchResource {
             properties.stream()
                 .map(prop -> {
                    int delimiterIndex = prop.indexOf(":");
-                   if (delimiterIndex < 0) {
-                       throw new BadRequestException("property search filter wrong formatted, missing ':' delimiter");
-                   }
+                   String propertyKey;
+                   String propertyValue;
                    if (delimiterIndex == 0) {
                        throw new BadRequestException("property search filter wrong formatted, missing left side of  ':' delimiter");
                    }
                    if (delimiterIndex == (prop.length() - 1)) {
                        throw new BadRequestException("property search filter wrong formatted, missing right side of  ':' delimiter");
                    }
-                   String propertyKey = prop.substring(0, delimiterIndex);
-                   String propertyValue = prop.substring(delimiterIndex + 1);
+                   if (delimiterIndex < 0) {
+                       propertyKey = prop;
+                       propertyValue = "";
+                   }else{
+                       propertyKey = prop.substring(0, delimiterIndex);
+                       propertyValue = prop.substring(delimiterIndex + 1);
+                   }
                    return SearchFilter.ofProperty(propertyKey, propertyValue);
                 })
                 .forEach(filters::add);

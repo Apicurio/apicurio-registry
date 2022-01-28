@@ -1082,13 +1082,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                         String propKey = property.getKey().toLowerCase();
                         String propValue = property.getValue().toLowerCase();
-                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.pvalue = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? ");
                         binders.add((query, idx) -> {
                             query.bind(idx, propKey);
                         });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, propValue);
-                        });
+                        if(propValue != ""){
+                            where.append("AND p.pvalue = ? ");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, propValue);
+                            });
+                        }
+                        where.append("AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
                         break;
                     case globalId:
                         where.append("(v.globalId = ?)");

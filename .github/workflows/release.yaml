@@ -59,39 +59,18 @@ jobs:
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
           git pull
 
-      - name: Apicurio Registry Examples Checkout
-        run: |
-          mkdir registry-examples
-          cd registry-examples
-          git init
-          git config --global user.name "apicurio-ci"
-          git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
-          git fetch
-          git checkout ${{ github.event.inputs.branch }}
-          git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
-          git pull
-
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           sed -i  "s/version\:\s.*/version: \'${{ github.event.inputs.release-version}}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ github.event.inputs.release-version}}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
-          cd ../registry-examples
-          mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          mvn versions:set-property -Dproperty=apicurio-registry.version -DgenerateBackupPoms=false -DnewVersion=${{ github.event.inputs.release-version}}
 
       - name: Build Registry (All Variants)
         run: |
           cd registry
           mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
           make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
-
-      - name: Build Examples
-        run: |
-          cd registry-examples
-          mvn clean install
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v1
@@ -114,16 +93,6 @@ jobs:
           git add .
           git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
           git push
-          cd ../registry-examples
-          git add .
-          git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
-          git push
-
-      - name: Tag Examples
-        run: |
-          cd registry-examples
-          git tag -a -m "Tagging release ${{ github.event.inputs.release-version}}" ${{ github.event.inputs.release-version}}
-          git push origin ${{ github.event.inputs.release-version}}
 
       - name: Determine Release Type
         if: "contains(github.event.inputs.release-version, 'RC')"
@@ -147,8 +116,6 @@ jobs:
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
           sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
-          cd ../registry-examples
-          mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
@@ -156,10 +123,6 @@ jobs:
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
-          cd ../registry-examples
-          git add .
-          git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
-          git push  
 
       # TODO: ${{ steps.create_release.outputs.html_url }} will not be available, since we're now using script to do github release. Need to explicitly fetch
       # - name: Tweet About The Release

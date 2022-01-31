@@ -870,14 +870,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
-     */
-    @Override
-    public String selectCurrentSequenceValue() {
-        return "SELECT `value` FROM sequences WHERE name = ? AND tenantId = ? ";
-    }
-    
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
     @Override
@@ -908,13 +900,4 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteExpiredDownloads() {
         return "DELETE FROM downloads d WHERE d.expires < ?";
     }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
-     */
-    @Override
-    public String insertSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, `value`) VALUES (?, ?, ?)";
-    }
-
 }

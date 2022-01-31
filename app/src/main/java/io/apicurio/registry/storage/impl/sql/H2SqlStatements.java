@@ -94,4 +94,19 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "MERGE INTO sequences (tenantId, name, `value`) KEY (tenantId, name) VALUES(?, ?, ?)";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectCurrentSequenceValue()
+     */
+    @Override
+    public String selectCurrentSequenceValue() {
+        return "SELECT `value` FROM sequences WHERE name = ? AND tenantId = ? ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertSequenceValue()
+     */
+    @Override
+    public String insertSequenceValue() {
+        return "INSERT INTO sequences (tenantId, name, `value`) VALUES (?, ?, ?)";
+    }
 }

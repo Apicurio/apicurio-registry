@@ -6,7 +6,7 @@
 UPDATE apicurio SET prop_value = 3 WHERE prop_name = 'db_version';
 
 -- create sequences table
-CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
+CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, `value` BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
 
 -- remove old sequences
@@ -22,8 +22,8 @@ ALTER TABLE contentV3 ADD CONSTRAINT UNQ_contentV3_1 UNIQUE (tenantId, contentHa
 -- migrate data to backup table
 INSERT INTO contentV3 (tenantId, contentId, canonicalHash, contentHash, content) SELECT DISTINCT(v.tenantId), v.contentId, c.canonicalHash, c.contentHash, c.content FROM versions v , content c WHERE v.contentId = c.contentId;
 -- seed sequences table
-INSERT INTO sequences (tenantId, name, value) SELECT v.tenantId, 'contentId', MAX(v.contentId) FROM versions v GROUP BY v.tenantId;
-INSERT INTO sequences (tenantId, name, value) SELECT v.tenantId, 'globalId', MAX(v.globalId) FROM versions v GROUP BY v.tenantId;
+INSERT INTO sequences (tenantId, name, `value`) SELECT v.tenantId, 'contentId', MAX(v.contentId) FROM versions v GROUP BY v.tenantId;
+INSERT INTO sequences (tenantId, name, `value`) SELECT v.tenantId, 'globalId', MAX(v.globalId) FROM versions v GROUP BY v.tenantId;
 
 -- change contentId constraint versions table, first remove the constraint as it depends on old content table
 ALTER TABLE versions DROP CONSTRAINT FK_versions_2;

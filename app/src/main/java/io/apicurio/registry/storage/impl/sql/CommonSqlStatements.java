@@ -874,7 +874,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectCurrentSequenceValue() {
-        return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
+        return "SELECT `value` FROM sequences WHERE name = ? AND tenantId = ? ";
     }
     
     /**
@@ -914,7 +914,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
+        return "INSERT INTO sequences (tenantId, name, `value`) VALUES (?, ?, ?)";
     }
 
 }

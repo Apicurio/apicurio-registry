@@ -231,7 +231,7 @@
         <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->
-        <version.puppycrawl>8.45.1</version.puppycrawl>
+        <version.puppycrawl>9.3</version.puppycrawl>
 
         <!-- Proto -->
         <proto-plugin.version>0.6.1</proto-plugin.version>

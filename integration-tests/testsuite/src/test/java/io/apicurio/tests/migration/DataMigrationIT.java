@@ -40,7 +40,9 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +50,6 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
@@ -60,11 +61,10 @@ import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 @Tag(Constants.MIGRATION)
 public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
-    private RegistryFacade registryFacade = RegistryFacade.getInstance();
+    private final RegistryFacade registryFacade = RegistryFacade.getInstance();
 
     @Test
     public void migrate() throws Exception {
-
         RegistryClient source = RegistryClientFactory.create(registryFacade.getSourceRegistryUrl());
 
         List<Long> globalIds = new ArrayList<>();
@@ -80,7 +80,6 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
             String artifactId = "avro-" + idx;
-
             var amd = source.createArtifact("avro-schemas", artifactId, avroSchema.generateSchemaStream());
             retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
             globalIds.add(amd.getGlobalId());
@@ -132,41 +131,31 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
-            String artifactId = "avro-" + idx;
-            String content = IoUtil.toString( avroSchema.generateSchemaStream());
+            String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString();
+            String content = IoUtil.toString(avroSchema.generateSchemaStream());
             var amd = source.createArtifact("avro-schemas", artifactId, IoUtil.toStream(content));
             retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
             artifacts.put("avro-schemas:" + artifactId, content);
 
-            String content2 = IoUtil.toString( avroSchema.generateSchemaStream());
+            String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
             var vmd = source.updateArtifact("avro-schemas", artifactId, IoUtil.toStream(content2));
             retry(() -> source.getContentByGlobalId(vmd.getGlobalId()));
             artifacts.put("avro-schemas:" + artifactId, content2);
         }
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.VALIDITY);
-        rule.setConfig("SYNTAX_ONLY");
-        source.createArtifactRule("avro-schemas", "avro-0", rule);
-
-        rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        source.createGlobalRule(rule);
-
-        //Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)
+        // Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
-            String artifactId = "avro-" + idx;
-            String content = IoUtil.toString( avroSchema.generateSchemaStream());
+            String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
+            String content = IoUtil.toString(avroSchema.generateSchemaStream());
             var amd = dest.createArtifact("avro-schemas", artifactId, IoUtil.toStream(content));
             retry(() -> dest.getContentByGlobalId(amd.getGlobalId()));
             artifacts.put("avro-schemas:" + artifactId, content);
         }
 
         for (int idx = 0; idx < 50; idx++) {
-            String artifactId = idx + "-" + UUID.randomUUID().toString();
-            String content = IoUtil.toString( jsonSchema.getSchemaStream());
+            String artifactId = idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
+            String content = IoUtil.toString(jsonSchema.getSchemaStream());
             var amd = dest.createArtifact("default", artifactId, IoUtil.toStream(content));
             retry(() -> dest.getContentByGlobalId(amd.getGlobalId()));
             artifacts.put("default:" + artifactId, content);
@@ -177,7 +166,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
         // Check that the import was successful
         retry(() -> {
-            for(var entry : artifacts.entrySet()) {
+            for (var entry : artifacts.entrySet()) {
                 String groupId = entry.getKey().split(":")[0];
                 String artifactId = entry.getKey().split(":")[1];
                 String content = entry.getValue();
@@ -185,9 +174,6 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }
-
-            assertEquals("SYNTAX_ONLY", dest.getArtifactRuleConfig("avro-schemas", "avro-0", RuleType.VALIDITY).getConfig());
-            assertEquals("BACKWARD", dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig());
         });
     }
 
@@ -222,6 +208,11 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             }
         });
 
+    }
+
+    @AfterEach
+    public void tearDownRegistries() throws IOException {
+        registryFacade.stopAndCollectLogs(null);
     }
 
     public InputStream generateExportedZip(Map<String, String> artifacts) {

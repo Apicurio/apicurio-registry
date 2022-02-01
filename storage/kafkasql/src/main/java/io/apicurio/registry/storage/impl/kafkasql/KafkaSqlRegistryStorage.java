@@ -89,6 +89,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -351,6 +352,29 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
 
         return contentHash;
+    }
+
+    private long ensureContentAndGetContentId(ContentHandle content, ArtifactType artifactType) {
+        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+        byte[] canonicalContentBytes = canonicalContent.bytes();
+        String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+        return ensureContentAndGetContentId(content, canonicalContentHash);
+    }
+
+    private long ensureContentAndGetContentId(ContentHandle content, String canonicalContentHash) {
+        byte[] contentBytes = content.bytes();
+        String contentHash = DigestUtils.sha256Hex(contentBytes);
+
+        if (!sqlStore.isContentExists(contentHash)) {
+            long contentId = nextClusterContentId();
+
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            UUID uuid = ConcurrentUtil.get(future);
+            coordinator.waitForResponse(uuid);
+            return contentId;
+        }
+
+        return sqlStore.contentIdFromHash(contentHash);
     }
 
     /**
@@ -946,23 +970,44 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
         Map<Long, Long> contentIdMapping = new HashMap<>();
+        // To handle issue, when we do not know new content id before importing the actual content
+        ArrayList<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
         try {
             Entity entity = null;
             while ((entity = entities.nextEntity()) != null) {
                 if (entity.getEntityType() == EntityType.ArtifactVersion) {
                     ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
                     if (!preserveGlobalId) {
-                        ((ArtifactVersionEntity) entity).globalId = -1;
+                        artifactVersionEntity.globalId = -1;
                     }
-                    if(!preserveContentId) {
-                        artifactVersionEntity.contentId = computeContentId(artifactVersionEntity.contentId, contentIdMapping);
+                    if (!preserveContentId) {
+                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
+                            // Add to the queue waiting for content imported
+                            waitingForContent.add(artifactVersionEntity);
+                            continue;
+                        }
+                        // Content of the artifact was already imported we can use the new contentId
+                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
                     }
                 }
                 if (entity.getEntityType() == EntityType.Content) {
                     ContentEntity contentEntity = (ContentEntity) entity;
                     if (!preserveContentId) {
-                        contentEntity.contentId = computeContentId(contentEntity.contentId, contentIdMapping);
+                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
+                        // It makes sure there won't be any conflicts
+                        long newContentId;
+                        if (contentEntity.artifactType != null) {
+                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes),  contentEntity.artifactType);
+                        } else {
+                            if (contentEntity.canonicalHash == null)
+                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
+                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.canonicalHash);
+                        }
+                        contentIdMapping.put(contentEntity.contentId, newContentId);
+                        continue;
                     }
+
+                    // We do not need canonicalHash if we have artifactType
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
                         ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
@@ -970,6 +1015,19 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 }
                 importEntity(entity);
             }
+
+            if (!preserveContentId) {
+                // Import artifact versions which were waiting for the content import
+                for (ArtifactVersionEntity artifactVersionEntity : waitingForContent) {
+                    if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
+                        // Content for this artifact was not included in the imported file -> skip and warn user
+                        continue;
+                    }
+                    artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
+                    importEntity(artifactVersionEntity);
+                }
+            }
+
             // Because importing just pushes a bunch of Kafka messages, we may need to
             // wait for a few seconds before we send the reset messages.  Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to

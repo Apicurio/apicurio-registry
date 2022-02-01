@@ -19,10 +19,7 @@ package io.apicurio.registry.rules.compatibility;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -66,9 +63,9 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
              existingArtifacts,
              context.getUpdatedContent());
         if (!compatibilityExecutionResult.isCompatible()) {
-            throw new RuleViolationException(String.format("Incompatible artifact: %s [%s], num of incompatible diffs: {%s}",
+            throw new RuleViolationException(String.format("Incompatible artifact: %s [%s], num of incompatible diffs: {%s}, list of diff types: %s",
                  context.getArtifactId(), context.getArtifactType(),
-                 compatibilityExecutionResult.getIncompatibleDifferences().size()),
+                 compatibilityExecutionResult.getIncompatibleDifferences().size(), outputReadableCompatabilityDiffs(compatibilityExecutionResult.getIncompatibleDifferences())),
                  RuleType.COMPATIBILITY, context.getConfiguration(),
                  transformCompatibilityDiffs(compatibilityExecutionResult.getIncompatibleDifferences()));
         }
@@ -88,6 +85,18 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
             return res;
         } else {
             return Collections.emptySet();
+        }
+    }
+
+    private List<String> outputReadableCompatabilityDiffs(Set<CompatibilityDifference> differences) {
+        if (!differences.isEmpty()) {
+            List<String> res = new ArrayList<String>();
+            for (CompatibilityDifference diff : differences) {
+                res.add(diff.asRuleViolation().getDescription() + " at " + diff.asRuleViolation().getContext());
+            }
+            return res;
+        } else {
+            return new ArrayList<String>();
         }
     }
 

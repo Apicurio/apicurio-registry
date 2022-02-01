@@ -20,8 +20,8 @@ import java.util.Map;
 
 import org.apache.kafka.common.header.Headers;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * Default implementation of FallbackArtifactProvider that simply uses config properties

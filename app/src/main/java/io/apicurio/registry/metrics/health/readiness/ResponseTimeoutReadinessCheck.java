@@ -89,7 +89,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
                 log.error("Value '{}' of header '{}' is the wrong format!", requestStart, HEADER_NAME);
             }
 
-        } else {
+        } else if (responseContext.getStatus() != 404){
             log.warn("Expected header '{}' not found.", HEADER_NAME);
         }
     }

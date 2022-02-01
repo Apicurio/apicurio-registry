@@ -47,15 +47,14 @@ export class AccessErrorPage extends ErrorPage {
                     <div className="centerizer">
                         <EmptyState variant={EmptyStateVariant.large}>
                             <EmptyStateIcon icon={LockedIcon} />
-                            <Title headingLevel="h5" size="lg">Access Denied</Title>
+                            <Title headingLevel="h5" size="lg">Access permissions needed</Title>
                             <EmptyStateBody>
-                                You are not authorized to access this registry instance.  Please request access
-                                from your administrator and then try again.
+                                To access this Service Registry instance, contact your organization administrators.
                             </EmptyStateBody>
                             <EmptyStateSecondaryActions>
                                 <Button variant="link"
-                                        data-testid="error-btn-artifacts"
-                                        onClick={this.navigateBack}>Go Back</Button>
+                                        data-testid="error-btn-back"
+                                        onClick={this.navigateBack}>Return to previous page</Button>
                             </EmptyStateSecondaryActions>
                         </EmptyState>
                     </div>

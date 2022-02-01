@@ -18,7 +18,8 @@ package io.apicurio.registry.serde;
 
 import java.util.Properties;
 
-import io.apicurio.registry.rest.client.config.ClientConfig;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
@@ -43,7 +44,7 @@ public class SerdeConfig {
      * there is a strategy to use the topic name as the schema's artifactId.  Only used by the
      * <em>Serializer</em> serde class.
      */
-    public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy";
+    public static final String ARTIFACT_RESOLVER_STRATEGY = SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY;
     public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = TopicIdStrategy.class.getName();
 
     /**
@@ -55,86 +56,91 @@ public class SerdeConfig {
     public static final String SCHEMA_RESOLVER_DEFAULT = DefaultSchemaResolver.class.getName();
 
     /**
+     * Property used internally to mark that a component is being configured for a kafka message key.
+     */
+    public static final String IS_KEY = "apicurio.registry.is-key";
+
+    /**
      * Optional, boolean to indicate whether serializer classes should attempt to create an artifact in the registry.
      * Note: JsonSchema serializer does not support this feature yet.
      */
-    public static final String AUTO_REGISTER_ARTIFACT = "apicurio.registry.auto-register";
-    public static final boolean AUTO_REGISTER_ARTIFACT_DEFAULT = false;
+    public static final String AUTO_REGISTER_ARTIFACT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT;
+    public static final boolean AUTO_REGISTER_ARTIFACT_DEFAULT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_DEFAULT;
 
     /**
      * Optional, one of {@link IfExists} to indicate the behavior of the client when there is a conflict creating an artifact because the artifact already exists.
      */
-    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS = "apicurio.registry.auto-register.if-exists";
-    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = IfExists.RETURN_OR_UPDATE.value();
+    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS;
+    public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT;
 
     /**
      * Optional, boolean to indicate whether serializer classes should attempt to find the latest artifact in the registry for the corresponding groupId/artifactId.
      * GroupId and artifactId are configured either via {@link ArtifactResolverStrategy} or via config properties such as {@link SerdeConfig#EXPLICIT_ARTIFACT_ID}.
      */
-    public static final String FIND_LATEST_ARTIFACT = "apicurio.registry.find-latest";
-    public static final boolean FIND_LATEST_ARTIFACT_DEFAULT = false;
+    public static final String FIND_LATEST_ARTIFACT = SchemaResolverConfig.FIND_LATEST_ARTIFACT;
+    public static final boolean FIND_LATEST_ARTIFACT_DEFAULT = SchemaResolverConfig.FIND_LATEST_ARTIFACT_DEFAULT;
 
     /**
      * Only applicable for serializers
      * Optional, set explicitly the groupId used for querying/creating an artifact.
      * Overrides the groupId returned by the {@link ArtifactResolverStrategy}
      */
-    public static final String EXPLICIT_ARTIFACT_GROUP_ID = "apicurio.registry.artifact.group-id";
+    public static final String EXPLICIT_ARTIFACT_GROUP_ID = SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID;
 
     /**
      * Only applicable for serializers
      * Optional, set explicitly the artifactId used for querying/creating an artifact.
      * Overrides the artifactId returned by the {@link ArtifactResolverStrategy}
      */
-    public static final String EXPLICIT_ARTIFACT_ID = "apicurio.registry.artifact.artifact-id";
+    public static final String EXPLICIT_ARTIFACT_ID = SchemaResolverConfig.EXPLICIT_ARTIFACT_ID;
 
     /**
      * Only applicable for serializers
      * Optional, set explicitly the version used for querying/creating an artifact.
      * Overrides the version returned by the {@link ArtifactResolverStrategy}
      */
-    public static final String EXPLICIT_ARTIFACT_VERSION = "apicurio.registry.artifact.version";
+    public static final String EXPLICIT_ARTIFACT_VERSION = SchemaResolverConfig.EXPLICIT_ARTIFACT_VERSION;
 
     /**
      * The URL of the Apicurio Registry.  Required when using any Apicurio Registry serde class (serializer or deserializer).
      */
-    public static final String REGISTRY_URL = "apicurio.registry.url";
+    public static final String REGISTRY_URL = SchemaResolverConfig.REGISTRY_URL;
 
     /**
      * The URL of the Token Endpoint. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry and AUTH_SERVICE_URL is not specified.
      */
-    public static final String AUTH_TOKEN_ENDPOINT = "apicurio.auth.service.token.endpoint";
+    public static final String AUTH_TOKEN_ENDPOINT = SchemaResolverConfig.AUTH_TOKEN_ENDPOINT;
 
     /**
      * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or deserializer) against a secured Apicurio Registry.
      */
-    public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
-    public static final String AUTH_SERVICE_URL_TOKEN_ENDPOINT = "/realms/%s/protocol/openid-connect/token";
+    public static final String AUTH_SERVICE_URL = SchemaResolverConfig.AUTH_SERVICE_URL;
+    public static final String AUTH_SERVICE_URL_TOKEN_ENDPOINT = SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT;
 
     /**
      * The Realm of the Auth Service.
      */
-    public static final String AUTH_REALM = "apicurio.auth.realm";
+    public static final String AUTH_REALM = SchemaResolverConfig.AUTH_REALM;
 
     /**
      * The Client Id of the Auth Service.
      */
-    public static final String AUTH_CLIENT_ID = "apicurio.auth.client.id";
+    public static final String AUTH_CLIENT_ID = SchemaResolverConfig.AUTH_CLIENT_ID;
 
     /**
      * The Secret of the Auth Service.
      */
-    public static final String AUTH_CLIENT_SECRET = "apicurio.auth.client.secret";
+    public static final String AUTH_CLIENT_SECRET = SchemaResolverConfig.AUTH_CLIENT_SECRET;
 
     /**
      * The Username of the Auth Service.
      */
-    public static final String AUTH_USERNAME = "apicurio.auth.username";
+    public static final String AUTH_USERNAME = SchemaResolverConfig.AUTH_USERNAME;
 
     /**
      * The Password of the Auth Service.
      */
-    public static final String AUTH_PASSWORD = "apicurio.auth.password";
+    public static final String AUTH_PASSWORD = SchemaResolverConfig.AUTH_PASSWORD;
 
     /**
      * Fully qualified Java classname of a class that implements {@link IdHandler} and is responsible
@@ -167,24 +173,24 @@ public class SerdeConfig {
     /**
      * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be fetched every time.
      */
-    public static final String CHECK_PERIOD_MS = "apicurio.registry.check-period-ms";
-    public static final long CHECK_PERIOD_MS_DEFAULT = 30000;
+    public static final String CHECK_PERIOD_MS = SchemaResolverConfig.CHECK_PERIOD_MS;
+    public static final long CHECK_PERIOD_MS_DEFAULT = SchemaResolverConfig.CHECK_PERIOD_MS_DEFAULT;
 
     /**
      * If a schema can not be retrieved from the Registry, serdes may retry a number of times.
      * This configuration option controls the number of retries before failing.
      * Valid values are non-negative integers.
      */
-    public static final String RETRY_COUNT = "apicurio.registry.retry-count";
-    public static final long RETRY_COUNT_DEFAULT = 3;
+    public static final String RETRY_COUNT = SchemaResolverConfig.RETRY_COUNT;
+    public static final long RETRY_COUNT_DEFAULT = SchemaResolverConfig.RETRY_COUNT_DEFAULT;
 
     /**
      * If a schema can not be be retrieved from the Registry, serdes may retry a number of times.
      * This configuration option controls the delay between the retry attempts, in milliseconds.
      * Valid values are non-negative integers.
      */
-    public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
-    public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
+    public static final String RETRY_BACKOFF_MS = SchemaResolverConfig.RETRY_BACKOFF_MS;
+    public static final long RETRY_BACKOFF_MS_DEFAULT = SchemaResolverConfig.RETRY_BACKOFF_MS_DEFAULT;
 
     /**
      * Configures the serdes to use the specified {@link IdOption} as the identifier for the artifacts.
@@ -201,35 +207,35 @@ public class SerdeConfig {
      *
      * <code>apicurio.registry.request.headers.Authorization=BASIC Y2tlbnQ6a3J5cHQwbnIwY2tzIQ==</code>
      */
-    public static final String REQUEST_HEADERS_PREFIX = ClientConfig.REGISTRY_REQUEST_HEADERS_PREFIX;
+    public static final String REQUEST_HEADERS_PREFIX = SchemaResolverConfig.REQUEST_HEADERS_PREFIX;
     /**
      * Location of a trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_LOCATION;
+    public static final String REQUEST_TRUSTSTORE_LOCATION = SchemaResolverConfig.REQUEST_TRUSTSTORE_LOCATION;
     /**
      * Type of trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_TYPE;
+    public static final String REQUEST_TRUSTSTORE_TYPE = SchemaResolverConfig.REQUEST_TRUSTSTORE_TYPE;
     /**
      * Password of the trust store to use when connecting to the registry via SSL.
      */
-    public static final String REQUEST_TRUSTSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_TRUSTSTORE_PASSWORD;
+    public static final String REQUEST_TRUSTSTORE_PASSWORD = SchemaResolverConfig.REQUEST_TRUSTSTORE_PASSWORD;
     /**
      * Location of a keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_LOCATION = ClientConfig.REGISTRY_REQUEST_KEYSTORE_LOCATION;
+    public static final String REQUEST_KEYSTORE_LOCATION = SchemaResolverConfig.REQUEST_KEYSTORE_LOCATION;
     /**
      * Type of keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_TYPE = ClientConfig.REGISTRY_REQUEST_KEYSTORE_TYPE;
+    public static final String REQUEST_KEYSTORE_TYPE = SchemaResolverConfig.REQUEST_KEYSTORE_TYPE;
     /**
      * Password of the keystore to use when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEYSTORE_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEYSTORE_PASSWORD;
+    public static final String REQUEST_KEYSTORE_PASSWORD = SchemaResolverConfig.REQUEST_KEYSTORE_PASSWORD;
     /**
      * Key password used when e.g. connecting to the registry via mTLS.
      */
-    public static final String REQUEST_KEY_PASSWORD = ClientConfig.REGISTRY_REQUEST_KEY_PASSWORD;
+    public static final String REQUEST_KEY_PASSWORD = SchemaResolverConfig.REQUEST_KEY_PASSWORD;
 
     /**
      * Boolean used to enable or disable validation. Not applicable to all serde classes.  For example, the

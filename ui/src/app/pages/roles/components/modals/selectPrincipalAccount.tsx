@@ -19,12 +19,15 @@ import React from 'react';
 import { Divider, Select, SelectGroup, SelectOption, SelectVariant, } from '@patternfly/react-core';
 import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import { Principal } from '../../../../../services/config';
+import {RoleMapping} from "../../../../../models";
 
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;
     onIdUpdate: (id: string) => void;
     initialOptions: Principal[];
     onToggle: (isOpen: boolean) => void;
+    isUpdateAccess: boolean;
+    defaultRole?: RoleMapping;
 }
 
 export interface SelectPrincipalAccountState extends PureComponentState {
@@ -37,7 +40,8 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     constructor(props: Readonly<SelectPrincipalAccountProps>) {
         super(props);
     }
-    protected componentDidUpdate(prevProps: SelectPrincipalAccountProps) {
+
+    componentDidUpdate(prevProps: SelectPrincipalAccountProps){
         if (this.props.id && this.props.id !== prevProps.id) {
             this.setSingleState("id", this.props.id);
         }
@@ -73,6 +77,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
     }
 
     public render(): React.ReactElement {
+        const {isUpdateAccess, defaultRole} = this.props;
         const children: React.ReactElement[] = this.filter(null, "");
 
         return (
@@ -85,13 +90,14 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 selections={this.state.id}
                 isOpen={this.state.isOpen}
                 isInputValuePersisted={true}
-                placeholderText={"Select an account"}
+                placeholderText={isUpdateAccess ? defaultRole?.principalId : "Select an account"}
                 isCreatable={false}
                 menuAppendTo="parent"
                 maxHeight={400}
                 isGrouped={true}
                 onFilter={this.filter}
                 children={children}
+                isDisabled={isUpdateAccess}
             />
         );
     };

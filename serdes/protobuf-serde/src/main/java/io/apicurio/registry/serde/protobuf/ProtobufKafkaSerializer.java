@@ -25,22 +25,19 @@ import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.google.protobuf.Message;
 
 import io.apicurio.registry.protobuf.ProtobufDifference;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.ParsedSchemaImpl;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.SchemaResolver;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Ales Justin
@@ -52,14 +49,14 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     private Boolean validationEnabled;
 
     private ProtobufSerdeHeaders serdeHeaders;
-    private ProtobufSchemaParser parser = new ProtobufSchemaParser();
+    private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     public ProtobufKafkaSerializer() {
         super();
     }
 
     public ProtobufKafkaSerializer(RegistryClient client,
-            ArtifactResolverStrategy<ProtobufSchema> artifactResolverStrategy,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
             SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
@@ -86,23 +83,8 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
      * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
      */
     @Override
-    public SchemaParser<ProtobufSchema> schemaParser() {
+    public SchemaParser<ProtobufSchema, U> schemaParser() {
         return parser;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#getSchemaFromData(java.lang.Object)
-     */
-    @Override
-    protected ParsedSchema<ProtobufSchema> getSchemaFromData(U data) {
-        ProtoFileElement protoFileElement = parser.toProtoFileElement(data.getDescriptorForType().getFile());
-        ProtobufSchema protobufSchema = new ProtobufSchema(data.getDescriptorForType().getFile(), protoFileElement);
-
-        byte[] rawSchema = IoUtil.toBytes(protoFileElement.toSchema());
-
-        return new ParsedSchemaImpl<ProtobufSchema>()
-                .setParsedSchema(protobufSchema)
-                .setRawSchema(rawSchema);
     }
 
     /**

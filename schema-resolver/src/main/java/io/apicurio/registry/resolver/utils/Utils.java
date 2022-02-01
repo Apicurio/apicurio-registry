@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde.utils;
+package io.apicurio.registry.resolver.utils;
 
 import java.util.function.Consumer;
 

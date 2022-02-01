@@ -16,18 +16,19 @@
 
 package io.apicurio.registry.content.canon;
 
-import java.io.IOException;
-import javax.xml.parsers.ParserConfigurationException;
-import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.content.ContentHandle;
 import org.apache.xml.security.Init;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
-import org.xml.sax.SAXException;
-import io.apicurio.registry.content.ContentHandle;
+import org.apache.xml.security.parser.XMLParserException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
  * A common XML content canonicalizer.
+ *
  * @author cfoskin@redhat.com
  */
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
@@ -54,9 +55,11 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
     public ContentHandle canonicalize(ContentHandle content) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
-            String canonicalized = IoUtil.toString(canon.canonicalize(content.bytes()));
+            var out = new ByteArrayOutputStream(content.sizeHint());
+            canon.canonicalize(content.bytes(), out, false); // TODO secureValidation?
+            var canonicalized = out.toString(Canonicalizer.ENCODING);
             return ContentHandle.create(canonicalized);
-        } catch (CanonicalizationException | ParserConfigurationException | IOException | SAXException e) {
+        } catch (CanonicalizationException | IOException | XMLParserException e) {
         }
         return content;
     }

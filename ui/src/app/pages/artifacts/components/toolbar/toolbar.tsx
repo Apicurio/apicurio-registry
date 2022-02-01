@@ -23,7 +23,7 @@ import {
     DropdownItem,
     DropdownToggle,
     Form,
-    InputGroup,
+    InputGroup, KebabToggle,
     Pagination,
     TextInput,
     Toolbar,
@@ -53,6 +53,8 @@ export interface ArtifactsPageToolbarProps extends PureComponentProps {
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
     onUploadArtifact: () => void;
+    onImportArtifacts: () => void;
+    onExportArtifacts: () => void;
 }
 
 /**
@@ -61,6 +63,7 @@ export interface ArtifactsPageToolbarProps extends PureComponentProps {
 export interface ArtifactsPageToolbarState extends PureComponentState {
     filterIsExpanded: boolean;
     criteria: ArtifactsPageToolbarFilterCriteria;
+    kebabIsOpen: boolean;
 }
 
 /**
@@ -132,6 +135,24 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                             </IfFeature>
                         </IfAuth>
                     </ToolbarItem>
+                    <ToolbarItem className="admin-actions-item">
+                        <IfAuth isAdmin={true}>
+                            <Dropdown
+                                onSelect={this.onKebabSelect}
+                                toggle={<KebabToggle onToggle={this.onKebabToggle} />}
+                                isOpen={this.state.kebabIsOpen}
+                                isPlain
+                                dropdownItems={[
+                                    <DropdownItem key="import" id="import-action" data-testid="toolbar-import" component="button">Upload multiple artifacts</DropdownItem>,
+                                    <DropdownItem key="export" id="export-action" data-testid="toolbar-export" component="button">Download all artifacts (zip)</DropdownItem>
+                                ]}
+                            />
+
+
+                            {/*<Button className="btn-header-export-artifacts" data-testid="btn-header-export-artifacts"*/}
+                            {/*        variant="secondary" onClick={this.props.onExportArtifacts}>Export all artifacts</Button>*/}
+                        </IfAuth>
+                    </ToolbarItem>
                     <ToolbarItem className="artifact-paging-item">
                         <Pagination
                             variant="bottom"
@@ -153,7 +174,8 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
     protected initializeState(): ArtifactsPageToolbarState {
         return {
             filterIsExpanded: false,
-            criteria: this.props.criteria
+            criteria: this.props.criteria,
+            kebabIsOpen: false
         }
     }
 
@@ -179,6 +201,24 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
         }, () => {
             this.fireOnChange();
         });
+    };
+
+    private onKebabSelect = (event: React.SyntheticEvent<HTMLDivElement>|undefined): void => {
+        const value: string = event && event.currentTarget && event.currentTarget.id ? event.currentTarget.id : "";
+        Services.getLoggerService().debug("[ArtifactsPageToolbar] Toolbar action: ", value);
+        this.onKebabToggle(false);
+        switch (value) {
+            case "import-action":
+                this.props.onImportArtifacts();
+                break;
+            case "export-action":
+                this.props.onExportArtifacts();
+                break;
+        }
+    };
+
+    private onKebabToggle = (isOpen: boolean) => {
+        this.setSingleState("kebabIsOpen", isOpen);
     };
 
     private onFilterValueChange = (value: any): void => {

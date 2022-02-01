@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -623,5 +624,127 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals("AVRO", types[2]);
     }
 
+    @Test
+    public void testDeleteSchemaVersion() throws Exception {
+        final String SUBJECT = "testDeleteSchemaVersion";
+
+        final Integer contentId1 = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(contentId1);
+
+        this.waitForArtifact(SUBJECT);
+
+        final Integer contentId2 = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_2_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+
+        Assertions.assertNotNull(contentId2);
+
+        this.waitForContentId(contentId2);
+
+        //check versions list
+        var versionsConfluent = given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+            .then()
+            .statusCode(200)
+            .extract().as(Integer[].class);
+
+        assertEquals(2, versionsConfluent.length);
+
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
+            .then()
+            .statusCode(200);
+
+
+        var versionsApicurio = given()
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(VersionSearchResults.class)
+                .getVersions();
+
+        assertEquals(2, versionsApicurio.size());
+
+        //delete version 2
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .delete("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
+            .then()
+            .statusCode(200);
+
+        versionsConfluent = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(Integer[].class);
+
+            assertEquals(1, versionsConfluent.length);
+
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
+            .then()
+            .statusCode(200);
+
+        versionsApicurio = given()
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(VersionSearchResults.class)
+                .getVersions();
+
+        assertEquals(1, versionsApicurio.size());
+
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1/meta", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/meta", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}", SUBJECT)
+            .then()
+            .statusCode(200);
+    }
 
 }

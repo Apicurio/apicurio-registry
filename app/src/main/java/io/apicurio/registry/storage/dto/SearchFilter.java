@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.storage.dto;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -33,21 +35,61 @@ public class SearchFilter {
     /**
      * Constructor.
      * @param type
-     * @param value string
+     * @param value object
      */
-    public SearchFilter(SearchFilterType type, String value) {
+    private SearchFilter(SearchFilterType type, Object value) {
         this.type = type;
         this.value = value;
     }
 
-    /**
-     * Constructor.
-     * @param type
-     * @param value integer
-     */
-    public SearchFilter(SearchFilterType type, Integer value) {
-        this.type = type;
-        this.value = value;
+    public static SearchFilter ofProperty(String propertyKey, String propertyValue) {
+        return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
+    }
+
+    public static SearchFilter ofGlobalId(Integer value) {
+        return new SearchFilter(SearchFilterType.globalId, value);
+    }
+
+    public static SearchFilter ofContentId(Integer value) {
+        return new SearchFilter(SearchFilterType.contentId, value);
+    }
+
+    public static SearchFilter ofName(String value) {
+        return new SearchFilter(SearchFilterType.name, value);
+    }
+
+    public static SearchFilter ofDescription(String value) {
+        return new SearchFilter(SearchFilterType.description, value);
+    }
+
+    public static SearchFilter ofGroup(String value) {
+        return new SearchFilter(SearchFilterType.group, value);
+    }
+
+    public static SearchFilter ofLabel(String value) {
+        return new SearchFilter(SearchFilterType.labels, value);
+    }
+
+    public static SearchFilter ofCanonicalHash(String value) {
+        return new SearchFilter(SearchFilterType.canonicalHash, value);
+    }
+
+    public static SearchFilter ofContentHash(String value) {
+        return new SearchFilter(SearchFilterType.contentHash, value);
+    }
+
+    public static SearchFilter ofEverything(String value) {
+        return new SearchFilter(SearchFilterType.everything, value);
+    }
+
+    public Pair<String, String> getPropertyFilterValue() {
+        if (value == null) {
+            return null;
+        }
+        if (this.value instanceof Pair) {
+            return (Pair<String, String>) this.value;
+        }
+        throw new IllegalStateException("value is not of type pair");
     }
 
     /**

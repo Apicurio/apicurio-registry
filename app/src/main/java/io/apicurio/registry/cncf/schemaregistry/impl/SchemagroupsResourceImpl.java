@@ -43,7 +43,6 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
@@ -146,7 +145,7 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
     public List<String> getSchemasByGroup(String groupId) {
         verifyGroupExists(groupId);
         Set<SearchFilter> filters = new HashSet<>();
-        filters.add(new SearchFilter(SearchFilterType.group, groupId));
+        filters.add(SearchFilter.ofGroup(groupId));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 1000);
 

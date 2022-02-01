@@ -83,6 +83,10 @@ public class MultitenancyProperties {
     Optional<String> tenantManagerUrl;
 
     @Inject
+    @ConfigProperty(name = "registry.tenant.manager.ssl.ca.path")
+    Optional<String> tenantManagerCAFilePath;
+
+    @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.enabled")
     Optional<Boolean> tenantManagerAuthEnabled;
 
@@ -97,6 +101,10 @@ public class MultitenancyProperties {
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.client-secret")
     Optional<String> tenantManagerClientSecret;
+
+    @Inject
+    @ConfigProperty(name = "registry.tenant.manager.auth.token.expiration.reduction.ms")
+    Optional<Long> tenantManagerAuthTokenExpirationReductionMs;
 
     @PostConstruct
     void init() {
@@ -185,6 +193,13 @@ public class MultitenancyProperties {
     }
 
     /**
+     * @return the tenantManagerCAFilePath
+     */
+    public Optional<String> getTenantManagerCAFilePath() {
+        return tenantManagerCAFilePath;
+    }
+
+    /**
      * @return true if tenant management authentication is enabled
      */
     public boolean isTenantManagerAuthEnabled() {
@@ -210,5 +225,9 @@ public class MultitenancyProperties {
      */
     public Optional<String> getTenantManagerClientSecret() {
         return tenantManagerClientSecret;
+    }
+
+    public Optional<Long> getTenantManagerAuthTokenExpirationReductionMs() {
+        return tenantManagerAuthTokenExpirationReductionMs;
     }
 }

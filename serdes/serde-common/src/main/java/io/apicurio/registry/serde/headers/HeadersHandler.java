@@ -20,7 +20,8 @@ import java.util.Map;
 
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+
 
 /**
  * Common interface for headers handling when serializing/deserializing kafka records that have {@link Headers}

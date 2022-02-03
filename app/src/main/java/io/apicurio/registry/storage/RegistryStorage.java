@@ -26,6 +26,7 @@ import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.LogConfigurationDto;
@@ -593,8 +594,9 @@ public interface RegistryStorage {
      * Creates a role mapping for a user.
      * @param principalId
      * @param role
+     * @param principalName
      */
-    public void createRoleMapping(String principalId, String role) throws RegistryStorageException;
+    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException;
 
     /**
      * Gets the list of all the role mappings in the registry.
@@ -631,4 +633,25 @@ public interface RegistryStorage {
      * Deletes ALL user (tenant) data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
+
+    /**
+     * Called to create a single-use download "link".  This can then be consumed using
+     * "consumeDownload()".  Used to support browser flows for features like /admin/export.
+     * @param context
+     * @throws RegistryStorageException
+     */
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException;
+
+    /**
+     * Called to consume a download from the DB (single-use) and return its context info.
+     * @param downloadId
+     */
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException;
+
+    /**
+     * Called to delete any expired rows in the downloads table.  This is basically cleaning up
+     * any single-use download links that were never "clicked".
+     * @throws RegistryStorageException
+     */
+    public void deleteAllExpiredDownloads() throws RegistryStorageException;
 }

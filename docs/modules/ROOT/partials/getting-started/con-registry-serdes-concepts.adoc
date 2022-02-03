@@ -1,7 +1,7 @@
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-[id='registry-serdes-concepts-serde-{context}']
+[id='registry-serdes-concepts-serde_{context}']
 
 = Kafka client applications and {registry}
 
@@ -29,8 +29,8 @@ A producer client application uses a serializer to put the messages that it send
 
 To enable a producer to use {registry} for serialization:
 
-* xref:registry-serdes-register-{context}[Define and register your schema with {registry}] (if it does not already exist).
-* xref:registry-serdes-config-producer-{context}[Configure your producer client code] with the following:
+* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist).
+* xref:registry-serdes-config-producer_{context}[Configure your producer client code] with the following:
 
 ** URL of {registry}
 ** {registry} serializer to use with messages
@@ -47,8 +47,8 @@ A consumer client application uses a deserializer to get the messages that it co
 
 To enable a consumer to use {registry} for deserialization:
 
-* xref:registry-serdes-register-{context}[Define and register your schema with {registry}] (if it does not already exist)
-* xref:registry-serdes-config-consumer-{context}[Configure the consumer client code]  with the following:
+* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist)
+* xref:registry-serdes-config-consumer_{context}[Configure the consumer client code]  with the following:
 ** URL of {registry}
 ** {registry} deserializer to use with the messages
 ** Input data stream for deserialization
@@ -71,4 +71,4 @@ Then when you start Kafka and {registry}, you can access the schema to format me
 .Retrieve schemas using a content ID
 Alternatively, you can configure to retrieve schemas from {registry} based on the content ID, which is the unique ID of the artifact content. While the global ID is the unique ID of an artifact version. 
 
-The content ID does not uniquely identify a version, but uniquely identifies the version content only. If multiple versions share the exact same content, they have a different global ID but the same content ID. The Confluent schema registry uses content ID by default.
+The content ID does not uniquely identify a version, but uniquely identifies the version content only. If multiple versions share the exact same content, they have a different global ID but the same content ID. Confluent Schema Registry uses content ID by default.

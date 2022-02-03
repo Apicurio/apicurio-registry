@@ -1,7 +1,7 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
-[id="migrating-registry-data"]
+[id="migrating-registry-data_{context}"]
 = Migrating {registry} data
 
 [role="_abstract"]
@@ -15,10 +15,10 @@ Migrating data to {registry} 2.x requires exporting all data from your existing 
 * Running {registry} instances of the {registry-v1} server you are exporting from and the 2.x server you are importing into.
 * Download the 
 ifdef::apicurio-registry[]
-link:https://github.com/Apicurio/apicurio-registry/releases/download/2.0.0.Final/apicurio-registry-utils-exportV1-2.0.0.Final.jar[{registry} export tool]. 
+link:https://github.com/Apicurio/apicurio-registry/releases/download/{registry-release}/apicurio-registry-utils-exportV1-{registry-release}.jar[{registry} exportV1 tool] from GitHub. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration[{registry} export tool]. 
+link:https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration[{registry} exportV1 tool] from the Red Hat Customer Portal. 
 endif::[]
 This is a Java application that you can run on the command line.
 
@@ -26,14 +26,14 @@ This is a Java application that you can run on the command line.
 
 . Export all the data from {registry} {registry-v1} using the `exportV1` tool. This generates a `registry-export.zip` file in your current directory:
 +
-[source,bash]
+[source,bash, subs="attributes+"]
 ----
-java -jar apicurio-registry-utils-exportV1-2.0.0.Final.jar http://old-registry.my-company.com/api
+java -jar apicurio-registry-utils-exportV1-{registry-release}.jar http://old-registry.my-company.com/api
 ----
 
 . Import the `.zip` file into {registry} 2.x using the import API: 
 +
-[source,bash]
+[source,bash, subs="attributes+"]
 ----
 curl -X POST "http://new-registry.my-company.com/apis/registry/v2/admin/import" \
   -H "Accept: application/json" -H "Content-Type: application/zip" \
@@ -42,12 +42,12 @@ curl -X POST "http://new-registry.my-company.com/apis/registry/v2/admin/import" 
 
 . Check that all the artifacts have been imported into the new 2.x registry by running these commands and comparing the count field:
 +
-[source,bash]
+[source,bash, subs="attributes+"]
 ----
 curl "http://old-registry.my-company.com/api/search/artifacts"
 ----
 +
-[source,bash]
+[source,bash, subs="attributes+"]
 ----
 curl "http://new-registry.my-company.com/apis/registry/v2/search/artifacts"
 ----
@@ -56,9 +56,9 @@ curl "http://new-registry.my-company.com/apis/registry/v2/search/artifacts"
 .Additional resources
 * For more details on the import/export REST API, see 
 ifdef::apicurio-registry[]
-link:https://www.apicur.io/registry/docs/apicurio-registry/2.0.0.Final/getting-started/assembly-managing-registry-artifacts-api.html#exporting-importing-using-rest-api[Exporting and importing registry content using REST API commands]
+{managing-registry-artifacts-api}
 endif::[]
 ifdef::rh-service-registry[]
 the link:{LinkServiceRegistryUser}#exporting-importing-using-rest-api[{NameServiceRegistryUser}]
 endif::[]
-* For more details on the export tool for migrating from version 1.x to 2.x, see the link:https://github.com/Apicurio/apicurio-registry/tree/master/utils/exportV1[Apicurio Registry export utility for 1.x versions]
+* For more details on the export tool for migrating from version 1.x to 2.x, see the link:https://github.com/Apicurio/apicurio-registry/tree/2.0.x/utils/exportV1[Apicurio Registry export utility for 1.x versions]

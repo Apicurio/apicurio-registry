@@ -19,6 +19,9 @@ package io.apicurio.tests.multitenancy;
 import java.util.Collections;
 import java.util.UUID;
 
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.junit.jupiter.api.Assertions;
 
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
@@ -44,15 +47,25 @@ public class MultitenancySupport {
         //singleton
     }
 
+    ApicurioHttpClient httpClient;
+
+    protected ApicurioHttpClient getHttpClient(String serverUrl) {
+        if (httpClient == null) {
+            httpClient = ApicurioHttpClientFactory.create(serverUrl, new AuthErrorHandler());
+        }
+        return httpClient;
+    }
+
     public TenantUserClient createTenant() throws Exception {
-        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        TenantUser user = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString());
         return createTenant(user);
     }
 
     public TenantUserClient createTenant(TenantUser user) throws Exception {
         String tenantAppUrl = registerTenant(user);
         var client = createUserClient(user, tenantAppUrl);
-        return new TenantUserClient(user, tenantAppUrl, client);
+        registryFacade.getMTOnlyKeycloakMock().addStubForTenant(user.principalId, user.principalPassword, user.organizationId);
+        return new TenantUserClient(user, tenantAppUrl, client, registryFacade.getMTOnlyKeycloakMock().tokenEndpoint);
     }
 
     private String registerTenant(TenantUser user) throws Exception {
@@ -72,15 +85,20 @@ public class MultitenancySupport {
         return tenantAppUrl;
     }
 
-    public RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
+    public RegistryClient createUserClientCustomJWT(TenantUser user, String tenantAppUrl) {
         return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new CustomJWTAuth(user.principalId, user.organizationId));
+    }
+
+    public RegistryClient createUserClient(TenantUser user, String tenantAppUrl) {
+        var keycloak = registryFacade.getMTOnlyKeycloakMock();
+        return RegistryClientFactory.create(tenantAppUrl, Collections.emptyMap(), new OidcAuth(getHttpClient(keycloak.tokenEndpoint), user.principalId, user.principalPassword));
     }
 
     public synchronized TenantManagerClient getTenantManagerClient() {
         if (tenantManager == null) {
             var keycloak = registryFacade.getMTOnlyKeycloakMock();
             tenantManager = new TenantManagerClientImpl(registryFacade.getTenantManagerUrl(), Collections.emptyMap(),
-                    new OidcAuth(keycloak.tokenEndpoint, keycloak.clientId, keycloak.clientSecret));
+                    new OidcAuth(getHttpClient(keycloak.tokenEndpoint), keycloak.clientId, keycloak.clientSecret));
         }
         return tenantManager;
     }

@@ -93,16 +93,17 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             }
 
             // To test that the data was removed, we will change the tenant status back to ready
-            // TODO Make sure this is safe to do in the future
             for (int i = 0; i < 53; i++) {
                 updateTenantStatus(tenantManager, tenants.get(i).user.tenantId, TenantStatusValue.READY);
             }
 
             // Wait for the reaper again, because it also purges the tenant loader cache
             TestUtils.waitFor("tenant reaper 2", 3000, 6 * 3000, () -> {
-                RegistryClient client = tenants.get(0).client;
                 try {
-                    client.listArtifactsInGroup(groupId);
+                    for (int i = 0; i < 53; i++) {
+                        RegistryClient client = tenants.get(i).client;
+                        client.listArtifactsInGroup(groupId);
+                    }
                     return true; // The API is available again
                 } catch (RestClientException ex) {
                     return false;
@@ -112,7 +113,6 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
             // First 53 tenants should be "empty" and the last 2 should keep their content
             for (int i = 0; i < 53; i++) {
                 RegistryClient client = tenants.get(i).client;
-                client.listArtifactsInGroup(groupId);
                 Assertions.assertEquals(0, client.listArtifactsInGroup(groupId).getCount());
             }
             Assertions.assertEquals(2, tenants.get(53).client.listArtifactsInGroup(groupId).getCount());

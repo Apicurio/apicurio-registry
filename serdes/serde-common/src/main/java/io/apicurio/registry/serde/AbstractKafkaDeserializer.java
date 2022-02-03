@@ -17,18 +17,23 @@
 
 package io.apicurio.registry.serde;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaDeserializerConfig;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.serde.utils.Utils;
 
 /**
  * @author Ales Justin
@@ -101,11 +106,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         int length = buffer.limit() - 1 - getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
 
-        ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
-                .setRawSchema(schema.getRawSchema())
-                .setParsedSchema(schema.getSchema());
-
-        return readData(parsedSchema, buffer, start, length);
+        return readData(schema.getParsedSchema(), buffer, start, length);
     }
 
     @Override
@@ -138,11 +139,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         int length = buffer.limit();
         int start = buffer.position();
 
-        ParsedSchema<T> parsedSchema = new ParsedSchemaImpl<T>()
-                .setRawSchema(schema.getRawSchema())
-                .setParsedSchema(schema.getSchema());
-
-        return readData(headers, parsedSchema, buffer, start, length);
+        return readData(headers, schema.getParsedSchema(), buffer, start, length);
     }
 
     private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
@@ -163,4 +160,12 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         }
     }
 
+    @Override
+    public void close() {
+        try {
+            this.schemaResolver.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

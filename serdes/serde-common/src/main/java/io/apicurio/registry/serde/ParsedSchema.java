@@ -17,8 +17,10 @@
 package io.apicurio.registry.serde;
 
 /**
+ * This interface is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.ParsedSchema}
  * @author Fabian Martinez
  */
+@Deprecated
 public interface ParsedSchema<T> {
 
     /**

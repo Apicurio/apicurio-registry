@@ -7,9 +7,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to install and run {registry} using Docker with the following storage options:
 
-* xref:installing-registry-in-memory-storage[]
-* xref:installing-registry-sql-storage[]
-* xref:installing-registry-kafka-storage[]
+* xref:installing-registry-in-memory-storage_{context}[]
+* xref:installing-registry-sql-storage_{context}[]
+* xref:installing-registry-kafka-storage_{context}[]
  
 .Prerequisites
 * {registry-overview}

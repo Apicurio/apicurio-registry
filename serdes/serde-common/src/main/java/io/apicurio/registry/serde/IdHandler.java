@@ -5,7 +5,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+
 
 /**
  * Handle artifact id in the msg bytes.

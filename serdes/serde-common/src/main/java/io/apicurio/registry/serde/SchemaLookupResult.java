@@ -16,11 +16,14 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
+ * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.SchemaLookupResult}
  * @author Fabian Martinez
  */
+@Deprecated
 public class SchemaLookupResult<T> {
 
     private byte[] rawSchema;
@@ -95,6 +98,17 @@ public class SchemaLookupResult<T> {
                 .build();
     }
 
+    public io.apicurio.registry.resolver.SchemaLookupResult toCompat() {
+        return io.apicurio.registry.resolver.SchemaLookupResult.builder()
+            .contentId(contentId)
+            .globalId(globalId)
+            .groupId(groupId)
+            .artifactId(artifactId)
+            .version(version)
+            .parsedSchema(new ParsedSchemaImpl<>().setParsedSchema(schema).setRawSchema(rawSchema))
+            .build();
+    }
+
     public static <T> SchemaLookupResultBuilder<T> builder() {
         return new SchemaLookupResultBuilder<T>();
     }
@@ -147,5 +161,4 @@ public class SchemaLookupResult<T> {
         }
 
     }
-
 }

@@ -1349,8 +1349,13 @@ public class AvroData {
                     break;
                 }
                 case INT64: {
-                    Long longValue = (Long) value; // Validate type
-                    converted = value;
+                    long longValue;
+                    if (value instanceof Integer) { // Convert up
+                        longValue = ((Integer) value).longValue();
+                    } else { // Validate type
+                        longValue = (Long) value;
+                    }
+                    converted = longValue;
                     break;
                 }
                 case FLOAT32: {

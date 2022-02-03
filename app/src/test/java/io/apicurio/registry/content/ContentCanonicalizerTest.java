@@ -87,14 +87,23 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
     @Test
     void testProtobuf() {
         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.PROTOBUF);
-        
-        String before = "message SearchRequest {\r\n" + 
-                "  required string query = 1;\r\n" + 
-                "  optional int32 page_number = 2;\r\n" + 
-                "  optional int32 result_per_page = 3;\r\n" + 
+
+        String before = "message SearchRequest {\r\n" +
+                "  required string query = 1;\r\n" +
+                "  optional int32 page_number = 2;\r\n" +
+                "  optional int32 result_per_page = 3;\r\n" +
                 "}";
-        String expected = before;
-        
+        String expected = "// Proto schema formatted by Wire, do not edit.\n"
+                + "// Source: \n"
+                + "\n"
+                + "message SearchRequest {\n"
+                + "  required string query = 1;\n"
+                + "\n"
+                + "  optional int32 page_number = 2;\n"
+                + "\n"
+                + "  optional int32 result_per_page = 3;\n"
+                + "}\n";
+
         ContentHandle content = ContentHandle.create(before);
         String actual = canonicalizer.canonicalize(content).content();
         Assertions.assertEquals(expected, actual);

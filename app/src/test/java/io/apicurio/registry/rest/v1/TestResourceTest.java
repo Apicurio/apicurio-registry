@@ -112,7 +112,8 @@ public class TestResourceTest extends AbstractResourceTestBase {
             .log().all()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Incompatible artifact: testTestArtifactCompatibilityViolation [JSON], num of incompatible diffs: {1}"))
+                .body("message", equalTo("Incompatible artifact: testTestArtifactCompatibilityViolation " +
+                        "[JSON], num of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
     }

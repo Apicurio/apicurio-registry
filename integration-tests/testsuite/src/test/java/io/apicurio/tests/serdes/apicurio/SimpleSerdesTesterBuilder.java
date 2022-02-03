@@ -37,6 +37,9 @@ import io.apicurio.tests.serdes.apicurio.Tester.TesterBuilder;
  */
 public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
+    protected int batchCount = 1;
+    protected int batchSize = 10;
+
     protected DataGenerator<P> dataGenerator;
     protected Predicate<C> dataValidator;
 
@@ -54,6 +57,18 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
     public SimpleSerdesTesterBuilder() {
         super();
+    }
+
+    public SimpleSerdesTesterBuilder<P, C> withMessages(int batchCount, int batchSize) {
+        this.batchCount = batchCount;
+        this.batchSize = batchSize;
+        return this;
+    }
+
+    public SimpleSerdesTesterBuilder<P, C> withCommonProperty(String key, String value) {
+        producerProperties.put(key, value);
+        consumerProperties.put(key, value);
+        return this;
     }
 
     public SimpleSerdesTesterBuilder<P, C> withProducerProperty(String key, String value) {
@@ -127,8 +142,18 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         public void test() throws Exception {
             Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
 
-            int messageCount = 10;
-            this.produceMessages(producer, topic, dataGenerator, messageCount);
+            boolean autoCloseByProduceOrConsume = batchCount == 1;
+            setAutoClose(autoCloseByProduceOrConsume);
+
+            try {
+                for (int i = 0; i < batchCount; i++) {
+                    this.produceMessages(producer, topic, dataGenerator, batchSize);
+                }
+            } finally {
+                if (!autoCloseByProduceOrConsume) {
+                    producer.close();
+                }
+            }
 
             if (afterProduceValidator != null) {
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");
@@ -136,7 +161,15 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
             Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
 
-            this.consumeMessages(consumer, topic, messageCount, dataValidator);
+            int messageCount = batchCount * batchSize;
+            try {
+                this.consumeMessages(consumer, topic, messageCount, dataValidator);
+            } finally {
+                if (!autoCloseByProduceOrConsume) {
+                    consumer.close();
+                }
+            }
+
         }
 
     }

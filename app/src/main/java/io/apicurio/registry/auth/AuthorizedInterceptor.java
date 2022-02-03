@@ -24,6 +24,8 @@ import javax.interceptor.InvocationContext;
 
 import org.slf4j.Logger;
 
+import io.apicurio.registry.mt.MultitenancyProperties;
+import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -53,13 +55,28 @@ public class AuthorizedInterceptor {
     @Inject
     OwnerBasedAccessController obac;
 
+    @Inject
+    MultitenancyProperties mtProperties;
+
+    @Inject
+    TenantContext tenantContext;
+
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
+
+        //if multitenancy is enabled but no tenant context is loaded, because no tenant was resolved from request, reject it
+        //this is to avoid access to default tenant "_" when multitenancy is enabled
+        if (mtProperties.isMultitenancyEnabled() && !tenantContext.isLoaded()) {
+            log.warn("Request is rejected because the tenant could not be found, and access to default tenant is disabled in a multitenant deployment");
+            throw new ForbiddenException("Default tenant access is not allowed in multitenancy mode.");
+        }
+
         // If the user is trying to invoke a role-mapping operation, deny it if
         // database based RBAC is not enabled.
         RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
         if (rbacOpAnnotation != null) {
             if (!authConfig.isApplicationRbacEnabled()) {
+                log.warn("Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
         }
@@ -71,10 +88,10 @@ public class AuthorizedInterceptor {
 
         log.trace("Authentication enabled, protected resource: " + context.getMethod());
 
+        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+
         // If the securityIdentity is not set (or is anonymous)...
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-
             // Anonymous users are allowed to perform "None" operations.
             if (annotation.level() == AuthorizedLevel.None) {
                 log.trace("Anonymous user is being granted access to unprotected operation.");
@@ -89,11 +106,11 @@ public class AuthorizedInterceptor {
             }
 
             // Otherwise just fail - auth was enabled but no credentials provided.
-            log.trace("Authentication credentials missing and required for protected endpoint.");
+            log.warn("Authentication credentials missing and required for protected endpoint.");
             throw new UnauthorizedException("User is not authenticated.");
         }
 
-        log.trace("                               principalId:" + securityIdentity.getPrincipal().getName());
+        log.trace("principalId:" + securityIdentity.getPrincipal().getName());
 
         // If the user is an admin (via the admin-override check) then there's no need to
         // check rbac or obac.
@@ -102,15 +119,20 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
+        // If Authenticated read access is enabled, and the operation is read, allow it.
+        if (authConfig.authenticatedReadAccessEnabled && (annotation.level() == AuthorizedLevel.Read) || annotation.level() == AuthorizedLevel.None) {
+            return context.proceed();
+        }
+
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
-            log.trace("RBAC enabled and required role missing.");
+            log.warn("RBAC enabled and required role missing.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
         if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
-            log.trace("OBAC enabled and operation not permitted due to wrong owner.");
+            log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }
 

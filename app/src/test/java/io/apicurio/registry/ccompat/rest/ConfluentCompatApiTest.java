@@ -20,6 +20,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -56,6 +57,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
             + "\"schemaType\": \"AVRO\"}";
+
+    private static final String PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"message SearchRequest { required string query = 1; optional int32 page_number = 2;  optional int32 result_per_page = 3; }\",\"schemaType\": \"PROTOBUF\"}";
+
+    private static final String JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"f1\\\":{\\\"type\\\":\\\"string\\\"}}}\"}\",\"schemaType\": \"JSON\"}";
 
     private static final String SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED = "{\"schema\": \"{\\\"name\\\": \\\"EloquaContactRecordData\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"eloqua_contact_record\\\", \\\"type\\\": {\\\"name\\\": \\\"EloquaContactRecord\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"contact_id\\\", \\\"type\\\": \\\"string\\\", \\\"default\\\": \\\"\\\"}, {\\\"name\\\": \\\"field_map\\\", \\\"type\\\": {\\\"type\\\": \\\"map\\\", \\\"values\\\": \\\"string\\\"}, \\\"default\\\": \\\"{}\\\"}]}}]}\"}";
 
@@ -361,22 +366,33 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGetSchemaById() throws Exception {
-        final String SUBJECT = "subjectTestSchema";
+        //VERIFY AVRO, no schema type should be returned
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        //VERIFY JSON, JSON must be returned as schemaType
+        registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
+        //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
+        registerSchemaAndVerify(PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_proto", "PROTOBUF");
+    }
 
-        // POST
+    private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
+        registerSchemaInSubject(schema, subject);
+        this.waitForArtifact(subject);
+        final Integer avroSchemaGlobalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
+        verifySchemaType(avroSchemaGlobalId, schemaTye);
+    }
+
+    private void registerSchemaInSubject(String schema, String subject) {
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .body(schema)
+                .post("/ccompat/v6/subjects/{subject}/versions", subject)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+    }
 
-        this.waitForArtifact(SUBJECT);
-
-        final Integer globalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", SUBJECT).body().jsonPath().get("id");
-
+    private void verifySchemaType(long globalId, String schemaType) {
         //Verify
         Assertions.assertEquals(given()
                 .when()
@@ -384,7 +400,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .get("/ccompat/v6/schemas/ids/{id}", globalId)
                 .then()
                 .extract()
-                .body().jsonPath().get("schemaType"), "AVRO");
+                .body().jsonPath().get("schemaType"), schemaType);
     }
 
     /**
@@ -608,5 +624,127 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals("AVRO", types[2]);
     }
 
+    @Test
+    public void testDeleteSchemaVersion() throws Exception {
+        final String SUBJECT = "testDeleteSchemaVersion";
+
+        final Integer contentId1 = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_1_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+        Assertions.assertNotNull(contentId1);
+
+        this.waitForArtifact(SUBJECT);
+
+        final Integer contentId2 = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_2_WRAPPED)
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+
+        Assertions.assertNotNull(contentId2);
+
+        this.waitForContentId(contentId2);
+
+        //check versions list
+        var versionsConfluent = given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+            .then()
+            .statusCode(200)
+            .extract().as(Integer[].class);
+
+        assertEquals(2, versionsConfluent.length);
+
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
+            .then()
+            .statusCode(200);
+
+
+        var versionsApicurio = given()
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(VersionSearchResults.class)
+                .getVersions();
+
+        assertEquals(2, versionsApicurio.size());
+
+        //delete version 2
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .delete("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
+            .then()
+            .statusCode(200);
+
+        versionsConfluent = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(Integer[].class);
+
+            assertEquals(1, versionsConfluent.length);
+
+        given()
+            .when()
+            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
+            .then()
+            .statusCode(200);
+
+        versionsApicurio = given()
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(VersionSearchResults.class)
+                .getVersions();
+
+        assertEquals(1, versionsApicurio.size());
+
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1/meta", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}/meta", SUBJECT)
+            .then()
+            .statusCode(200);
+        given()
+            .when()
+            .get("/registry/v2/groups/default/artifacts/{subject}", SUBJECT)
+            .then()
+            .statusCode(200);
+    }
 
 }

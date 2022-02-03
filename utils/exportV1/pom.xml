@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.1-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -52,32 +52,64 @@
         
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-app</artifactId>
-            <version>1.3.2.Final</version><!--$NO-MVN-MAN-VER$-->
-            <exclusions>
-            
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-resteasy-jackson</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-smallrye-openapi</artifactId>
-                </exclusion>
-            
-                <exclusion>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-ui</artifactId>
-                </exclusion>
-            
-            </exclusions>
+            <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
         
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client</artifactId>
+        </dependency>
     </dependencies>
     
     <build>
 
         <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <version>1.1.1</version><!--$NO-MVN-MAN-VER$ -->
+                <executions>
+                    <execution>
+                        <id>make-index</id>
+                        <goals>
+                            <goal>jandex</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.artifactId}-${project.version}-runner.jar"
+                                    tofile="${project.build.directory}/${project.artifactId}-${project.version}.jar" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -90,38 +122,12 @@
                         </goals>
                         <configuration>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <attach>true</attach>  <!-- we want attach & deploy these to Maven -->
+                            <attach>true</attach>  <!-- we want to attach & deploy these to Maven -->
                             <descriptors>
                                 <descriptor>src/main/assembly/exportV1.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.jboss.jandex</groupId>
-                <artifactId>jandex-maven-plugin</artifactId>
-                <version>1.1.1</version><!--$NO-MVN-MAN-VER$-->
-                <executions>
-                  <execution>
-                    <id>make-index</id>
-                    <goals>
-                      <goal>jandex</goal>
-                    </goals>
-                  </execution>
-                </executions>
-            </plugin>
-            
-            <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

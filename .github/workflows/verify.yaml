@@ -2,7 +2,6 @@ name: Verify Build Workflow
 on:
   push:
     paths-ignore:
-      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -10,7 +9,6 @@ on:
     branches: [master, '[1-9].[0-9].x']
   pull_request:
     paths-ignore:
-      - '.github/**'
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
@@ -22,14 +20,17 @@ jobs:
     name: Verify Build
     runs-on: ubuntu-18.04
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        jdk-version: [11, 17]
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
 
-      - name: Set up JDK 11
+      - name: Set up JDK ${{ matrix.jdk-version }}
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '11'
+          version: ${{ matrix.jdk-version }}
           architecture: x64
 
       - name: Cache Dependencies
@@ -41,7 +42,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build and Test All Variants
         run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
@@ -86,7 +87,7 @@ jobs:
       - name: Set up JDK 11
         uses: AdoptOpenJDK/install-jdk@v1
         with:
-          version: '11'
+          version: 11
           architecture: x64
 
       - name: Cache Dependencies
@@ -98,7 +99,7 @@ jobs:
             ${{ runner.os }}-verify-
 
       - name: Get maven wrapper
-        run: mvn -N io.takari:maven:wrapper -Dmaven=3.6.3
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
@@ -107,7 +108,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-tenant-manager
+          make build-sql-native build-tenant-manager-native
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -139,7 +140,7 @@ jobs:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-tenant-manager-image
+          make build-sql-native-image build-tenant-manager-native-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
@@ -151,7 +152,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-tenant-manager-image
+          make push-sql-native-image push-tenant-manager-native-image
 
       - name: List All The Images
         run: docker images

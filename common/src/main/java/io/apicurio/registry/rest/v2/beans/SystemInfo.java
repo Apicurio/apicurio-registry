@@ -32,7 +32,7 @@ public class SystemInfo {
     private String description;
     @JsonProperty("version")
     private String version;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     @JsonProperty("builtOn")
     private Date builtOn;
 
@@ -76,4 +76,13 @@ public class SystemInfo {
         this.builtOn = builtOn;
     }
 
+    @Override
+    public String toString() {
+        return "SystemInfo{" +
+                "name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", version='" + version + '\'' +
+                ", builtOn=" + builtOn +
+                '}';
+    }
 }

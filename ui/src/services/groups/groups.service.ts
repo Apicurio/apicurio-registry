@@ -134,6 +134,10 @@ export class GroupsService extends BaseService {
         return this.httpGet<ArtifactMetaData>(endpoint);
     }
 
+    public getLatestArtifact(groupId: string|null, artifactId: string): Promise<string> {
+        return this.getArtifactContent(groupId, artifactId, "latest");
+    }
+
     public updateArtifactMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableMetaData): Promise<void> {
         groupId = this.normalizeGroupId(groupId);
 
@@ -155,7 +159,7 @@ export class GroupsService extends BaseService {
         const options: any = this.options({
             "Accept": "*"
         });
-        options.maxContentLength = "‭5242880‬"; // TODO 5MB hard-coded, make this configurable?
+        options.maxContentLength = "5242880"; // TODO 5MB hard-coded, make this configurable?
         options.responseType = "text";
         options.transformResponse = (data: any) => data;
         return this.httpGet<string>(endpoint, options);

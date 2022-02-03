@@ -23,6 +23,9 @@ import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -52,6 +55,8 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testUsername = "sr-test-user";
     String testPassword = "sr-test-password";
 
+    ApicurioHttpClient httpClient;
+
     private RegistryClient createClient(Auth auth) {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
@@ -61,8 +66,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(authServerUrlConfigured, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         return this.createClient(auth);
     }
 
@@ -71,10 +77,10 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.authServerUrl = authServerUrlConfigured;
-        registerRegistryMojo.clientId = adminClientId;
-        registerRegistryMojo.clientSecret = clientSecret;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
+        registerRegistryMojo.setClientId(adminClientId);
+        registerRegistryMojo.setClientSecret(clientSecret);
 
         super.testRegister(registerRegistryMojo, "testRegister");
     }
@@ -86,9 +92,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setClient(null);
 
-        registerRegistryMojo.registryUrl = TestUtils.getRegistryV2ApiUrl();
-        registerRegistryMojo.username = testUsername;
-        registerRegistryMojo.password = testPassword;
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+        registerRegistryMojo.setUsername(testUsername);
+        registerRegistryMojo.setPassword(testPassword);
 
         super.testRegister(registerRegistryMojo, "testBasicAuth");
     }

@@ -16,6 +16,7 @@
 package io.apicurio.multitenant.storage;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
@@ -36,5 +37,7 @@ public interface RegistryTenantStorage {
     long count(String query, Parameters parameters);
 
     void delete(String tenantId);
+
+    public Map<String, Long> getTenantsCountByStatus();
 
 }

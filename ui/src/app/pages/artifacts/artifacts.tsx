@@ -17,10 +17,20 @@
 
 import React from "react";
 import "./artifacts.css";
-import {Button, Modal, PageSection, PageSectionVariants} from '@patternfly/react-core';
+import {
+    Button, FileUpload,
+    Flex,
+    FlexItem,
+    Form,
+    FormGroup,
+    Modal,
+    PageSection,
+    PageSectionVariants,
+    Spinner
+} from '@patternfly/react-core';
 import {ArtifactList} from "./components/artifactList";
 import {PageComponent, PageProps, PageState} from "../basePage";
-import {ArtifactsPageToolbar} from "./components/toolbar";
+import {ArtifactsPageToolbar, ArtifactsPageToolbarFilterCriteria} from "./components/toolbar";
 import {ArtifactsPageEmptyState} from "./components/empty";
 import {UploadArtifactForm} from "./components/uploadForm";
 import {InvalidContentModal} from "../../components/modals";
@@ -29,6 +39,7 @@ import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging
 import {SearchedArtifact} from "../../../models";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 import {RootPageHeader} from "../../components";
+import {ProgressModal} from "../../components/modals/progressModal";
 
 
 /**
@@ -43,15 +54,23 @@ export interface ArtifactsPageProps extends PageProps {
  * State
  */
 export interface ArtifactsPageState extends PageState {
-    criteria: GetArtifactsCriteria;
+    criteria: ArtifactsPageToolbarFilterCriteria;
     isUploadModalOpen: boolean;
+    isImportModalOpen: boolean;
     isUploadFormValid: boolean;
+    isImportFormValid: boolean;
     isInvalidContentModalOpen: boolean;
     isPleaseWaitModalOpen: boolean;
+    isSearching: boolean;
     paging: Paging;
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
     invalidContentError: any | null;
+    initFromSearch: string;
+    importFilename: string;
+    importFile: File | null;
+    isImporting: boolean;
+    importProgress: number;
 }
 
 /**
@@ -63,6 +82,13 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         super(props);
     }
 
+    componentDidUpdate(prevProps: Readonly<ArtifactsPageProps>, prevState: Readonly<ArtifactsPageState>, snapshot?: {}) {
+        // @ts-ignore
+        if (this.props.history.location.search !== this.state.initFromSearch) {
+            this.setMultiState(this.initializePageState(), () => this.search());
+        }
+    }
+
     public renderPage(): React.ReactElement {
         return (
             <React.Fragment>
@@ -72,21 +98,28 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <If condition={this.showToolbar}>
                     <PageSection variant={PageSectionVariants.light} padding={{default : "noPadding"}}>
                         <ArtifactsPageToolbar artifacts={this.results()}
+                                              criteria={this.state.criteria}
                                               paging={this.state.paging}
                                               onPerPageSelect={this.onPerPageSelect}
                                               onSetPage={this.onSetPage}
                                               onUploadArtifact={this.onUploadArtifact}
-                                              onChange={this.onFilterChange}/>
+                                              onExportArtifacts={this.onExportArtifacts}
+                                              onImportArtifacts={this.onImportArtifacts}
+                                              onCriteriaChange={this.onFilterChange}/>
                     </PageSection>
                 </If>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     {
+                        this.state.isSearching ?
+                            <Flex>
+                                <FlexItem><Spinner size="lg"/></FlexItem>
+                                <FlexItem><span>Searching...</span></FlexItem>
+                            </Flex>
+                        :
                         this.artifactsCount() === 0 ?
                             <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
                         :
-                            <React.Fragment>
-                                <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
-                            </React.Fragment>
+                            <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
                     }
                 </PageSection>
                 <Modal
@@ -105,25 +138,79 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
+                <Modal
+                    title="Upload multiple artifacts"
+                    variant="large"
+                    isOpen={this.state.isImportModalOpen}
+                    onClose={this.onImportModalClose}
+                    className="import-artifacts-modal pf-m-redhat-font"
+                    actions={[
+                        <Button key="upload" variant="primary" data-testid="modal-btn-upload" onClick={this.doImport} isDisabled={!this.state.isImportFormValid}>Upload</Button>,
+                        <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.onImportModalClose}>Cancel</Button>
+                    ]}
+                >
+                    <Form>
+                        <FormGroup
+                            label="ZIP File"
+                            isRequired={true}
+                            fieldId="form-file"
+                        >
+                            <FileUpload
+                                id="import-content"
+                                data-testid="form-import"
+                                filename={this.state.importFilename}
+                                filenamePlaceholder="Drag and drop or choose a ZIP file"
+                                isRequired={true}
+                                onChange={this.onImportFileChange}
+
+                            />
+                        </FormGroup>
+                    </Form>
+                </Modal>
                 <PleaseWaitModal message="Creating artifact, please wait..."
                                  isOpen={this.state.isPleaseWaitModalOpen} />
+                <ProgressModal message="Importing artifacts, please wait..."
+                               progress={this.state.importProgress}
+                               isOpen={this.state.isImporting} />
             </React.Fragment>
         );
     }
 
     protected initializePageState(): ArtifactsPageState {
+        let criteria: ArtifactsPageToolbarFilterCriteria = {
+            filterSelection: "name",
+            filterValue: "",
+            ascending: true
+        }
+        // @ts-ignore
+        const location: any = this.props.history.location;
+        let initFromSearch: string = "";
+        if (location && location.search) {
+            const params = new URLSearchParams(location.search);
+            if (params.get("group")) {
+                criteria = {
+                    filterSelection: "group",
+                    filterValue: params.get("group") as string,
+                    ascending: true
+                }
+            }
+            initFromSearch = location.search;
+        }
         return {
-            criteria: {
-                sortAscending: true,
-                type: "everything",
-                value: "",
-            },
+            criteria,
+            initFromSearch,
+            isImporting: false,
+            importProgress: 0,
+            importFilename: "",
+            importFile: null,
             invalidContentError: null,
             isInvalidContentModalOpen: false,
-            isLoading: true,
             isPleaseWaitModalOpen: false,
+            isSearching: false,
             isUploadFormValid: false,
+            isImportFormValid: false,
             isUploadModalOpen: false,
+            isImportModalOpen: false,
             paging: {
                 page: 1,
                 pageSize: 10
@@ -142,16 +229,58 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setSingleState("isUploadModalOpen", true);
     };
 
+    private onImportArtifacts = (): void => {
+        this.setSingleState("isImportModalOpen", true);
+    };
+
+    private onExportArtifacts = (): void => {
+        Services.getAdminService().exportAs("all-artifacts.zip").then(dref => {
+            const link = document.createElement("a");
+            link.href = dref.href;
+            link.download = `all-artifacts.zip`;
+            link.click();
+        }).catch(error => this.handleServerError(error, "Failed to export artifacts"));
+    };
+
     private onUploadModalClose = (): void => {
         this.setSingleState("isUploadModalOpen", false);
     };
 
+    private onImportModalClose = (): void => {
+        this.setSingleState("isImportModalOpen", false);
+    }
+
     private onArtifactsLoaded(results: ArtifactsSearchResults): void {
         this.setMultiState({
-            isLoading: false,
+            isSearching: false,
             results
         });
     }
+
+    private doImport = (): void => {
+        this.setMultiState({
+            isImporting: true,
+            importProgress: 0,
+            isImportModalOpen: false
+        });
+        if (this.state.importFile != null) {
+            Services.getAdminService().importFrom(this.state.importFile, (event: any) => {
+                let progress: number = 0;
+                if (event.lengthComputable) {
+                    progress = Math.round(100 * (event.loaded / event.total));
+                }
+                this.setSingleState("importProgress", progress);
+            }).then(() => {
+                setTimeout(() => {
+                    this.setMultiState({
+                        isImporting: false,
+                        importProgress: 100,
+                        isImportModalOpen: false
+                    }, this.search);
+                }, 1500);
+            }).catch(error => this.handleServerError(error, "Error importing multiple artifacts"));
+        }
+    };
 
     private doUploadArtifact = (): void => {
         this.onUploadModalClose();
@@ -194,26 +323,31 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         return this.state.results ? this.state.results.artifacts.length : 0;
     }
 
-    private onFilterChange = (criteria: GetArtifactsCriteria): void => {
+    private onFilterChange = (criteria: ArtifactsPageToolbarFilterCriteria): void => {
         this.setMultiState({
             criteria,
-            isLoading: true
+            isSearching: true
         }, () => {
             this.search();
         });
     };
 
     private isFiltered(): boolean {
-        return !!this.state.criteria.value;
+        return !!this.state.criteria.filterValue;
     }
 
     // @ts-ignore
     private search(): Promise {
-        return Services.getGroupsService().getArtifacts(this.state.criteria, this.state.paging).then(results => {
-                this.onArtifactsLoaded(results);
-            }).catch(error => {
-                this.handleServerError(error, "Error searching for artifacts.");
-            });
+        const gac: GetArtifactsCriteria = {
+            sortAscending: this.state.criteria.ascending,
+            type: this.state.criteria.filterSelection,
+            value: this.state.criteria.filterValue
+        };
+        return Services.getGroupsService().getArtifacts(gac, this.state.paging).then(results => {
+            this.onArtifactsLoaded(results);
+        }).catch(error => {
+            this.handleServerError(error, "Error searching for artifacts.");
+        });
     }
 
     private onSetPage = (event: any, newPage: number, perPage?: number): void => {
@@ -222,7 +356,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             pageSize: perPage ? perPage : this.state.paging.pageSize
         };
         this.setMultiState({
-            isLoading: true,
+            isSearching: true,
             paging
         }, () => {
             this.search();
@@ -235,7 +369,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             pageSize: newPerPage
         };
         this.setMultiState({
-            isLoading: true,
+            isSearching: true,
             paging
         }, () => {
             this.search();
@@ -250,6 +384,22 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         this.setSingleState("uploadFormData", data);
     };
 
+    private onImportFileChange = (value: string | File, filename: string, event: any): void => {
+        if (value == "" && filename == "") {
+            this.setMultiState({
+                importFilename: "",
+                importFile: null,
+                isImportFormValid: false
+            });
+        } else {
+            this.setMultiState({
+                importFilename: filename,
+                importFile: value,
+                isImportFormValid: true
+            });
+        }
+    };
+
     private closeInvalidContentModal = (): void => {
         this.setSingleState("isInvalidContentModalOpen", false);
     };
@@ -259,7 +409,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     };
 
     private handleInvalidContentError(error: any): void {
-        Services.getLoggerService().info("INVALID CONTENT ERROR", error);
+        Services.getLoggerService().info("[ArtifactsPage] Invalid content error:", error);
         this.setMultiState({
             invalidContentError: error,
             isInvalidContentModalOpen: true
@@ -267,12 +417,21 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
     }
 
     private onGroupClick = (groupId: string): void => {
-        // TODO filter by the group
+        Services.getLoggerService().info("[ArtifactsPage] Filtering by group: ", groupId);
+        this.setSingleState("criteria", {
+            filterSelection: "group",
+            filterValue: groupId,
+            ascending: this.state.criteria.ascending
+        }, () => {
+            this.search();
+        });
     };
 
     private showToolbar = (): boolean => {
-        const hasCriteria: boolean = this.state.criteria && this.state.criteria.value != null && this.state.criteria.value != "";
-        return hasCriteria || this.results().count > 0;
+        if (this.state.isLoading) {
+            return false;
+        }
+        return true;
     }
 
 }

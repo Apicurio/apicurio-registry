@@ -22,14 +22,24 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
 import io.apicurio.rest.client.JdkHttpClientProvider;
+import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.config.ApicurioClientConfig;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.runtime.configuration.ProfileManager;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
+import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Fabian Martinez
@@ -37,6 +47,9 @@ import java.util.Collections;
  */
 @ApplicationScoped
 public class TenantManagerClientProducer {
+
+    @Inject
+    Logger log;
 
     @Inject
     @Current
@@ -63,7 +76,13 @@ public class TenantManagerClientProducer {
                         "but the no \"registry.tenant.manager.url\" is provided");
             }
 
-            if (properties.isAuthEnabled()) {
+            Map<String, Object> clientConfigs = new HashMap<>();
+            if (properties.getTenantManagerCAFilePath().isPresent() && !properties.getTenantManagerCAFilePath().get().isBlank()) {
+                clientConfigs.put(ApicurioClientConfig.APICURIO_REQUEST_CA_BUNDLE_LOCATION, properties.getTenantManagerCAFilePath().get());
+            }
+
+            Auth auth = null;
+            if (properties.isTenantManagerAuthEnabled()) {
 
                 if (properties.getTenantManagerAuthUrl().isEmpty() ||
                         properties.getTenantManagerClientId().isEmpty() ||
@@ -73,19 +92,22 @@ public class TenantManagerClientProducer {
                             "but the no auth properties aren't properly configured");
                 }
 
-                return OptionalBean.of(new TenantManagerClientImpl(
-                        properties.getTenantManagerUrl().get(), Collections.emptyMap(),
-                        new OidcAuth(new JdkHttpClientProvider(), properties.getTenantManagerAuthUrl().get(),
-                                properties.getTenantManagerClientId().get(),
-                                properties.getTenantManagerClientSecret().get()
-                        )
-                ));
+                ApicurioHttpClient httpClient = new JdkHttpClientProvider().create(properties.getTenantManagerAuthUrl().get(), Collections.emptyMap(), null, new AuthErrorHandler());
 
-            } else {
-                return OptionalBean.of(new TenantManagerClientImpl(
-                        properties.getTenantManagerUrl().get())
-                );
+                Duration tokenExpirationReduction = null;
+                if (properties.getTenantManagerAuthTokenExpirationReductionMs().isPresent()) {
+                    log.info("Using configured tenant-manager auth token expiration reduction {}", properties.getTenantManagerAuthTokenExpirationReductionMs().get());
+                    tokenExpirationReduction = Duration.ofMillis(properties.getTenantManagerAuthTokenExpirationReductionMs().get());
+                }
+
+                auth = new OidcAuth(httpClient,
+                        properties.getTenantManagerClientId().get(),
+                        properties.getTenantManagerClientSecret().get(),
+                        tokenExpirationReduction);
             }
+
+            return OptionalBean.of(new TenantManagerClientImpl(properties.getTenantManagerUrl().get(), clientConfigs, auth));
+
         }
 
         return OptionalBean.empty();

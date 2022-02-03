@@ -136,7 +136,7 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         assertTrue(webArtifacts.isEmpty());
 
         registryClient.deleteArtifact(null, artifactId1);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(null, artifactId1), true, errorCodeExtractor);
+        retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(null, artifactId1), errorCodeExtractor);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {
@@ -151,7 +151,7 @@ public class DeleteArtifactIT extends ApicurioV2BaseIT {
         assertEquals(artifactId2, webArtifacts.get(0).getArtifactId());
 
         registryClient.deleteArtifact(null, artifactId2);
-        TestUtils.assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> registryClient.getArtifactMetaData(null, artifactId2), true, errorCodeExtractor);
+        retryAssertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, (rc) -> rc.getArtifactMetaData(null, artifactId2), errorCodeExtractor);
 
         selenium.refreshPage();
         TestUtils.waitFor("Artifacts list updated", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL, () -> {

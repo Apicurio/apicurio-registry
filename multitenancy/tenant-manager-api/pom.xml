@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.1-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -17,7 +17,7 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
         </dependency>
-    
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-client</artifactId>
@@ -77,6 +77,10 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry</artifactId>
         </dependency>
 
         <dependency>

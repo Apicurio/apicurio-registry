@@ -1,0 +1,50 @@
+syntax = "proto3";
+package io.apicurio.registry.utils.protobuf.schema.syntax3;
+
+message Tracking {
+  string origin = 1;
+  string destination = 2;
+
+  oneof Status {
+    fixed64 trackingNum = 3;
+    sfixed64 referenceNum = 4;
+  }
+  repeated string states = 10;
+  oneof type {
+    uint64 type1 = 5;
+    uint32 type2 = 6;
+    Game game = 8;
+    Foo type3 = 9;
+  }
+  enum Game {
+    REDLIGHT = 0;
+    GREENLIGHT = 1;
+  }
+
+  bytes trackingImage = 7;
+}
+
+message Foo {
+  Tracking tracking = 11;
+  string addressId = 12;
+}
+
+message Message {
+
+  oneof thingy {
+    string namey = 1;
+    Nested aField = 5;
+  }
+
+  string name = 2;
+
+  bool other_name = 3;
+
+  oneof thinger {
+    Tracking namer = 4;
+  }
+
+  message Nested {
+    string name = 2;
+  }
+}

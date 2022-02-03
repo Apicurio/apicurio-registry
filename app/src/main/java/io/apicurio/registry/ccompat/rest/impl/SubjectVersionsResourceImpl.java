@@ -16,6 +16,15 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.BadRequestException;
+
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -25,13 +34,9 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-import java.util.List;
-
 
 /**
  * @author Ales Justin
@@ -41,6 +46,8 @@ import java.util.List;
 @Logged
 public class SubjectVersionsResourceImpl extends AbstractResource implements SubjectVersionsResource {
 
+    @Inject
+    FacadeConverter converter;
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
@@ -49,10 +56,11 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
         Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType());
-        int sid = FacadeConverter.convertUnsigned(id);
+        int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
 
@@ -66,6 +74,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     }
 
     @Override
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public int deleteSchemaVersion(
             String subject,

@@ -19,19 +19,22 @@ package io.apicurio.registry.serde.avro.strategy;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.errors.SerializationException;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * @author Fabian Martinez
  */
-public class RecordIdStrategy implements ArtifactResolverStrategy<Schema> {
+public class RecordIdStrategy implements ArtifactReferenceResolverStrategy<Schema, Object> {
 
     /**
-     * @see io.apicurio.registry.serde.strategy.ArtifactResolverStrategy#artifactReference(java.lang.String, boolean, java.lang.Object)
+     * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
-    public ArtifactReference artifactReference(String topic, boolean isKey, Schema schema) {
+    public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<Schema> parsedSchema) {
+        Schema schema = parsedSchema.getParsedSchema();
         if (schema != null && schema.getType() == Schema.Type.RECORD) {
             return ArtifactReference.builder()
                     .groupId(schema.getNamespace())

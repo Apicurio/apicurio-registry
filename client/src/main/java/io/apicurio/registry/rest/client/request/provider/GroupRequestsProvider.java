@@ -151,6 +151,18 @@ public class GroupRequestsProvider {
                 .build();
     }
 
+    public static Request<Void> testUpdateArtifact(String groupId, String artifactId, Map<String, String> headers, InputStream data) {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.PUT)
+                .path(Routes.ARTIFACT_TEST)
+                .headers(headers)
+                .pathParams(List.of(groupId, artifactId))
+                .data(data)
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
     public static Request<Void> testUpdateArtifact(String groupId, String artifactId, InputStream data) {
         return new Request.RequestBuilder<Void>()
                 .operation(Operation.PUT)
@@ -235,6 +247,19 @@ public class GroupRequestsProvider {
                 .build();
     }
 
+    public static Request<VersionMetaData> getArtifactVersionMetaDataByContent(String groupId, String artifactId, Map<String, String> headers, Map<String, List<String>> queryParams, InputStream data) {
+        return new Request.RequestBuilder<VersionMetaData>()
+                .operation(Operation.POST)
+                .path(Routes.ARTIFACT_METADATA)
+                .headers(headers)
+                .pathParams(List.of(groupId, artifactId))
+                .queryParams(queryParams)
+                .responseType(new TypeReference<VersionMetaData>() {
+                })
+                .data(data)
+                .build();
+    }
+
     public static Request<VersionMetaData> getArtifactVersionMetaDataByContent(String groupId, String artifactId, Map<String, List<String>> queryParams, InputStream data) {
         return new Request.RequestBuilder<VersionMetaData>()
                 .operation(Operation.POST)
@@ -246,6 +271,7 @@ public class GroupRequestsProvider {
                 .data(data)
                 .build();
     }
+
 
     public static Request<Void> updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) throws JsonProcessingException {
         return new Request.RequestBuilder<Void>()

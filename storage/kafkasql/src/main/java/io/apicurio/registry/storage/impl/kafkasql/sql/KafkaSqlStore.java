@@ -9,6 +9,8 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
 
+import org.slf4j.Logger;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -43,6 +45,9 @@ import io.apicurio.registry.utils.impexp.GroupEntity;
 public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Inject
+    Logger log;
+
+    @Inject
     HandleFactory handles;
 
     @Transactional
@@ -64,6 +69,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String sql = sqlStatements().selectContentCountByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext().tenantId())
                     .mapTo(Integer.class)
                     .one() > 0;
         });
@@ -113,10 +119,11 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                 byte [] contentBytes = content.bytes();
                 String sql = sqlStatements().importContent();
                 handle.createUpdate(sql)
-                    .bind(0, contentId)
-                    .bind(1, canonicalHash)
-                    .bind(2, contentHash)
-                    .bind(3, contentBytes)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, contentId)
+                    .bind(2, canonicalHash)
+                    .bind(3, contentHash)
+                    .bind(4, contentBytes)
                     .execute();
             }
             return null;
@@ -165,6 +172,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)
                     .bind(0, contentHash)
+                    .bind(1, tenantContext().tenantId())
                     .mapTo(Long.class)
                     .one();
         });
@@ -223,6 +231,23 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         handles.withHandleNoException(handle -> {
             super.resetGlobalId(handle);
             return null;
+        });
+    }
+
+    @Transactional
+    public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
+        handles.withHandleNoException(handle -> {
+           String sql = sqlStatements().updateContentCanonicalHash();
+           int rowCount = handle.createUpdate(sql)
+                 .bind(0, newCanonicalHash)
+                 .bind(1, tenantContext().tenantId())
+                 .bind(2, contentId)
+                 .bind(2, contentHash)
+                 .execute();
+           if (rowCount == 0) {
+               log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId, contentHash);
+           }
+           return null;
         });
     }
 

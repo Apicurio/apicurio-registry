@@ -16,10 +16,10 @@
 
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.serde.SchemaResolverConfigurer;
-import io.apicurio.registry.serde.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -40,7 +40,7 @@ import java.util.Objects;
  * @author Fabian Martinez
  */
 @SuppressWarnings("rawtypes")
-public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+public class SerdeBasedConverter<S, T> implements Converter, Closeable {
 
     public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
     public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
@@ -77,16 +77,21 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
             Utils.instantiate(deserializerClass(), dsp, this::setDeserializer);
             createdDeserializer = true;
         }
+        SchemaResolver<S, T> schemaResolver = null;
         if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
             AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
-            super.configure(configs, isKey, ser.schemaParser());
-            ser.setSchemaResolver(getSchemaResolver());
             ser.configure(configs, isKey);
+            schemaResolver = ser.getSchemaResolver();
         }
         if (AbstractKafkaDeserializer.class.isAssignableFrom(deserializer.getClass())) {
             AbstractKafkaDeserializer<S, T> des = (AbstractKafkaDeserializer<S, T>) deserializer;
-            des.setSchemaResolver(getSchemaResolver());
+            if (schemaResolver != null) {
+                des.setSchemaResolver(schemaResolver);
+            }
             des.configure(configs, isKey);
+            if (schemaResolver != null && des.getSchemaResolver() != schemaResolver) {
+                throw new IllegalStateException("Schema resolver initialized multiple times");
+            }
         }
     }
 

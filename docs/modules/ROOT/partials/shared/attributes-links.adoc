@@ -154,6 +154,9 @@
 :LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/service_registry_user_guide/index
 :NameServiceRegistryUser: Service Registry User Guide
 
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/migrating_service_registry_deployments/index
+:NameServiceRegistryMigration: Migrating Service Registry deployments
+
 // AMQ Streams titles
 
 :LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html-single/using_amq_streams_on_openshift/index

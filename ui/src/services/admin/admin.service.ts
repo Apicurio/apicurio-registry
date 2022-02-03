@@ -16,7 +16,7 @@
  */
 
 import {BaseService} from "../baseService";
-import {RoleMapping, Rule} from "../../models";
+import {DownloadRef, RoleMapping, Rule} from "../../models";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global
@@ -82,11 +82,11 @@ export class AdminService extends BaseService {
         return this.httpGet<RoleMapping>(endpoint);
     }
 
-    public createRoleMapping(principalId: string, role: string): Promise<RoleMapping> {
-        this.logger.info("[AdminService] Creating a role mapping:", principalId, role);
+    public createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping> {
+        this.logger.info("[AdminService] Creating a role mapping:", principalId, role, principalName);
 
         const endpoint: string = this.endpoint("/v2/admin/roleMappings");
-        const body: RoleMapping = { principalId, role };
+        const body: RoleMapping = { principalId, role, principalName };
         return this.httpPost(endpoint, body).then(() => {
             return body;
         });
@@ -100,7 +100,7 @@ export class AdminService extends BaseService {
         });
         const body: any = { role };
         return this.httpPut<any>(endpoint, body).then(() => {
-            return { principalId, role };
+            return { principalId, role, principalName: principalId };
         });
     }
 
@@ -113,4 +113,28 @@ export class AdminService extends BaseService {
         return this.httpDelete(endpoint);
     }
 
+    public exportAs(filename: string): Promise<DownloadRef> {
+        const endpoint: string = this.endpoint("/v2/admin/export", {}, {
+            forBrowser: true
+        });
+        const headers: any = {
+            Accept: "application/zip"
+        };
+        return this.httpGet<DownloadRef>(endpoint, this.options(headers)).then(ref => {
+            if (ref.href.startsWith("/apis/registry")) {
+                ref.href = ref.href.replace("/apis/registry", this.apiBaseHref());
+                ref.href = ref.href + "/" + filename;
+            }
+
+            return ref;
+        });
+    }
+
+    public importFrom(file: File, progressFunction: (progressEvent: any) => void): Promise<void> {
+        const endpoint: string = this.endpoint("/v2/admin/import");
+        const headers: any = {
+            "Content-Type": "application/zip"
+        };
+        return this.httpPost(endpoint, file, this.options(headers),undefined, progressFunction);
+    }
 }

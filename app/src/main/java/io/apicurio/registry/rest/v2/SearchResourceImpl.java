@@ -47,7 +47,6 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -80,13 +79,13 @@ public class SearchResourceImpl implements SearchResource {
     HttpServletRequest request;
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
-            SortBy orderby, List<String> labels, List<String> properties, String description,
-            String group) {
+            SortBy orderby, List<String> labels, List<String> properties, String description, String group,
+            Integer globalId, Integer contentId) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
@@ -102,20 +101,46 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(name)) {
-            filters.add(new SearchFilter(SearchFilterType.name, name));
+            filters.add(SearchFilter.ofName(name));
         }
         if (!StringUtil.isEmpty(description)) {
-            filters.add(new SearchFilter(SearchFilterType.description, description));
+            filters.add(SearchFilter.ofDescription(description));
         }
         if (!StringUtil.isEmpty(group)) {
-            filters.add(new SearchFilter(SearchFilterType.group, gidOrNull(group)));
+            filters.add(SearchFilter.ofGroup(gidOrNull(group)));
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> filters.add(new SearchFilter(SearchFilterType.labels, label)));
+            labels.forEach(label -> filters.add(SearchFilter.ofLabel(label)));
         }
         if (properties != null && !properties.isEmpty()) {
-            properties.forEach(label -> filters.add(new SearchFilter(SearchFilterType.properties, label)));
+            properties.stream()
+                .map(prop -> {
+                   int delimiterIndex = prop.indexOf(":");
+                   String propertyKey;
+                   String propertyValue;
+                   if (delimiterIndex == 0) {
+                       throw new BadRequestException("property search filter wrong formatted, missing left side of ':' delimiter");
+                   }
+                   if (delimiterIndex == (prop.length() - 1)) {
+                       throw new BadRequestException("property search filter wrong formatted, missing right side of ':' delimiter");
+                   }
+                   if (delimiterIndex < 0) {
+                       propertyKey = prop;
+                       propertyValue = null;
+                   } else{
+                       propertyKey = prop.substring(0, delimiterIndex);
+                       propertyValue = prop.substring(delimiterIndex + 1);
+                   }
+                   return SearchFilter.ofProperty(propertyKey, propertyValue);
+                })
+                .forEach(filters::add);
+        }
+        if (globalId != null && globalId > 0) {
+            filters.add(SearchFilter.ofGlobalId(globalId));
+        }
+        if (contentId != null && contentId > 0) {
+            filters.add(SearchFilter.ofContentId(contentId));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset, limit);
@@ -156,10 +181,10 @@ public class SearchResourceImpl implements SearchResource {
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
             String canonicalHash = sha256Hash(canonicalizeContent(artifactType, content));
-            filters.add(new SearchFilter(SearchFilterType.canonicalHash, canonicalHash));
+            filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = sha256Hash(content);
-            filters.add(new SearchFilter(SearchFilterType.contentHash, contentHash));
+            filters.add(SearchFilter.ofContentHash(contentHash));
         } else {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }

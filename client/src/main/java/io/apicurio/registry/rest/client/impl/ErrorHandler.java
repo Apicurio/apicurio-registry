@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ExceptionMapper;
+import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
@@ -42,22 +43,20 @@ public class ErrorHandler implements RestClientErrorHandler {
     private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
     public static final int UNAUTHORIZED_CODE = 401;
     public static final int FORBIDDEN_CODE = 403;
+    public static final int TOO_MANY_REQUESTS_CODE = 429;
 
     @Override
     public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
         try {
             if (statusCode == UNAUTHORIZED_CODE) {
                 //authorization error
-                Error error = new Error();
-                error.setErrorCode(statusCode);
                 return new NotAuthorizedException("Authentication exception");
-            } else {
-                if (statusCode == FORBIDDEN_CODE) {
-                    //forbidden error
-                    Error error = new Error();
-                    error.setErrorCode(statusCode);
-                    return new ForbiddenException("Authorization error");
-                }
+            } else if (statusCode == FORBIDDEN_CODE) {
+                //forbidden error
+                return new ForbiddenException("Authorization error");
+            } else if (statusCode == TOO_MANY_REQUESTS_CODE) {
+                //rate limited - too many requests error
+                return new RateLimitedClientException("Too many requests");
             }
             Error error = mapper.readValue(body, Error.class);
             logger.debug("Error returned by Registry application: {}", error.getMessage());

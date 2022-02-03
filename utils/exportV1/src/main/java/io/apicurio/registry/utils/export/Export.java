@@ -19,7 +19,6 @@ package io.apicurio.registry.utils.export;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -28,11 +27,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
-
-import javax.inject.Inject;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -41,15 +37,17 @@ import io.apicurio.registry.client.RegistryRestClientFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rest.beans.Rule;
+import io.apicurio.registry.rest.beans.UpdateState;
 import io.apicurio.registry.rest.beans.VersionMetaData;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
@@ -62,13 +60,9 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 @QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
 
-    static {
-        //Workaround, because this app depends on apicurio-registry-app we are spawning an http server. Here we are setting the http port to a less probable used port
-        System.setProperty("quarkus.http.port", "9573");
-    }
+    ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
 
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    private boolean matchContentId = false;
 
     /**
      * @see io.quarkus.runtime.QuarkusApplication#run(java.lang.String[])
@@ -83,16 +77,11 @@ public class Export implements QuarkusApplication {
 
         String url = args[0];
 
-        Map<String, Object> conf = new HashMap<>();
+        String[] remainingArgs = Arrays.copyOfRange(args, 1, args.length);
 
-        if (args.length > 2 && args[1].equals("--client-props")) {
-            String[] clientconf = Arrays.copyOfRange(args, 2, args.length);
-            conf = Arrays.asList(clientconf)
-                .stream()
-                .map(keyvalue -> keyvalue.split("="))
-                .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
-            System.out.println("Parsed client properties " + conf);
-        }
+        remainingArgs = parseMatchContentId(remainingArgs);
+
+        Map<String, Object> conf = parseClientProps(remainingArgs);
 
         RegistryRestClient client = RegistryRestClientFactory.create(url, conf);
 
@@ -113,8 +102,12 @@ public class Export implements QuarkusApplication {
             manifest.systemVersion = "n/a";
             writer.writeEntity(manifest);
 
-            AtomicInteger contentIdSeq = new AtomicInteger(1);
-            Map<String, Long> contentIndex = new HashMap<>();
+            ContentExporter contentExporter;
+            if (matchContentId) {
+                contentExporter = new MatchContentIdContentExporter(writer);
+            } else {
+                contentExporter = new DefaultContentExporter(writer);
+            }
 
             List<String> ids = client.listArtifacts();
             for (String id : ids) {
@@ -128,28 +121,37 @@ public class Export implements QuarkusApplication {
 
                     VersionMetaData meta = client.getArtifactVersionMetaData(id, version.intValue());
 
-                    InputStream contentStream = client.getArtifactVersion(id, version.intValue());
-                    byte[] contentBytes = IoUtil.toBytes(contentStream);
+                    byte[] contentBytes;
+
+                    if (ArtifactState.DISABLED.equals(meta.getState())) {
+                        try {
+                            var temporalstate = new UpdateState();
+                            temporalstate.setState(ArtifactState.ENABLED);
+                            client.updateArtifactVersionState(id, version.intValue(), temporalstate);
+
+                            InputStream contentStream = client.getArtifactVersion(id, version.intValue());
+                            contentBytes = IoUtil.toBytes(contentStream);
+
+                        } finally {
+                            var disabledagain = new UpdateState();
+                            disabledagain.setState(ArtifactState.DISABLED);
+                            client.updateArtifactVersionState(id, version.intValue(), disabledagain);
+                        }
+                    } else {
+                        InputStream contentStream = client.getArtifactVersion(id, version.intValue());
+                        contentBytes = IoUtil.toBytes(contentStream);
+                    }
+
+                    if (contentBytes == null) {
+                        System.out.println("[WARNING] An error ocurred getting the content for the artifact " + id + " version " + version);
+                    }
+
                     String contentHash = DigestUtils.sha256Hex(contentBytes);
                     ContentHandle canonicalContent = this.canonicalizeContent(meta.getType(), ContentHandle.create(contentBytes));
                     byte[] canonicalContentBytes = canonicalContent.bytes();
                     String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
-                    Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
-                        ContentEntity contentEntity = new ContentEntity();
-                        contentEntity.contentId = contentIdSeq.getAndIncrement();
-                        contentEntity.contentHash = contentHash;
-                        contentEntity.canonicalHash = canonicalContentHash;
-                        contentEntity.contentBytes = contentBytes;
-
-                        try {
-                            writer.writeEntity(contentEntity);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        return contentEntity.contentId;
-                    });
+                    Long contentId = contentExporter.writeContent(contentHash, canonicalContentHash, contentBytes, meta);
 
                     ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
                     versionEntity.artifactId = meta.getId();
@@ -187,7 +189,7 @@ public class Export implements QuarkusApplication {
 
             }
 
-            List<RuleType> globalRules =client.listGlobalRules();
+            List<RuleType> globalRules = client.listGlobalRules();
             for (RuleType ruleType : globalRules) {
                 Rule rule = client.getGlobalRuleConfig(ruleType);
 
@@ -205,6 +207,28 @@ public class Export implements QuarkusApplication {
         return 0;
     }
 
+    private Map<String, Object> parseClientProps(String[] remainingArgs) {
+        Map<String, Object> conf = new HashMap<>();
+        if (remainingArgs.length > 2 && remainingArgs[0].equals("--client-props")) {
+            String[] clientconf = Arrays.copyOfRange(remainingArgs, 1, remainingArgs.length);
+            conf = Arrays.asList(clientconf)
+                .stream()
+                .map(keyvalue -> keyvalue.split("="))
+                .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
+            System.out.println("Parsed client properties " + conf);
+        }
+        return conf;
+    }
+
+    private String[] parseMatchContentId(String[] remainingArgs) {
+        if (remainingArgs.length > 1 && remainingArgs[0].equals("--match-content-id")) {
+            remainingArgs = Arrays.copyOfRange(remainingArgs, 1, remainingArgs.length);
+            this.matchContentId = true;
+            System.out.println("Going to match globalId and contentId");
+        }
+        return remainingArgs;
+    }
+
     protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
@@ -213,7 +237,6 @@ public class Export implements QuarkusApplication {
             return canonicalContent;
         } catch (Exception e) {
             e.printStackTrace();
-//            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
             return content;
         }
     }

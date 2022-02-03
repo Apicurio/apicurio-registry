@@ -90,8 +90,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 ArtifactType type = artifact.getType();
                 IfExists ifExists = artifact.getIfExists();
                 Boolean canonicalize = artifact.getCanonicalize();
+                String contentType = contentType(artifact);
                 try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, data);
+                    ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, contentType, data);
                     getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
                 } catch (Exception e) {
                     errorCount++;
@@ -103,5 +104,17 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         if (errorCount > 0) {
             throw new MojoExecutionException("Errors while registering artifacts ...");
         }
+    }
+
+    private String contentType(RegisterArtifact registerArtifact) {
+        String contentType = registerArtifact.getContentType();
+        if(contentType != null) {
+            return contentType;
+        }
+        return getContentTypeByExtension(registerArtifact.getFile().getName());
+    }
+
+    public void setArtifacts(List<RegisterArtifact> artifacts) {
+        this.artifacts = artifacts;
     }
 }

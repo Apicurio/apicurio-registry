@@ -17,7 +17,7 @@
 
 import React from "react";
 import "./rules.css";
-import {PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
+import {Button, PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {RuleList} from "../../components/ruleList";
 import {Rule} from "../../../models";
@@ -58,8 +58,7 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
                 </PageSection>
                 <PageSection className="ps_rules-description" variant={PageSectionVariants.light}>
                     <TextContent>
-                        Manage the list of Global Rules configured for the Registry below.  Rules can be enabled/disabled
-                        and also individually configured.
+                        Manage the list of global rules for this registry. Rules can be enabled, disabled, and individually configured.
                     </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
@@ -76,7 +75,6 @@ export class RulesPage extends PageComponent<RulesPageProps, RulesPageState> {
 
     protected initializePageState(): RulesPageState {
         return {
-            isLoading: true,
             rules: null
         };
     }

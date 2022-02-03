@@ -40,7 +40,7 @@ import {SearchedArtifact} from "../../../models";
 import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
 import {RootPageHeader} from "../../components";
 import {ProgressModal} from "../../components/modals/progressModal";
-
+import { ApiError } from "src/models/apiError.model";
 
 /**
  * Properties
@@ -65,10 +65,10 @@ export interface ArtifactsPageState extends PageState {
     paging: Paging;
     results: ArtifactsSearchResults | null;
     uploadFormData: CreateArtifactData | null;
-    invalidContentError: any | null;
+    invalidContentError: ApiError | null;
     initFromSearch: string;
     importFilename: string;
-    importFile: File | null;
+    importFile: string | File;
     isImporting: boolean;
     importProgress: number;
 }
@@ -202,7 +202,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
             isImporting: false,
             importProgress: 0,
             importFilename: "",
-            importFile: null,
+            importFile: "",
             invalidContentError: null,
             isInvalidContentModalOpen: false,
             isPleaseWaitModalOpen: false,
@@ -295,13 +295,15 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 const artifactLocation: string = this.linkTo(`/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`);
                 Services.getLoggerService().info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
+                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             }).catch( error => {
                 this.pleaseWait(false);
-                if (error && error.error_code === 400) {
+                if (error && (error.error_code === 400 || error.error_code === 409)) {
                     this.handleInvalidContentError(error);
                 } else {
                     this.handleServerError(error, "Error uploading artifact.");
                 }
+                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             });
         }
     };
@@ -388,7 +390,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
         if (value == "" && filename == "") {
             this.setMultiState({
                 importFilename: "",
-                importFile: null,
+                importFile: "",
                 isImportFormValid: false
             });
         } else {

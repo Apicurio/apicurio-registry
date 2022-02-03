@@ -163,7 +163,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
+
+            //TODO:references now that references are supported ar api level, this must be changed to also fetch the references
+            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);

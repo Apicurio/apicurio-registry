@@ -164,9 +164,12 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ContentHandle contentToReturn = artifact.getContent();
 
-        if (dereference) {
+        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
+        /*
+        if (dereference && !artifact.getReferences().isEmpty()) {
             contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
         }
+        */
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
         return builder.build();
@@ -209,7 +212,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType());
+        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType(), references);
     }
 
     /**
@@ -442,9 +445,12 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ContentHandle contentToReturn = artifact.getContent();
-        if (dereference) {
+        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
+        /*
+        if (dereference && !artifact.getReferences().isEmpty()) {
             contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
         }
+        */
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
@@ -621,9 +627,12 @@ public class GroupsResourceImpl implements GroupsResource {
 
             //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                    .map(V2ApiUtil::referenceToDto)
-                    .peek(reference -> reference.setContentId(storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()).getContentId()))
-                    .collect(Collectors.toList());
+                    .map(V2ApiUtil::referenceToDto).peek(reference -> {
+                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
+                                reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+                        reference.setContentId(artifactVersionMetaData.getContentId());
+                        reference.setGlobalId(artifactVersionMetaData.getGlobalId());
+                    }).collect(Collectors.toList());
 
             //Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
@@ -635,7 +644,7 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
+            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical, references);
         }
     }
 
@@ -764,7 +773,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     private ArtifactMetaData handleIfExists(String groupId, String artifactId, String version,
-            IfExists ifExists, ContentHandle content, String contentType, boolean canonical) {
+            IfExists ifExists, ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
         if (ifExists == null) {
             ifExists = IfExists.FAIL;
@@ -772,18 +781,18 @@ public class GroupsResourceImpl implements GroupsResource {
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(groupId, artifactId, version, content, contentType);
+                return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
             case RETURN:
                 return artifactMetaData;
             case RETURN_OR_UPDATE:
-                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical);
+                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical, references);
             default:
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
     }
 
     private ArtifactMetaData handleIfExistsReturnOrUpdate(String groupId, String artifactId, String version,
-            ContentHandle content, String contentType, boolean canonical) {
+            ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
         try {
             ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, canonical, content);
             ArtifactMetaData md = V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, null, mdDto);
@@ -791,26 +800,36 @@ public class GroupsResourceImpl implements GroupsResource {
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, version, content, contentType);
+        return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    ContentHandle content, String contentType) {
-        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType);
+                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
+        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType, references);
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
                                                     String name, String description,
-                                                    ContentHandle content, String contentType) {
+                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+
+        //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
+        final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
+                .map(V2ApiUtil::referenceToDto).peek(reference -> {
+                    final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
+                            reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+                    reference.setContentId(artifactVersionMetaData.getContentId());
+                    reference.setGlobalId(artifactVersionMetaData.getGlobalId());
+                }).collect(Collectors.toList());
+
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
-        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, null);
+        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
     }
 

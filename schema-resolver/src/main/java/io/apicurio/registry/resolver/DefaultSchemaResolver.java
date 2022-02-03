@@ -24,8 +24,8 @@ import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -87,6 +87,12 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             if (parsedSchema == null) {
                 parsedSchema = schemaParser.getSchemaFromData(data);
             }
+
+            if (parsedSchema.hasReferences()) {
+                //List of references lookup, to be used to create the references for the artifact
+                final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
+                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+            }
             return handleAutoCreateArtifact(parsedSchema, artifactReference);
         }
 
@@ -102,6 +108,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
+    }
+
+    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data, ParsedSchema<S> parsedSchema) {
+        final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
+
+        for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
+            final List<SchemaLookupResult<S>> innerReferences = referencedSchema.getSchemaReferences().stream()
+                    .map(innerReference -> handleArtifactReferences(data, referencedSchema)).flatMap(List::stream).collect(
+                            Collectors.toList());
+
+            if (innerReferences.isEmpty()) {
+                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema)));
+            } else {
+               referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema), innerReferences));
+            }
+        }
+        return referencesLookup;
     }
 
     /**
@@ -197,6 +220,43 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             return result.build();
         });
+    }
+
+    private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
+            final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
+
+        String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
+
+        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = parseReferences(referenceLookups);
+
+        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+
+            ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(),
+                    schemaParser.artifactType(), this.autoCreateBehavior, false, null, null, null,  IoUtil.toStream(parsedSchema.getRawSchema()), artifactReferences);
+
+            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
+
+            loadFromArtifactMetaData(artifactMetadata, result);
+
+            result.parsedSchema(parsedSchema);
+
+            return result.build();
+        });
+    }
+
+    private List<io.apicurio.registry.rest.v2.beans.ArtifactReference> parseReferences(List<SchemaLookupResult<S>> referenceLookups) {
+        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = new ArrayList<>();
+
+        referenceLookups.forEach(referenceLookup -> {
+            io.apicurio.registry.rest.v2.beans.ArtifactReference artifactReferenceLookup = new io.apicurio.registry.rest.v2.beans.ArtifactReference();
+            artifactReferenceLookup.setArtifactId(referenceLookup.getArtifactId());
+            artifactReferenceLookup.setGroupId(referenceLookup.getGroupId());
+            artifactReferenceLookup.setName(referenceLookup.getParsedSchema().referenceName());
+            artifactReferenceLookup.setVersion(referenceLookup.getVersion());
+            artifactReferences.add(artifactReferenceLookup);
+        });
+
+        return artifactReferences;
     }
 
     private SchemaLookupResult<S> resolveSchemaByArtifactReferenceCached(ArtifactReference artifactReference) {

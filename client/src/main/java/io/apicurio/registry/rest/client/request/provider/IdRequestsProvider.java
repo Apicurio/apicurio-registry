@@ -33,7 +33,7 @@ import static io.apicurio.rest.client.request.Operation.GET;
  */
 public class IdRequestsProvider {
 
-    public static Request<InputStream> getContentByHash(String contentHash, Boolean canonical, Map<String, List<String>> queryParams) {
+    public static Request<InputStream> getContentByHash(String contentHash, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<InputStream>()
                 .operation(GET)
                 .path(IDS_CONTENT_HASH)
@@ -43,11 +43,12 @@ public class IdRequestsProvider {
                 .build();
     }
 
-    public static Request<InputStream> getContentByGlobalId(long globalId) {
+    public static Request<InputStream> getContentByGlobalId(long globalId, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<InputStream>()
                 .operation(GET)
                 .path(IDS_GLOBAL_ID)
                 .pathParams(List.of(String.valueOf(globalId)))
+                .queryParams(queryParams)
                 .responseType(new TypeReference<InputStream>(){})
                 .build();
     }

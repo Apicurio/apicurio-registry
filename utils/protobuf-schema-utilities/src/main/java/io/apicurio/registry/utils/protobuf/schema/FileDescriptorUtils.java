@@ -1,15 +1,10 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.common.collect.ImmutableList;
-import com.google.protobuf.AnyProto;
-import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.*;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.DurationProto;
-import com.google.protobuf.EmptyProto;
-import com.google.protobuf.TimestampProto;
-import com.google.protobuf.WrappersProto;
 import com.google.type.CalendarPeriodProto;
 import com.google.type.ColorProto;
 import com.google.type.DateProto;

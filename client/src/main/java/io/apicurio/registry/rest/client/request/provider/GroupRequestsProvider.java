@@ -19,13 +19,7 @@ package io.apicurio.registry.rest.client.request.provider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.request.Operation;
@@ -62,6 +56,20 @@ public class GroupRequestsProvider {
                 .responseType(new TypeReference<ArtifactMetaData>() {
                 })
                 .data(data)
+                .build();
+    }
+
+    public static Request<ArtifactMetaData> createArtifactWithReferences(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
+            throws JsonProcessingException {
+        return new Request.RequestBuilder<ArtifactMetaData>()
+                .operation(Operation.POST)
+                .path(Routes.ARTIFACT_WITH_REFS)
+                .headers(headers)
+                .pathParams(List.of(groupId))
+                .queryParams(queryParams)
+                .responseType(new TypeReference<ArtifactMetaData>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                 .build();
     }
 

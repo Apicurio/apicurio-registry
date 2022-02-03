@@ -40,7 +40,6 @@ public class ProtobufDereferencer implements ContentDereferencer {
                         Map.Entry::getKey,
                         e -> ProtobufFile.toProtoFileElement(e.getValue().content())
                 )));
-
         try {
             return ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
         } catch (Descriptors.DescriptorValidationException e) {

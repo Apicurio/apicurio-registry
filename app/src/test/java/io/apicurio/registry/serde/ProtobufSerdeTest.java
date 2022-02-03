@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.api.sample.TableNotification;
+import io.api.sample.TableInfo;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -151,8 +151,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testProtobufSchemaWithReferences() {
 
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-             Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+        try (Serializer<TableInfo> serializer = new ProtobufKafkaSerializer<>(restClient);
+             Deserializer<TableInfo> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -160,7 +160,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             serializer.configure(config, false);
             deserializer.configure(config, false);
 
-            byte[] data = serializer.serialize("test",  TableNotification.newBuilder().build());
+            byte[] data = serializer.serialize("test",  TableInfo.newBuilder().build());
             deserializer.deserialize("test", data);
 
         }

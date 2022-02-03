@@ -32,6 +32,9 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Fabian Martinez
  */
@@ -65,14 +68,37 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      */
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data) {
-        ProtoFileElement protoFileElement = toProtoFileElement(data.payload().getDescriptorForType().getFile());
-        ProtobufSchema protobufSchema = new ProtobufSchema(data.payload().getDescriptorForType().getFile(), protoFileElement);
+        FileDescriptor schemaFileDescriptor = data.payload().getDescriptorForType().getFile();
+        ProtoFileElement protoFileElement = toProtoFileElement(schemaFileDescriptor);
+        ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor, protoFileElement);
 
         byte[] rawSchema = IoUtil.toBytes(protoFileElement.toSchema());
 
         return new ParsedSchemaImpl<ProtobufSchema>()
                 .setParsedSchema(protobufSchema)
+                .setReferenceName(protobufSchema.getFileDescriptor().getName())
+                .setSchemaReferences(handleDependencies(schemaFileDescriptor))
                 .setRawSchema(rawSchema);
+    }
+
+    private List<ParsedSchema<ProtobufSchema>> handleDependencies(FileDescriptor fileDescriptor) {
+        List<ParsedSchema<ProtobufSchema>> schemaReferences = new ArrayList<>();
+        fileDescriptor.getDependencies().forEach(referenceFileDescriptor -> {
+
+            ProtoFileElement referenceProtoFileElement = toProtoFileElement(referenceFileDescriptor);
+            ProtobufSchema referenceProtobufSchema = new ProtobufSchema(referenceFileDescriptor, referenceProtoFileElement);
+
+            byte[] rawSchema = IoUtil.toBytes(referenceProtoFileElement.toSchema());
+
+            ParsedSchema<ProtobufSchema> referencedSchema = new ParsedSchemaImpl<ProtobufSchema>()
+                    .setParsedSchema(referenceProtobufSchema)
+                    .setReferenceName(referenceProtobufSchema.getFileDescriptor().getName())
+                    .setSchemaReferences(handleDependencies(referenceFileDescriptor))
+                    .setRawSchema(rawSchema);
+            schemaReferences.add(referencedSchema);
+        });
+
+        return schemaReferences;
     }
 
     /**

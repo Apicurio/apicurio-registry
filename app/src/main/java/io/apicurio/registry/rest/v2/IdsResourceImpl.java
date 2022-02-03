@@ -100,9 +100,12 @@ public class IdsResourceImpl implements IdsResource {
         }
 
         ContentHandle contentToReturn = artifact.getContent();
-        if (dereference) {
+        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
+        /*
+        if (dereference && !artifact.getReferences().isEmpty()) {
             contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
         }
+        */
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
         checkIfDeprecated(metaData::getState, metaData.getId(), metaData.getVersion(), builder);

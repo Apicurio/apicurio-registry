@@ -22,20 +22,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.UserInfo;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -131,6 +118,8 @@ public interface RegistryClient extends Closeable {
 
     ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data);
 
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences);
+
     default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
         return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, null, data);
     };
@@ -157,6 +146,8 @@ public interface RegistryClient extends Closeable {
     InputStream getContentById(long contentId);
 
     InputStream getContentByGlobalId(long globalId);
+
+    InputStream getContentByGlobalId(long globalId, Boolean canonical, Boolean dereference);
 
     InputStream getContentByHash(String contentHash, Boolean canonical);
 

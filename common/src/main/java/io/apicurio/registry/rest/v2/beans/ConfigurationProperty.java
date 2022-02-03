@@ -4,49 +4,48 @@ package io.apicurio.registry.rest.v2.beans;
 import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.apicurio.registry.types.RuleType;
 
 
 /**
- * Root Type for Rule
+ * Root Type for ConfigurationProperty
  * <p>
  * 
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "config",
-    "type"
+    "name",
+    "value"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
 @lombok.ToString
-public class Rule {
+public class ConfigurationProperty {
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    private String config;
+    @JsonProperty("name")
+    private String name;
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    @JsonPropertyDescription("")
-    private RuleType type;
+    @JsonProperty("value")
+    private String value;
 
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    public String getConfig() {
-        return config;
+    @JsonProperty("name")
+    public String getName() {
+        return name;
     }
 
     /**
@@ -54,25 +53,29 @@ public class Rule {
      * (Required)
      * 
      */
-    @JsonProperty("config")
-    public void setConfig(String config) {
-        this.config = config;
+    @JsonProperty("name")
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public RuleType getType() {
-        return type;
+    @JsonProperty("value")
+    public String getValue() {
+        return value;
     }
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public void setType(RuleType type) {
-        this.type = type;
+    @JsonProperty("value")
+    public void setValue(String value) {
+        this.value = value;
     }
 
 }

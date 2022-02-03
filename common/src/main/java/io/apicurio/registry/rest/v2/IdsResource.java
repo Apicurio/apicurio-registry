@@ -1,5 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -59,4 +61,41 @@ public interface IdsResource {
   @GET
   @Produces("*/*")
   Response getContentByHash(@PathParam("contentHash") String contentHash);
+
+  /**
+   * Returns a list containing all the artifact references using the artifact content hash.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/contentHashes/{contentHash}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") Object contentHash);
+
+  /**
+   * Returns a list containing all the artifact references using the artifact contentId.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/contentIds/{contentId}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Object contentId);
+
+  /**
+   * Returns a list containing all the artifact references using the artifact global id.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/globalIds/{globalId}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Object globalId);
 }

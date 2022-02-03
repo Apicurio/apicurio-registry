@@ -1,5 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -59,4 +61,19 @@ public interface IdsResource {
   @GET
   @Produces("*/*")
   Response getContentByHash(@PathParam("contentHash") String contentHash);
+
+  @Path("/contentHashes/{contentHash}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") Object contentHash);
+
+  @Path("/contentIds/{contentId}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Object contentId);
+
+  @Path("/globalIds/{globalId}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Object globalId);
 }

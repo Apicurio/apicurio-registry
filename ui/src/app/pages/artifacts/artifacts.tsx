@@ -295,7 +295,6 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 const artifactLocation: string = this.linkTo(`/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(metaData.id) }`);
                 Services.getLoggerService().info("[ArtifactsPage] Artifact successfully uploaded.  Redirecting to details: ", artifactLocation);
                 this.navigateTo(artifactLocation)();
-                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             }).catch( error => {
                 this.pleaseWait(false);
                 if (error && (error.error_code === 400 || error.error_code === 409)) {

@@ -422,7 +422,6 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 const artifactVersionLocation: string = `/artifacts/${ encodeURIComponent(groupId) }/${ encodeURIComponent(versionMetaData.id) }/versions/${versionMetaData.version}`;
                 Services.getLoggerService().info("[ArtifactVersionPage] Artifact version successfully uploaded.  Redirecting to details: ", artifactVersionLocation);
                 this.navigateTo(this.linkTo(artifactVersionLocation))();
-                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             }).catch( error => {
                 this.pleaseWait(false, "");
                 if (error && (error.error_code === 400 || error.error_code === 409)) {

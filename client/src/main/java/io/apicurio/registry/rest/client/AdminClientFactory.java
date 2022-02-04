@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Carles Arnal 'carnalca@redhat.com'
+ * @author Jonathan Hughes 'jonathan.hughes@ibm.com'
  */
 public class AdminClientFactory {
 

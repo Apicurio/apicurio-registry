@@ -39,6 +39,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * @author Jonathan Hughes 'jonathan.hughes@ibm.com'
+ */
+
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 public class AdminClientTest extends AbstractResourceTestBase{

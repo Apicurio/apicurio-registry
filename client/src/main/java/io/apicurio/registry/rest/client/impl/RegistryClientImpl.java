@@ -352,6 +352,7 @@ public class RegistryClientImpl implements RegistryClient {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
     }
 
+    @Deprecated
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
         try {

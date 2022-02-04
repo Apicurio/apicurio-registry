@@ -88,8 +88,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
         TestUtils.retry(() -> {
-            clientV2.deleteAllGlobalRules();
-            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
+            adminClientV2.deleteAllGlobalRules();
+            Assertions.assertEquals(expectedDefaultRulesCount, adminClientV2.listGlobalRules().size());
         });
     }
 

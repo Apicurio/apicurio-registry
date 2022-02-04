@@ -32,15 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
-import javax.inject.Inject;
-
-import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -72,9 +64,6 @@ public class Export implements QuarkusApplication {
         //Workaround, because this app depends on apicurio-registry-app we are spawning an http server. Here we are setting the http port to a less probable used port
         System.setProperty("quarkus.http.port", "9573");
     }
-
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
 
     /**
      * @see io.quarkus.runtime.QuarkusApplication#run(java.lang.String[])
@@ -142,15 +131,11 @@ public class Export implements QuarkusApplication {
 
                     ArtifactType artifactType = ArtifactType.fromValue(metadata.getSchemaType().toUpperCase(Locale.ROOT));
 
-                    ContentHandle canonicalContent = this.canonicalizeContent(artifactType, ContentHandle.create(contentBytes));
-                    byte[] canonicalContentBytes = canonicalContent.bytes();
-                    String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-
                     Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                         ContentEntity contentEntity = new ContentEntity();
                         contentEntity.contentId = metadata.getId();
                         contentEntity.contentHash = contentHash;
-                        contentEntity.canonicalHash = canonicalContentHash;
+                        contentEntity.canonicalHash = null;
                         contentEntity.contentBytes = contentBytes;
 
                         try {
@@ -169,7 +154,7 @@ public class Export implements QuarkusApplication {
                     versionEntity.createdBy = "export-confluent-utility";
                     versionEntity.createdOn = System.currentTimeMillis();
                     versionEntity.description = null;
-                    versionEntity.globalId = globalIdSeq.getAndIncrement();
+                    versionEntity.globalId = -1;
                     versionEntity.groupId = null;
                     versionEntity.isLatest = isLatest;
                     versionEntity.labels = null;
@@ -184,11 +169,10 @@ public class Export implements QuarkusApplication {
 
                 try {
                     String compatibility = client.getCompatibility(subject);
-                    CompatibilityLevelDto.Level compatibilityLevel = CompatibilityLevelDto.Level.valueOf(compatibility);
 
                     ArtifactRuleEntity ruleEntity = new ArtifactRuleEntity();
                     ruleEntity.artifactId = subject;
-                    ruleEntity.configuration = compatibilityLevel.getStringValue();
+                    ruleEntity.configuration = compatibility;
                     ruleEntity.groupId = null;
                     ruleEntity.type = RuleType.COMPATIBILITY;
 
@@ -199,17 +183,16 @@ public class Export implements QuarkusApplication {
             }
 
             String globalCompatibility = client.getCompatibility(null);
-            CompatibilityLevelDto.Level compatibilityLevel = CompatibilityLevelDto.Level.valueOf(globalCompatibility);
 
             GlobalRuleEntity ruleEntity = new GlobalRuleEntity();
-            ruleEntity.configuration = compatibilityLevel.getStringValue();
+            ruleEntity.configuration = globalCompatibility;
             ruleEntity.ruleType = RuleType.COMPATIBILITY;
 
             writer.writeEntity(ruleEntity);
 
             //Enable Global Validation rule bcs it is confluent default behavior
             GlobalRuleEntity ruleEntity2 = new GlobalRuleEntity();
-            ruleEntity2.configuration = ValidityLevel.SYNTAX_ONLY.name();
+            ruleEntity2.configuration = "SYNTAX_ONLY";
             ruleEntity2.ruleType = RuleType.VALIDITY;
 
             writer.writeEntity(ruleEntity2);
@@ -221,18 +204,6 @@ public class Export implements QuarkusApplication {
         System.out.println("Export done.");
 
         return 0;
-    }
-
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
-        try {
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
-            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            return canonicalizer.canonicalize(content);
-        } catch (Exception e) {
-            e.printStackTrace();
-//            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
-            return content;
-        }
     }
 
 }

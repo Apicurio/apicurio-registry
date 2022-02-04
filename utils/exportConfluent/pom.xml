@@ -43,28 +43,6 @@
             <artifactId>apicurio-registry-common</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-app</artifactId>
-            <exclusions>
-
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-resteasy-jackson</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-smallrye-openapi</artifactId>
-                </exclusion>
-
-                <exclusion>
-                    <groupId>io.apicurio</groupId>
-                    <artifactId>apicurio-registry-ui</artifactId>
-                </exclusion>
-
-            </exclusions>
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/io.confluent/kafka-schema-registry-client -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -75,6 +53,35 @@
     
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${version.puppycrawl}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <configuration>
+                            <configLocation>../../.checkstyle/simple.xml</configLocation>
+                            <headerLocation>../../.checkstyle/java.header</headerLocation>
+                            <suppressionsLocation>../../.checkstyle/suppressions.xml</suppressionsLocation>
+                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <encoding>UTF-8</encoding>
+                            <consoleOutput>true</consoleOutput>
+                            <failsOnError>true</failsOnError>
+                        </configuration>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>

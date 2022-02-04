@@ -27,6 +27,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_CREATE_EXTENDED;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_GRAPHQL;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_JSON;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_OCTET_STREAM;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_PROTOBUF;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_XML;
+import static io.apicurio.registry.types.ContentTypes.APPLICATION_YAML;
+
 /**
  * A JAX-RS interface.  An implementation of this interface must be provided.
  */
@@ -419,7 +427,7 @@ public interface GroupsResource {
    */
   @Path("/{groupId}/artifacts/{artifactId}")
   @GET
-  @Produces("*/*")
+  @Consumes({APPLICATION_JSON, APPLICATION_YAML, APPLICATION_XML, APPLICATION_PROTOBUF, APPLICATION_GRAPHQL, APPLICATION_OCTET_STREAM})
   Response getLatestArtifact(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
 
@@ -443,7 +451,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts/{artifactId}")
   @PUT
   @Produces("application/json")
-  @Consumes("*/*")
+  @Consumes({APPLICATION_JSON, APPLICATION_YAML, APPLICATION_XML, APPLICATION_PROTOBUF, APPLICATION_GRAPHQL, APPLICATION_OCTET_STREAM})
   ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,
@@ -483,7 +491,7 @@ public interface GroupsResource {
 
   /**
    * Creates a new version of the artifact by uploading new content.  The configured rules for
-   * the artifact are applied, and if they all pass, the new content is added as the most recent 
+   * the artifact are applied, and if they all pass, the new content is added as the most recent
    * version of the artifact.  If any of the rules fail, an error is returned.
    *
    * The body of the request should be the raw content of the new artifact version, and the type
@@ -501,7 +509,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts/{artifactId}/versions")
   @POST
   @Produces("application/json")
-  @Consumes("*/*")
+  @Consumes({APPLICATION_JSON, APPLICATION_YAML, APPLICATION_XML, APPLICATION_PROTOBUF, APPLICATION_GRAPHQL, APPLICATION_OCTET_STREAM})
   VersionMetaData createArtifactVersion(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,
@@ -569,7 +577,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts")
   @POST
   @Produces("application/json")
-  @Consumes("application/json")
+  @Consumes(APPLICATION_CREATE_EXTENDED)
   ArtifactMetaData createArtifactWithRefs(@PathParam("groupId") String groupId,
       @HeaderParam("X-Registry-ArtifactType") ArtifactType xRegistryArtifactType,
       @HeaderParam("X-Registry-ArtifactId") String xRegistryArtifactId,
@@ -601,7 +609,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts/{artifactId}/versions")
   @POST
   @Produces("application/json")
-  @Consumes("application/json")
+  @Consumes(APPLICATION_CREATE_EXTENDED)
   VersionMetaData createArtifactVersionWithRefs(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,
@@ -631,7 +639,7 @@ public interface GroupsResource {
   @Path("/{groupId}/artifacts/{artifactId}")
   @PUT
   @Produces("application/json")
-  @Consumes("application/json")
+  @Consumes(APPLICATION_CREATE_EXTENDED)
   ArtifactMetaData updateArtifactWithRefs(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId,
       @HeaderParam("X-Registry-Version") String xRegistryVersion,

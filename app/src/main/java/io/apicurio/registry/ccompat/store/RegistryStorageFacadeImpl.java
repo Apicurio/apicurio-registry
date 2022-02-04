@@ -201,12 +201,6 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                         artifactReferenceDto.setName(schemaReference.getName());
                         artifactReferenceDto.setGroupId(null);
                         return artifactReferenceDto;
-
-                    })
-                    .peek(reference -> {
-                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-                        reference.setGlobalId(artifactVersionMetaData.getGlobalId());
-                        reference.setContentId(artifactVersionMetaData.getContentId());
                     })
                     .collect(Collectors.toList());
 
@@ -367,7 +361,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             return references.stream()
                     .map(schemaReference -> {
                         final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()));
-                        return new ArtifactReferenceDto(artifactVersionMetaData.getGlobalId(), null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName(), artifactVersionMetaData.getContentId());
+                        return new ArtifactReferenceDto(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName());
                     }).collect(Collectors.toList());
         } else {
             return Collections.emptyList();

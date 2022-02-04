@@ -653,12 +653,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     String sqli = sqlStatements.upsertReference();
                     handle.createUpdate(sqli)
                             .bind(0, tenantContext.tenantId())
-                            .bind(1, reference.getGlobalId())
-                            .bind(2, reference.getGroupId())
-                            .bind(3, reference.getArtifactId())
-                            .bind(4, reference.getVersion())
-                            .bind(5, reference.getContentId())
-                            .bind(6, reference.getName())
+                            .bind(1, reference.getGroupId())
+                            .bind(2, reference.getArtifactId())
+                            .bind(3, reference.getVersion())
+                            .bind(4, reference.getName())
                             .execute();
                 });
             }

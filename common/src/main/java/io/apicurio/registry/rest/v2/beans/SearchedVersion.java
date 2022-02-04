@@ -36,7 +36,6 @@ import io.apicurio.registry.types.ArtifactType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-@lombok.ToString
 public class SearchedVersion {
 
     /**

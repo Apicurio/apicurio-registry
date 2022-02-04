@@ -18,7 +18,6 @@ import io.apicurio.registry.types.LogLevel;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-@lombok.ToString
 public class LogConfiguration {
 
     /**

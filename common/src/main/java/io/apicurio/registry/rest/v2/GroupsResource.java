@@ -566,7 +566,7 @@ public interface GroupsResource {
    * * A server error occurred (HTTP error `500`)
    *
    */
-  @Path("/{groupId}/artifacts/withRefs")
+  @Path("/{groupId}/artifacts")
   @POST
   @Produces("application/json")
   @Consumes("application/json")
@@ -598,7 +598,7 @@ public interface GroupsResource {
    * * A server error occurred (HTTP error `500`)
    *
    */
-  @Path("/{groupId}/artifacts/{artifactId}/versions/withRefs")
+  @Path("/{groupId}/artifacts/{artifactId}/versions")
   @POST
   @Produces("application/json")
   @Consumes("application/json")
@@ -628,7 +628,7 @@ public interface GroupsResource {
    * When successful, this creates a new version of the artifact, making it the most recent
    * (and therefore official) version of the artifact.
    */
-  @Path("/{groupId}/artifacts/{artifactId}/withRefs")
+  @Path("/{groupId}/artifacts/{artifactId}")
   @PUT
   @Produces("application/json")
   @Consumes("application/json")

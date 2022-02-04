@@ -63,7 +63,7 @@ public class GroupRequestsProvider {
             throws JsonProcessingException {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.POST)
-                .path(Routes.ARTIFACT_WITH_REFS)
+                .path(Routes.GROUP_BASE_PATH)
                 .headers(headers)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)

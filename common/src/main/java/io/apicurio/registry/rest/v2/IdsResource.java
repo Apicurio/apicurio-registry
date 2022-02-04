@@ -73,7 +73,7 @@ public interface IdsResource {
   @Path("/contentHashes/{contentHash}/references")
   @GET
   @Produces("application/json")
-  List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") Object contentHash);
+  List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") String contentHash);
 
   /**
    * Returns a list containing all the artifact references using the artifact contentId.
@@ -85,7 +85,7 @@ public interface IdsResource {
   @Path("/contentIds/{contentId}/references")
   @GET
   @Produces("application/json")
-  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Object contentId);
+  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Long contentId);
 
   /**
    * Returns a list containing all the artifact references using the artifact global id.
@@ -97,5 +97,5 @@ public interface IdsResource {
   @Path("/globalIds/{globalId}/references")
   @GET
   @Produces("application/json")
-  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Object globalId);
+  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Long globalId);
 }

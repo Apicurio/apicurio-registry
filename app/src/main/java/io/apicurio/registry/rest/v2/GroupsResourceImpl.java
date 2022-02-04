@@ -627,12 +627,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
             //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                    .map(V2ApiUtil::referenceToDto).peek(reference -> {
-                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
-                                reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-                        reference.setContentId(artifactVersionMetaData.getContentId());
-                        reference.setGlobalId(artifactVersionMetaData.getGlobalId());
-                    }).collect(Collectors.toList());
+                    .map(V2ApiUtil::referenceToDto)
+                    .collect(Collectors.toList());
 
             //Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
@@ -712,10 +708,18 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
+        //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
+        final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
+                .map(V2ApiUtil::referenceToDto)
+                .collect(Collectors.toList());
+
+        //Try to resolve the new artifact references and the nested ones (if any)
+        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences); //FIXME:references handle artifact references
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, null);
+        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
 
@@ -820,12 +824,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                .map(V2ApiUtil::referenceToDto).peek(reference -> {
-                    final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
-                            reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-                    reference.setContentId(artifactVersionMetaData.getContentId());
-                    reference.setGlobalId(artifactVersionMetaData.getGlobalId());
-                }).collect(Collectors.toList());
+                .map(V2ApiUtil::referenceToDto)
+                .collect(Collectors.toList());
 
         rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);

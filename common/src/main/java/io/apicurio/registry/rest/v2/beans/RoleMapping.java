@@ -21,7 +21,6 @@ import io.apicurio.registry.types.RoleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
-@lombok.ToString
 public class RoleMapping {
 
     /**

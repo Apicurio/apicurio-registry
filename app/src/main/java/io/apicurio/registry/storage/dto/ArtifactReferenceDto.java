@@ -27,31 +27,15 @@ import lombok.ToString;
 @ToString
 public class ArtifactReferenceDto {
 
-    private long globalId;
     private String groupId;
     private String artifactId;
     private String version;
     private String name;
-    private long contentId;
 
     /**
      * Constructor
      */
     public ArtifactReferenceDto() {
-    }
-
-    /**
-     * @return the globalId
-     */
-    public long getGlobalId() {
-        return globalId;
-    }
-
-    /**
-     * @param globalId to set
-     */
-    public void setGlobalId(long globalId) {
-        this.globalId = globalId;
     }
 
     /**
@@ -108,19 +92,5 @@ public class ArtifactReferenceDto {
      */
     public void setName(String name) {
         this.name = name;
-    }
-
-    /**
-     * @return the contentId
-     */
-    public long getContentId() {
-        return contentId;
-    }
-
-    /**
-     * @param contentId
-     */
-    public void setContentId(long contentId) {
-        this.contentId = contentId;
     }
 }

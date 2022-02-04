@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.v2;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -32,6 +33,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -121,5 +123,20 @@ public class IdsResourceImpl implements IdsResource {
         ContentHandle content = storage.getArtifactByContentHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
+    }
+
+    @Override
+    public List<ArtifactReference> referencesByContentHash(String contentHash) {
+        return null;
+    }
+
+    @Override
+    public List<ArtifactReference> referencesByContentId(Long contentId) {
+        return null;
+    }
+
+    @Override
+    public List<ArtifactReference> referencesByGlobalId(Long globalId) {
+        return null;
     }
 }

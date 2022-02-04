@@ -565,9 +565,11 @@ public interface RegistryStorage {
     /**
      * Called to import previously exported data into the registry.
      * @param entities
+     * @param preserveGlobalId Preserve global ids. If false, global ids will be set to next id in global id sequence.
+     * @param preserveContentId Preserve content id. If false, content ids will be set to the next ids in the content id sequence. Content-Version mapping will be preserved.
      * @throws RegistryStorageException
      */
-    public void importData(EntityInputStream entities) throws RegistryStorageException;
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException;
 
     /**
      * Counts the total number of artifacts

@@ -57,7 +57,7 @@ public class ImportLifecycleBean {
                         zip.close();
                     }
                 }) {
-                    storage.importData(stream);
+                    storage.importData(stream, true, true);
                     log.info("Registry successfully imported from {}", registryImportUrl);
                 }
             } catch (IOException ioe) {

@@ -46,7 +46,7 @@ public class ExportCommand extends AbstractCommand {
 
             println("Exporting registry data to " + output.getName());
 
-            InputStream export = getClient().exportData();
+            InputStream export = getAdminClient().exportData();
 
             IoUtil.copy(export, fos);
         } catch (IOException e) {

@@ -38,6 +38,7 @@ import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -84,7 +85,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
              */
             @Override
             public Object parseSchema(byte[] rawSchema) {
-                return schemaMapper.parseSchema(rawSchema);
+                //Empty map passed as references. References are not supported when using this class.
+                return schemaMapper.parseSchema(rawSchema, Collections.emptyMap());
             }
 
         });
@@ -217,7 +219,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
+            S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 

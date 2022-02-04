@@ -35,6 +35,10 @@ import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -164,13 +168,19 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
 
-            //TODO:references now that references are supported ar api level, this must be changed to also fetch the references
             InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
 
+            //Get the artifact references
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalId);
+            //If there are any references for the schema being parsed, resolve them before parsing the schema
+            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
+            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+
             ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
                     .setParsedSchema(parsed)
+                    .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
                     .setRawSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -184,6 +194,22 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .parsedSchema(ps)
                 .build();
         });
+    }
+
+    private Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
+        Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
+        //TODO In order to handle possible inner references, we need to check if the retrieved artifact also has references
+        artifactReferences.forEach(reference -> resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()), Collections.emptyMap())));
+        return resolvedReferences;
+    }
+
+    private ParsedSchema<S> parseSchemaFromStream(String name, InputStream rawSchema, Map<String, ParsedSchema<S>> resolvedReferences) {
+        byte[] schema = IoUtil.toBytes(rawSchema);
+        S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+        return new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setReferenceName(name)
+                .setRawSchema(schema);
     }
 
     /**

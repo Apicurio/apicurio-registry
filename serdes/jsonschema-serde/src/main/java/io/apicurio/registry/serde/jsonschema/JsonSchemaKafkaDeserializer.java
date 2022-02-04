@@ -124,7 +124,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public JsonSchema parseSchema(byte[] rawSchema) {
+    public JsonSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
         JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
         return factory.getSchema(IoUtil.toStream(rawSchema));
     }

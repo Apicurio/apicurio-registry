@@ -16,24 +16,28 @@
 
 package io.apicurio.registry.serde.protobuf;
 
-import org.apache.kafka.common.errors.SerializationException;
-
-import com.google.protobuf.Message;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.Message;
+import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufMessage;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import org.apache.kafka.common.errors.SerializationException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Fabian Martinez
@@ -52,12 +56,20 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public ProtobufSchema parseSchema(byte[] rawSchema) {
+    public ProtobufSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
         try {
             //textual .proto file
             ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, IoUtil.toString(rawSchema));
-            FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-            return new ProtobufSchema(fileDescriptor, fileElem);
+            Map<String, ProtoFileElement> dependencies = new HashMap<>();
+            resolvedReferences.forEach((key, value) -> dependencies.put(key, value.getParsedSchema().getProtoFileElement()));
+            MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
+            if (firstMessage != null) {
+                final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), fileElem, dependencies);
+                return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
+            } else {
+                FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
+                return new ProtobufSchema(fileDescriptor, fileElem);
+            }
         } catch (DescriptorValidationException pe) {
             throw new SerializationException("Error parsing protobuf schema ", pe);
         }
@@ -109,5 +121,4 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     public ProtoFileElement toProtoFileElement(FileDescriptor fileDescriptor) {
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
     }
-
 }

@@ -17,6 +17,7 @@
 package io.apicurio.registry.rest.client.request.provider;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.rest.client.request.Request;
 
 import java.io.InputStream;
@@ -26,6 +27,9 @@ import java.util.Map;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_CONTENT_HASH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_CONTENT_ID;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_GLOBAL_ID;
+import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_REFERENCES_CONTENT_HASH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_REFERENCES_CONTENT_ID;
+import static io.apicurio.registry.rest.client.request.provider.Routes.IDS_REFERENCES_GLOBAL_ID;
 import static io.apicurio.rest.client.request.Operation.GET;
 
 /**
@@ -59,6 +63,33 @@ public class IdRequestsProvider {
                 .path(IDS_CONTENT_ID)
                 .pathParams(List.of(String.valueOf(contentId)))
                 .responseType(new TypeReference<InputStream>(){})
+                .build();
+    }
+
+    public static Request<List<ArtifactReference>> getArtifactReferencesByGlobalId(long globalId) {
+        return new Request.RequestBuilder<List<ArtifactReference>>()
+                .operation(GET)
+                .path(IDS_REFERENCES_GLOBAL_ID)
+                .pathParams(List.of(String.valueOf(globalId)))
+                .responseType(new TypeReference<List<ArtifactReference>>(){})
+                .build();
+    }
+
+    public static Request<List<ArtifactReference>> getArtifactReferencesByContentId(long contentId) {
+        return new Request.RequestBuilder<List<ArtifactReference>>()
+                .operation(GET)
+                .path(IDS_REFERENCES_CONTENT_ID)
+                .pathParams(List.of(String.valueOf(contentId)))
+                .responseType(new TypeReference<List<ArtifactReference>>(){})
+                .build();
+    }
+
+    public static Request<List<ArtifactReference>> getArtifactReferencesByContentHash(String contentHash) {
+        return new Request.RequestBuilder<List<ArtifactReference>>()
+                .operation(GET)
+                .path(IDS_REFERENCES_CONTENT_HASH)
+                .pathParams(List.of(String.valueOf(contentHash)))
+                .responseType(new TypeReference<List<ArtifactReference>>(){})
                 .build();
     }
 }

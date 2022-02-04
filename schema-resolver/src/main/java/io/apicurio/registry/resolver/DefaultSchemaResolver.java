@@ -163,8 +163,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok for this case
             InputStream rawSchema = client.getContentById(contentIdKey);
 
+            //TODO handle references
+
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
+            S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -279,8 +281,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             InputStream rawSchema = client.getContentByGlobalId(gid);
 
+            //TODO handle references
+
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema);
+            S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
             result.parsedSchema(new ParsedSchemaImpl<S>()
                         .setParsedSchema(parsed)

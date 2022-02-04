@@ -130,7 +130,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public JsonNode parseSchema(byte[] rawSchema) {
+    public JsonNode parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonNode>> resolvedReferences) {
         try {
             return mapper.readTree(rawSchema);
         } catch (IOException e) {

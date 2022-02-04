@@ -25,6 +25,8 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.util.Map;
+
 /**
  * @author Fabian Martinez
  */
@@ -48,7 +50,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public Schema parseSchema(byte[] rawSchema) {
+    public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
         return AvroSchemaUtils.parse(IoUtil.toString(rawSchema));
     }
 

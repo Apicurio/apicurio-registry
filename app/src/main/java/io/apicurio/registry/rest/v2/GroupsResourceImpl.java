@@ -688,7 +688,6 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     private VersionMetaData createArtifactVersionWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
-        //FIXME:references do something with the provided references
         // TODO do something with the user-provided version info
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -717,7 +716,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences); //FIXME:references handle artifact references
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
         ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);

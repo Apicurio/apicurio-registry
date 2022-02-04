@@ -18,6 +18,7 @@ package io.apicurio.registry.rest.v2;
 
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -37,6 +38,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
@@ -67,7 +69,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(int)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response getContentById(int contentId) {
         ContentHandle content = storage.getArtifactByContentId(contentId).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -118,7 +120,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(java.lang.String)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getArtifactByContentHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -127,16 +129,25 @@ public class IdsResourceImpl implements IdsResource {
 
     @Override
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
-        return null;
+        ContentWrapperDto artifact = storage.getArtifactByContentHash(contentHash);
+        return artifact.getReferences().stream()
+                .map(V2ApiUtil::referenceDtoToReference)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ArtifactReference> referencesByContentId(Long contentId) {
-        return null;
+        ContentWrapperDto artifact = storage.getArtifactByContentId(contentId);
+        return artifact.getReferences().stream()
+                .map(V2ApiUtil::referenceDtoToReference)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ArtifactReference> referencesByGlobalId(Long globalId) {
-        return null;
+        StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
+        return artifact.getReferences().stream()
+                .map(V2ApiUtil::referenceDtoToReference)
+                .collect(Collectors.toList());
     }
 }

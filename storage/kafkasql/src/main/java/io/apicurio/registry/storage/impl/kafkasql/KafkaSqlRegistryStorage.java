@@ -975,7 +975,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         try {
             Entity entity = null;
             while ((entity = entities.nextEntity()) != null) {
-                if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                if (entity.getEntityType() == EntityType.Content) {
+                    ContentEntity contentEntity = (ContentEntity) entity;
+                    if (!preserveContentId) {
+                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
+                        // It makes sure there won't be any conflicts
+                        long newContentId;
+                        if (contentEntity.artifactType != null) {
+                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes),  contentEntity.artifactType);
+                        } else {
+                            if (contentEntity.canonicalHash == null) {
+                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
+                            }
+                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.canonicalHash);
+                        }
+                        contentIdMapping.put(contentEntity.contentId, newContentId);
+                        continue;
+                    }
+
+                    // We do not need canonicalHash if we have artifactType
+                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                    }
+                } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
                     ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
                     if (!preserveGlobalId) {
                         artifactVersionEntity.globalId = -1;
@@ -988,29 +1011,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                         }
                         // Content of the artifact was already imported we can use the new contentId
                         artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    }
-                }
-                if (entity.getEntityType() == EntityType.Content) {
-                    ContentEntity contentEntity = (ContentEntity) entity;
-                    if (!preserveContentId) {
-                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
-                        // It makes sure there won't be any conflicts
-                        long newContentId;
-                        if (contentEntity.artifactType != null) {
-                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes),  contentEntity.artifactType);
-                        } else {
-                            if (contentEntity.canonicalHash == null)
-                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
-                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.canonicalHash);
-                        }
-                        contentIdMapping.put(contentEntity.contentId, newContentId);
-                        continue;
-                    }
-
-                    // We do not need canonicalHash if we have artifactType
-                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
-                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 }
                 importEntity(entity);

@@ -2323,21 +2323,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         handles.withHandleNoException(handle -> {
             Entity entity = null;
             while ((entity = entities.nextEntity()) != null) {
-                if (entity.getEntityType() == EntityType.ArtifactVersion) {
-                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
-                    if (!preserveGlobalId) {
-                        ((ArtifactVersionEntity) entity).globalId = -1;
-                    }
-                    if (!preserveContentId) {
-                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
-                            // Add to the queue waiting for content imported
-                            waitingForContent.add(artifactVersionEntity);
-                            continue;
-                        }
-                        // Content of the artifact was already imported we can use the new contentId
-                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    }
-                }
                 if (entity.getEntityType() == EntityType.Content) {
                     ContentEntity contentEntity = (ContentEntity) entity;
                     if (!preserveContentId) {
@@ -2347,7 +2332,9 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         if (contentEntity.artifactType != null) {
                             newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
                         } else {
-                            if(contentEntity.canonicalHash == null) throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
+                            if(contentEntity.canonicalHash == null) {
+                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
+                            }
                             newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash);
                         }
                         contentIdMapping.put(contentEntity.contentId, newContentId);
@@ -2358,6 +2345,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
                         ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                    }
+                } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+                    if (!preserveGlobalId) {
+                        artifactVersionEntity.globalId = -1;
+                    }
+                    if (!preserveContentId) {
+                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
+                            // Add to the queue waiting for content imported
+                            waitingForContent.add(artifactVersionEntity);
+                            continue;
+                        }
+                        // Content of the artifact was already imported we can use the new contentId
+                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
                     }
                 }
                 importEntity(handle, entity);

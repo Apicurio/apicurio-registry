@@ -1018,4 +1018,188 @@ public class FileDescriptorUtils {
         return defaultJsonName;
     }
 
+
+    public static Descriptors.Descriptor toDescriptor(String name, ProtoFileElement protoFileElement, Map<String, ProtoFileElement> dependencies) {
+        return toDynamicSchema(name, protoFileElement, dependencies).getMessageDescriptor(name);
+    }
+
+    public static MessageElement firstMessage(ProtoFileElement fileElement) {
+        for (TypeElement typeElement : fileElement.getTypes()) {
+            if (typeElement instanceof MessageElement) {
+                return (MessageElement) typeElement;
+            }
+        }
+        //Intended null return
+        return null;
+    }
+
+    /*
+     * DynamicSchema is used as a temporary helper class and should not be exposed in the API.
+     */
+    private static DynamicSchema toDynamicSchema(
+            String name, ProtoFileElement rootElem, Map<String, ProtoFileElement> dependencies
+    ) {
+
+        DynamicSchema.Builder schema = DynamicSchema.newBuilder();
+        try {
+            Syntax syntax = rootElem.getSyntax();
+            if (syntax != null) {
+                schema.setSyntax(syntax.toString());
+            }
+            if (rootElem.getPackageName() != null) {
+                schema.setPackage(rootElem.getPackageName());
+            }
+            for (TypeElement typeElem : rootElem.getTypes()) {
+                if (typeElem instanceof MessageElement) {
+                    MessageDefinition message = toDynamicMessage((MessageElement) typeElem);
+                    schema.addMessageDefinition(message);
+                } else if (typeElem instanceof EnumElement) {
+                    EnumDefinition enumer = toDynamicEnum((EnumElement) typeElem);
+                    schema.addEnumDefinition(enumer);
+                }
+            }
+            for (String ref : rootElem.getImports()) {
+                ProtoFileElement dep = dependencies.get(ref);
+                if (dep != null) {
+                    schema.addDependency(ref);
+                    schema.addSchema(toDynamicSchema(ref, dep, dependencies));
+                }
+            }
+            for (String ref : rootElem.getPublicImports()) {
+                ProtoFileElement dep = dependencies.get(ref);
+                if (dep != null) {
+                    schema.addPublicDependency(ref);
+                    schema.addSchema(toDynamicSchema(ref, dep, dependencies));
+                }
+            }
+            String javaPackageName = findOption("java_package", rootElem.getOptions())
+                    .map(o -> o.getValue().toString()).orElse(null);
+            if (javaPackageName != null) {
+                schema.setJavaPackage(javaPackageName);
+            }
+            String javaOuterClassname = findOption("java_outer_classname", rootElem.getOptions())
+                    .map(o -> o.getValue().toString()).orElse(null);
+            if (javaOuterClassname != null) {
+                schema.setJavaOuterClassname(javaOuterClassname);
+            }
+            Boolean javaMultipleFiles = findOption("java_multiple_files", rootElem.getOptions())
+                    .map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
+            if (javaMultipleFiles != null) {
+                schema.setJavaMultipleFiles(javaMultipleFiles);
+            }
+            schema.setName(name);
+            return schema.build();
+        } catch (Descriptors.DescriptorValidationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static MessageDefinition toDynamicMessage(
+            MessageElement messageElem
+    ) {
+        MessageDefinition.Builder message = MessageDefinition.newBuilder(messageElem.getName());
+        for (TypeElement type : messageElem.getNestedTypes()) {
+            if (type instanceof MessageElement) {
+                message.addMessageDefinition(toDynamicMessage((MessageElement) type));
+            } else if (type instanceof EnumElement) {
+                message.addEnumDefinition(toDynamicEnum((EnumElement) type));
+            }
+        }
+        Set<String> added = new HashSet<>();
+        for (OneOfElement oneof : messageElem.getOneOfs()) {
+            MessageDefinition.OneofBuilder oneofBuilder = message.addOneof(oneof.getName());
+            for (FieldElement field : oneof.getFields()) {
+                String defaultVal = field.getDefaultValue();
+                String jsonName = findOption("json_name", field.getOptions())
+                        .map(o -> o.getValue().toString()).orElse(null);
+                oneofBuilder.addField(
+                        field.getType(),
+                        field.getName(),
+                        field.getTag(),
+                        defaultVal,
+                        jsonName
+                );
+                added.add(field.getName());
+            }
+        }
+        // Process fields after messages so that any newly created map entry messages are at the end
+        for (FieldElement field : messageElem.getFields()) {
+            if (added.contains(field.getName())) {
+                continue;
+            }
+            Field.Label fieldLabel = field.getLabel();
+            String label = fieldLabel != null ? fieldLabel.toString().toLowerCase() : null;
+            String fieldType = field.getType();
+            String defaultVal = field.getDefaultValue();
+            String jsonName = field.getJsonName();
+            Boolean isPacked = findOption("packed", field.getOptions())
+                    .map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
+            ProtoType protoType = ProtoType.get(fieldType);
+            ProtoType keyType = protoType.getKeyType();
+            ProtoType valueType = protoType.getValueType();
+            // Map fields are only permitted in messages
+            if (protoType.isMap() && keyType != null && valueType != null) {
+                label = "repeated";
+                fieldType = toMapEntry(field.getName());
+                MessageDefinition.Builder mapMessage = MessageDefinition.newBuilder(fieldType);
+                mapMessage.setMapEntry(true);
+                mapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null);
+                mapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null);
+                message.addMessageDefinition(mapMessage.build());
+            }
+            message.addField(
+                    label,
+                    fieldType,
+                    field.getName(),
+                    field.getTag(),
+                    defaultVal,
+                    jsonName,
+                    isPacked
+            );
+        }
+        for (ReservedElement reserved : messageElem.getReserveds()) {
+            for (Object elem : reserved.getValues()) {
+                if (elem instanceof String) {
+                    message.addReservedName((String) elem);
+                } else if (elem instanceof Integer) {
+                    int tag = (Integer) elem;
+                    message.addReservedRange(tag, tag);
+                } else if (elem instanceof IntRange) {
+                    IntRange range = (IntRange) elem;
+                    message.addReservedRange(range.getStart(), range.getEndInclusive());
+                } else {
+                    throw new IllegalStateException("Unsupported reserved type: " + elem.getClass()
+                            .getName());
+                }
+            }
+        }
+        Boolean isMapEntry = findOption("map_entry", messageElem.getOptions())
+                .map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
+        if (isMapEntry != null) {
+            message.setMapEntry(isMapEntry);
+        }
+        return message.build();
+    }
+
+    public static Optional<OptionElement> findOption(String name, List<OptionElement> options) {
+        return options.stream().filter(o -> o.getName().equals(name)).findFirst();
+    }
+
+    private static EnumDefinition toDynamicEnum(EnumElement enumElem) {
+        Boolean allowAlias = findOption("allow_alias", enumElem.getOptions())
+                .map(o -> Boolean.valueOf(o.getValue().toString())).orElse(null);
+        EnumDefinition.Builder enumer = EnumDefinition.newBuilder(enumElem.getName(), allowAlias);
+        for (EnumConstantElement constant : enumElem.getConstants()) {
+            enumer.addValue(constant.getName(), constant.getTag());
+        }
+        return enumer.build();
+    }
+
+    public static String toMapField(String s) {
+        if (s.endsWith(MAP_ENTRY_SUFFIX)) {
+            s = s.substring(0, s.length() - MAP_ENTRY_SUFFIX.length());
+            s = UPPER_CAMEL.to(LOWER_UNDERSCORE, s);
+        }
+        return s;
+    }
 }

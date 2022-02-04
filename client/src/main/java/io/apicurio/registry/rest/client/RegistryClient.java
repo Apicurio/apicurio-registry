@@ -224,4 +224,10 @@ public interface RegistryClient extends Closeable {
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 
     Map<String, String> getHeaders();
+
+    List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId);
+
+    List<ArtifactReference> getArtifactReferencesByContentId(long contentId);
+
+    List<ArtifactReference> getArtifactReferencesByContentHash(String contentHash);
 }

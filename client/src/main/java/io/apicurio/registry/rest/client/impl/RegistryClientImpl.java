@@ -455,6 +455,21 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByGlobalId(globalId));
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentId(long contentId) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByContentId(contentId));
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentHash(String contentHash) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByContentHash(contentHash));
+    }
+
+    @Override
     public void setNextRequestHeaders(Map<String, String> requestHeaders) {
         apicurioHttpClient.setNextRequestHeaders(requestHeaders);
     }

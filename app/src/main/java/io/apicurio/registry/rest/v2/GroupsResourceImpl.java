@@ -625,7 +625,6 @@ public class GroupsResourceImpl implements GroupsResource {
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
 
-            //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
                     .map(V2ApiUtil::referenceToDto)
                     .collect(Collectors.toList());

@@ -249,20 +249,6 @@ public interface AdminResource {
   List<ConfigurationProperty> listConfigProperties();
 
   /**
-   * Sets a configuration property using a name and value.  If the configuration property is
-   * already set, it will be overwritten.
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/config/properties")
-  @POST
-  @Consumes("application/json")
-  void setConfigProperty(ConfigurationProperty data);
-
-  /**
    * Returns the value of a single configuration property.
    *
    * This operation may fail for one of the following reasons:
@@ -292,7 +278,7 @@ public interface AdminResource {
       UpdateConfigurationProperty data);
 
   /**
-   * Deletes the value of a single configuration property.  This will return the property to
+   * Resets the value of a single configuration property.  This will return the property to
    * its default value (see external documentation for supported properties and their default
    * values).
    *
@@ -304,5 +290,5 @@ public interface AdminResource {
    */
   @Path("/config/properties/{propertyName}")
   @DELETE
-  void deleteConfigProperty(@PathParam("propertyName") String propertyName);
+  void resetConfigProperty(@PathParam("propertyName") String propertyName);
 }

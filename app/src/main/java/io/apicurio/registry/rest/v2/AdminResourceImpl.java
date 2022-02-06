@@ -16,10 +16,24 @@
 
 package io.apicurio.registry.rest.v2;
 
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_LOGGER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PROPERTY_CONFIGURATION;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
@@ -33,27 +47,35 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import io.apicurio.registry.logging.audit.Audited;
 import org.slf4j.Logger;
 
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.services.LogConfigurationService;
+import io.apicurio.registry.storage.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.InvalidPropertyValueException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
@@ -66,15 +88,6 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityReader;
-
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOGGER;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_LOG_CONFIGURATION;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -98,13 +111,16 @@ public class AdminResourceImpl implements AdminResource {
     LogConfigurationService logConfigService;
 
     @Inject
+    DynamicConfigPropertyIndex dynamicPropertyIndex;
+
+    @Inject
     DataExporter exporter;
 
     @Context
     HttpServletRequest request;
 
-    @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
-    long downloadHrefTtl;
+    @Dynamic @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
+    Supplier<Long> downloadHrefTtl;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
@@ -287,7 +303,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
         if (forBrowser != null && forBrowser) {
-            long expires = System.currentTimeMillis() + (downloadHrefTtl * 1000);
+            long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);
@@ -357,6 +373,86 @@ public class AdminResourceImpl implements AdminResource {
         storage.deleteRoleMapping(principalId);
     }
 
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#listConfigProperties()
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public List<ConfigurationProperty> listConfigProperties() {
+        // Query the DB for the set of configured properties.
+        List<DynamicConfigPropertyDto> props = storage.getConfigProperties();
+
+        // Index the stored properties for easy lookup
+        Map<String, ConfigurationProperty> propsI = new HashMap<>();
+        props.forEach(dto -> propsI.put(dto.getName(), dtoToConfigurationProperty(dto)));
+
+        // Return value is the set of all dynamic config properties, with either configured or default values (depending
+        // on whether the value is actually configured and stored in the DB).
+        return dynamicPropertyIndex.getDynamicConfigProperties().stream()
+                .sorted((p1, p2) -> p1.getName().compareTo(p2.getName()))
+                .map(p1 -> propsI.containsKey(p1.getName()) ? propsI.get(p1.getName()) : defToConfigurationProperty(p1))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#getConfigProperty(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public ConfigurationProperty getConfigProperty(String propertyName) {
+        // Ensure that the property is a valid dynamic config property.
+        DynamicConfigPropertyDef def = resolveConfigProperty(propertyName);
+
+        DynamicConfigPropertyDto dto = storage.getConfigProperty(propertyName);
+        if (dto == null) {
+            return defToConfigurationProperty(def);
+        } else {
+            return dtoToConfigurationProperty(dto);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#setConfigProperty(io.apicurio.registry.rest.v2.beans.ConfigurationProperty)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = {"0", KEY_PROPERTY_CONFIGURATION})
+    public void setConfigProperty(ConfigurationProperty data) {
+        DynamicConfigPropertyDef propertyDef = resolveConfigProperty(data.getName());
+        validateConfigPropertyValue(propertyDef, data);
+
+        DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
+        dto.setName(data.getName());
+        dto.setValue(data.getValue());
+        storage.setConfigProperty(dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#updateConfigProperty(java.lang.String, io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
+        ConfigurationProperty cp = new ConfigurationProperty();
+        cp.setName(propertyName);
+        cp.setValue(data.getValue());
+        this.setConfigProperty(cp);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v2.AdminResource#deleteConfigProperty(java.lang.String)
+     */
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = {"0", KEY_NAME})
+    public void deleteConfigProperty(String propertyName) {
+        // Check if the config property exists.
+        resolveConfigProperty(propertyName);
+        // Delete it in the storage.
+        storage.deleteConfigProperty(propertyName);
+    }
+
     private static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId(dto.getPrincipalId());
@@ -369,9 +465,49 @@ public class AdminResourceImpl implements AdminResource {
     private static boolean isNullOrTrue(Boolean value) {
         return value == null || value;
     }
-  
+
     private String createDownloadHref(String downloadId) {
         return "/apis/registry/v2/downloads/" + downloadId;
+    }
+
+    private static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDto dto) {
+        ConfigurationProperty rval = new ConfigurationProperty();
+        rval.setName(dto.getName());
+        rval.setValue(dto.getValue());
+        return rval;
+    }
+
+    private static ConfigurationProperty defToConfigurationProperty(DynamicConfigPropertyDef def) {
+        ConfigurationProperty rval = new ConfigurationProperty();
+        rval.setName(def.getName());
+        rval.setValue(def.getDefaultValue());
+        return rval;
+    }
+
+    /**
+     * Lookup the dynamic configuration property being set.  Ensure that it exists (throws
+     * a {@link NotFoundException} if it does not.
+     * @param propertyName the name of the dynamic property
+     * @return the dynamic config property definition
+     */
+    private DynamicConfigPropertyDef resolveConfigProperty(String propertyName) {
+        DynamicConfigPropertyDef property = dynamicPropertyIndex.getProperty(propertyName);
+        if (property == null) {
+            throw new ConfigPropertyNotFoundException(propertyName);
+        }
+        return property;
+    }
+
+    /**
+     * Ensure that the value being set on the given property is value for the property type.
+     * For example, this should fail
+     * @param propertyDef the dynamic config property definition
+     * @param data the new value of the property
+     */
+    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, ConfigurationProperty data) {
+        if (!propertyDef.isValidValue(data.getValue())) {
+            throw new InvalidPropertyValueException("Invalid dynamic configuration property value for: " + data.getName());
+        }
     }
 
 }

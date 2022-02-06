@@ -876,7 +876,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectCurrentSequenceValue() {
         return "SELECT value FROM sequences WHERE name = ? AND tenantId = ? ";
     }
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
@@ -917,4 +917,51 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?)";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectConfigProperties()
+     */
+    @Override
+    public String selectConfigProperties() {
+        return "SELECT c.* FROM config c WHERE c.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectConfigPropertyByName()
+     */
+    @Override
+    public String selectConfigPropertyByName() {
+        return "SELECT c.* FROM config c WHERE c.tenantId = ? AND c.pname = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteConfigProperty()
+     */
+    @Override
+    public String deleteConfigProperty() {
+        return "DELETE FROM config c WHERE c.tenantId = ? AND c.pname = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertConfigProperty()
+     */
+    @Override
+    public String insertConfigProperty() {
+        return "INSERT INTO config (tenantId, pname, pvalue, modifiedOn) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllConfigProperties()
+     */
+    @Override
+    public String deleteAllConfigProperties() {
+        return "DELETE FROM config c WHERE c.tenantId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectTenantIdsByConfigModifiedOn()
+     */
+    @Override
+    public String selectTenantIdsByConfigModifiedOn() {
+        return "SELECT DISTINCT c.tenantId FROM config c WHERE c.modifiedOn >= ?";
+    }
 }

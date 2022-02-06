@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -49,7 +50,7 @@ import io.apicurio.registry.utils.impexp.Entity;
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  */
-public interface RegistryStorage {
+public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * The storage name

@@ -16,9 +16,27 @@
 
 package io.apicurio.registry.services.auth;
 
-import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
-import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.logging.audit.AuditLogService;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
+import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
+import io.apicurio.common.apps.logging.audit.AuditLogService;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -38,20 +56,6 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
 
 @Alternative
 @Priority(1)
@@ -61,8 +65,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
-    @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled")
-    boolean fakeBasicAuthEnabled;
+    @Dynamic @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled", defaultValue = "false")
+    Supplier<Boolean> fakeBasicAuthEnabled;
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
@@ -95,7 +99,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (authEnabled) {
             setAuditLogger(context);
-            if (fakeBasicAuthEnabled) {
+            if (fakeBasicAuthEnabled.get()) {
                 final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(context);
                 if (null != clientCredentials) {
                     try {
@@ -122,7 +126,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         } else {
             final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(context);
             if (credentialsFromContext != null) {
-                String jwtToken = new OidcAuth(httpClient, clientId, clientSecret.get()).obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                OidcAuth oidcAuth = new OidcAuth(httpClient, clientId, clientSecret.get());
+                String jwtToken = oidcAuth.obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                oidcAuth.close();
                 if (jwtToken != null) {
                     //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
                     return identityProviderManager
@@ -187,6 +193,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         final String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        oidcAuth.close();
         return identityProviderManager
                 .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
     }

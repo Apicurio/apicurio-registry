@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.ccompat.rest.impl;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
 
 import java.util.List;
 
@@ -33,8 +33,8 @@ import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 

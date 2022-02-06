@@ -36,7 +36,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;

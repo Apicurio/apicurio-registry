@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.registry.System;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.core.System;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v2.beans.SystemInfo;

@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.logging.audit;
+package io.apicurio.registry.rest.client.exception;
+
+import io.apicurio.registry.rest.v2.beans.Error;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface AuditingConstants {
+public class ConfigPropertyNotFoundException extends NotFoundException {
 
-    String KEY_PROPERTY_CONFIGURATION = "property_configuration";
+    private static final long serialVersionUID = 1L;
 
+    public ConfigPropertyNotFoundException(Error error) {
+        super(error);
+    }
 }

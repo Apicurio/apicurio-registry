@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -1295,6 +1296,51 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         this.testUpdateArtifactVersionState();
         tenantCtx.setContext(tenantId2);
         this.testUpdateArtifactVersionState();
+    }
+
+
+    @Test
+    public void testConfigProperties() throws Exception {
+        List<DynamicConfigPropertyDto> properties = storage().getConfigProperties();
+        Assertions.assertNotNull(properties);
+        Assertions.assertTrue(properties.isEmpty());
+
+        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-string", "test-value"));
+        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-boolean", "true"));
+        storage().setConfigProperty(new DynamicConfigPropertyDto("registry.test.property-long", "12345"));
+
+        properties = storage().getConfigProperties();
+        Assertions.assertNotNull(properties);
+        Assertions.assertFalse(properties.isEmpty());
+        Assertions.assertEquals(3, properties.size());
+
+        DynamicConfigPropertyDto stringProp = getProperty(properties, "registry.test.property-string");
+        DynamicConfigPropertyDto boolProp = getProperty(properties, "registry.test.property-boolean");
+        DynamicConfigPropertyDto longProp = getProperty(properties, "registry.test.property-long");
+
+        Assertions.assertNotNull(stringProp);
+        Assertions.assertNotNull(boolProp);
+        Assertions.assertNotNull(longProp);
+
+        Assertions.assertEquals("test-value", stringProp.getValue());
+        Assertions.assertEquals("true", boolProp.getValue());
+        Assertions.assertEquals("12345", longProp.getValue());
+    }
+    private DynamicConfigPropertyDto getProperty(List<DynamicConfigPropertyDto> properties, String propertyName) {
+        for (DynamicConfigPropertyDto prop: properties) {
+            if (prop.getName().equals(propertyName)) {
+                return prop;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void testMultiTenant_ConfigProperties() throws Exception {
+        tenantCtx.setContext(tenantId1);
+        this.testConfigProperties();
+        tenantCtx.setContext(tenantId2);
+        this.testConfigProperties();
     }
 
     private static String generateString(int size) {

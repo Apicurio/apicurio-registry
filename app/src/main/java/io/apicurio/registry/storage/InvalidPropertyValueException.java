@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.apicurio.registry.storage;
 
-package io.apicurio.registry.logging.audit;
+import io.apicurio.registry.types.RegistryException;
 
-/**
- * @author eric.wittmann@gmail.com
- */
-public interface AuditingConstants {
+public class InvalidPropertyValueException extends RegistryException {
 
-    String KEY_PROPERTY_CONFIGURATION = "property_configuration";
+    private static final long serialVersionUID = 4930984250014469626L;
+
+    public InvalidPropertyValueException(String message) {
+        super(message);
+    }
 
 }

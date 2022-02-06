@@ -100,7 +100,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         assertNull(lookup.getParsedSchema().getParsedSchema());
 
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord, ArtifactReference.builder().artifactId("foo").build())));
-
+        resolver.close();
     }
 
     private static class CustomResolverRecord implements Record<GenericRecord> {

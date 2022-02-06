@@ -30,7 +30,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;

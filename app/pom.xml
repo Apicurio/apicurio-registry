@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<project
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
     xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -32,12 +31,30 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-utils-kafka</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-provider</artifactId>
         </dependency>
 
+        <!-- Common App Components -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-logging</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-config-index</artifactId>
+        </dependency>
+
+        <!-- Tenant Manager Client -->
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-tenant-manager-client</artifactId>
@@ -59,7 +76,7 @@
             <artifactId>apicurio-registry-utils-import-export</artifactId>
         </dependency>
 
-	    <dependency>
+        <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
         </dependency>

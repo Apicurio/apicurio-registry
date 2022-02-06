@@ -82,6 +82,7 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.everything, value);
     }
 
+    @SuppressWarnings("unchecked")
     public Pair<String, String> getPropertyFilterValue() {
         if (value == null) {
             return null;

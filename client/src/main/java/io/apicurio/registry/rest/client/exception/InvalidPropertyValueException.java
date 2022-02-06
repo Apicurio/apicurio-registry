@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.logging.audit;
+package io.apicurio.registry.rest.client.exception;
 
+import io.apicurio.registry.rest.v2.beans.Error;
 
-public interface AuditHttpRequestInfo {
+/**
+ * @author eric.wittmann@gmail.com
+ */
+public class InvalidPropertyValueException extends BadRequestException {
 
-    /**
-     * @return the sourceIp
-     */
-    String getSourceIp();
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * @return the forwardedFor
-     */
-    String getForwardedFor();
-
+    public InvalidPropertyValueException(Error error) {
+        super(error);
+    }
 }

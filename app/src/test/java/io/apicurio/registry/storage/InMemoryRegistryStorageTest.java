@@ -14,13 +14,28 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.logging.audit;
+package io.apicurio.registry.storage;
+
+import javax.inject.Inject;
+
+import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
+import io.quarkus.test.junit.QuarkusTest;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public interface AuditingConstants {
+@QuarkusTest
+public class InMemoryRegistryStorageTest extends AbstractRegistryStorageTest {
 
-    String KEY_PROPERTY_CONFIGURATION = "property_configuration";
+    @Inject
+    InMemoryRegistryStorage storage;
+
+    /**
+     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
+     */
+    @Override
+    protected RegistryStorage storage() {
+        return storage;
+    }
 
 }

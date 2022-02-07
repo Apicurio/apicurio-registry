@@ -339,8 +339,8 @@ public class GroupRequestsProvider {
     public static Request<List<ArtifactReference>> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
         return new Request.RequestBuilder<List<ArtifactReference>>()
                 .operation(GET)
-                .path(Routes.ARTIFACT_REFERENCES)
-                .pathParams(List.of(groupId, artifactId, version))
+                .path(Routes.ARTIFACT_VERSION_REFERENCES)
+                .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version))
                 .responseType(new TypeReference<List<ArtifactReference>>(){})
                 .build();
     }

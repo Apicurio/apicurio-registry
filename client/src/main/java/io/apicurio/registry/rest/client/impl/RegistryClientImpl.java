@@ -471,7 +471,7 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
-        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactReferencesByCoordinates(groupId, artifactId, version));
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactReferencesByCoordinates(normalizeGid(groupId), artifactId, version));
     }
 
     @Override

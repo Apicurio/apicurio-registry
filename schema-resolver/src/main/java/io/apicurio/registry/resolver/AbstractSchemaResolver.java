@@ -36,7 +36,6 @@ import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,8 +197,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     private Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
-        //TODO In order to handle possible inner references, we need to check if the retrieved artifact also has references
-        artifactReferences.forEach(reference -> resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion()), Collections.emptyMap())));
+        artifactReferences.forEach(reference -> {
+            final InputStream referenceContent = client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> referenceReferences = client.getArtifactReferencesByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+            resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
+        });
         return resolvedReferences;
     }
 
@@ -208,6 +210,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
         return new ParsedSchemaImpl<S>()
                 .setParsedSchema(parsed)
+                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
                 .setReferenceName(name)
                 .setRawSchema(schema);
     }

@@ -60,7 +60,12 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             //textual .proto file
             ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, IoUtil.toString(rawSchema));
             Map<String, ProtoFileElement> dependencies = new HashMap<>();
-            resolvedReferences.forEach((key, value) -> dependencies.put(key, value.getParsedSchema().getProtoFileElement()));
+            resolvedReferences.forEach((key, value) -> {
+                dependencies.put(key, value.getParsedSchema().getProtoFileElement());
+                if (value.hasReferences()) {
+                    addReferencesToDependencies(value.getSchemaReferences(), dependencies);
+                }
+            });
             MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
             if (firstMessage != null) {
                 final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), fileElem, dependencies);
@@ -72,6 +77,15 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         } catch (DescriptorValidationException pe) {
             throw new SerializationException("Error parsing protobuf schema ", pe);
         }
+    }
+
+    private void addReferencesToDependencies(List<ParsedSchema<ProtobufSchema>> schemaReferences, Map<String, ProtoFileElement> dependencies) {
+        schemaReferences.forEach(parsedSchema -> {
+            dependencies.put(parsedSchema.referenceName(), parsedSchema.getParsedSchema().getProtoFileElement());
+            if (parsedSchema.hasReferences()) {
+                addReferencesToDependencies(parsedSchema.getSchemaReferences(), dependencies);
+            }
+        });
     }
 
     /**
@@ -114,6 +128,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
     /**
      * This method converts the Descriptor to a ProtoFileElement that allows to get a textual representation .proto file
+     *
      * @param fileDescriptor
      * @return textual protobuf representation
      */

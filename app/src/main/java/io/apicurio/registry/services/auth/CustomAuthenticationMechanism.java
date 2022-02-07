@@ -22,6 +22,7 @@ import io.apicurio.registry.logging.audit.AuditLogService;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.AccessTokenCredential;
@@ -40,18 +41,20 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
 
 @Alternative
 @Priority(1)
@@ -115,6 +118,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         }
     }
 
+    @Retry(abortOn = {NotAuthorizedException.class, ForbiddenException.class}) // 3 retries, 200ms jitter
+    @Timeout(3000) // 3000ms
     public Uni<SecurityIdentity> customAuthentication(RoutingContext context, IdentityProviderManager identityProviderManager) {
         if (clientSecret.isEmpty()) {
             //if no secret is present, try to authenticate with oidc provider
@@ -184,6 +189,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return new HttpCredentialTransport(HttpCredentialTransport.Type.AUTHORIZATION, "bearer");
     }
 
+    @Retry(abortOn = {NotAuthorizedException.class, ForbiddenException.class}) // 3 retries, 200ms jitter
+    @Timeout(3000) // 3000ms
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         final String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager

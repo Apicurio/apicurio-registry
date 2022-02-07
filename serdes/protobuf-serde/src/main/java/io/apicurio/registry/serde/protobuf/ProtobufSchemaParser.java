@@ -30,7 +30,6 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufMessage;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.errors.SerializationException;
 

@@ -470,6 +470,11 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactReferencesByCoordinates(groupId, artifactId, version));
+    }
+
+    @Override
     public void setNextRequestHeaders(Map<String, String> requestHeaders) {
         apicurioHttpClient.setNextRequestHeaders(requestHeaders);
     }

@@ -17,41 +17,15 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.DescriptorProto;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
-import com.google.protobuf.Descriptors;
-import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.Field;
-import com.squareup.wire.schema.ProtoType;
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.EnumElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.OneOfElement;
-import com.squareup.wire.schema.internal.parser.OptionElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import com.squareup.wire.schema.internal.parser.ReservedElement;
-import com.squareup.wire.schema.internal.parser.TypeElement;
-import kotlin.ranges.IntRange;
-
-import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
-import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 
 /**
  * @author Fabian Martinez
  */
 public class ProtobufMessage {
-
-    public static final String MAP_ENTRY_SUFFIX = "Entry";  // Suffix used by protoc
-    public static final String KEY_FIELD = "key";
-    public static final String VALUE_FIELD = "value";
 
     private static Map<String, FieldDescriptorProto.Type> fieldDescriptorTypes;
     private static Map<String, FieldDescriptorProto.Label> fieldDescriptorLabels;
@@ -195,4 +169,5 @@ public class ProtobufMessage {
         }
         return fieldBuilder.build();
     }
+
 }

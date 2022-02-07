@@ -197,6 +197,16 @@ public class GroupsResourceImpl implements GroupsResource {
         return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionReferences(String, String, String)
+     **/
+    @Override
+    public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId, String version) {
+        return storage.getArtifactVersion(groupId, artifactId, version).getReferences().stream()
+                .map(V2ApiUtil::referenceDtoToReference)
+                .collect(Collectors.toList());
+    }
+
     private ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);

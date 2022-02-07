@@ -645,6 +645,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().getArtifactReferencesByContentHash(contentHash);
     }
 
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
+        return getTarget().getArtifactReferencesByCoordinates(groupId, artifactId, version);
+    }
+
     /**
      * @param requestHeaders
      * @see io.apicurio.registry.rest.client.RegistryClient#setNextRequestHeaders(java.util.Map)

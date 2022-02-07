@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
+import static io.apicurio.rest.client.request.Operation.GET;
+
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
@@ -331,6 +333,15 @@ public class GroupRequestsProvider {
                 .pathParams(List.of(groupId, artifactId))
                 .responseType(new TypeReference<InputStream>() {
                 })
+                .build();
+    }
+
+    public static Request<List<ArtifactReference>> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
+        return new Request.RequestBuilder<List<ArtifactReference>>()
+                .operation(GET)
+                .path(Routes.ARTIFACT_REFERENCES)
+                .pathParams(List.of(groupId, artifactId, version))
+                .responseType(new TypeReference<List<ArtifactReference>>(){})
                 .build();
     }
 }

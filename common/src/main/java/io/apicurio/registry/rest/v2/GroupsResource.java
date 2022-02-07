@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -427,7 +428,7 @@ public interface GroupsResource {
    */
   @Path("/{groupId}/artifacts/{artifactId}")
   @GET
-  @Consumes({APPLICATION_JSON, APPLICATION_YAML, APPLICATION_XML, APPLICATION_PROTOBUF, APPLICATION_GRAPHQL, APPLICATION_OCTET_STREAM})
+  @Produces("*/*")
   Response getLatestArtifact(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
 
@@ -520,8 +521,8 @@ public interface GroupsResource {
 
   /**
    * Creates a new artifact by posting the artifact content.  The body of the request should
-   * be the raw content of the artifact typically in JSON format for *most* of the supported types, 
-   * but may be in another format for a few (for example, `PROTOBUF`). and a collection of artifact references. 
+   * be the raw content of the artifact typically in JSON format for *most* of the supported types,
+   * but may be in another format for a few (for example, `PROTOBUF`). and a collection of artifact references.
    *
    * The registry attempts to figure out what kind of artifact is being added from the
    * following supported list:
@@ -536,7 +537,7 @@ public interface GroupsResource {
    * * Web Services Description Language (`WSDL`)
    * * XML Schema (`XSD`)
    *
-   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType` 
+   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType`
    * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
    *
    * ```
@@ -547,7 +548,7 @@ public interface GroupsResource {
    * content is created under a unique artifact ID that can be provided in the request
    * using the `X-Registry-ArtifactId` request header.  If not provided in the request,
    * the server generates a unique ID for the artifact.  It is typically recommended
-   * that callers provide the ID, because this is typically a meaningful identifier, 
+   * that callers provide the ID, because this is typically a meaningful identifier,
    * and for most use cases should be supplied by the caller.
    *
    * Registry will also try to resolve the artifact references.
@@ -559,9 +560,9 @@ public interface GroupsResource {
    *
    * * `FAIL` (*default*) - server rejects the content with a 409 error
    * * `UPDATE` - server updates the existing artifact and returns the new metadata
-   * * `RETURN` - server does not create or add content to the server, but instead 
+   * * `RETURN` - server does not create or add content to the server, but instead
    * returns the metadata for the existing artifact
-   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the 
+   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the
    * provided content if such a version exists, otherwise a new version is created
    *
    * This operation may fail for one of the following reasons:
@@ -591,7 +592,7 @@ public interface GroupsResource {
 
   /**
    * Creates a new version of the artifact containing references by uploading new content.  The configured rules for
-   * the artifact are applied, and if they all pass, the new content is added as the most recent 
+   * the artifact are applied, and if they all pass, the new content is added as the most recent
    * version of the artifact.  If any of the rules fail, an error is returned.
    *
    * The body of the request should be the raw content of the new artifact version, the type
@@ -648,4 +649,24 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description") String xRegistryDescription,
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       ContentCreateRequest data);
+
+  /**
+   * Retrieves a single version of the artifact content.  Both the `artifactId` and the
+   * unique `version` number must be provided.  The `Content-Type` of the response depends
+   * on the artifact type.  In most cases, this is `application/json`, but for some types
+   * it may be different (for example, `PROTOBUF`).
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/versions/{version}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> getArtifactVersionReferences(@PathParam("groupId") String groupId,
+                                                       @PathParam("artifactId") String artifactId, @PathParam("version") String version);
+
 }

@@ -2444,6 +2444,67 @@
                 "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             }
         },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+            "summary": "Manage the references for a single version of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all the artifact references for this artifact."
+                    }
+                },
+                "operationId": "getArtifactVersionReferences",
+                "summary": "Get artifact version",
+                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {

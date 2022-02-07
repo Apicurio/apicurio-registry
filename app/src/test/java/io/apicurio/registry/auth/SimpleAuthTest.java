@@ -93,6 +93,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         return this.createClient(auth);
     }
 
+    @Override
+    protected AdminClient createAdminClientV2(){
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        return this.createAdminClient(auth);
+    }
+
     @Test
     public void testWrongCreds() throws Exception {
         Auth auth = new OidcAuth(httpClient, readOnlyClientId, "test55");

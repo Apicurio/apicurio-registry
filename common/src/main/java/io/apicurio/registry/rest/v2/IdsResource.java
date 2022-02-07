@@ -43,11 +43,10 @@ public interface IdsResource {
   @Path("/globalIds/{globalId}")
   @GET
   @Produces("*/*")
-  Response getContentByGlobalId(@PathParam("globalId") int globalId,
-      @QueryParam("dereference") Boolean dereference);
+  Response getContentByGlobalId(@PathParam("globalId") int globalId);
 
   /**
-   * Gets the content for an artifact version in the registry using the 
+   * Gets the content for an artifact version in the registry using the
    * SHA-256 hash of the content.  This content hash may be shared by multiple artifact
    * versions in the case where the artifact versions have identical content.
    *
@@ -61,41 +60,4 @@ public interface IdsResource {
   @GET
   @Produces("*/*")
   Response getContentByHash(@PathParam("contentHash") String contentHash);
-
-  /**
-   * Returns a list containing all the artifact references using the artifact content hash.
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/contentHashes/{contentHash}/references")
-  @GET
-  @Produces("application/json")
-  List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") Object contentHash);
-
-  /**
-   * Returns a list containing all the artifact references using the artifact contentId.
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/contentIds/{contentId}/references")
-  @GET
-  @Produces("application/json")
-  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Object contentId);
-
-  /**
-   * Returns a list containing all the artifact references using the artifact global id.
-   *
-   * This operation may fail for one of the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/globalIds/{globalId}/references")
-  @GET
-  @Produces("application/json")
-  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Object globalId);
 }

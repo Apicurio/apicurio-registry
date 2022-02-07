@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * Root Type for UpdateConfigurationProperty
  * <p>
- *
- *
+ * 
+ * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -23,17 +23,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class UpdateConfigurationProperty {
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("value")
     private String value;
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("value")
     public String getValue() {
@@ -41,9 +41,9 @@ public class UpdateConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("value")
     public void setValue(String value) {

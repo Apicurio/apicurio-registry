@@ -43,7 +43,7 @@ public interface IdsResource {
   Response getContentByGlobalId(@PathParam("globalId") int globalId);
 
   /**
-   * Gets the content for an artifact version in the registry using the 
+   * Gets the content for an artifact version in the registry using the
    * SHA-256 hash of the content.  This content hash may be shared by multiple artifact
    * versions in the case where the artifact versions have identical content.
    *

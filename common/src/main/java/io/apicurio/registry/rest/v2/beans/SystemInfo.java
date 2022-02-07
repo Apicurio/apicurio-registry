@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class SystemInfo {
 
     @JsonProperty("name")
@@ -76,13 +77,4 @@ public class SystemInfo {
         this.builtOn = builtOn;
     }
 
-    @Override
-    public String toString() {
-        return "SystemInfo{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", version='" + version + '\'' +
-                ", builtOn=" + builtOn +
-                '}';
-    }
 }

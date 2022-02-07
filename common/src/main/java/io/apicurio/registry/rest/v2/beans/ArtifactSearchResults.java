@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class ArtifactSearchResults {
 
     /**
@@ -83,11 +84,4 @@ public class ArtifactSearchResults {
         this.count = count;
     }
 
-    @Override
-    public String toString() {
-        return "ArtifactSearchResults{" +
-                "artifacts=" + artifacts +
-                ", count=" + count +
-                '}';
-    }
 }

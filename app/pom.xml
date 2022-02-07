@@ -102,6 +102,11 @@
             <artifactId>quarkus-smallrye-context-propagation</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+        </dependency>
+
         <!-- Persistence -->
         <dependency>
             <groupId>io.quarkus</groupId>

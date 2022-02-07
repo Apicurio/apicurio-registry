@@ -149,9 +149,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * values (groupId, artifactId, version).
      * @param data
      * @param parsedSchema
+     * @param isReference
      * @return artifact reference
      */
-    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
+    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema, boolean isReference) {
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)

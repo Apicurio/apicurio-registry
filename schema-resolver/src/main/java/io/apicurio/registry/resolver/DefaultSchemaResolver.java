@@ -25,8 +25,11 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -78,7 +81,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             parsedSchema = schemaParser.getSchemaFromData(data);
         }
 
-        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema);
+        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
@@ -93,8 +96,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 //List of references lookup, to be used to create the references for the artifact
                 final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
                 return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+            } else {
+                return handleAutoCreateArtifact(parsedSchema, artifactReference);
             }
-            return handleAutoCreateArtifact(parsedSchema, artifactReference);
         }
 
         if (findLatest || artifactReference.getVersion() != null) {
@@ -115,14 +119,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-            final List<SchemaLookupResult<S>> innerReferences = referencedSchema.getSchemaReferences().stream()
-                    .map(innerReference -> handleArtifactReferences(data, referencedSchema)).flatMap(List::stream).collect(
-                            Collectors.toList());
 
-            if (innerReferences.isEmpty()) {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema)));
+            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
+
+            if (nestedReferences.isEmpty()) {
+                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true)));
             } else {
-               referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema), innerReferences));
+                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true), nestedReferences));
             }
         }
         return referencesLookup;

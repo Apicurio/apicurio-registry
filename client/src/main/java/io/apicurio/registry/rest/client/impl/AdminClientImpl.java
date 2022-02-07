@@ -145,8 +145,12 @@ public class AdminClientImpl implements AdminClient {
     }
 
     @Override
+    public void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
+    }
+    @Override
     public void importData(InputStream data) {
-        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data));
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, true, true));
     }
 
     private static RestClientException parseSerializationError(JsonProcessingException ex) {

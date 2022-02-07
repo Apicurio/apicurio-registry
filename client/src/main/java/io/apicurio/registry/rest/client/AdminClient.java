@@ -66,4 +66,6 @@ public interface AdminClient extends Closeable {
     InputStream exportData();
 
     void importData(InputStream data);
+
+    void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds);
 }

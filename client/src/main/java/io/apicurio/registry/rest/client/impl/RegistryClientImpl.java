@@ -377,7 +377,12 @@ public class RegistryClientImpl implements RegistryClient {
     @Deprecated
     @Override
     public void importData(InputStream data) {
-        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data));
+        this.importData(data, true, true);
+    }
+
+    @Override
+    public void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
     }
 
     @Deprecated

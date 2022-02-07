@@ -130,7 +130,7 @@ export class AdminService extends BaseService {
         });
     }
 
-    public importFrom(file: File, progressFunction: (progressEvent: any) => void): Promise<void> {
+    public importFrom(file: string | File, progressFunction: (progressEvent: any) => void): Promise<void> {
         const endpoint: string = this.endpoint("/v2/admin/import");
         const headers: any = {
             "Content-Type": "application/zip"

@@ -76,7 +76,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                     <IfFeature feature="readOnly" isNot={true}>
                                         <Button id="edit-action"
                                                 data-testid="artifact-btn-edit"
-                                                title="Edit artifact meta-data"
+                                                title="Edit artifact metadata"
                                                 onClick={this.props.onEditMetaData}
                                                 variant="plain"><EditIcon /></Button>
                                     </IfFeature>

@@ -42,13 +42,21 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
     boolean roleBasedAuthorizationEnabled;
 
-    @Dynamic @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
+    @Dynamic(label = "Owner Only Authorization", description = "When enabled, the registry will allow only the artifact owner (creator) to modify an artifact.", requires = {
+            "registry.auth.enabled=true"
+    })
+    @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
     Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
-    @Dynamic @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
+    @Dynamic(label = "Owner Only Authorization (Groups)", description = "When enabled, the registry will limit access to groups to only the user who created the group.", requires = {
+            "registry.auth.enabled=true",
+            "registry.auth.owner-only-authorization=true"
+    })
+    @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
-    @Dynamic @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
+    @Dynamic(label = "Anonymous Read Access", description = "When enabled, request from anonymous users (requests without any credentials) will be granted read-only access.")
+    @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
     @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")

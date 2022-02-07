@@ -1,9 +1,11 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.types.RuleType;
 import java.io.InputStream;
@@ -11,6 +13,7 @@ import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -160,7 +163,9 @@ public interface AdminResource {
   @Path("/import")
   @POST
   @Consumes("application/zip")
-  void importData(InputStream data);
+  void importData(@HeaderParam("X-Registry-Preserve-GlobalId") Boolean xRegistryPreserveGlobalId,
+      @HeaderParam("X-Registry-Preserve-ContentId") Boolean xRegistryPreserveContentId,
+      InputStream data);
 
   /**
    * Gets the details of a single role mapping (by principalId).
@@ -229,4 +234,61 @@ public interface AdminResource {
   @POST
   @Consumes("application/json")
   void createRoleMapping(RoleMapping data);
+
+  /**
+   * Returns a list of all configuration properties that have been set.  The list is not paged.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/config/properties")
+  @GET
+  @Produces("application/json")
+  List<ConfigurationProperty> listConfigProperties();
+
+  /**
+   * Returns the value of a single configuration property.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * Property not found or not configured (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/config/properties/{propertyName}")
+  @GET
+  @Produces("application/json")
+  ConfigurationProperty getConfigProperty(@PathParam("propertyName") String propertyName);
+
+  /**
+   * Updates the value of a single configuration property.
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * Property not found or not configured (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/config/properties/{propertyName}")
+  @PUT
+  @Consumes("application/json")
+  void updateConfigProperty(@PathParam("propertyName") String propertyName,
+      UpdateConfigurationProperty data);
+
+  /**
+   * Resets the value of a single configuration property.  This will return the property to
+   * its default value (see external documentation for supported properties and their default
+   * values).
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * Property not found or not configured (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/config/properties/{propertyName}")
+  @DELETE
+  void resetConfigProperty(@PathParam("propertyName") String propertyName);
 }

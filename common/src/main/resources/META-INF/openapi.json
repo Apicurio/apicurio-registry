@@ -547,6 +547,7 @@
                         "name": "globalId",
                         "description": "Filter by globalId.",
                         "schema": {
+                            "format": "int64",
                             "type": "integer"
                         },
                         "in": "query"
@@ -730,6 +731,25 @@
                 },
                 "tags": [
                     "Admin"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Preserve-GlobalId",
+                        "description": "If this header is set to false, global ids of imported data will be ignored and replaced by next id in global id sequence. This allows to import any data even thought the global ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Preserve-ContentId",
+                        "description": "If this header is set to false, content ids of imported data will be ignored and replaced by next id in content id sequence. The mapping between content and artifacts will be preserved. This allows to import any data even thought the content ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header",
+                        "required": false
+                    }
                 ],
                 "responses": {
                     "201": {
@@ -2338,6 +2358,123 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
+        "/admin/config/properties": {
+            "summary": "Manage configuration properties.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ConfigurationProperty"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a list of configuration properties."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listConfigProperties",
+                "summary": "List all configuration properties",
+                "description": "Returns a list of all configuration properties that have been set.  The list is not paged.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/config/properties/{propertyName}": {
+            "summary": "Manage a single configuration property (by name).",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfigurationProperty"
+                                }
+                            }
+                        },
+                        "description": "The configuration property value."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "getConfigProperty",
+                "summary": "Get the value of a configuration property",
+                "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConfigurationProperty"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was updated."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "updateConfigProperty",
+                "summary": "Update a configuration property",
+                "description": "Updates the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "resetConfigProperty",
+                "summary": "Reset a configuration property",
+                "description": "Resets the value of a single configuration property.  This will return the property to\nits default value (see external documentation for supported properties and their default\nvalues).\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "propertyName",
+                    "description": "The name of a configuration property.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "/ids/contentHashes/{contentHash}/references": {
             "get": {
                 "parameters": [
@@ -2424,6 +2561,67 @@
                 "summary": "Returns a list with all the references for the artifact with the given global id.",
                 "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             }
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+            "summary": "Manage the references for a single version of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all the artifact references for this artifact."
+                    }
+                },
+                "operationId": "getArtifactVersionReferences",
+                "summary": "Get artifact version",
+                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
@@ -3367,6 +3565,61 @@
                             "$ref": "#/components/schemas/ArtifactReference"
                         }
                     }
+                }
+            },
+            "ConfigurationProperty": {
+                "title": "Root Type for ConfigurationProperty",
+                "description": "",
+                "required": [
+                    "name",
+                    "value",
+                    "type",
+                    "label",
+                    "description"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "label": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry.auth.owner-only-authorization",
+                    "value": "true",
+                    "type": "boolean",
+                    "label": "Owner Only Authorization",
+                    "description": "When enabled, the registry will allow only the artifact owner (creator) to modify an artifact."
+                }
+            },
+            "UpdateConfigurationProperty": {
+                "title": "Root Type for UpdateConfigurationProperty",
+                "description": "",
+                "required": [
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "value": "true"
                 }
             }
         },

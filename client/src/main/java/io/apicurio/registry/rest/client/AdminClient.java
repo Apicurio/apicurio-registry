@@ -33,31 +33,31 @@ import java.util.List;
 
 public interface AdminClient extends Closeable {
 
+    void createGlobalRule(Rule data);
+
     List<RuleType> listGlobalRules();
+
+    void deleteGlobalRule(RuleType rule);
 
     void deleteAllGlobalRules();
 
     Rule getGlobalRuleConfig(RuleType rule);
 
-    void createGlobalRule(Rule data);
-
     Rule updateGlobalRuleConfig(RuleType rule, Rule data);
-
-    void deleteGlobalRule(RuleType rule);
-
-    List<NamedLogConfiguration> listLogConfigurations();
-
-    NamedLogConfiguration getLogConfiguration(String logger);
-
-    NamedLogConfiguration removeLogConfiguration(String logger);
 
     NamedLogConfiguration setLogConfiguration(String log, LogConfiguration logConfiguration);
 
-    List<RoleMapping> listRoleMappings();
+    NamedLogConfiguration getLogConfiguration(String logger);
+
+    List<NamedLogConfiguration> listLogConfigurations();
+
+    NamedLogConfiguration removeLogConfiguration(String logger);
 
     void createRoleMapping(RoleMapping data);
 
     RoleMapping getRoleMapping(String principalId);
+
+    List<RoleMapping> listRoleMappings();
 
     void updateRoleMapping(String principalId, RoleType role);
 

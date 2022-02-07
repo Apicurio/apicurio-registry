@@ -57,6 +57,7 @@ public class AdminClientFactory {
     public static AdminClient create(String basePath) {
         return create(basePath, Collections.emptyMap(), null);
     }
+
     public static AdminClient create(String baseUrl, Map<String, Object> configs, Auth auth) {
         if (configs.isEmpty()) {
             configs = Map.of(ClientConfig.REGISTRY_CLIENT_AUTO_BASE_PATH, BASE_PATH);

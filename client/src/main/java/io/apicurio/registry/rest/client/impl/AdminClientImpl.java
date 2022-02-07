@@ -45,8 +45,22 @@ public class AdminClientImpl implements AdminClient {
     }
 
     @Override
+    public void createGlobalRule(Rule data) {
+        try {
+            apicurioHttpClient.sendRequest(AdminRequestsProvider.createGlobalRule(data));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
     public List<RuleType> listGlobalRules() {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.listGlobalRules());
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType rule) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
     }
 
     @Override
@@ -60,41 +74,12 @@ public class AdminClientImpl implements AdminClient {
     }
 
     @Override
-    public void createGlobalRule(Rule data) {
-        try {
-            apicurioHttpClient.sendRequest(AdminRequestsProvider.createGlobalRule(data));
-        } catch (JsonProcessingException e) {
-            throw parseSerializationError(e);
-        }
-    }
-
-    @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         try {
             return apicurioHttpClient.sendRequest(AdminRequestsProvider.updateGlobalRuleConfig(rule, data));
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
-    }
-
-    @Override
-    public void deleteGlobalRule(RuleType rule) {
-        apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
-    }
-
-    @Override
-    public List<NamedLogConfiguration> listLogConfigurations() {
-        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listLogConfigurations());
-    }
-
-    @Override
-    public NamedLogConfiguration getLogConfiguration(String logger) {
-        return apicurioHttpClient.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
-    }
-
-    @Override
-    public NamedLogConfiguration removeLogConfiguration(String logger) {
-        return apicurioHttpClient.sendRequest(AdminRequestsProvider.removeLogConfiguration(logger));
     }
 
     @Override
@@ -107,8 +92,18 @@ public class AdminClientImpl implements AdminClient {
     }
 
     @Override
-    public List<RoleMapping> listRoleMappings() {
-        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listRoleMappings());
+    public NamedLogConfiguration getLogConfiguration(String logger) {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
+    }
+
+    @Override
+    public List<NamedLogConfiguration> listLogConfigurations() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listLogConfigurations());
+    }
+
+    @Override
+    public NamedLogConfiguration removeLogConfiguration(String logger) {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.removeLogConfiguration(logger));
     }
 
     @Override
@@ -123,6 +118,10 @@ public class AdminClientImpl implements AdminClient {
     @Override
     public RoleMapping getRoleMapping(String principalId) {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.getRoleMapping(principalId));
+    }
+    @Override
+    public List<RoleMapping> listRoleMappings() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listRoleMappings());
     }
 
     @Override
@@ -145,13 +144,15 @@ public class AdminClientImpl implements AdminClient {
     }
 
     @Override
-    public void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
-        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
-    }
-    @Override
     public void importData(InputStream data) {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, true, true));
     }
+
+    @Override
+    public void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
+    }
+
 
     private static RestClientException parseSerializationError(JsonProcessingException ex) {
         final Error error = new Error();

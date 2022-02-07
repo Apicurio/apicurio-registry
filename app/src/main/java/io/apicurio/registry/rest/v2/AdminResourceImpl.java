@@ -25,8 +25,6 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PROPERTY_CONFIGURATION;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -119,7 +117,8 @@ public class AdminResourceImpl implements AdminResource {
     @Context
     HttpServletRequest request;
 
-    @Dynamic @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
+    @Dynamic(label = "Download HREF Time to Live", description = "Determines the number of seconds that a generated download link should remain active.")
+    @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
     Supplier<Long> downloadHrefTtl;
 
     /**
@@ -384,14 +383,14 @@ public class AdminResourceImpl implements AdminResource {
         List<DynamicConfigPropertyDto> props = storage.getConfigProperties();
 
         // Index the stored properties for easy lookup
-        Map<String, ConfigurationProperty> propsI = new HashMap<>();
-        props.forEach(dto -> propsI.put(dto.getName(), dtoToConfigurationProperty(dto)));
+        Map<String, DynamicConfigPropertyDto> propsI = new HashMap<>();
+        props.forEach(dto -> propsI.put(dto.getName(), dto));
 
         // Return value is the set of all dynamic config properties, with either configured or default values (depending
-        // on whether the value is actually configured and stored in the DB).
-        return dynamicPropertyIndex.getDynamicConfigProperties().stream()
-                .sorted((p1, p2) -> p1.getName().compareTo(p2.getName()))
-                .map(p1 -> propsI.containsKey(p1.getName()) ? propsI.get(p1.getName()) : defToConfigurationProperty(p1))
+        // on whether the value is actually configured and stored in the DB or not).
+        return dynamicPropertyIndex.getAcceptedPropertyNames().stream()
+                .sorted((pname1, pname2) -> pname1.compareTo(pname2))
+                .map(pname -> propsI.containsKey(pname) ? dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname), propsI.get(pname)) : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
                 .collect(Collectors.toList());
     }
 
@@ -408,24 +407,8 @@ public class AdminResourceImpl implements AdminResource {
         if (dto == null) {
             return defToConfigurationProperty(def);
         } else {
-            return dtoToConfigurationProperty(dto);
+            return dtoToConfigurationProperty(def, dto);
         }
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#setConfigProperty(io.apicurio.registry.rest.v2.beans.ConfigurationProperty)
-     */
-    @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    @Audited(extractParameters = {"0", KEY_PROPERTY_CONFIGURATION})
-    public void setConfigProperty(ConfigurationProperty data) {
-        DynamicConfigPropertyDef propertyDef = resolveConfigProperty(data.getName());
-        validateConfigPropertyValue(propertyDef, data);
-
-        DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
-        dto.setName(data.getName());
-        dto.setValue(data.getValue());
-        storage.setConfigProperty(dto);
     }
 
     /**
@@ -434,19 +417,22 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
-        ConfigurationProperty cp = new ConfigurationProperty();
-        cp.setName(propertyName);
-        cp.setValue(data.getValue());
-        this.setConfigProperty(cp);
+        DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
+        validateConfigPropertyValue(propertyDef, data.getValue());
+
+        DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
+        dto.setName(propertyName);
+        dto.setValue(data.getValue());
+        storage.setConfigProperty(dto);
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.AdminResource#deleteConfigProperty(java.lang.String)
+     * @see io.apicurio.registry.rest.v2.AdminResource#resetConfigProperty(java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
     @Audited(extractParameters = {"0", KEY_NAME})
-    public void deleteConfigProperty(String propertyName) {
+    public void resetConfigProperty(String propertyName) {
         // Check if the config property exists.
         resolveConfigProperty(propertyName);
         // Delete it in the storage.
@@ -470,10 +456,13 @@ public class AdminResourceImpl implements AdminResource {
         return "/apis/registry/v2/downloads/" + downloadId;
     }
 
-    private static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDto dto) {
+    private static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {
         ConfigurationProperty rval = new ConfigurationProperty();
-        rval.setName(dto.getName());
+        rval.setName(def.getName());
         rval.setValue(dto.getValue());
+        rval.setType(def.getType().getName());
+        rval.setLabel(def.getLabel());
+        rval.setDescription(def.getDescription());
         return rval;
     }
 
@@ -481,6 +470,9 @@ public class AdminResourceImpl implements AdminResource {
         ConfigurationProperty rval = new ConfigurationProperty();
         rval.setName(def.getName());
         rval.setValue(def.getDefaultValue());
+        rval.setType(def.getType().getName());
+        rval.setLabel(def.getLabel());
+        rval.setDescription(def.getDescription());
         return rval;
     }
 
@@ -502,11 +494,11 @@ public class AdminResourceImpl implements AdminResource {
      * Ensure that the value being set on the given property is value for the property type.
      * For example, this should fail
      * @param propertyDef the dynamic config property definition
-     * @param data the new value of the property
+     * @param value the config property value
      */
-    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, ConfigurationProperty data) {
-        if (!propertyDef.isValidValue(data.getValue())) {
-            throw new InvalidPropertyValueException("Invalid dynamic configuration property value for: " + data.getName());
+    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
+        if (!propertyDef.isValidValue(value)) {
+            throw new InvalidPropertyValueException("Invalid dynamic configuration property value for: " + propertyDef.getName());
         }
     }
 

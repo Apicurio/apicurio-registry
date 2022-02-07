@@ -30,7 +30,8 @@ import io.apicurio.common.apps.config.Dynamic;
 @Singleton
 public class CCompatConfig {
 
-    @Dynamic @ConfigProperty(name = "registry.ccompat.legacy-id-mode.enabled", defaultValue = "false")
+    @Dynamic(label = "Legacy ID Mode (Compat API)", description =  "When enabled, this option causes the ccompat API to use 'globalId' instead of 'contentId' for artifact identifiers.")
+    @ConfigProperty(name = "registry.ccompat.legacy-id-mode.enabled", defaultValue = "false")
     Supplier<Boolean> legacyIdModeEnabled;
 
 }

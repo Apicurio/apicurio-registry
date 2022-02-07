@@ -79,13 +79,14 @@ public class SearchResourceImpl implements SearchResource {
     HttpServletRequest request;
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long)
      */
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, Integer offset, Integer limit, SortOrder order,
             SortBy orderby, List<String> labels, List<String> properties, String description, String group,
-            Integer globalId, Integer contentId) {
+            Long globalId, Long contentId)
+    {
         if (orderby == null) {
             orderby = SortBy.name;
         }

@@ -46,11 +46,11 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
     }
 
-    public static SearchFilter ofGlobalId(Integer value) {
+    public static SearchFilter ofGlobalId(Long value) {
         return new SearchFilter(SearchFilterType.globalId, value);
     }
 
-    public static SearchFilter ofContentId(Integer value) {
+    public static SearchFilter ofContentId(Long value) {
         return new SearchFilter(SearchFilterType.contentId, value);
     }
 

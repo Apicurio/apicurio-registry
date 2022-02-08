@@ -18,6 +18,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.avro.SchemaValidationException;
@@ -59,7 +60,7 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
             return CompatibilityExecutionResult.compatible();
         } catch (SchemaValidationException e) {
             return CompatibilityExecutionResult.incompatible(e);
-        } catch (SchemaParseException e) {
+        } catch (SchemaParseException | AvroTypeException e) {
             throw new UnprocessableSchemaException(e.getMessage());
         }
     }

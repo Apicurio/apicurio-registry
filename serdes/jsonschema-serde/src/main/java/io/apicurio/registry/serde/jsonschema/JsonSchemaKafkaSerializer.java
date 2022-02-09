@@ -16,21 +16,15 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -49,9 +43,11 @@ import java.util.Map;
  * @author Fabian Martinez
  * @author Carles Arnal
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T>, SchemaParser<JsonSchema, T> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T> {
 
-    protected static ObjectMapper mapper = new ObjectMapper();
+    protected static ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
 
     private Boolean validationEnabled;
     private MessageTypeSerdeHeaders serdeHeaders;
@@ -110,46 +106,9 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      */
     @Override
     public SchemaParser<JsonSchema, T> schemaParser() {
-        return this;
+        return parser;
     }
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
-     */
-    @Override
-    public ArtifactType artifactType() {
-        return ArtifactType.JSON;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
-     */
-    @Override
-    public JsonSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
-        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-        return factory.getSchema(IoUtil.toStream(rawSchema));
-    }
-
-    //TODO we could implement some way of providing the jsonschema beforehand:
-    // - via annotation in the object being serialized
-    // - via config property
-    //if we do this users will be able to automatically registering the schema when using this serde
-    /**
-     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
-     */
-    @Override
-    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data) {
-        //not supported for jsonschema type
-        return null;
-    }
-
-    /**
-     * @see io.apicurio.registry.resolver.SchemaParser#supportsExtractSchemaFromData()
-     */
-    @Override
-    public boolean supportsExtractSchemaFromData() {
-        return false;
-    }
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)

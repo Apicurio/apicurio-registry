@@ -162,7 +162,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target-repo: [Apicurio/apicurio-registry-client-sdk-go]
+        target-workflow:
+          - https://github.com/Apicurio/apicurio-registry-client-sdk-go/.github/workflows/generate_sdk.yaml
     steps:
       - uses: actions/checkout@v2
 
@@ -176,9 +177,6 @@ jobs:
 
       - name: Repository Dispatch
         if: steps.changes.outputs.openapi == 'true'
-        uses: peter-evans/repository-dispatch@v1
+        uses: ${{matrix.target-workflow}}
         with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          repository: ${{matrix.target-repo}}
-          event-type: on-oas-updated
-          client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
+          openapiSpecUrl: https://raw.githubusercontent.com/Apicurio/apicurio-registry/master/app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json

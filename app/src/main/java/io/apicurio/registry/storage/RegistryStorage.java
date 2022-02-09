@@ -17,10 +17,12 @@
 
 package io.apicurio.registry.storage;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
@@ -657,4 +659,20 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     public void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    /**
+     * Gets the raw value of a property, bypassing any caching that might be enabled.
+     * @param propertyName the name of a property
+     * @return the raw value
+     */
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName);
+
+    /**
+     * Gets a list of tenantIds with stale configuration properties.  This would inform a caching
+     * layer that a tenant-specific cache should be invalidated.
+     * @param since instant representing the last time this check was done (has anything changed since)
+     * @return a list of tenant IDs with stale configs
+     */
+    public List<String> getTenantsWithStaleConfigProperties(Instant since);
+
 }

@@ -927,4 +927,12 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     public void deleteConfigProperty(String propertyName) {
         delegate.deleteConfigProperty(propertyName);
     }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        return delegate.getRawConfigProperty(propertyName);
+    }
 }

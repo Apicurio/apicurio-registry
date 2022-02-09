@@ -36,7 +36,8 @@ const DEFAULT_CONFIG: ConfigType = {
     features: {
         readOnly: false,
         breadcrumbs: true,
-        roleManagement: true
+        roleManagement: true,
+        settings: true
     },
     ui: {
         contextPath: "/",
@@ -120,6 +121,10 @@ export class ConfigService implements Service {
         return this.features().roleManagement || false;
     }
 
+    public featureSettings(): boolean {
+        return this.features().settings || false;
+    }
+
     public authType(): string {
         if (!this.config.auth || !this.config.auth.type) {
             return "";
@@ -163,7 +168,7 @@ export class ConfigService implements Service {
     public principals() {
         return this.config.principals;
     }
-    
+
     public featureMultiTenant(): boolean {
         return this.features().multiTenant || false;
     }

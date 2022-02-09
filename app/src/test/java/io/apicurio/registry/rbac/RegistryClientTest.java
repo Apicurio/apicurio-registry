@@ -1345,78 +1345,78 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testConfigProperties() throws Exception {
-        String anonymousReadAccessPropertyName = "registry.auth.anonymous-read-access.enabled";
-        String obacLimitGroupAccessPropertyName = "registry.auth.owner-only-authorization.limit-group-access";
+        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
+        String property2Name = "registry.ui.features.readOnly";
 
         // Start with all default values
         List<ConfigurationProperty> configProperties = clientV2.listConfigProperties();
         Assertions.assertFalse(configProperties.isEmpty());
-        Optional<ConfigurationProperty> anonymousRead = configProperties.stream().filter(cp -> cp.getName().equals(anonymousReadAccessPropertyName)).findFirst();
+        Optional<ConfigurationProperty> anonymousRead = configProperties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst();
         Assertions.assertTrue(anonymousRead.isPresent());
         Assertions.assertEquals("false", anonymousRead.get().getValue());
-        Optional<ConfigurationProperty> obacLimit = configProperties.stream().filter(cp -> cp.getName().equals(obacLimitGroupAccessPropertyName)).findFirst();
+        Optional<ConfigurationProperty> obacLimit = configProperties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst();
         Assertions.assertTrue(obacLimit.isPresent());
         Assertions.assertEquals("false", obacLimit.get().getValue());
 
         // Change value of anonymous read access
-        clientV2.setConfigProperty(anonymousReadAccessPropertyName, "true");
+        clientV2.setConfigProperty(property1Name, "true");
 
         // Verify the property was set.
         TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.getConfigProperty(anonymousReadAccessPropertyName);
-            Assertions.assertEquals(anonymousReadAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = clientV2.getConfigProperty(property1Name);
+            Assertions.assertEquals(property1Name, prop.getName());
             Assertions.assertEquals("true", prop.getValue());
         });
         TestUtils.retry(() -> {
             List<ConfigurationProperty> properties = clientV2.listConfigProperties();
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(anonymousReadAccessPropertyName)).findFirst().get();
-            Assertions.assertEquals(anonymousReadAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+            Assertions.assertEquals(property1Name, prop.getName());
             Assertions.assertEquals("true", prop.getValue());
         });
 
         // Set another property
-        clientV2.setConfigProperty(obacLimitGroupAccessPropertyName, "true");
+        clientV2.setConfigProperty(property2Name, "true");
 
         // Verify the property was set.
         TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.getConfigProperty(obacLimitGroupAccessPropertyName);
-            Assertions.assertEquals(obacLimitGroupAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = clientV2.getConfigProperty(property2Name);
+            Assertions.assertEquals(property2Name, prop.getName());
             Assertions.assertEquals("true", prop.getValue());
         });
         TestUtils.retry(() -> {
             List<ConfigurationProperty> properties = clientV2.listConfigProperties();
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(obacLimitGroupAccessPropertyName)).findFirst().get();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
             Assertions.assertEquals("true", prop.getValue());
         });
 
         // Reset a config property
-        clientV2.deleteConfigProperty(obacLimitGroupAccessPropertyName);
+        clientV2.deleteConfigProperty(property2Name);
 
         // Verify the property was reset.
         TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.getConfigProperty(obacLimitGroupAccessPropertyName);
-            Assertions.assertEquals(obacLimitGroupAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = clientV2.getConfigProperty(property2Name);
+            Assertions.assertEquals(property2Name, prop.getName());
             Assertions.assertEquals("false", prop.getValue());
         });
         TestUtils.retry(() -> {
             List<ConfigurationProperty> properties = clientV2.listConfigProperties();
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(obacLimitGroupAccessPropertyName)).findFirst().get();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
             Assertions.assertEquals("false", prop.getValue());
         });
 
         // Reset the other property
-        clientV2.deleteConfigProperty(anonymousReadAccessPropertyName);
+        clientV2.deleteConfigProperty(property1Name);
 
         // Verify the property was reset.
         TestUtils.retry(() -> {
-            ConfigurationProperty prop = clientV2.getConfigProperty(anonymousReadAccessPropertyName);
-            Assertions.assertEquals(anonymousReadAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = clientV2.getConfigProperty(property1Name);
+            Assertions.assertEquals(property1Name, prop.getName());
             Assertions.assertEquals("false", prop.getValue());
         });
         TestUtils.retry(() -> {
             List<ConfigurationProperty> properties = clientV2.listConfigProperties();
-            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(anonymousReadAccessPropertyName)).findFirst().get();
-            Assertions.assertEquals(anonymousReadAccessPropertyName, prop.getName());
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+            Assertions.assertEquals(property1Name, prop.getName());
             Assertions.assertEquals("false", prop.getValue());
         });
 

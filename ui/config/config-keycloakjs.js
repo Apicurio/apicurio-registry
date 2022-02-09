@@ -20,6 +20,7 @@ var ApicurioRegistryConfig = {
     features: {
         readOnly: false,
         breadcrumbs: true,
-        roleManagement: false
+        roleManagement: false,
+        settings: true
     }
 };

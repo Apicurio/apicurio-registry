@@ -851,8 +851,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testConfigProperties() throws Exception {
-        String anonymousReadAccessPropertyName = "registry.auth.anonymous-read-access.enabled";
-        String obacLimitGroupAccessPropertyName = "registry.auth.owner-only-authorization.limit-group-access";
+        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
+        String property2Name = "registry.ui.features.readOnly";
 
         // Start with default mappings
         given()
@@ -864,23 +864,23 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", anonymousReadAccessPropertyName)
+                    .pathParam("propertyName", property1Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(anonymousReadAccessPropertyName))
+                    .body("name", equalTo(property1Name))
                     .body("value", equalTo("false"));
         });
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", obacLimitGroupAccessPropertyName)
+                    .pathParam("propertyName", property2Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(obacLimitGroupAccessPropertyName))
+                    .body("name", equalTo(property2Name))
                     .body("value", equalTo("false"));
         });
 
@@ -890,7 +890,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(update)
-                .pathParam("propertyName", anonymousReadAccessPropertyName)
+                .pathParam("propertyName", property1Name)
                 .put("/registry/v2/admin/config/properties/{propertyName}")
             .then()
                 .statusCode(204)
@@ -900,12 +900,12 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", anonymousReadAccessPropertyName)
+                    .pathParam("propertyName", property1Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(anonymousReadAccessPropertyName))
+                    .body("name", equalTo(property1Name))
                     .body("value", equalTo("true"));
         });
 
@@ -915,7 +915,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(update)
-                .pathParam("propertyName", obacLimitGroupAccessPropertyName)
+                .pathParam("propertyName", property2Name)
                 .put("/registry/v2/admin/config/properties/{propertyName}")
             .then()
                 .statusCode(204)
@@ -925,19 +925,19 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", obacLimitGroupAccessPropertyName)
+                    .pathParam("propertyName", property2Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(obacLimitGroupAccessPropertyName))
+                    .body("name", equalTo(property2Name))
                     .body("value", equalTo("true"));
         });
 
         // Reset a config property
         given()
             .when()
-                .pathParam("propertyName", obacLimitGroupAccessPropertyName)
+                .pathParam("propertyName", property2Name)
                 .delete("/registry/v2/admin/config/properties/{propertyName}")
             .then()
                 .statusCode(204)
@@ -947,12 +947,12 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", obacLimitGroupAccessPropertyName)
+                    .pathParam("propertyName", property2Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(obacLimitGroupAccessPropertyName))
+                    .body("name", equalTo(property2Name))
                     .body("value", equalTo("false"));
         });
 
@@ -960,7 +960,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(CT_JSON).body(update)
-                .pathParam("propertyName", anonymousReadAccessPropertyName)
+                .pathParam("propertyName", property1Name)
                 .delete("/registry/v2/admin/config/properties/{propertyName}")
             .then()
                 .statusCode(204)
@@ -970,12 +970,12 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         TestUtils.retry(() -> {
             given()
                 .when()
-                    .pathParam("propertyName", anonymousReadAccessPropertyName)
+                    .pathParam("propertyName", property1Name)
                     .get("/registry/v2/admin/config/properties/{propertyName}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
-                    .body("name", equalTo(anonymousReadAccessPropertyName))
+                    .body("name", equalTo(property1Name))
                     .body("value", equalTo("false"));
         });
 

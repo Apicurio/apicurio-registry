@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2022 JBoss Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-export * from "./404";
-export * from "./artifact";
-export * from "./artifacts";
-export * from "./artifactVersion";
-export * from "./settings";
-export * from "./roles";
-export * from "./root";
-export * from "./rules";
+// tslint:disable-next-line:interface-name
+export interface ConfigurationProperty {
+
+    name: string;
+    value: string;
+    type: string;
+    label: string;
+    description: string;
+
+}

@@ -57,6 +57,11 @@ export class RootPageHeader extends PureComponent<RootPageHeaderProps, RootPageH
                 <Tab eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
             );
         }
+        if (Services.getConfigService().featureSettings()) {
+            tabs.push(
+                <Tab eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
+            );
+        }
         return (
             <div>
                 <IfAuth isAdmin={true}>
@@ -83,6 +88,10 @@ export class RootPageHeader extends PureComponent<RootPageHeaderProps, RootPageH
             if (eventKey == 2) {
                 // navigate to permissions page
                 this.navigateTo(this.linkTo("/roles"))();
+            }
+            if (eventKey == 3) {
+                // navigate to settings page
+                this.navigateTo(this.linkTo("/settings"))();
             }
         }
     }

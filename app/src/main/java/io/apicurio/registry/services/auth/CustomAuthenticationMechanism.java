@@ -65,9 +65,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
-    @Dynamic(label = "BASIC Authentication", description = "When enabled, users are permitted to authenticate using BASIC authentication (in addition to OAuth).", requires = {
-            "registry.auth.enabled=true"
-    })
+    @Dynamic(label = "BASIC Authentication", description = "When enabled, users are permitted to authenticate using BASIC authentication (in addition to OAuth).", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled", defaultValue = "false")
     Supplier<Boolean> fakeBasicAuthEnabled;
 

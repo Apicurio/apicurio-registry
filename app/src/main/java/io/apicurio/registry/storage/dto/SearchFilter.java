@@ -109,14 +109,14 @@ public class SearchFilter {
     /**
      * @return the integer value
      */
-    public Integer getIntegerValue() {
+    public Number getNumberValue() {
         if (value == null) {
             return null;
         }
-        if (value instanceof Integer) {
-            return (Integer) value;
+        if (value instanceof Number) {
+            return (Number) value;
         }
-        throw new IllegalStateException("value is not of type integer");
+        throw new IllegalStateException("value is not of type number");
     }
 
 

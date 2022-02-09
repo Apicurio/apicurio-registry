@@ -222,7 +222,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
 
     private onRoleFilterSelect = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         this.setMultiState({
-            roleFilterSelected: selection,
+            roleFilterSelected: selection as string,
             roleListFilterOpened: false
         });
     };
@@ -259,7 +259,7 @@ export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
 
     private onRoleFilterSelectChange = (_event: any, selection: string | SelectOptionObject, isPlaceholder: boolean | undefined) => {
         this.setMultiState({
-            roleFilterSelectInputValue: selection,
+            roleFilterSelectInputValue: selection as string,
             roleFilterSelectInputOpened: false
         }, () => this.onRoleFilterApplyClick());
     };

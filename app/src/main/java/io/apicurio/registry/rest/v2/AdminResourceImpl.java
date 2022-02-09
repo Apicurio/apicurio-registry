@@ -44,6 +44,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -110,6 +111,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DynamicConfigPropertyIndex dynamicPropertyIndex;
+
+    @Inject
+    Config config;
 
     @Inject
     DataExporter exporter;
@@ -403,7 +407,7 @@ public class AdminResourceImpl implements AdminResource {
         // Ensure that the property is a valid dynamic config property.
         DynamicConfigPropertyDef def = resolveConfigProperty(propertyName);
 
-        DynamicConfigPropertyDto dto = storage.getConfigProperty(propertyName);
+        DynamicConfigPropertyDto dto = storage.getRawConfigProperty(propertyName);
         if (dto == null) {
             return defToConfigurationProperty(def);
         } else {
@@ -466,10 +470,12 @@ public class AdminResourceImpl implements AdminResource {
         return rval;
     }
 
-    private static ConfigurationProperty defToConfigurationProperty(DynamicConfigPropertyDef def) {
+    private ConfigurationProperty defToConfigurationProperty(DynamicConfigPropertyDef def) {
+        String propertyValue = config.getOptionalValue(def.getName(), String.class).orElse(def.getDefaultValue());
+
         ConfigurationProperty rval = new ConfigurationProperty();
         rval.setName(def.getName());
-        rval.setValue(def.getDefaultValue());
+        rval.setValue(propertyValue);
         rval.setType(def.getType().getName());
         rval.setLabel(def.getLabel());
         rval.setDescription(def.getDescription());
@@ -485,6 +491,9 @@ public class AdminResourceImpl implements AdminResource {
     private DynamicConfigPropertyDef resolveConfigProperty(String propertyName) {
         DynamicConfigPropertyDef property = dynamicPropertyIndex.getProperty(propertyName);
         if (property == null) {
+            throw new ConfigPropertyNotFoundException(propertyName);
+        }
+        if (!dynamicPropertyIndex.isAccepted(propertyName)) {
             throw new ConfigPropertyNotFoundException(propertyName);
         }
         return property;

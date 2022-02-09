@@ -79,6 +79,7 @@ public class ConfigJsServlet extends HttpServlet {
             config.ui.contextPath = uiConfig.getUiContextPath();
 
             config.features.readOnly = uiConfig.isFeatureReadOnly();
+            config.features.settings = uiConfig.isFeatureSettings();
             config.features.breadcrumbs = true;
 
             configureAuth(config);

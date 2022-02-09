@@ -1118,13 +1118,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     case globalId:
                         where.append("(v.globalId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     case contentId:
                         where.append("(v.contentId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     default :
@@ -2035,6 +2035,14 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      */
     @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
+        return this.getRawConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
         log.debug("Selecting a single config property: {}", propertyName);
         try {
             return this.handles.withHandle( handle -> {

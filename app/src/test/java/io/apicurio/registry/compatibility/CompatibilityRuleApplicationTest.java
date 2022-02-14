@@ -226,7 +226,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     @Test
     public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
-        String artifactId = "testCompatibilityRuleApplication_Map";
+        String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
         createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP);
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);

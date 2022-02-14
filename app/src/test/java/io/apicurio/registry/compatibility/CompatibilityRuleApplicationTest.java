@@ -224,4 +224,22 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         });
     }
 
+    @Test
+    public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
+        String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
+        createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP);
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FULL.name());
+        clientV2.createArtifactRule("default", artifactId, rule);
+
+        // Note: this should result in a rule violation exception due to a parse error in INVALID_SCHEMA_WITH_MAP
+        // It turns out that "{}" is not a valid default for a map field.  This will throw a AvroTypeException from
+        // the Avro parser.  Since an invalid schema has been already created, this will fail earlier in the parsing
+        // and should not result in a 500 error returned by the server.
+        Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
+            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        });
+    }
+
 }

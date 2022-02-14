@@ -198,6 +198,8 @@ public interface RegistryClient extends Closeable {
 
     void importData(InputStream data);
 
+    void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds);
+
     List<RoleMapping> listRoleMappings();
 
     void createRoleMapping(RoleMapping data);

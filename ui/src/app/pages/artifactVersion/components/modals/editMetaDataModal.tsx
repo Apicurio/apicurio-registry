@@ -53,7 +53,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
     public render(): React.ReactElement {
         return (
             <Modal
-                title="Edit Artifact Meta-Data"
+                title="Edit artifact metadata"
                 variant="large"
                 isOpen={this.props.isOpen}
                 onClose={this.props.onClose}

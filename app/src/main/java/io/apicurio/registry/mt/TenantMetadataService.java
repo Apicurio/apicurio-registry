@@ -20,6 +20,8 @@ import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
 import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.multitenant.client.exception.RegistryTenantForbiddenException;
+import io.apicurio.multitenant.client.exception.RegistryTenantNotAuthorizedException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.registry.utils.OptionalBean;
 
@@ -44,6 +46,10 @@ public class TenantMetadataService {
             return tenantManagerClient.get().getTenant(tenantId);
         } catch (RegistryTenantNotFoundException e) {
             throw new TenantNotFoundException(e.getMessage());
+        } catch (RegistryTenantNotAuthorizedException e) {
+            throw new TenantNotAuthorizedException(e.getMessage());
+        } catch (RegistryTenantForbiddenException e) {
+            throw new TenantForbiddenException(e.getMessage());
         }
     }
 

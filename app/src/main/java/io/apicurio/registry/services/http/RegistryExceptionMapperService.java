@@ -37,6 +37,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import io.apicurio.registry.mt.TenantForbiddenException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -124,6 +125,7 @@ public class RegistryExceptionMapperService {
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(TenantNotAuthorizedException.class, HTTP_FORBIDDEN);
+        map.put(TenantForbiddenException.class, HTTP_FORBIDDEN);
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);

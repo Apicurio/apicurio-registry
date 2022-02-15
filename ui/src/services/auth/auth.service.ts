@@ -187,6 +187,9 @@ export class AuthService implements Service {
                     this.logger.info("[AuthService] Token acquired.");
                     config.headers.Authorization = `Bearer ${token}`;
                     return Promise.resolve(config);
+                }).catch(error => {
+                    this.logger.info("[AuthService] Failed to acquire token: ", error);
+                    return Promise.reject(error);
                 });
             } else {
                 return Promise.resolve(config);

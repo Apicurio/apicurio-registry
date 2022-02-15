@@ -160,6 +160,9 @@ jobs:
   notify-sdk:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [go, js, python]
     steps:
       - uses: actions/checkout@v2
 
@@ -176,6 +179,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v1
         with:
            token: ${{ secrets.ACCESS_TOKEN }}
-           repository: Apicurio/apicurio-registry-client-sdk-go
+           repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
            event-type: on-oas-updated
            client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'

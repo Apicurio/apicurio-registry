@@ -296,11 +296,13 @@ public class RegistryClientImpl implements RegistryClient {
         return apicurioHttpClient.sendRequest(SearchRequestsProvider.searchArtifactsByContent(data, queryParams));
     }
 
+    @Deprecated
     @Override
     public List<RuleType> listGlobalRules() {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.listGlobalRules());
     }
 
+    @Deprecated
     @Override
     public void createGlobalRule(Rule data) {
         try {
@@ -310,16 +312,19 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
+    @Deprecated
     @Override
     public void deleteAllGlobalRules() {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteAllGlobalRules());
     }
 
+    @Deprecated
     @Override
     public Rule getGlobalRuleConfig(RuleType rule) {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.getGlobalRule(rule));
     }
 
+    @Deprecated
     @Override
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         try {
@@ -329,21 +334,25 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
+    @Deprecated
     @Override
     public void deleteGlobalRule(RuleType rule) {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteGlobalRule(rule));
     }
 
+    @Deprecated
     @Override
     public List<NamedLogConfiguration> listLogConfigurations() {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.listLogConfigurations());
     }
 
+    @Deprecated
     @Override
     public NamedLogConfiguration getLogConfiguration(String logger) {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.getLogConfiguration(logger));
     }
 
+    @Deprecated
     @Override
     public NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data) {
         try {
@@ -353,16 +362,19 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
+    @Deprecated
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.removeLogConfiguration(logger));
     }
 
+    @Deprecated
     @Override
     public InputStream exportData() {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.exportData());
     }
 
+    @Deprecated
     @Override
     public void importData(InputStream data) {
         this.importData(data, true, true);
@@ -373,6 +385,7 @@ public class RegistryClientImpl implements RegistryClient {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.importData(data, preserveGlobalIds, preserveContentIds));
     }
 
+    @Deprecated
     @Override
     public void createRoleMapping(RoleMapping data) {
         try {
@@ -382,21 +395,25 @@ public class RegistryClientImpl implements RegistryClient {
         }
     }
 
+    @Deprecated
     @Override
     public void deleteRoleMapping(String principalId) {
         apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteRoleMapping(principalId));
     }
 
+    @Deprecated
     @Override
     public RoleMapping getRoleMapping(String principalId) {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.getRoleMapping(principalId));
     }
 
+    @Deprecated
     @Override
     public List<RoleMapping> listRoleMappings() {
         return apicurioHttpClient.sendRequest(AdminRequestsProvider.listRoleMappings());
     }
 
+    @Deprecated
     @Override
     public void updateRoleMapping(String principalId, RoleType role) {
         try {

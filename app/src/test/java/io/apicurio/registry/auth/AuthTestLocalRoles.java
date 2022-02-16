@@ -17,6 +17,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -75,6 +77,10 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
+    private AdminClient createAdminClient(Auth auth) {
+        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+    }
+
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
      */
@@ -88,7 +94,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Test
     public void testLocalRoles() throws Exception {
         Auth authAdmin = new OidcAuth(httpClient, adminClientId, "test1");
-        RegistryClient clientAdmin = createClient(authAdmin);
+        AdminClient clientAdmin = createAdminClient(authAdmin);
 
         Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         RegistryClient client = createClient(auth);
@@ -106,10 +112,6 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
             rule.setType(RuleType.VALIDITY);
             client.createGlobalRule(rule);
         });
-
-        // But the admin user can still do stuff due to admin-override being enabled
-        clientAdmin.listArtifactsInGroup("default");
-        clientAdmin.listGlobalRules();
 
         // Now let's grant read-only access to the user.
         RoleMapping mapping = new RoleMapping();
@@ -153,25 +155,4 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         rule.setType(RuleType.VALIDITY);
         client.createGlobalRule(rule);
     }
-//
-//    @Test
-//    public void testAdminOverride() throws Exception {
-//        Auth auth = new KeycloakAuth(authServerUrl, realm, noRoleClientId, "test1");
-//        RegistryClient client = createClient(auth);
-//        String artifactId = TestUtils.generateArtifactId();
-//        try {
-//            client.listArtifactsInGroup(groupId);
-//            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
-//            TestUtils.retry(() -> client.getArtifactMetaData(groupId, artifactId));
-//            assertNotNull(client.getLatestArtifact(groupId, artifactId));
-//            Rule ruleConfig = new Rule();
-//            ruleConfig.setType(RuleType.VALIDITY);
-//            ruleConfig.setConfig(ValidityLevel.NONE.name());
-//            client.createArtifactRule(groupId, artifactId, ruleConfig);
-//
-//            client.createGlobalRule(ruleConfig);
-//        } finally {
-//            client.deleteArtifact(groupId, artifactId);
-//        }
-//    }
 }

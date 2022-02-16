@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -61,6 +63,10 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
+    private AdminClient createAdminClient(Auth auth) {
+        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+    }
+
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
      */
@@ -70,6 +76,14 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
         Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         return this.createClient(auth);
+    }
+
+    @Override
+    protected AdminClient createAdminClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        System.out.println("Auth is " + authEnabled);
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        return this.createAdminClient(auth);
     }
 
     @Test

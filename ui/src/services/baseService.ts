@@ -291,15 +291,21 @@ export abstract class BaseService implements Service {
                 ...error.response.data,
                 status: error.response.status
             }
-        } else if (error.response) {
+        } else if (error && error.response) {
             return {
                 message: error.message,
                 status: error.response.status
             }
-        } else {
+        } else if (error) {
             console.error("Unknown error detected: ", error);
             return {
                 message: error.message,
+                status: 500
+            }
+        } else {
+            console.error("Unknown error detected: ", error);
+            return {
+                message: "Unknown error",
                 status: 500
             }
         }

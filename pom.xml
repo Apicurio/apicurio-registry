@@ -137,6 +137,9 @@
         <module>schema-util/xml</module>
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
+
+        <!-- Operator tests module -->
+        <module>systemtests</module>
     </modules>
 
     <properties>
@@ -949,7 +952,7 @@
             </properties>
         </profile>
         <profile>
-            <id>integration-tests</id>
+            <id>functional-tests</id>
             <modules>
                 <module>integration-tests/integration-tests-common</module>
                 <module>integration-tests/legacy-tests</module>

@@ -57,8 +57,16 @@ public class TenantMetadataService {
         if (tenantManagerClient.isEmpty()) { // TODO Maybe unnecessary
             throw new UnsupportedOperationException("Multitenancy is not enabled");
         }
-        UpdateRegistryTenantRequest ureq = new UpdateRegistryTenantRequest();
-        ureq.setStatus(TenantStatusValue.DELETED);
-        tenantManagerClient.get().updateTenant(tenantId, ureq);
+        try {
+            UpdateRegistryTenantRequest ureq = new UpdateRegistryTenantRequest();
+            ureq.setStatus(TenantStatusValue.DELETED);
+            tenantManagerClient.get().updateTenant(tenantId, ureq);
+        } catch (RegistryTenantNotFoundException e) {
+            throw new TenantNotFoundException(e.getMessage());
+        } catch (RegistryTenantNotAuthorizedException e) {
+            throw new TenantNotAuthorizedException(e.getMessage());
+        } catch (RegistryTenantForbiddenException e) {
+            throw new TenantForbiddenException(e.getMessage());
+        }
     }
 }

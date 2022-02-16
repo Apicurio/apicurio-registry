@@ -25,7 +25,7 @@
         <kafka.version>2.3.0</kafka.version>
 
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>
-        <jersey.microprofile.version>2.35</jersey.microprofile.version>
+        <jersey.microprofile.version>3.0.4</jersey.microprofile.version>
 
         <apicurio.old.release.version>1.3.2.Final</apicurio.old.release.version>
     </properties>

@@ -218,7 +218,7 @@
         <version.compiler.plugin>3.10.0</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.javadoc.plugin>3.3.1</version.javadoc.plugin>
+        <version.javadoc.plugin>3.3.2</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.2</version.jar.plugin>

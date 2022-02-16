@@ -371,7 +371,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, "");
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
             return contentId;

@@ -590,6 +590,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
         String referencesSerialized = SqlUtil.serializeReferences(references);
+        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references);
+    }
+
+    /**
+     * Store the content in the database and return the ID of the new row.  If the content already exists,
+     * just return the content ID of the existing row.
+     *
+     * @param handle
+     * @param content
+     * @param contentHash
+     * @param canonicalContentHash
+     */
+    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references) {
+        byte[] contentBytes = content.bytes();
+        String referencesSerialized = SqlUtil.serializeReferences(references);
 
         // Upsert a row in the "content" table.  This will insert a row for the content
         // if a row doesn't already exist.  We use the canonical hash to determine whether
@@ -2367,12 +2382,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         // It makes sure there won't be any conflicts
                         long newContentId = -1;
                         if (contentEntity.artifactType != null) {
-                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
                         } else {
                             if(contentEntity.canonicalHash == null) {
                                 throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
                             }
-                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash);
+                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash, Collections.emptyList());
                         }
                         contentIdMapping.put(contentEntity.contentId, newContentId);
                         continue;
@@ -2380,7 +2395,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
                     // We do not need canonicalHash if we have artifactType
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 } else if (entity.getEntityType() == EntityType.ArtifactVersion) {

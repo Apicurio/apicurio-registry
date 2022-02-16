@@ -91,6 +91,16 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
             canonicalHash = new String(bytes, StandardCharsets.UTF_8);
         }
 
+        // References (length of references + references bytes)
+        String serializedReferences = null;
+        int referencesLen = byteBuffer.getInt();
+        if (referencesLen > 0) {
+            byte[] bytes = new byte[referencesLen];
+            byteBuffer.get(bytes);
+            serializedReferences = new String(bytes, StandardCharsets.UTF_8);
+        }
+
+
         // Content (length of content + content bytes)
         ContentHandle contentHandle = null;
         int numContentBytes = byteBuffer.getInt();
@@ -100,20 +110,9 @@ public class KafkaSqlValueDeserializer implements Deserializer<MessageValue> {
             contentHandle = ContentHandle.create(contentBytes);
         }
 
-        // References (length of references + references bytes) Commented for now
-        /*
-        String serializedReferences = null;
-        int numContentBytes = byteBuffer.getInt();
-        if (numContentBytes > 0) {
-            byte[] contentBytes = new byte[numContentBytes];
-            byteBuffer.get(contentBytes);
-            contentHandle = ContentHandle.create(contentBytes);
-        }
-        */
-
         ActionType action = ActionType.fromOrd(actionOrdinal);
 
-        return ContentValue.create(action, canonicalHash, contentHandle, ""); //FIXME:references handle references
+        return ContentValue.create(action, canonicalHash, contentHandle, serializedReferences);
     }
 
 }

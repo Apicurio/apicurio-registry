@@ -234,7 +234,6 @@ public class Export implements QuarkusApplication {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            //TODO:references handle references properly
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {

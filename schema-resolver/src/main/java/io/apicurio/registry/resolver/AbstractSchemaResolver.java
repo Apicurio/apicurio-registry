@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -156,10 +157,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
-                .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
+                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference))
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
+
+
         return artifactReference;
+    }
+
+    protected String resolveArtifactId(String artifactId, boolean isReference) {
+        if (isReference) {
+            return UUID.randomUUID().toString(); //When a reference is being auto-registered, we create a new random id for it.
+        } else {
+            return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
+        }
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
@@ -196,7 +207,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         });
     }
 
-    private Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
+    protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
             final InputStream referenceContent = client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());

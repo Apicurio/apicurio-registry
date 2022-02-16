@@ -52,16 +52,12 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public long nextGlobalId() {
-        return handles.withHandleNoException( handle -> {
-            return nextGlobalId(handle);
-        });
+        return handles.withHandleNoException(this::nextGlobalId);
     }
 
     @Transactional
     public long nextContentId() {
-        return handles.withHandleNoException( handle -> {
-            return nextContentId(handle);
-        });
+        return handles.withHandleNoException(this::nextContentId);
     }
 
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
@@ -124,6 +120,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .bind(2, canonicalHash)
                     .bind(3, contentHash)
                     .bind(4, contentBytes)
+                    .bind(5, serializedReferences)
                     .execute();
             }
             return null;

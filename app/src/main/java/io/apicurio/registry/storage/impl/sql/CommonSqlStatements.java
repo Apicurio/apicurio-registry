@@ -757,7 +757,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**

@@ -342,10 +342,12 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
 
+        Map<String, ContentHandle> resolvedReferences = this.resolveReferences(references);
+
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, resolvedReferences);
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
@@ -398,8 +400,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
-
-        //TODO handle references
 
         String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -496,8 +496,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
-
-        //TODO handle references
 
         String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -1255,10 +1253,19 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param content
      */
     protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        return canonicalizeContent(artifactType, content, Collections.emptyMap());
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     * @param artifactType
+     * @param content
+     */
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap()); //FIXME:references add references when canonicalizing content
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, resolvedReferences);
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

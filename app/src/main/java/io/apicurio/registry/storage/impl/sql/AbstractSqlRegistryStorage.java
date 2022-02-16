@@ -3019,6 +3019,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, entity.canonicalHash)
                     .bind(3, entity.contentHash)
                     .bind(4, entity.contentBytes)
+                    .bind(5, "") //References are not supported when importing
                     .execute();
                 log.info("Content entity imported successfully.");
             } else {

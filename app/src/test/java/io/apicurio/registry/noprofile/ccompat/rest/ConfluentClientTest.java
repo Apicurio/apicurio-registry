@@ -178,38 +178,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSerdeAvroWithReferences() throws Exception {
-        //FIXME:references implement test references
-        SchemaRegistryClient client = buildClient();
-
-        String subject = generateArtifactId();
-
-        String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
-        ParsedSchema schema = new AvroSchema(rawSchema);
-        int id = client.register(subject + "-value", schema);
-        client.reset();
-
-        // global id can be mapped async
-        retry(() -> {
-            ParsedSchema schema2 = client.getSchemaById(id);
-            Assertions.assertNotNull(schema2);
-            return schema2;
-        });
-
-        try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(client);
-             KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(client);) {
-
-            GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
-            record.put("bar", "somebar");
-
-            byte[] bytes = serializer.serialize(subject, record);
-            GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
-
-            Assertions.assertEquals("somebar", ir.get("bar").toString());
-        }
-    }
-
-    @Test
     public void testSerdeJsonSchema() throws Exception {
 
         final SchemaRegistryClient client = buildClient();

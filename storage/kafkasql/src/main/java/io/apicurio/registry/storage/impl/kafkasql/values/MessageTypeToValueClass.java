@@ -70,9 +70,6 @@ public class MessageTypeToValueClass {
                 case Download:
                     index.put(type, DownloadValue.class);
                     break;
-                case ArtifactReference:
-                    index.put(type, ArtifactReferenceValue.class);
-                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

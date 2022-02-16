@@ -26,7 +26,6 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -132,7 +131,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -166,10 +165,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok for this case
             InputStream rawSchema = client.getContentById(contentIdKey);
 
-            //TODO handle references
+            //Get the artifact references
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(contentId);
+            //If there are any references for the schema being parsed, resolve them before parsing the schema
+            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
+            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -284,10 +286,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             InputStream rawSchema = client.getContentByGlobalId(gid);
 
-            //TODO handle references
+            //Get the artifact references
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(gid);
+            //If there are any references for the schema being parsed, resolve them before parsing the schema
+            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
+            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
             result.parsedSchema(new ParsedSchemaImpl<S>()
                         .setParsedSchema(parsed)

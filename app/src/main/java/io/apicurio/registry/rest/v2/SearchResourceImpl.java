@@ -216,7 +216,7 @@ public class SearchResourceImpl implements SearchResource {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap()); //FIXME:references handle artifact referenes
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

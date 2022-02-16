@@ -419,7 +419,7 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //TODO:references not supported for testing update
     }
 
     /**

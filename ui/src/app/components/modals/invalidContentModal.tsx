@@ -16,15 +16,17 @@
  */
 import React from 'react';
 import "./invalidContentModal.css";
-import {Button, Modal, ModalVariant} from "@patternfly/react-core";
+import {Button, DataList, DataListCell, DataListItemCells, DataListItemRow, Modal, ModalVariant} from "@patternfly/react-core";
 import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
+import { ApiError } from 'src/models/apiError.model';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 
 /**
  * Properties
  */
 export interface InvalidContentModalProps extends PureComponentProps {
-    error: any;
+    error: ApiError|null;
     isOpen: boolean;
     onClose: () => void;
 }
@@ -58,10 +60,8 @@ export class InvalidContentModal extends PureComponent<InvalidContentModalProps,
                     <Button key="close" variant="link" data-testid="modal-btn-close" onClick={this.props.onClose}>Close</Button>
                 ]}
             >
-                <p>The content you attempted to upload violated one or more of the established content rules.</p>
-                <pre className="error-detail">
-                    { this.errorDetail() }
-                </pre>
+                <p className="modal-desc" >The content you attempted to upload violated one or more of the established content rules.</p>
+                { this.errorDetail() }
             </Modal>
         );
     }
@@ -70,11 +70,41 @@ export class InvalidContentModal extends PureComponent<InvalidContentModalProps,
         return {};
     }
 
-    private errorDetail(): string {
-        if (this.props.error && this.props.error.detail) {
-            return this.props.error.detail;
+    private errorDetail(): React.ReactElement {
+        if (this.props.error) {
+            if (this.props.error.name === "RuleViolationException" && this.props.error.causes != null && this.props.error.causes.length > 0 ) {
+                return (
+                    <DataList aria-label="Error causes" className="error-causes" >
+                        {
+                            this.props.error.causes.map( (cause, idx) =>
+                                <DataListItemRow key={""+idx} className="error-causes-item">
+                                    <DataListItemCells
+                                        dataListCells={[
+                                            <DataListCell key="error icon" className="type-icon-cell">
+                                                <ExclamationCircleIcon/>
+                                            </DataListCell>,
+                                            <DataListCell key="main content">
+                                                <div className="error-causes-item-title">
+                                                    <span>{cause.context != null ? (<b>{cause.context}</b>) : cause.description}</span>
+                                                </div>
+                                                <div className="error-causes-item-description">{cause.context != null ? cause.description : cause.context }</div>
+                                            </DataListCell>
+                                        ]}
+                                    />
+                                </DataListItemRow>
+                            )
+                        }
+                    </DataList>
+                );
+            } else if (this.props.error.detail) {
+                return (
+                    <pre className="error-detail">
+                        {this.props.error.detail}
+                    </pre>
+                );
+            }
         }
-        return "";
+        return <p/>;
     }
 
 }

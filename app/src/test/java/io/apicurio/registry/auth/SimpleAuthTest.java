@@ -17,6 +17,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
@@ -77,6 +79,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
+    private AdminClient createAdminClient(Auth auth) {
+        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+    }
+
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
      */
@@ -85,6 +91,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         return this.createClient(auth);
+    }
+
+    @Override
+    protected AdminClient createAdminClientV2(){
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        return this.createAdminClient(auth);
     }
 
     @Test
@@ -160,6 +173,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     public void testAdminRole() throws Exception {
         Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
         RegistryClient client = createClient(auth);
+        AdminClient adminClient = createAdminClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
@@ -171,7 +185,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             ruleConfig.setConfig(ValidityLevel.NONE.name());
             client.createArtifactRule(groupId, artifactId, ruleConfig);
 
-            client.createGlobalRule(ruleConfig);
+            adminClient.createGlobalRule(ruleConfig);
 
             UserInfo userInfo = client.getCurrentUserInfo();
             assertNotNull(userInfo);
@@ -190,7 +204,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Auth auth = new BasicAuth(testUsername, testPassword);
 
         RegistryClient client = createClient(auth);
-
+        AdminClient adminClient = createAdminClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
@@ -202,7 +216,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             ruleConfig.setConfig(ValidityLevel.NONE.name());
             client.createArtifactRule(groupId, artifactId, ruleConfig);
 
-            client.createGlobalRule(ruleConfig);
+            adminClient.createGlobalRule(ruleConfig);
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }

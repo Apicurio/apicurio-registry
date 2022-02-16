@@ -28,6 +28,8 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
@@ -95,8 +97,8 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
         String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
 
-        RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
-        RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
+        AdminClient clientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
+        AdminClient clientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
 
         Assertions.assertThrows(TenantNotFoundException.class, () -> {
             clientTenant1.listGlobalRules();
@@ -132,6 +134,9 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
         String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
 
+        AdminClient adminClientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
+        AdminClient adminClientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
+
         RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
         RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
 
@@ -139,9 +144,9 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         SchemaRegistryClient cclientTenant2 = createConfluentClient(tenant2BaseUrl);
 
         try {
-            tenantOperations(clientTenant1, cclientTenant1, tenant1BaseUrl);
+            tenantOperations(adminClientTenant1, clientTenant1, cclientTenant1, tenant1BaseUrl);
             try {
-                tenantOperations(clientTenant2, cclientTenant2, tenant2BaseUrl);
+                tenantOperations(adminClientTenant2, clientTenant2, cclientTenant2, tenant2BaseUrl);
             } finally {
                 cleanTenantArtifacts(clientTenant2);
             }
@@ -151,7 +156,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
 
     }
 
-    private void tenantOperations(RegistryClient client, SchemaRegistryClient cclient, String baseUrl) throws Exception {
+    private void tenantOperations(AdminClient adminClient, RegistryClient client, SchemaRegistryClient cclient, String baseUrl) throws Exception {
         //test apicurio api
         assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 
@@ -168,7 +173,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         ruleConfig.setConfig("NONE");
         client.createArtifactRule(meta.getGroupId(), meta.getId(), ruleConfig);
 
-        client.createGlobalRule(ruleConfig);
+        adminClient.createGlobalRule(ruleConfig);
 
         //test confluent api
         String subject = TestUtils.generateArtifactId();

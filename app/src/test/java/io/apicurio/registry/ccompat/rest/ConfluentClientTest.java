@@ -274,7 +274,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         Rule rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        clientV2.createGlobalRule(rule);
+        adminClientV2.createGlobalRule(rule);
 
         String subject = generateArtifactId();
         ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");

@@ -17,8 +17,6 @@
 package io.apicurio.multitenant.client.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.error.ApicurioRestClientException;
 import io.apicurio.rest.client.error.RestClientErrorHandler;
 import io.apicurio.rest.client.util.IoUtil;
@@ -31,9 +29,9 @@ public class TenantManagerClientErrorHandler implements RestClientErrorHandler {
     public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
         switch (statusCode) {
             case 401:
-                return new NotAuthorizedException(IoUtil.toString(body));
+                return new RegistryTenantNotAuthorizedException(IoUtil.toString(body));
             case 403:
-                return new ForbiddenException(IoUtil.toString(body));
+                return new RegistryTenantForbiddenException(IoUtil.toString(body));
             case 404:
                 return new RegistryTenantNotFoundException(IoUtil.toString(body));
             default:

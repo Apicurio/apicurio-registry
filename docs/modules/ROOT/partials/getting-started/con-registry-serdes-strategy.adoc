@@ -52,7 +52,7 @@ However, you can use alternative conventions for the mapping by using a strategy
 
 The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
  
-The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.serde.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
+The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.resolver.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
 
 [discrete]
 [id='configuring-globalid-strategy-{context}']

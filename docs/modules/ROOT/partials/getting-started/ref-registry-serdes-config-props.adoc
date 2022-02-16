@@ -24,7 +24,7 @@ This section provides reference information on Java configuration properties for
 |`apicurio.registry.schema-resolver`
 |Used by serializers and deserializers. Fully-qualified Java classname that implements `SchemaResolver`. 
 |String
-|`io.apicurio.registry.serde.DefaultSchemaResolver`
+|`io.apicurio.registry.resolver.DefaultSchemaResolver`
 |===
 
 NOTE: The `DefaultSchemaResolver` is recommended and provides useful features for most use cases. For some advanced use cases, you might use a custom implementation of `SchemaResolver`.

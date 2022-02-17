@@ -612,7 +612,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // If we don't find a row, we insert one and then return its globalId.
         String sql;
         Long contentId;
-        boolean insertReferences = true;
         if ("postgresql".equals(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
@@ -638,8 +637,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .findOne();
             if (contentIdOptional.isPresent()) {
                 contentId = contentIdOptional.get();
-                //If the content is already present there's no need to create the references.
-                insertReferences = false;
             } else {
                 sql = sqlStatements.upsertContent();
                 handle.createUpdate(sql)
@@ -661,21 +658,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
         }
 
-        if (insertReferences) {
-            //Finally, insert references into the "artifactreferences" table if the content wasn't present yet.
-            if (references != null && !references.isEmpty()) {
-                references.forEach(reference -> {
-                    String sqli = sqlStatements.upsertReference();
-                    handle.createUpdate(sqli)
-                            .bind(0, tenantContext.tenantId())
-                            .bind(1, reference.getGroupId())
-                            .bind(2, reference.getArtifactId())
-                            .bind(3, reference.getVersion())
-                            .bind(4, reference.getName())
-                            .execute();
-                });
-            }
-        }
         return contentId;
     }
 

@@ -93,13 +93,4 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String resetSequenceValue() {
         return "INSERT INTO sequences (tenantId, name, value) VALUES (?, ?, ?) ON CONFLICT (tenantId, name) DO UPDATE SET value = ?";
     }
-
-    /**
-     * @see SqlStatements#upsertReference()
-     */
-    @Override
-    public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (tenantId, name) DO NOTHING";
-    }
-
 }

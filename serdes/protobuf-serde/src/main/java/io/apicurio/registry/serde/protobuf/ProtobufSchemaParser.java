@@ -68,18 +68,28 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             });
             MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
             if (firstMessage != null) {
-                final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), fileElem, dependencies);
-                return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
+                try {
+                    final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), fileElem, dependencies);
+                    return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
+                } catch (IllegalStateException ise) {
+                    //If we fail to init the dynamic schema, try to get the descriptor from the proto element
+                    return getFileDescriptorFromElement(fileElem);
+                }
             } else {
-                FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-                return new ProtobufSchema(fileDescriptor, fileElem);
+                return getFileDescriptorFromElement(fileElem);
             }
         } catch (DescriptorValidationException pe) {
             throw new SerializationException("Error parsing protobuf schema ", pe);
         }
     }
 
-    private void addReferencesToDependencies(List<ParsedSchema<ProtobufSchema>> schemaReferences, Map<String, ProtoFileElement> dependencies) {
+    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem) throws DescriptorValidationException {
+        FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
+        return new ProtobufSchema(fileDescriptor, fileElem);
+    }
+
+    private void addReferencesToDependencies
+            (List<ParsedSchema<ProtobufSchema>> schemaReferences, Map<String, ProtoFileElement> dependencies) {
         schemaReferences.forEach(parsedSchema -> {
             dependencies.put(parsedSchema.referenceName(), parsedSchema.getParsedSchema().getProtoFileElement());
             if (parsedSchema.hasReferences()) {

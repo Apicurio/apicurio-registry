@@ -952,7 +952,7 @@
             </properties>
         </profile>
         <profile>
-            <id>functional-tests</id>
+            <id>integration-tests</id>
             <modules>
                 <module>integration-tests/integration-tests-common</module>
                 <module>integration-tests/legacy-tests</module>

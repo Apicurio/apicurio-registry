@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryList;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpec;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfiguration;
@@ -25,18 +26,19 @@ public class SimpleTestsIT {
     private static Logger LOGGER = LoggerFactory.getLogger(SimpleTestsIT.class);
 
     private ApicurioRegistry createSR() {
-        ApicurioRegistrySpec spec = new ApicurioRegistrySpec();
-        ApicurioRegistrySpecConfiguration config = new ApicurioRegistrySpecConfiguration();
-        config.setPersistence("kafkasql");
-        ApicurioRegistrySpecConfigurationKafkasql kafkaPlain = new ApicurioRegistrySpecConfigurationKafkasql();
-        kafkaPlain.setBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092");
-        config.setKafkasql(kafkaPlain);
-        spec.setConfiguration(config);
-
-        ApicurioRegistry apicur = new ApicurioRegistry();
-        apicur.setSpec(spec);
-        apicur.setMetadata(new ObjectMetaBuilder().withName("reg-test").build());
-        return apicur;
+        return new ApicurioRegistryBuilder()
+                .withNewMetadata()
+                    .withName("reg-test")
+                .endMetadata()
+                .withNewSpec()
+                    .withNewConfiguration()
+                        .withPersistence("kafkasql")
+                        .withNewKafkasql()
+                            .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
+                        .endKafkasql()
+                    .endConfiguration()
+                .endSpec()
+                .build();
     }
 
     //INFO: In order to get this test working operator has to be deployed first.
@@ -52,7 +54,6 @@ public class SimpleTestsIT {
 
             MixedOperation<ApicurioRegistry, ApicurioRegistryList, Resource<ApicurioRegistry>> resourceClient =
                     ocClient.resources(ApicurioRegistry.class, ApicurioRegistryList.class);
-
 
             String yaml = SerializationUtils.dumpAsYaml(ap);
             resourceClient.inNamespace("apicurio-test").createOrReplace(ap);

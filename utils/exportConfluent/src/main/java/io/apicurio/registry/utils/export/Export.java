@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
@@ -59,11 +58,6 @@ import io.quarkus.runtime.annotations.QuarkusMain;
  */
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
-
-    static {
-        //Workaround, because this app depends on apicurio-registry-app we are spawning an http server. Here we are setting the http port to a less probable used port
-        System.setProperty("quarkus.http.port", "9573");
-    }
 
     /**
      * @see io.quarkus.runtime.QuarkusApplication#run(java.lang.String[])
@@ -108,7 +102,6 @@ public class Export implements QuarkusApplication {
             manifest.systemVersion = "n/a";
             writer.writeEntity(manifest);
 
-            AtomicInteger globalIdSeq = new AtomicInteger(1);
             Map<String, Long> contentIndex = new HashMap<>();
 
             Collection<String> subjects = restService.getAllSubjects();

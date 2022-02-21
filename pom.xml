@@ -112,7 +112,6 @@
         <module>utils/exportV1</module>
         <module>utils/exportConfluent</module>
         <module>utils/protobuf-schema-utilities</module>
-        <module>utils/exportV1</module>
         <module>utils/tests</module>
         <module>schema-resolver</module>
         <module>serdes/serde-common</module>

@@ -11,6 +11,7 @@ import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfig;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class SimpleTestsIT {
 
     //INFO: In order to get this test working operator has to be deployed first.
     @Test
+    @Disabled
     public void simpleTestIT() {
         LOGGER.info("First test log!");
         assertThat("123", is("123"));

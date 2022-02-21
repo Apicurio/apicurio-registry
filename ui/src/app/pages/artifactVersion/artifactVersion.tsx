@@ -424,11 +424,12 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 this.navigateTo(this.linkTo(artifactVersionLocation))();
             }).catch( error => {
                 this.pleaseWait(false, "");
-                if (error && error.error_code === 409) {
+                if (error && (error.error_code === 400 || error.error_code === 409)) {
                     this.handleInvalidContentError(error);
                 } else {
                     this.handleServerError(error, "Error uploading artifact version.");
                 }
+                this.setMultiState({uploadFormData: null, isUploadFormValid: false});
             });
         }
     };
@@ -459,7 +460,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 });
             }
         }).catch( error => {
-            this.handleServerError(error, "Error editing artifact meta-data.");
+            this.handleServerError(error, "Error editing artifact metadata.");
         });
         this.onEditModalClose();
     };

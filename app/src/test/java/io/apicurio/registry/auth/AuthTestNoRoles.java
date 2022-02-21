@@ -17,6 +17,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -86,6 +88,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     public void testAdminRole() throws Exception {
         Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
         RegistryClient client = createClient(auth);
+        AdminClient adminClient = AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.listArtifactsInGroup(groupId);
@@ -97,7 +100,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
             ruleConfig.setConfig(ValidityLevel.NONE.name());
             client.createArtifactRule(groupId, artifactId, ruleConfig);
 
-            client.createGlobalRule(ruleConfig);
+            adminClient.createGlobalRule(ruleConfig);
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }

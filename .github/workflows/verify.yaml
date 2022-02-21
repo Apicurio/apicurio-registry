@@ -156,3 +156,29 @@ jobs:
 
       - name: List All The Images
         run: docker images
+
+  notify-sdk:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [go, js, python]
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          base: master
+          filters: |
+            openapi:
+              - 'app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json'
+
+      - name: Repository Dispatch
+        if: steps.changes.outputs.openapi == 'true'
+        uses: peter-evans/repository-dispatch@v1
+        with:
+           token: ${{ secrets.ACCESS_TOKEN }}
+           repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
+           event-type: on-oas-updated
+           client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'

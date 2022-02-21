@@ -167,7 +167,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
         this.updateArtifactState(groupId, artifactId, version, state);
     }
 
-    private long contentIdFromHash(String contentHash) {
+    public long contentIdFromHash(String contentHash) {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentIdByHash();
             return handle.createQuery(sql)

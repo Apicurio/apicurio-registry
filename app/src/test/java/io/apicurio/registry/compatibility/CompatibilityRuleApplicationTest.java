@@ -16,31 +16,36 @@
 
 package io.apicurio.registry.compatibility;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.Matchers.equalTo;
+
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.JsonSchemas;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.v1.beans.Rule;
+import io.apicurio.registry.rest.client.exception.UnprocessableSchemaException;
+import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import javax.inject.Inject;
-import java.util.Set;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -49,6 +54,45 @@ import static org.hamcrest.Matchers.equalTo;
 public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
+    private static final String SCHEMA_WITH_MAP = "{\r\n" +
+            "    \"type\": \"record\",\r\n" +
+            "    \"name\": \"userInfo\",\r\n" +
+            "    \"namespace\": \"my.example\",\r\n" +
+            "    \"fields\": [\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"name\",\r\n" +
+            "            \"type\": \"string\",\r\n" +
+            "            \"default\": \"NONE\"\r\n" +
+            "        },\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"props\",\r\n" +
+            "            \"type\": {\r\n" +
+            "                \"type\": \"map\",\r\n" +
+            "                \"values\": \"string\"\r\n" +
+            "            }\r\n" +
+            "        }\r\n" +
+            "    ]\r\n" +
+            "}";
+    private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" +
+            "    \"type\": \"record\",\r\n" +
+            "    \"name\": \"userInfo\",\r\n" +
+            "    \"namespace\": \"my.example\",\r\n" +
+            "    \"fields\": [\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"name\",\r\n" +
+            "            \"type\": \"string\",\r\n" +
+            "            \"default\": \"NONE\"\r\n" +
+            "        },\r\n" +
+            "        {\r\n" +
+            "            \"name\": \"props\",\r\n" +
+            "            \"type\": {\r\n" +
+            "                \"type\": \"map\",\r\n" +
+            "                \"values\": \"string\"\r\n" +
+            "            },\r\n" +
+            "            \"default\": \"{}\"\r\n" +
+            "        }\r\n" +
+            "    ]\r\n" +
+            "}";
 
     @Inject
     RulesService rules;
@@ -160,4 +204,42 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         }
         return null;
     }
+
+    @Test
+    public void testCompatibilityRuleApplication_Map() throws Exception {
+        String artifactId = "testCompatibilityRuleApplication_Map";
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP);
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FULL.name());
+        clientV2.createArtifactRule("default", artifactId, rule);
+
+        // Note: this should result in a rule violation exception due to a parse error in INVALID_SCHEMA_WITH_MAP
+        // It turns out that "{}" is not a valid default for a map field.  This will throw a AvroTypeException from
+        // the Avro parser.  It should be caught by the compatibility rule implementation and handled as a rule
+        // violation (even though it's more of a validity failure).  The point is it should NOT result in a 500
+        // error (which is reserved for server failures, not invalid content.
+        Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
+            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        });
+    }
+
+    @Test
+    public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
+        String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
+        createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP);
+        Rule rule = new Rule();
+        rule.setType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.FULL.name());
+        clientV2.createArtifactRule("default", artifactId, rule);
+
+        // Note: this should result in a rule violation exception due to a parse error in INVALID_SCHEMA_WITH_MAP
+        // It turns out that "{}" is not a valid default for a map field.  This will throw a AvroTypeException from
+        // the Avro parser.  Since an invalid schema has been already created, this will fail earlier in the parsing
+        // and should not result in a 500 error returned by the server.
+        Assertions.assertThrows(UnprocessableSchemaException.class, () -> {
+            clientV2.updateArtifact("default", artifactId, IoUtil.toStream(INVALID_SCHEMA_WITH_MAP));
+        });
+    }
+
 }

@@ -20,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.AdminResourceTest;
@@ -43,7 +45,7 @@ public class ExportLoader {
 
     public static void main(String[] args) throws IOException {
         RegistryClient client = RegistryClientFactory.create("http://localhost:8080/apis/registry/v2");
-
+        AdminClient adminClient = AdminClientFactory.create("http://localhost:8080/apis/registry/v2");
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);
             try (ByteArrayInputStream data = new ByteArrayInputStream(CONTENT.replace("1.0.0", "1.0." + idx).getBytes())) {
@@ -76,7 +78,7 @@ public class ExportLoader {
         rule = new Rule();
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig("BACKWARD");
-        client.createGlobalRule(rule);
+        adminClient.createGlobalRule(rule);
     }
 
 }

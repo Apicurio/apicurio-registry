@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.cli;
 
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import picocli.CommandLine;
@@ -48,6 +50,7 @@ public abstract class AbstractCommand implements Runnable {
     String url;
 
     private static RegistryClient client; // single stateless client instance for all commands
+    private static AdminClient adminClient; // single stateless admin client instance for all commands
 
     protected static final ObjectMapper mapper = new ObjectMapper()
             .configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -65,5 +68,13 @@ public abstract class AbstractCommand implements Runnable {
             client = RegistryClientFactory.create(url);
         }
         return client;
+    }
+
+    protected AdminClient getAdminClient() {
+        if (adminClient == null) {
+            log.info("Connecting to registry at " + url + "\n");
+            adminClient = AdminClientFactory.create(url);
+        }
+        return adminClient;
     }
 }

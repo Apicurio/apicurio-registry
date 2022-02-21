@@ -18,6 +18,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.avro.SchemaValidationException;
@@ -51,15 +52,15 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
             return CompatibilityExecutionResult.compatible();
         }
 
-        List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
-        Collections.reverse(existingSchemas); // the most recent must come first, i.e. reverse-chronological.
         try {
+            List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
+            Collections.reverse(existingSchemas); // the most recent must come first, i.e. reverse-chronological.
             Schema toValidate = new Schema.Parser().parse(proposedSchemaString);
             schemaValidator.validate(toValidate, existingSchemas);
             return CompatibilityExecutionResult.compatible();
         } catch (SchemaValidationException e) {
             return CompatibilityExecutionResult.incompatible(e);
-        } catch (SchemaParseException e) {
+        } catch (SchemaParseException | AvroTypeException e) {
             throw new UnprocessableSchemaException(e.getMessage());
         }
     }

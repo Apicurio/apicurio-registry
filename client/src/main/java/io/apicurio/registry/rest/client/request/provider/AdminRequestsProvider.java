@@ -39,6 +39,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -165,13 +166,13 @@ public class AdminRequestsProvider {
                 .build();
     }
 
-    public static Request<Void> importData(InputStream data) {
+    public static Request<Void> importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds) {
         return new Request.RequestBuilder<Void>()
                 .operation(POST)
                 .path(IMPORT_PATH)
                 .responseType(new TypeReference<Void>() {})
                 .data(data)
-                .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip")))
+                .headers(new HashMap<>(Map.of(Request.CONTENT_TYPE, "application/zip", Headers.PRESERVE_GLOBAL_ID, Boolean.toString(preserveGlobalIds), Headers.PRESERVE_CONTENT_ID, Boolean.toString(preserveContentIds))))
                 .build();
     }
 

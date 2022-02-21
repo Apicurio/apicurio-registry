@@ -1,6 +1,5 @@
-/**
- * @license
- * Copyright 2020 JBoss Inc
+/*
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +14,18 @@
  * limitations under the License.
  */
 
-export * from "./artifactMetaData.model";
-export * from "./artifactTypes.model";
-export * from "./contentTypes.model";
-export * from "./roleMapping.model";
-export * from "./rule.model";
-export * from "./searchedArtifact.model";
-export * from "./searchedVersion.model";
-export * from "./userInfo.model";
-export * from "./versionMetaData.model";
-export * from "./downloadRef.model";
-export * from "./apiError.model"
+package io.apicurio.registry.mt;
+
+import io.apicurio.registry.types.RegistryException;
+
+/**
+ * @author Carles Arnal
+ */
+public class TenantForbiddenException extends RegistryException {
+
+    private static final long serialVersionUID = 1L;
+
+    public TenantForbiddenException(String message) {
+        super(message);
+    }
+}

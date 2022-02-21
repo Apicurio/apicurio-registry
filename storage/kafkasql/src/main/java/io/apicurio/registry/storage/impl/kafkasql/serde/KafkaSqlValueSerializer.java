@@ -79,19 +79,20 @@ public class KafkaSqlValueSerializer implements Serializer<MessageValue> {
             } else {
                 out.write(ByteBuffer.allocate(4).putInt(0).array());
             }
-            if (null != contentValue.getSerializedReferences()) {
-                byte[] bytes = contentValue.getSerializedReferences().getBytes(StandardCharsets.UTF_8);
-                out.write(ByteBuffer.allocate(4).putInt(bytes.length).array());
-                out.write(ByteBuffer.allocate(bytes.length).put(bytes).array());
-            } else {
-                out.write(ByteBuffer.allocate(4).putInt(0).array());
-            }
 
-            // The rest of the bytes is the content
             if (contentValue.getContent() != null) {
                 byte[] contentBytes = contentValue.getContent().bytes();
                 out.write(ByteBuffer.allocate(4).putInt(contentBytes.length).array());
                 out.write(contentBytes);
+            } else {
+                out.write(ByteBuffer.allocate(4).putInt(0).array());
+            }
+
+            //set references bytes and count
+            if (null != contentValue.getSerializedReferences()) {
+                byte[] bytes = contentValue.getSerializedReferences().getBytes(StandardCharsets.UTF_8);
+                out.write(ByteBuffer.allocate(4).putInt(bytes.length).array());
+                out.write(ByteBuffer.allocate(bytes.length).put(bytes).array());
             } else {
                 out.write(ByteBuffer.allocate(4).putInt(0).array());
             }

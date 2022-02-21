@@ -131,10 +131,10 @@ public class RegistryExceptionMapperService {
         // From io.apicurio.registry.mt.TenantMetadataService:
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);
-        map.put(RegistryTenantNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
-        // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
+        // Not using HTTP_NOT_FOUND to prevent leaking information by scanning for existing tenants
+        map.put(TenantNotFoundException.class, HTTP_FORBIDDEN);
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
+        // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

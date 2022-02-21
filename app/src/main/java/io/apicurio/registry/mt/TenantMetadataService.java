@@ -24,13 +24,13 @@ import io.apicurio.multitenant.client.exception.RegistryTenantForbiddenException
 import io.apicurio.multitenant.client.exception.RegistryTenantNotAuthorizedException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.registry.utils.OptionalBean;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+
+import static io.apicurio.registry.faulttolerance.FaultToleranceConstants.TIMEOUT_MS;
 
 /**
  * @author Fabian Martinez
@@ -44,9 +44,9 @@ public class TenantMetadataService {
 
     @Retry(abortOn = {
             UnsupportedOperationException.class, TenantNotFoundException.class,
-            NotAuthorizedException.class, ForbiddenException.class
+            TenantNotAuthorizedException.class, TenantForbiddenException.class
     }) // 3 retries, 200ms jitter
-    @Timeout(3000) // 3000ms
+    @Timeout(TIMEOUT_MS)
     public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
         if (tenantManagerClient.isEmpty()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");
@@ -64,9 +64,9 @@ public class TenantMetadataService {
 
     @Retry(abortOn = {
             UnsupportedOperationException.class, TenantNotFoundException.class,
-            NotAuthorizedException.class, ForbiddenException.class
+            TenantNotAuthorizedException.class, TenantForbiddenException.class
     }) // 3 retries, 200ms jitter
-    @Timeout(3000) // 3000ms
+    @Timeout(TIMEOUT_MS)
     public void markTenantAsDeleted(String tenantId) {
         if (tenantManagerClient.isEmpty()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");

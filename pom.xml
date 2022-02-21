@@ -137,6 +137,9 @@
         <module>schema-util/xml</module>
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
+
+        <!-- Operator tests module -->
+        <module>systemtests</module>
     </modules>
 
     <properties>

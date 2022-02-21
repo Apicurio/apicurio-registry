@@ -41,6 +41,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-verify-
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
@@ -100,6 +106,12 @@ jobs:
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all

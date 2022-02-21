@@ -60,7 +60,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 public class Export implements QuarkusApplication {
 
     /**
-     * @see io.quarkus.runtime.QuarkusApplication#run(java.lang.String[])
+     * @see QuarkusApplication#run(String[])
      */
     @Override
     public int run(String... args) throws Exception {
@@ -130,6 +130,7 @@ public class Export implements QuarkusApplication {
                         contentEntity.contentHash = contentHash;
                         contentEntity.canonicalHash = null;
                         contentEntity.contentBytes = contentBytes;
+                        contentEntity.artifactType = artifactType;
 
                         try {
                             writer.writeEntity(contentEntity);

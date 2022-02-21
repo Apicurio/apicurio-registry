@@ -25,7 +25,7 @@ public class RegistryUtils {
     public static RegistryStorageType REGISTRY_STORAGE =
             Optional.ofNullable(System.getProperty("test.storage"))
                 .map(RegistryStorageType::valueOf)
-                .orElse(RegistryStorageType.inmemory);
+                .orElse(null);
 
     public static final String TEST_PROFILE =
             Optional.ofNullable(System.getProperty("groups"))

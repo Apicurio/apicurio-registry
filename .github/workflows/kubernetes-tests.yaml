@@ -86,6 +86,12 @@ jobs:
           version: 11
           architecture: x64
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       - name: Build All Variants
         run: mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 

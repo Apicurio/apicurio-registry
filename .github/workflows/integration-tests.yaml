@@ -39,6 +39,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-integration-tests-
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       # - name: Set test profile to acceptance
       #   if: github.ref != 'refs/heads/master'
       #   run: |

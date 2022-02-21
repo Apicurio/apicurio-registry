@@ -38,6 +38,12 @@ jobs:
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
         

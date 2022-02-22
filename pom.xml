@@ -138,8 +138,6 @@
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
 
-        <!-- Operator tests module -->
-        <module>systemtests</module>
     </modules>
 
     <properties>
@@ -924,6 +922,13 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>systemtests</id>
+            <modules>
+                <!-- Operator tests module -->
+                <module>systemtests</module>
+            </modules>
+        </profile>
         <profile>
             <id>multitenancy</id>
             <modules>

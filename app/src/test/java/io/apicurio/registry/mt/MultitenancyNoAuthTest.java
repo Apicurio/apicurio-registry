@@ -100,7 +100,8 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         AdminClient clientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
         AdminClient clientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
 
-        Assertions.assertThrows(TenantNotFoundException.class, () -> {
+        // NOTE: io.apicurio.registry.mt.TenantNotFoundException is also mapped to HTTP code 403 to avoid scanning attacks
+        Assertions.assertThrows(ForbiddenException.class, () -> {
             clientTenant1.listGlobalRules();
         });
 

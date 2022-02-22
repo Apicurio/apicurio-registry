@@ -17,11 +17,10 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.rest.client.AdminClient;
-import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -50,22 +48,12 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
     Boolean authEnabled;
 
-    String adminClientId = "registry-api";
-
     String clientSecret = "test1";
 
     String testUsername = "sr-test-user";
     String testPassword = "sr-test-password";
 
     ApicurioHttpClient httpClient;
-
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
-    private AdminClient createAdminClient(Auth auth) {
-        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
 
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
@@ -74,7 +62,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
     }
 
@@ -82,7 +70,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     protected AdminClient createAdminClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         System.out.println("Auth is " + authEnabled);
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createAdminClient(auth);
     }
 
@@ -93,7 +81,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
         registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
-        registerRegistryMojo.setClientId(adminClientId);
+        registerRegistryMojo.setClientId(JWKSMockServer.ADMIN_CLIENT_ID);
         registerRegistryMojo.setClientSecret(clientSecret);
 
         super.testRegister(registerRegistryMojo, "testRegister");

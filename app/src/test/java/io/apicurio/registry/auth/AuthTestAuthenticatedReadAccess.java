@@ -21,12 +21,13 @@ package io.apicurio.registry.auth;
  */
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAuthenticatedReadAccess;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -43,7 +44,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileAuthenticatedReadAccess.class)
@@ -53,29 +53,29 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
-    String noRoleClientId = "registry-api-no-role";
-    String adminClientId = "registry-api";
-
     final String groupId = getClass().getSimpleName() + "Group";
 
     ApicurioHttpClient httpClient;
 
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
     @Override
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
+    }
+
+    @Override
+    protected AdminClient createAdminClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        return this.createAdminClient(auth);
     }
 
     @Test
     public void testReadOperationWithNoRole() throws Exception {
         // Read-only operation should work with credentials but no role.
 
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
         RegistryClient client = this.createClient(auth);
         ArtifactSearchResults results = client.searchArtifacts(groupId, null, null, null, null, null, null, null, null);
         Assertions.assertTrue(results.getCount() >= 0);

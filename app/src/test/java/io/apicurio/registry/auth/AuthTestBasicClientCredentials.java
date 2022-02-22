@@ -26,7 +26,8 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfileBasicClientCredentials;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -48,22 +49,16 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
-@TestProfile(AuthTestProfileBasicClientCredentials.class)
+@TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.DOCKER)
 public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
-    String noRoleClientId = "registry-api-no-role";
-
     final String groupId = "authTestGroupId";
 
     ApicurioHttpClient httpClient;
-
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
 
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
@@ -71,13 +66,20 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
         return this.createClient(auth);
+    }
+
+    @Override
+    protected AdminClient createAdminClientV2(){
+        httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        return this.createAdminClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new BasicAuth(noRoleClientId, "test55");
+        Auth auth = new BasicAuth(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -87,7 +89,7 @@ public class AuthTestBasicClientCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testBasicAuthClientCredentials() throws Exception {
-        Auth auth = new BasicAuth(noRoleClientId, "test1");
+        Auth auth = new BasicAuth(JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
         AdminClient adminClient = AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
         String artifactId = TestUtils.generateArtifactId();

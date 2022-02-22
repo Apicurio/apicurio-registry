@@ -29,12 +29,12 @@ public class AuthTestProfileWithLocalRoles implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.emptyMap();
+        return Map.of("smallrye.jwt.sign.key.location", "privateKey.jwk", "registry.auth.role-source", "application");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         return Collections.singletonList(
-                new TestResourceEntry(KeycloakTestResourceWithLocalRoles.class));
+                new TestResourceEntry(JWKSMockServer.class));
     }
 }

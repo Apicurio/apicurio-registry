@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.storage.impl.sql;
+package io.apicurio.registry.noprofile.ccompat.rest;
 
-import javax.inject.Inject;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
 
-import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
-import io.apicurio.registry.storage.RegistryStorage;
+import org.junit.jupiter.api.Test;
+
+import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
 
-/**
- * @author eric.wittmann@gmail.com
- */
 @QuarkusTest
-public class SqlRegistryStorageTest extends AbstractRegistryStorageTest {
+public class SubjectsResourceTest extends AbstractResourceTestBase {
 
-    @Inject
-    SqlRegistryStorage storage;
-
-    /**
-     * @see AbstractRegistryStorageTest#storage()
-     */
-    @Override
-    protected RegistryStorage storage() {
-        return storage;
+    @Test
+    public void testListSubjectsEndpoint() {
+        given()
+            .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
+            .then()
+            .statusCode(200)
+            .body(anything());
     }
+
 }

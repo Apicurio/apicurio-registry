@@ -16,37 +16,12 @@
 
 package io.apicurio.registry.services.http;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
-import io.apicurio.registry.mt.TenantForbiddenException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.mt.TenantForbiddenException;
 import io.apicurio.registry.mt.TenantNotAuthorizedException;
 import io.apicurio.registry.mt.TenantNotFoundException;
 import io.apicurio.registry.mt.limits.LimitExceededException;
@@ -76,6 +51,28 @@ import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.smallrye.mutiny.TimeoutException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
+import static java.net.HttpURLConnection.*;
 
 /**
  * @author Fabian Martinez
@@ -118,7 +115,6 @@ public class RegistryExceptionMapperService {
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
-        map.put(TenantNotFoundException.class, HTTP_NOT_FOUND);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
@@ -131,6 +127,13 @@ public class RegistryExceptionMapperService {
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
+        // From io.apicurio.registry.mt.TenantMetadataService:
+        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
+        map.put(ForbiddenException.class, HTTP_FORBIDDEN);
+        // Not using HTTP_NOT_FOUND to prevent leaking information by scanning for existing tenants
+        map.put(TenantNotFoundException.class, HTTP_FORBIDDEN);
+        map.put(TimeoutException.class, HTTP_UNAVAILABLE);
+        // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 

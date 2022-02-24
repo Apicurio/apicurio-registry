@@ -18,6 +18,8 @@ package io.apicurio.registry;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+
+import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
@@ -52,6 +55,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryV1ApiUrl;
     protected String registryV2ApiUrl;
     protected RegistryClient clientV2;
+    protected AdminClient adminClientV2;
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -59,10 +63,15 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         registryV1ApiUrl = registryApiBaseUrl + "/registry/v1";
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         clientV2 = createRestClientV2();
+        adminClientV2 = createAdminClientV2();
     }
 
     protected RegistryClient createRestClientV2() {
         return RegistryClientFactory.create(registryV2ApiUrl);
+    }
+
+    protected AdminClient createAdminClientV2() {
+        return AdminClientFactory.create(registryV2ApiUrl);
     }
 
     @BeforeEach
@@ -79,8 +88,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
         // Delete all global rules
         TestUtils.retry(() -> {
-            clientV2.deleteAllGlobalRules();
-            Assertions.assertEquals(expectedDefaultRulesCount, clientV2.listGlobalRules().size());
+            adminClientV2.deleteAllGlobalRules();
+            Assertions.assertEquals(expectedDefaultRulesCount, adminClientV2.listGlobalRules().size());
         });
     }
 

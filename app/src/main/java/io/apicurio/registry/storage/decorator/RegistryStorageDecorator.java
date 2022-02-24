@@ -767,11 +767,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     /**
      * @param entities
      * @throws RegistryStorageException
-     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
     @Override
-    public void importData(EntityInputStream entities) throws RegistryStorageException {
-        delegate.importData(entities);
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
+        delegate.importData(entities, preserveGlobalId, preserveContentId);
     }
 
     /**

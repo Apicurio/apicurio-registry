@@ -18,14 +18,23 @@ package io.apicurio.registry.serde.avro;
 
 import org.apache.avro.Schema;
 
-import io.apicurio.registry.serde.SchemaParser;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
 /**
  * @author Fabian Martinez
  */
-public class AvroSchemaParser implements SchemaParser<Schema> {
+public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
+
+    private AvroDatumProvider<U> avroDatumProvider;
+
+    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider) {
+        this.avroDatumProvider = avroDatumProvider;
+    }
 
     /**
      * @see io.apicurio.registry.serde.SchemaParser#artifactType()
@@ -41,6 +50,17 @@ public class AvroSchemaParser implements SchemaParser<Schema> {
     @Override
     public Schema parseSchema(byte[] rawSchema) {
         return AvroSchemaUtils.parse(IoUtil.toString(rawSchema));
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(java.lang.Object)
+     */
+    @Override
+    public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
+        Schema schema = avroDatumProvider.toSchema(data.payload());
+        return new ParsedSchemaImpl<Schema>()
+                .setParsedSchema(schema)
+                .setRawSchema(IoUtil.toBytes(schema.toString()));
     }
 
 }

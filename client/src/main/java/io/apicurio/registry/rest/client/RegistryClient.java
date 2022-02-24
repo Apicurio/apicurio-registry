@@ -174,38 +174,58 @@ public interface RegistryClient extends Closeable {
 
     ArtifactSearchResults searchArtifactsByContent(InputStream data, SortBy orderBy, SortOrder order, Integer offset, Integer limit);
 
+    @Deprecated
     List<RuleType> listGlobalRules();
 
+    @Deprecated
     void createGlobalRule(Rule data);
 
+    @Deprecated
     void deleteAllGlobalRules();
 
+    @Deprecated
     Rule getGlobalRuleConfig(RuleType rule);
 
+    @Deprecated
     Rule updateGlobalRuleConfig(RuleType rule, Rule data);
 
+    @Deprecated
     void deleteGlobalRule(RuleType rule);
 
+    @Deprecated
     List<NamedLogConfiguration> listLogConfigurations();
 
+    @Deprecated
     NamedLogConfiguration getLogConfiguration(String logger);
 
+    @Deprecated
     NamedLogConfiguration setLogConfiguration(String logger, LogConfiguration data);
 
+    @Deprecated
     NamedLogConfiguration removeLogConfiguration(String logger);
 
+    @Deprecated
     InputStream exportData();
 
+    @Deprecated
     void importData(InputStream data);
 
+    @Deprecated
+    void importData(InputStream data, boolean preserveGlobalIds, boolean preserveContentIds);
+
+    @Deprecated
     List<RoleMapping> listRoleMappings();
 
+    @Deprecated
     void createRoleMapping(RoleMapping data);
 
+    @Deprecated
     RoleMapping getRoleMapping(String principalId);
 
+    @Deprecated
     void updateRoleMapping(String principalId, RoleType role);
 
+    @Deprecated
     void deleteRoleMapping(String principalId);
 
     UserInfo getCurrentUserInfo();

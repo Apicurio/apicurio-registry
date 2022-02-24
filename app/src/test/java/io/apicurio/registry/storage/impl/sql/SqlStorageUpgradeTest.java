@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.rest.client.AdminClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ import io.quarkus.test.junit.TestProfile;
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
-//Disabled for now since this profile is initializing a h2 database even when building the sql profile which uses an embbeded postgres
+// Disabled for now since this profile is initializing a h2 database even when building the sql profile which uses an embedded postgres
 @TestProfile(SqlStorageUpgradeTestProfile.class)
 @Disabled
 public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
@@ -41,6 +42,7 @@ public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
     @Test
     public void testUpgradeFromV1toV2() throws Exception {
         RegistryClient client = createRestClientV2();
+        AdminClient adminClient = createAdminClientV2();
         ArtifactMetaData metaData = client.getArtifactMetaData("TestGroup", "TestArtifact");
         // Expected values can be found in "SqlStorageUpgradeTest.dml" in src/test/resources
         Assertions.assertEquals(101, metaData.getContentId());
@@ -50,9 +52,9 @@ public class SqlStorageUpgradeTest extends AbstractResourceTestBase {
         RoleMapping mapping = new RoleMapping();
         mapping.setPrincipalId("test_user");
         mapping.setRole(RoleType.ADMIN);
-        client.createRoleMapping(mapping);
+        adminClient.createRoleMapping(mapping);
 
-        mapping = client.getRoleMapping("test_user");
+        mapping = adminClient.getRoleMapping("test_user");
         Assertions.assertEquals(RoleType.ADMIN, mapping.getRole());
     }
 

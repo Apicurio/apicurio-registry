@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,19 @@
 
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.ERCache;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
-import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
-import io.apicurio.registry.serde.utils.Utils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -31,39 +36,65 @@ import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import org.apache.kafka.common.header.Headers;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Default implemntation of {@link SchemaResolver}
+ * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
+ * Base implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
  */
+@Deprecated
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
     protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
 
-    protected SchemaParser<S> schemaParser;
+    protected io.apicurio.registry.resolver.SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
     protected ApicurioHttpClient authClient;
     protected boolean isKey;
-    protected ArtifactResolverStrategy<S> artifactResolverStrategy;
+    protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
+
+    @Override
+    public void configure(Map<String, ?> configs, io.apicurio.registry.resolver.SchemaParser<S, T> schemaMapper) {
+        this.schemaParser = schemaMapper;
+
+        Object isKeyFromConfig = configs.get(SerdeConfig.IS_KEY);
+        //is key have to come always, we set it
+        configure(configs, (Boolean) isKeyFromConfig, new SchemaParser() {
+
+            /**
+             * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+             */
+            @Override
+            public ArtifactType artifactType() {
+                return schemaMapper.artifactType();
+            }
+
+            /**
+             * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
+             */
+            @Override
+            public Object parseSchema(byte[] rawSchema) {
+                return schemaMapper.parseSchema(rawSchema);
+            }
+
+        });
+    }
 
     /**
      * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
-        this.schemaParser = schemaParser;
         this.isKey = isKey;
         DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
         if (client == null) {
@@ -93,7 +124,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         Object ais = config.getArtifactResolverStrategy();
-        Utils.instantiate(ArtifactResolverStrategy.class, ais, this::setArtifactResolverStrategy);
+        Utils.instantiate(ArtifactReferenceResolverStrategy.class, ais, this::setArtifactResolverStrategy);
 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
@@ -132,7 +163,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */
     @Override
-    public void setArtifactResolverStrategy(ArtifactResolverStrategy<S> artifactResolverStrategy) {
+    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
         this.artifactResolverStrategy = artifactResolverStrategy;
     }
 
@@ -144,6 +175,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
+     * @see io.apicurio.registry.resolver.SchemaResolver#getSchemaParser()
+     */
+    @Override
+    public io.apicurio.registry.resolver.SchemaParser<S, T> getSchemaParser() {
+        return this.schemaParser;
+    }
+
+    /**
      * Resolve an artifact reference given the topic name, message headers, data, and optional parsed schema.  This will use
      * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
      * values (groupId, artifactId, version).
@@ -152,20 +191,22 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param data
      * @param parsedSchema
      */
-    protected ArtifactReference resolveArtifactReference(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
+    protected ArtifactReference resolveArtifactReference(String topic, T data, ParsedSchema<S> parsedSchema) {
 
-        S schema = null;
-        if (artifactResolverStrategy.loadSchema() && parsedSchema != null) {
-            schema = parsedSchema.getParsedSchema();
-        }
+        KafkaSerdeMetadata metadata = new KafkaSerdeMetadata(topic, isKey, null);
+        KafkaSerdeRecord<T> record = new KafkaSerdeRecord<T>(metadata, data);
 
-        ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(topic, isKey, schema);
-        artifactReference = ArtifactReference.builder()
+        io.apicurio.registry.resolver.ParsedSchema<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsedSchema.getParsedSchema())
+                    .setRawSchema(parsedSchema.getRawSchema());
+
+        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(record, ps);
+
+        return ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
                 .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
-        return artifactReference;
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {

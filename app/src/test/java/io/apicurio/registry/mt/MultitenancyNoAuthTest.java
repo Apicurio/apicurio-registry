@@ -16,34 +16,15 @@
 
 package io.apicurio.registry.mt;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.ByteArrayInputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
-import io.apicurio.registry.rest.client.RegistryClient;
-
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.opentest4j.TestAbortedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.AdminClient;
+import io.apicurio.registry.rest.client.AdminClientFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.client.exception.TenantNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
@@ -52,6 +33,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -63,6 +45,22 @@ import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import javax.inject.Inject;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Fabian Martinez
@@ -95,10 +93,11 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
         String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
 
-        RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
-        RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
+        AdminClient clientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
+        AdminClient clientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
 
-        Assertions.assertThrows(TenantNotFoundException.class, () -> {
+        // NOTE: io.apicurio.registry.mt.TenantNotFoundException is also mapped to HTTP code 403 to avoid scanning attacks
+        Assertions.assertThrows(ForbiddenException.class, () -> {
             clientTenant1.listGlobalRules();
         });
 
@@ -132,6 +131,9 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         String tenant1BaseUrl = "http://localhost:8081/t/" + tenantId1;
         String tenant2BaseUrl = "http://localhost:8081/t/" + tenantId2;
 
+        AdminClient adminClientTenant1 = AdminClientFactory.create(tenant1BaseUrl);
+        AdminClient adminClientTenant2 = AdminClientFactory.create(tenant2BaseUrl);
+
         RegistryClient clientTenant1 = RegistryClientFactory.create(tenant1BaseUrl);
         RegistryClient clientTenant2 = RegistryClientFactory.create(tenant2BaseUrl);
 
@@ -139,9 +141,9 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         SchemaRegistryClient cclientTenant2 = createConfluentClient(tenant2BaseUrl);
 
         try {
-            tenantOperations(clientTenant1, cclientTenant1, tenant1BaseUrl);
+            tenantOperations(adminClientTenant1, clientTenant1, cclientTenant1, tenant1BaseUrl);
             try {
-                tenantOperations(clientTenant2, cclientTenant2, tenant2BaseUrl);
+                tenantOperations(adminClientTenant2, clientTenant2, cclientTenant2, tenant2BaseUrl);
             } finally {
                 cleanTenantArtifacts(clientTenant2);
             }
@@ -151,7 +153,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
 
     }
 
-    private void tenantOperations(RegistryClient client, SchemaRegistryClient cclient, String baseUrl) throws Exception {
+    private void tenantOperations(AdminClient adminClient, RegistryClient client, SchemaRegistryClient cclient, String baseUrl) throws Exception {
         //test apicurio api
         assertTrue(client.listArtifactsInGroup(null).getCount().intValue() == 0);
 
@@ -168,7 +170,7 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         ruleConfig.setConfig("NONE");
         client.createArtifactRule(meta.getGroupId(), meta.getId(), ruleConfig);
 
-        client.createGlobalRule(ruleConfig);
+        adminClient.createGlobalRule(ruleConfig);
 
         //test confluent api
         String subject = TestUtils.generateArtifactId();

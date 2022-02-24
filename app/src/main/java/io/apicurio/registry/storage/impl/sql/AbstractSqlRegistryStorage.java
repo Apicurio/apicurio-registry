@@ -21,7 +21,9 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,8 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.utils.impexp.EntityType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -58,7 +62,6 @@ import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.GroupNotFoundException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
@@ -584,6 +587,20 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
+        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash);
+    }
+
+    /**
+     * Store the content in the database and return the ID of the new row.  If the content already exists,
+     * just return the content ID of the existing row.
+     *
+     * @param handle
+     * @param content
+     * @param contentHash
+     * @param canonicalContentHash
+     */
+    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash) {
+        byte[] contentBytes = content.bytes();
 
         // Upsert a row in the "content" table.  This will insert a row for the content
         // iff a row doesn't already exist.  We use the canonical hash to determine whether
@@ -1081,14 +1098,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         Pair<String, String> property = filter.getPropertyFilterValue();
                         //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
                         String propKey = property.getKey().toLowerCase();
-                        String propValue = property.getValue().toLowerCase();
-                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.pvalue = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
+                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? ");
                         binders.add((query, idx) -> {
                             query.bind(idx, propKey);
                         });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, propValue);
-                        });
+                        if (property.getValue() != null) {
+                            String propValue = property.getValue().toLowerCase();
+                            where.append("AND p.pvalue = ? ");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, propValue);
+                            });
+                        }
+                        where.append("AND p.globalId = v.globalId AND p.tenantId = v.tenantId)");
                         break;
                     case globalId:
                         where.append("(v.globalId = ?)");
@@ -2290,16 +2311,68 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream)
+     * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
     @Override
     @Transactional
-    public void importData(EntityInputStream entities) throws RegistryStorageException {
-        handles.withHandleNoException( handle -> {
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
+        Map<Long, Long> contentIdMapping = new HashMap<>();
+        // To handle issue, when we do not know new content id before importing the actual content
+        ArrayList<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
+
+        handles.withHandleNoException(handle -> {
             Entity entity = null;
-            while ( (entity = entities.nextEntity()) != null ) {
-                if (entity != null) {
-                    importEntity(handle, entity);
+            while ((entity = entities.nextEntity()) != null) {
+                if (entity.getEntityType() == EntityType.Content) {
+                    ContentEntity contentEntity = (ContentEntity) entity;
+                    if (!preserveContentId) {
+                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
+                        // It makes sure there won't be any conflicts
+                        long newContentId = -1;
+                        if (contentEntity.artifactType != null) {
+                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        } else {
+                            if(contentEntity.canonicalHash == null) {
+                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
+                            }
+                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash);
+                        }
+                        contentIdMapping.put(contentEntity.contentId, newContentId);
+                        continue;
+                    }
+
+                    // We do not need canonicalHash if we have artifactType
+                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
+                    }
+                } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
+                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
+                    if (!preserveGlobalId) {
+                        artifactVersionEntity.globalId = -1;
+                    }
+                    if (!preserveContentId) {
+                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
+                            // Add to the queue waiting for content imported
+                            waitingForContent.add(artifactVersionEntity);
+                            continue;
+                        }
+                        // Content of the artifact was already imported we can use the new contentId
+                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
+                    }
+                }
+                importEntity(handle, entity);
+            }
+
+            if (!preserveContentId) {
+                // Import artifact versions which were waiting for the content import
+                for (ArtifactVersionEntity artifactVersionEntity : waitingForContent) {
+                    if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
+                        // Content for this artifact was not included in the imported file -> skip and warn user
+                        continue;
+                    }
+                    artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
+                    importEntity(handle, artifactVersionEntity);
                 }
             }
 
@@ -2783,11 +2856,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         }
 
-        if (!isGlobalIdExists(entity.globalId)) {
+        if (entity.globalId == -1 || !isGlobalIdExists(entity.globalId)) {
+            long globalId = nextGlobalIdIfInvalid(handle, entity.globalId);
             try {
                 String sql = sqlStatements.importArtifactVersion();
                 handle.createUpdate(sql)
-                    .bind(0, entity.globalId)
+                    .bind(0, globalId)
                     .bind(1, tenantContext.tenantId())
                     .bind(2, normalizeGroupId(entity.groupId))
                     .bind(3, entity.artifactId)
@@ -2833,7 +2907,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     // Update the "latest" column in the artifacts table with the globalId of the new version
                     sql = sqlStatements.updateArtifactLatest();
                     handle.createUpdate(sql)
-                          .bind(0, entity.globalId)
+                          .bind(0, globalId)
                           .bind(1, tenantContext.tenantId())
                           .bind(2, normalizeGroupId(entity.groupId))
                           .bind(3, entity.artifactId)
@@ -3064,5 +3138,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } else {
             return value;
         }
+    }
+
+    private long nextGlobalIdIfInvalid(Handle handle, long globalId) {
+        if (globalId == -1) {
+            return nextGlobalId(handle);
+        }
+        return globalId;
     }
 }

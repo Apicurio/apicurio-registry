@@ -126,8 +126,11 @@ export abstract class BaseService implements Service {
      * @param url
      * @param body
      * @param options
+     * @param successCallback
+     * @param progressCallback
      */
-    protected httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void): Promise<void> {
+    protected httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void,
+                          progressCallback?: (progressEvent: any) => void): Promise<void> {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
         if (!options) {
@@ -135,6 +138,12 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("post", url, options, body);
+        if (progressCallback) {
+            const fiftyMB: number = 50 * 1024 * 1024;
+            config.onUploadProgress = progressCallback;
+            config.maxContentLength = fiftyMB;
+            config.maxBodyLength = fiftyMB;
+        }
         return AXIOS.request(config)
             .then(() => {
                 if (successCallback) {
@@ -276,16 +285,29 @@ export abstract class BaseService implements Service {
     }
 
     private unwrapErrorData(error: any): any {
-        if (error.response && error.response.data) {
+        if (error && error.response && error.response.data) {
             return {
                 message: error.message,
                 ...error.response.data,
                 status: error.response.status
-            };
+            }
+        } else if (error && error.response) {
+            return {
+                message: error.message,
+                status: error.response.status
+            }
+        } else if (error) {
+            console.error("Unknown error detected: ", error);
+            return {
+                message: error.message,
+                status: 500
+            }
+        } else {
+            console.error("Unknown error detected: ", error);
+            return {
+                message: "Unknown error",
+                status: 500
+            }
         }
-        return {
-            message: error.message,
-            status: error.response.status
-        };
     }
 }

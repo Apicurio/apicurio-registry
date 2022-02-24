@@ -74,6 +74,8 @@
 }
 
 .artifact-tab-content .artifact-rules .rules-label {
-    font-size: 17px;
+    font-size: 19px;
     font-weight: bold;
+    line-height: 24px;
+    padding-bottom: 7px;
 }

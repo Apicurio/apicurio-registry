@@ -125,8 +125,16 @@ export class AdminService extends BaseService {
                 ref.href = ref.href.replace("/apis/registry", this.apiBaseHref());
                 ref.href = ref.href + "/" + filename;
             }
+
             return ref;
         });
     }
 
+    public importFrom(file: string | File, progressFunction: (progressEvent: any) => void): Promise<void> {
+        const endpoint: string = this.endpoint("/v2/admin/import");
+        const headers: any = {
+            "Content-Type": "application/zip"
+        };
+        return this.httpPost(endpoint, file, this.options(headers),undefined, progressFunction);
+    }
 }

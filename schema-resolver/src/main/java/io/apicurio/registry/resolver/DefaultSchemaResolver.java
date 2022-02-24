@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde;
+package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.serde.config.DefaultSchemaResolverConfig;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import org.apache.kafka.common.header.Headers;
 
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Default implemntation of {@link SchemaResolver}
+ * Default implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
@@ -41,7 +40,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean findLatest;
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSchemaResolver#reset()
+     * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()
      */
     @Override
     public void reset() {
@@ -49,13 +48,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
+     * @see io.apicurio.registry.resolver.AbstractSchemaResolver#configure(java.util.Map, io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
-        super.configure(configs, isKey, schemaParser);
+    public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
+        super.configure(configs, schemaParser);
 
-        DefaultSchemaResolverConfig config = new DefaultSchemaResolverConfig(configs);
+        if (artifactResolverStrategy.loadSchema() && !schemaParser.supportsExtractSchemaFromData()) {
+            throw new IllegalStateException("Wrong configuration");
+        }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = IfExists.fromValue(config.autoRegisterArtifactIfExists());
@@ -63,31 +64,40 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchema(io.apicurio.registry.resolver.data.Record)
      */
     @Override
-    public SchemaLookupResult<S> resolveSchema(String topic, Headers headers, T data, ParsedSchema<S> parsedSchema) {
-        Objects.requireNonNull(topic);
+    public SchemaLookupResult<S> resolveSchema(Record<T> data) {
         Objects.requireNonNull(data);
+        Objects.requireNonNull(data.payload());
 
-        final ArtifactReference artifactReference = resolveArtifactReference(topic, headers, data, parsedSchema);
+
+        ParsedSchema<S> parsedSchema = null;
+        if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
+            parsedSchema = schemaParser.getSchemaFromData(data);
+        }
+
+        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
         }
 
-        if (autoCreateArtifact) {
-            //keep operations with parsedSchema in it's own if sentences, because parsedSchema methods may have side effects
-            if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
-                return handleAutoCreateArtifact(parsedSchema, artifactReference);
+        if (autoCreateArtifact && schemaParser.supportsExtractSchemaFromData()) {
+            if (parsedSchema == null) {
+                parsedSchema = schemaParser.getSchemaFromData(data);
             }
+            return handleAutoCreateArtifact(parsedSchema, artifactReference);
         }
 
         if (findLatest || artifactReference.getVersion() != null) {
             return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
         }
 
-        if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+        if (schemaParser.supportsExtractSchemaFromData()) {
+            if (parsedSchema == null) {
+                parsedSchema = schemaParser.getSchemaFromData(data);
+            }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }
 
@@ -95,10 +105,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.serde.strategy.ArtifactReference)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
+        if (reference == null) {
+            throw new IllegalStateException("artifact reference cannot be null");
+        }
         //TODO add here more conditions whenever we support referencing by contentHash or some other thing
         if (reference.getContentId() != null) {
             return resolveSchemaByContentId(reference.getContentId());
@@ -131,10 +144,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
+                    .setParsedSchema(parsed)
+                    .setRawSchema(schema);
+
             return result
                 .contentId(contentIdKey)
-                .rawSchema(schema)
-                .schema(parsed)
+                .parsedSchema(ps)
                 .build();
         });
     }
@@ -158,8 +174,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             loadFromArtifactMetaData(artifactMetadata, result);
 
-            result.rawSchema(parsedSchema.getRawSchema());
-            result.schema(parsedSchema.getParsedSchema());
+            result.parsedSchema(parsedSchema);
 
             return result.build();
         });
@@ -178,8 +193,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             loadFromArtifactMetaData(artifactMetadata, result);
 
-            result.rawSchema(parsedSchema.getRawSchema());
-            result.schema(parsedSchema.getParsedSchema());
+            result.parsedSchema(parsedSchema);
 
             return result.build();
         });
@@ -207,9 +221,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             byte[] schema = IoUtil.toBytes(rawSchema);
             S parsed = schemaParser.parseSchema(schema);
 
-            result
-                .rawSchema(schema)
-                .schema(parsed);
+            result.parsedSchema(new ParsedSchemaImpl<S>()
+                        .setParsedSchema(parsed)
+                        .setRawSchema(schema));
 
             return result.build();
         });

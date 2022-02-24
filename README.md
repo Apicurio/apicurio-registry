@@ -25,31 +25,33 @@ Additionally, there are 2 main configuration profiles:
 ### Getting started
 
  ```
- ./mvnw clean package -DskipTests
- ./mvnw quarkus:dev
+ ./mvnw clean install -DskipTests
+ cd app/
+ ../mvnw quarkus:dev
  ```
  
-This should result in Quarkus starting up and the registry available on localhost port 8080.  Here some some links you can point your browser to once registry is started:
+This should result in Quarkus and the in-memory registry starting up, with the ui and APIs available on localhost port 8080. Here are some links you can point your browser to once registry is started:
 
 * [User Interface](http://localhost:8080/)
-* [API documentation](http://localhost:8080/api)
+* [API documentation](http://localhost:8080/apis)
 
 ### Build Options
- 
- - `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
-   and `PostgreSQL` driver in *prod* mode.
- - `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment, 
-   e.g. a higher logging level.
- - `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable). 
- - `-Ddocker` *(experimental)* builds docker images. Make sure that you have the docker service enabled and running.
-   If you get an error, try `sudo chmod a+rw /var/run/docker.sock`.
+
+- `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment,
+  e.g. a higher logging level.
+- `-Psql` enables a build of `storage/sql` module and produces `apicurio-registry-storage-sql-<version>-all.zip`. This artifact uses `H2` driver in *dev* mode,
+  and `PostgreSQL` driver in *prod* mode.
+- `-Pkafkasql` enables a build of the `storage/kafkasql` module and produces the `apicurio-registry-storage-kafkasql-<version>-all.zip` artifact.
+- `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable).
+- `-Ddocker` *(experimental)* builds docker images. Make sure that you have the docker service enabled and running.
+  If you get an error, try `sudo chmod a+rw /var/run/docker.sock`.
 
 ## Runtime Configuration
 
 The following parameters are available for executable files:
 
 ### SQL
- - In the *dev* mode, the application expects a H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
+ - In the *dev* mode, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
  - In the *prod* mode, you have to provide connection configuration for a PostgreSQL server as follows:
   
 |Option|Command argument|Env. variable|
@@ -62,7 +64,32 @@ To see additional options, visit:
  - [Data Source config](https://quarkus.io/guides/datasource) 
  - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
  - [Hibernate options](https://quarkus.io/guides/hibernate-orm-guide#properties-to-refine-your-hibernate-orm-configuration)
- 
+
+### KafkaSQL
+`./mvnw clean install -Pprod -Pkafkasql -DskipTests` builds the KafkaSQL artifact.
+The newly built runner can be found in `/storage/kafkasql/target`
+```
+java -jar apicurio-registry-storage-kafkasql-<version>-SNAPSHOT-runner.jar
+```
+Should result in Quarkus and the registry starting up, with the ui and APIs available on localhost port 8080.
+By default, this will look for a kafka instance on `localhost:9092`, see [kafka-quickstart](https://kafka.apache.org/quickstart).
+
+Alternatively this can be connected to a secured kafka instance. For example, the following command provides the runner
+with the necessary details to connect to a kafka instance using a PKCS12 certificate for TLS authentication and
+scram-sha-512 credentials for user authorisation.
+```
+java \
+-Dregistry.kafka.common.bootstrap.servers=<kafka_bootstrap_server_address> \
+-Dregistry.kafka.common.ssl.truststore.location=<truststore_file_location>\
+-Dregistry.kafka.common.ssl.truststore.password=<truststore_file_password> \
+-Dregistry.kafka.common.ssl.truststore.type=PKCS12 \
+-Dregistry.kafka.common.security.protocol=SASL_SSL \
+-Dregistry.kafka.common.sasl.mechanism=SCRAM-SHA-512 \
+-Dregistry.kafka.common.sasl.jaas.config='org.apache.kafka.common.security.scram.ScramLoginModule required username="<username>" password="<password>";' \
+-jar storage/kafkasql/target/apicurio-registry-storage-kafkasql-2.1.6-SNAPSHOT-runner.jar
+```
+This will start up the registry with the persistence managed by the external kafka cluster.
+
 ## Docker containers
 Every time a commit is pushed to `master` an updated set of docker images are built and pushed to Docker 
 Hub.  There are several docker images to choose from, one for each storage option.  The images include:

@@ -463,7 +463,8 @@ public class FileDescriptorUtils {
                     allNestedTypes.put(field.getLocation(), mapMessage.build());
                 }
 
-                String jsonName = field.getDeclaredJsonName();
+                String jsonName = getDefaultJsonName(field.getName()).equals(field.getDeclaredJsonName())
+                        ? null : field.getDeclaredJsonName();
                 Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
                 Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
                 DescriptorProtos.FieldOptions.CType cType = findOption(CTYPE_OPTION, field.getOptions())
@@ -493,7 +494,8 @@ public class FileDescriptorUtils {
             message.protoBuilder().addOneofDecl(oneofBuilder);
 
             for (Field oneOfField : oneOf.getFields()) {
-                String oneOfJsonName = findOptionString(JSON_NAME_OPTION, oneOfField.getOptions());
+                String oneOfJsonName = getDefaultJsonName(oneOfField.getName()).equals(oneOfField.getDeclaredJsonName())
+                        ? null : oneOfField.getDeclaredJsonName();
                 Boolean oneOfIsDeprecated = findOptionBoolean(DEPRECATED_OPTION, oneOfField.getOptions());
                 Boolean oneOfIsPacked = findOptionBoolean(PACKED_OPTION, oneOfField.getOptions());
                 DescriptorProtos.FieldOptions.CType oneOfCType = findOption(CTYPE_OPTION, oneOfField.getOptions())
@@ -921,7 +923,7 @@ public class FileDescriptorUtils {
             OptionElement option = new OptionElement(PACKED_OPTION, booleanKind, fd.getOptions().getPacked(), false);
             options.add(option);
         }
-        if (fd.hasJsonName()) {
+        if (fd.hasJsonName() && !fd.getJsonName().equals(getDefaultJsonName(name))) {
             OptionElement option = new OptionElement(JSON_NAME_OPTION, stringKind, fd.getJsonName(), false);
             options.add(option);
         }
@@ -998,6 +1000,17 @@ public class FileDescriptorUtils {
 
     private static String getTypeName(String typeName) {
         return typeName.startsWith(".") ? typeName : "." + typeName;
+    }
+
+    // Default json_name is constructed following lower camel case
+    // https://github.com/protocolbuffers/protobuf/blob/3e1967e10be786062ccd026275866c3aef487eba/src/google/protobuf/descriptor.cc#L405
+    private static String getDefaultJsonName(String fieldName) {
+        String[] parts = fieldName.split("_");
+        String defaultJsonName = parts[0];
+        for (int i = 1; i < parts.length; ++i) {
+            defaultJsonName +=  parts[i].substring(0, 1).toUpperCase() + parts[i].substring(1);
+        }
+        return defaultJsonName;
     }
 
 }

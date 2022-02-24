@@ -7,9 +7,9 @@ import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * IdHandler that assumes 4 bytes for the magic number (the ID).
@@ -30,9 +30,6 @@ public class Legacy4ByteIdHandler implements IdHandler {
         idOption = config.useIdOption();
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#writeId(io.apicurio.registry.serde.strategy.ArtifactReference, java.io.OutputStream)
-     */
     @Override
     public void writeId(ArtifactReference reference, OutputStream out) throws IOException {
         long id;
@@ -47,9 +44,6 @@ public class Legacy4ByteIdHandler implements IdHandler {
         out.write(ByteBuffer.allocate(idSize).putInt((int) id).array());
     }
 
-    /**
-     * @see io.apicurio.registry.serde.IdHandler#writeId(io.apicurio.registry.serde.strategy.ArtifactReference, java.nio.ByteBuffer)
-     */
     @Override
     public void writeId(ArtifactReference reference, ByteBuffer buffer) {
         long id;

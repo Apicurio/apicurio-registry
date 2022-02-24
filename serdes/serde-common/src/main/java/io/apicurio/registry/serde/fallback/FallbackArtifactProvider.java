@@ -20,7 +20,7 @@ import java.util.Map;
 
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * Interface for providing a fallback ArtifactReference when the SchemaResolver is not able to find an ArtifactReference in the kafka message

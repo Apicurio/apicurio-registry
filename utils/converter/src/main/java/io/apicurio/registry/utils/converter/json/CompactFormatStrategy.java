@@ -19,10 +19,10 @@ package io.apicurio.registry.utils.converter.json;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.serde.DefaultIdHandler;
 import io.apicurio.registry.serde.IdHandler;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
  * @author Ales Justin

@@ -14,51 +14,36 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.serde.config;
+package io.apicurio.registry.resolver.config;
 
-import static io.apicurio.registry.serde.SerdeConfig.*;
-
+import static io.apicurio.registry.resolver.SchemaResolverConfig.*;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Importance;
-import org.apache.kafka.common.config.ConfigDef.Type;
+import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
+
 
 /**
  * @author Fabian Martinez
  */
-public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
+public class DefaultSchemaResolverConfig {
 
-    public static ConfigDef configDef() {
-        return new ConfigDef()
-                .define(REGISTRY_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_TOKEN_ENDPOINT, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_SERVICE_URL, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_REALM, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_CLIENT_ID, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_CLIENT_SECRET, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_USERNAME, Type.STRING, null, Importance.HIGH, "TODO docs")
-                .define(AUTH_PASSWORD, Type.STRING, null, Importance.HIGH, "TODO docs")
+    private static final Map<String, Object> DEFAULTS = Map.of(
+                ARTIFACT_RESOLVER_STRATEGY, DynamicArtifactReferenceResolverStrategy.class.getName(),
+                AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT,
+                AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT,
+                FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT,
+                CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT,
+                RETRY_COUNT, RETRY_COUNT_DEFAULT,
+                RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT
+            );
 
-                .define(ARTIFACT_RESOLVER_STRATEGY, Type.CLASS, ARTIFACT_RESOLVER_STRATEGY_DEFAULT, Importance.HIGH, "TODO docs")
+    private Map<String, ?> originals;
 
-                .define(AUTO_REGISTER_ARTIFACT, Type.BOOLEAN, AUTO_REGISTER_ARTIFACT_DEFAULT, Importance.HIGH, "TODO docs")
-                .define(AUTO_REGISTER_ARTIFACT_IF_EXISTS, Type.STRING, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT, Importance.MEDIUM, "TODO docs")
-
-                .define(FIND_LATEST_ARTIFACT, Type.BOOLEAN, FIND_LATEST_ARTIFACT_DEFAULT, Importance.HIGH, "TODO docs")
-
-                .define(CHECK_PERIOD_MS, Type.LONG, CHECK_PERIOD_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
-                .define(RETRY_COUNT, Type.LONG, RETRY_COUNT_DEFAULT, Importance.MEDIUM, "TODO docs")
-                .define(RETRY_BACKOFF_MS, Type.LONG, RETRY_BACKOFF_MS_DEFAULT, Importance.MEDIUM, "TODO docs")
-
-                .define(EXPLICIT_ARTIFACT_GROUP_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs")
-                .define(EXPLICIT_ARTIFACT_ID, Type.STRING, null, Importance.MEDIUM, "TODO docs");
-      }
-
-    public DefaultSchemaResolverConfig(Map<?, ?> originals) {
-        super(configDef(), originals);
+    public DefaultSchemaResolverConfig(Map<String, ?> originals) {
+        this.originals = originals;
     }
 
     public String getRegistryUrl() {
@@ -136,14 +121,14 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
     }
 
     public String getExplicitArtifactVersion() {
-        Object version = this.originals().get(EXPLICIT_ARTIFACT_VERSION);
+        Object version = this.originals.get(EXPLICIT_ARTIFACT_VERSION);
         if (version == null) {
             return null;
         }
         return version.toString();
     }
 
-    private static Duration extractDurationMillis(Object value, String configurationName) {
+    private Duration extractDurationMillis(Object value, String configurationName) {
         Objects.requireNonNull(value);
         Objects.requireNonNull(configurationName);
         long result;
@@ -164,7 +149,7 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
         return Duration.ofMillis(result);
     }
 
-    private static long extractLong(Object value, String configurationName) {
+    private long extractLong(Object value, String configurationName) {
         Objects.requireNonNull(value);
         Objects.requireNonNull(configurationName);
         long result;
@@ -177,5 +162,58 @@ public class DefaultSchemaResolverConfig extends BaseKafkaSerDeConfig {
                 "Expected a Number or String. Got '" + value + "'.");
         }
         return result;
+    }
+
+    public Map<String, Object> originals() {
+        return new HashMap<String, Object>(this.originals);
+    }
+
+    private Object get(String key) {
+        if (!this.originals.containsKey(key) && DEFAULTS.containsKey(key)) {
+            return DEFAULTS.get(key);
+        }
+        return this.originals.get(key);
+    }
+
+    private String getString(String key) {
+        return (String) returnAs(key, get(key), String.class);
+    }
+
+    private Boolean getBoolean(String key) {
+        return (Boolean) returnAs(key, get(key), Boolean.class);
+    }
+
+    private Object returnAs(String key, Object value, Class<?> type) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = null;
+        if (value instanceof String) {
+            trimmed = ((String) value).trim();
+        }
+
+        if (type == Boolean.class) {
+            if (value instanceof String) {
+                if (trimmed.equalsIgnoreCase("true"))
+                    return true;
+                else if (trimmed.equalsIgnoreCase("false"))
+                    return false;
+                else {
+                    throw new IllegalStateException("Wrong configuration. Expected value to be either true or false for key " + key + " received value " + value);
+                }
+            } else if (value instanceof Boolean) {
+                return value;
+            } else {
+                throw new IllegalStateException("Wrong configuration. Expected value to be either true or false for key " + key + " received value " + value);
+            }
+        } else if (type == String.class) {
+            if (value instanceof String) {
+                return trimmed;
+            } else {
+                throw new IllegalStateException("Expected value to be a string for key " + key + ", but it was a " + value.getClass().getName());
+            }
+        }
+        throw new IllegalStateException("Unknown type to return config as" + type);
     }
 }

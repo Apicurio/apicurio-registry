@@ -44,7 +44,7 @@ public class ImportCommand extends AbstractCommand {
 
             println("Importing registry data from " + input.getName());
 
-            getClient().importData(fis);
+            getAdminClient().importData(fis);
 
         } catch (IOException e) {
             throw new UncheckedIOException(e);

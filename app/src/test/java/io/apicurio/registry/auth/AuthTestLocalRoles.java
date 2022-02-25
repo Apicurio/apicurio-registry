@@ -18,9 +18,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
-import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -28,6 +26,7 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
@@ -43,11 +42,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.UUID;
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
+ *
  * @author eric.wittmann@gmail.com
  */
 @QuarkusTest
@@ -65,20 +64,14 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
-
-    String noRoleClientId = "registry-api-no-role";
-    String noRolePrincipalId = "service-account-registry-api-no-role";
-    String adminClientId = "registry-api";
-
     ApicurioHttpClient httpClient;
 
 
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
-    private AdminClient createAdminClient(Auth auth) {
-        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+    @Override
+    protected AdminClient createAdminClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        return this.createAdminClient(auth);
     }
 
     /**
@@ -87,16 +80,16 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        Auth authAdmin = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         AdminClient clientAdmin = createAdminClient(authAdmin);
 
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
 
         // User is authenticated but no roles assigned yet - operations should fail.
@@ -115,7 +108,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
         // Now let's grant read-only access to the user.
         RoleMapping mapping = new RoleMapping();
-        mapping.setPrincipalId(noRolePrincipalId);
+        mapping.setPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID);
         mapping.setRole(RoleType.READ_ONLY);
         clientAdmin.createRoleMapping(mapping);
 
@@ -132,7 +125,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         });
 
         // Now let's update the user's access to Developer
-        clientAdmin.updateRoleMapping(noRolePrincipalId, RoleType.DEVELOPER);
+        clientAdmin.updateRoleMapping(JWKSMockServer.NO_ROLE_CLIENT_ID, RoleType.DEVELOPER);
 
         // Now the user can read and write but not admin
         client.listArtifactsInGroup("default");
@@ -145,7 +138,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         });
 
         // Finally let's update the level to Admin
-        clientAdmin.updateRoleMapping(noRolePrincipalId, RoleType.ADMIN);
+        clientAdmin.updateRoleMapping(JWKSMockServer.NO_ROLE_CLIENT_ID, RoleType.ADMIN);
 
         // Now the user can do everything
         client.listArtifactsInGroup("default");

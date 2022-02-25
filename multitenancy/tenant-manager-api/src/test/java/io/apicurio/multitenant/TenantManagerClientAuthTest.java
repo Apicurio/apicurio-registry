@@ -19,7 +19,8 @@ package io.apicurio.multitenant;
 import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
@@ -37,15 +38,13 @@ import java.util.Collections;
 
 
 @QuarkusTest
-@TestProfile(AuthTestProfileWithoutRoles.class)
+@TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.DOCKER)
 @Typed(TenantManagerClientAuthTest.class)
 public class TenantManagerClientAuthTest extends TenantManagerClientTest {
 
     @ConfigProperty(name = "tenant-manager.keycloak.url.configured")
     String authServerUrl;
-
-    String clientId = "registry-api";
 
     ApicurioHttpClient httpClient;
 
@@ -56,14 +55,14 @@ public class TenantManagerClientAuthTest extends TenantManagerClientTest {
     @Override
     protected TenantManagerClient createRestClient() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrl, new AuthErrorHandler());
-        OidcAuth auth = new OidcAuth(httpClient, clientId, "test1");
+        OidcAuth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
     }
 
     @SuppressWarnings("deprecation")
     @Test
     public void testWrongCreds() throws Exception {
-        OidcAuth auth = new OidcAuth(httpClient, clientId, "wrongsecret");
+        OidcAuth auth = new OidcAuth(httpClient, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "wrongsecret");
         TenantManagerClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, client::listTenants);
     }

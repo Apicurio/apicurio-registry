@@ -88,7 +88,7 @@
             <artifactId>kafka-connect-avro-converter</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -107,7 +107,7 @@
             <version>${junit.platform-launcher.version}</version>
             <scope>compile</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>

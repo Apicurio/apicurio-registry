@@ -63,6 +63,6 @@ CREATE TABLE downloads (tenantId VARCHAR(128) NOT NULL, downloadId VARCHAR(128) 
 ALTER TABLE downloads ADD PRIMARY KEY (tenantId, downloadId);
 CREATE INDEX IDX_down_1 ON downloads USING HASH (expires);
 
-CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL, ptype VARCHAR(255) NOT NULL, modifiedOn BIGINT NOT NULL);
+CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL, pvalue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
 ALTER TABLE config ADD PRIMARY KEY (tenantId, pname);
 CREATE INDEX IDX_config_1 ON config(modifiedOn);

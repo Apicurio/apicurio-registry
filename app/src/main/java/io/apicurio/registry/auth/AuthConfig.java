@@ -53,12 +53,13 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
-    @Dynamic(label = "Anonymous Read Access", description = "When enabled, request from anonymous users (requests without any credentials) will be granted read-only access.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Anonymous Read Access", description = "When enabled, requests from anonymous users (requests without any credentials) will be granted read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
+    @Dynamic(label = "Authenticated Read Access", description = "When enabled, requests from any authenticated user will be granted at least read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
-    boolean authenticatedReadAccessEnabled;
+    Supplier<Boolean> authenticatedReadAccessEnabled;
 
     @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
     String readOnlyRole;

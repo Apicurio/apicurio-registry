@@ -19,9 +19,9 @@ package io.apicurio.registry.config;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -52,7 +52,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecorator {
     @ConfigProperty(name = "registry.config.cache.enabled", defaultValue = "true")
     boolean enabled;
 
-    private Map<String, Map<String, DynamicConfigPropertyDto>> configCache = new HashMap<>();
+    private Map<String, Map<String, DynamicConfigPropertyDto>> configCache = new ConcurrentHashMap<>();
     private Instant lastRefresh = null;
 
     /**
@@ -100,7 +100,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecorator {
      * Gets a tenant-specific cache.
      */
     private Map<String, DynamicConfigPropertyDto> getTenantCache() {
-        return configCache.computeIfAbsent(tenantContext.tenantId(), (tenantId) -> new HashMap<>());
+        return configCache.computeIfAbsent(tenantContext.tenantId(), (tenantId) -> new ConcurrentHashMap<>());
     }
 
     private void invalidateCache(String tenantId) {

@@ -11,7 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.mt.TenantContextLoader;

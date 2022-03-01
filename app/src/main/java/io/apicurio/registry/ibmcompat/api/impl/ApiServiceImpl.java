@@ -49,7 +49,7 @@ import io.apicurio.registry.ibmcompat.model.SchemaState;
 import io.apicurio.registry.ibmcompat.model.SchemaSummary;
 import io.apicurio.registry.ibmcompat.model.SchemaVersion;
 import io.apicurio.registry.ibmcompat.model.StateModification;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;

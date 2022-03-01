@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.1.2-SNAPSHOT",
+        "version": "2.2.1-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -25,11 +25,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentById",
@@ -55,15 +55,17 @@
                 "tags": [
                     "Artifacts"
                 ],
+                "parameters": [
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentByGlobalId",
@@ -93,11 +95,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "operationId": "getContentByHash",
@@ -537,6 +539,7 @@
                         "name": "globalId",
                         "description": "Filter by globalId.",
                         "schema": {
+                            "format": "int64",
                             "type": "integer"
                         },
                         "in": "query"
@@ -545,6 +548,7 @@
                         "name": "contentId",
                         "description": "Filter by contentId.",
                         "schema": {
+                            "format": "int64",
                             "type": "integer"
                         },
                         "in": "query"
@@ -727,8 +731,7 @@
                         "schema": {
                             "type": "boolean"
                         },
-                        "in": "header",
-                        "required": false
+                        "in": "header"
                     },
                     {
                         "name": "X-Registry-Preserve-ContentId",
@@ -736,7 +739,8 @@
                         "schema": {
                             "type": "boolean"
                         },
-                        "in": "header"
+                        "in": "header",
+                        "required": false
                     }
                 ],
                 "responses": {
@@ -1100,15 +1104,17 @@
                 "tags": [
                     "Versions"
                 ],
+                "parameters": [
+                ],
                 "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
                     }
                 },
                 "operationId": "getArtifactVersion",
@@ -1748,6 +1754,8 @@
                 "tags": [
                     "Artifacts"
                 ],
+                "parameters": [
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
@@ -2325,6 +2333,123 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
+        "/admin/config/properties": {
+            "summary": "Manage configuration properties.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ConfigurationProperty"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a list of configuration properties."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listConfigProperties",
+                "summary": "List all configuration properties",
+                "description": "Returns a list of all configuration properties that have been set.  The list is not paged.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/config/properties/{propertyName}": {
+            "summary": "Manage a single configuration property (by name).",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfigurationProperty"
+                                }
+                            }
+                        },
+                        "description": "The configuration property value."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "getConfigProperty",
+                "summary": "Get the value of a configuration property",
+                "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConfigurationProperty"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was updated."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "updateConfigProperty",
+                "summary": "Update a configuration property",
+                "description": "Updates the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "resetConfigProperty",
+                "summary": "Reset a configuration property",
+                "description": "Resets the value of a single configuration property.  This will return the property to\nits default value (see external documentation for supported properties and their default\nvalues).\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "propertyName",
+                    "description": "The name of a configuration property.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
@@ -2785,41 +2910,6 @@
                     "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
                 }
             },
-            "VersionReference": {
-                "title": "Root Type for ArtifactReference",
-                "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
-                "required": [
-                    "artifactId",
-                    "groupId",
-                    "name",
-                    "globalId"
-                ],
-                "type": "object",
-                "properties": {
-                    "groupId": {
-                        "type": "string"
-                    },
-                    "artifactId": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "globalId": {
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "mygroup",
-                    "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
-                    "version": "versionName",
-                    "globalId": 2,
-                    "name": "foo.bar.Open"
-                }
-            },
             "ArtifactMetaData": {
                 "title": "Root Type for ArtifactMetaData",
                 "description": "",
@@ -3217,6 +3307,61 @@
                     ]
                 },
                 "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+            },
+            "ConfigurationProperty": {
+                "title": "Root Type for ConfigurationProperty",
+                "description": "",
+                "required": [
+                    "name",
+                    "value",
+                    "type",
+                    "label",
+                    "description"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "label": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry.auth.owner-only-authorization",
+                    "value": "true",
+                    "type": "boolean",
+                    "label": "Owner Only Authorization",
+                    "description": "When enabled, the registry will allow only the artifact owner (creator) to modify an artifact."
+                }
+            },
+            "UpdateConfigurationProperty": {
+                "title": "Root Type for UpdateConfigurationProperty",
+                "description": "",
+                "required": [
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "value": "true"
+                }
             }
         },
         "responses": {
@@ -3376,7 +3521,11 @@
     ],
     "x-codegen": {
         "bean-annotations": [
-            "io.quarkus.runtime.annotations.RegisterForReflection"
+            "io.quarkus.runtime.annotations.RegisterForReflection",
+            {
+                "annotation": "lombok.ToString",
+                "excludeEnums": true
+            }
         ]
     }
 }

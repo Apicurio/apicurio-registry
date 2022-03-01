@@ -21,6 +21,7 @@ import io.apicurio.registry.types.RoleType;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class RoleMapping {
 
     /**
@@ -105,12 +106,4 @@ public class RoleMapping {
         this.principalName = principalName;
     }
 
-    @Override
-    public String toString() {
-        return "RoleMapping{" +
-                "principalId='" + principalId + '\'' +
-                ", role=" + role +
-                ", principalName='" + principalName + '\'' +
-                '}';
-    }
 }

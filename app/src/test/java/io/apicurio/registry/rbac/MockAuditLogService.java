@@ -16,14 +16,14 @@
 
 package io.apicurio.registry.rbac;
 
-import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.logging.audit.AuditLogService;
-import io.quarkus.test.Mock;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
+import io.apicurio.common.apps.logging.audit.AuditLogService;
+import io.quarkus.test.Mock;
 
 
 @Mock

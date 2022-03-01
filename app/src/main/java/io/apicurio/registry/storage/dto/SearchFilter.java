@@ -46,11 +46,11 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
     }
 
-    public static SearchFilter ofGlobalId(Integer value) {
+    public static SearchFilter ofGlobalId(Long value) {
         return new SearchFilter(SearchFilterType.globalId, value);
     }
 
-    public static SearchFilter ofContentId(Integer value) {
+    public static SearchFilter ofContentId(Long value) {
         return new SearchFilter(SearchFilterType.contentId, value);
     }
 
@@ -82,6 +82,7 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.everything, value);
     }
 
+    @SuppressWarnings("unchecked")
     public Pair<String, String> getPropertyFilterValue() {
         if (value == null) {
             return null;
@@ -108,14 +109,14 @@ public class SearchFilter {
     /**
      * @return the integer value
      */
-    public Integer getIntegerValue() {
+    public Number getNumberValue() {
         if (value == null) {
             return null;
         }
-        if (value instanceof Integer) {
-            return (Integer) value;
+        if (value instanceof Number) {
+            return (Number) value;
         }
-        throw new IllegalStateException("value is not of type integer");
+        throw new IllegalStateException("value is not of type number");
     }
 
 

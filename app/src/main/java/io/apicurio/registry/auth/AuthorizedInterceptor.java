@@ -31,6 +31,11 @@ import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
 
 /**
+ * This class implements authorization logic for the registry.  It is driven by a combination of the
+ * security identity (authenticated user) and configured security level of the operation the user is
+ * attempting to perform.  This interceptor will be triggered for any method that is annotated with
+ * the {@link Authorized} annotation.  Please ensure that all JAX-RS operations are propertly annotated.
+ *
  * @author eric.wittmann@gmail.com
  */
 @Authorized @Interceptor
@@ -100,7 +105,7 @@ public class AuthorizedInterceptor {
 
             // Anonymous users are allowed to perform read-only operations, but only if
             // registry.auth.anonymous-read-access.enabled is set to 'true'
-            if (authConfig.anonymousReadAccessEnabled && annotation.level() == AuthorizedLevel.Read) {
+            if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
                 log.trace("Anonymous user is being granted access to read-only operation.");
                 return context.proceed();
             }
@@ -112,6 +117,11 @@ public class AuthorizedInterceptor {
 
         log.trace("principalId:" + securityIdentity.getPrincipal().getName());
 
+        // If the user is authenticated and the operation auth level is None, allow it
+        if (annotation.level() == AuthorizedLevel.None) {
+            return context.proceed();
+        }
+
         // If the user is an admin (via the admin-override check) then there's no need to
         // check rbac or obac.
         if (adminOverride.isAdmin()) {
@@ -119,8 +129,8 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
-        // If Authenticated read access is enabled, and the operation is read, allow it.
-        if (authConfig.authenticatedReadAccessEnabled && (annotation.level() == AuthorizedLevel.Read) || annotation.level() == AuthorizedLevel.None) {
+        // If Authenticated read access is enabled, and the operation auth level is Read, allow it.
+        if (authConfig.authenticatedReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
             return context.proceed();
         }
 
@@ -131,7 +141,7 @@ public class AuthorizedInterceptor {
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled && !obac.isAuthorized(context)) {
+        if (authConfig.ownerOnlyAuthorizationEnabled.get() && !obac.isAuthorized(context)) {
             log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
         }

@@ -33,7 +33,7 @@ import javax.ws.rs.core.Response;
 public interface GroupsResource {
   /**
    * Updates the state of the artifact.  For example, you can use this to mark the latest
-   * version of an artifact as `DEPRECATED`.  The operation changes the state of the latest 
+   * version of an artifact as `DEPRECATED`.  The operation changes the state of the latest
    * version of the artifact.  If multiple versions exist, only the most recent is changed.
    *
    * This operation can fail for the following reasons:
@@ -100,7 +100,7 @@ public interface GroupsResource {
       InputStream data);
 
   /**
-   * Retrieves the metadata for a single version of the artifact.  The version metadata is 
+   * Retrieves the metadata for a single version of the artifact.  The version metadata is
    * a subset of the artifact metadata and only includes the metadata that is specific to
    * the version (for example, this doesn't include `modifiedOn`).
    *
@@ -118,8 +118,8 @@ public interface GroupsResource {
       @PathParam("artifactId") String artifactId, @PathParam("version") String version);
 
   /**
-   * Updates the user-editable portion of the artifact version's metadata.  Only some of 
-   * the metadata fields are editable by the user.  For example, `description` is editable, 
+   * Updates the user-editable portion of the artifact version's metadata.  Only some of
+   * the metadata fields are editable by the user.  For example, `description` is editable,
    * but `createdOn` is not.
    *
    * This operation can fail for the following reasons:
@@ -154,8 +154,8 @@ public interface GroupsResource {
 
   /**
    * Retrieves a single version of the artifact content.  Both the `artifactId` and the
-   * unique `version` number must be provided.  The `Content-Type` of the response depends 
-   * on the artifact type.  In most cases, this is `application/json`, but for some types 
+   * unique `version` number must be provided.  The `Content-Type` of the response depends
+   * on the artifact type.  In most cases, this is `application/json`, but for some types
    * it may be different (for example, `PROTOBUF`).
    *
    * This operation can fail for the following reasons:
@@ -172,7 +172,7 @@ public interface GroupsResource {
       @PathParam("artifactId") String artifactId, @PathParam("version") String version);
 
   /**
-   * Updates the state of a specific version of an artifact.  For example, you can use 
+   * Updates the state of a specific version of an artifact.  For example, you can use
    * this operation to disable a specific version.
    *
    * This operation can fail for the following reasons:
@@ -192,7 +192,7 @@ public interface GroupsResource {
   /**
    * Returns a list of all rules configured for the artifact.  The set of rules determines
    * how the content of an artifact can evolve over time.  If no rules are configured for
-   * an artifact, the set of globally configured rules are used.  If no global rules 
+   * an artifact, the set of globally configured rules are used.  If no global rules
    * are defined, there are no restrictions on content evolution.
    *
    * This operation can fail for the following reasons:
@@ -255,7 +255,7 @@ public interface GroupsResource {
 
   /**
    * Updates the configuration of a single rule for the artifact.  The configuration data
-   * is specific to each rule type, so the configuration of the `COMPATIBILITY` rule 
+   * is specific to each rule type, so the configuration of the `COMPATIBILITY` rule
    * is in a different format from the configuration of the `VALIDITY` rule.
    *
    * This operation can fail for the following reasons:
@@ -275,7 +275,7 @@ public interface GroupsResource {
 
   /**
    * Deletes a rule from the artifact.  This results in the rule no longer applying for
-   * this artifact.  If this is the only rule configured for the artifact, this is the 
+   * this artifact.  If this is the only rule configured for the artifact, this is the
    * same as deleting **all** rules, and the globally configured rules now apply to
    * this artifact.
    *
@@ -297,8 +297,8 @@ public interface GroupsResource {
    * to determine whether the rules would pass or fail, but without actually updating the artifact
    * content.
    *
-   * The body of the request should be the raw content of the artifact.  This is typically in 
-   * JSON format for *most* of the supported types, but may be in another format for a few 
+   * The body of the request should be the raw content of the artifact.  This is typically in
+   * JSON format for *most* of the supported types, but may be in another format for a few
    * (for example, `PROTOBUF`).
    *
    * The update could fail for a number of reasons including:
@@ -310,7 +310,7 @@ public interface GroupsResource {
    * * A server error occurred (HTTP error `500`)
    *
    * When successful, this operation simply returns a *No Content* response.  This response
-   * indicates that the content is valid against the configured content rules for the 
+   * indicates that the content is valid against the configured content rules for the
    * artifact (or the global rules if no artifact rules are enabled).
    */
   @Path("/{groupId}/artifacts/{artifactId}/test")
@@ -331,7 +331,7 @@ public interface GroupsResource {
 
   /**
    * Creates a new artifact by posting the artifact content.  The body of the request should
-   * be the raw content of the artifact.  This is typically in JSON format for *most* of the 
+   * be the raw content of the artifact.  This is typically in JSON format for *most* of the
    * supported types, but may be in another format for a few (for example, `PROTOBUF`).
    *
    * The registry attempts to figure out what kind of artifact is being added from the
@@ -347,7 +347,7 @@ public interface GroupsResource {
    * * Web Services Description Language (`WSDL`)
    * * XML Schema (`XSD`)
    *
-   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType` 
+   * Alternatively, you can specify the artifact type using the `X-Registry-ArtifactType`
    * HTTP request header, or include a hint in the request's `Content-Type`.  For example:
    *
    * ```
@@ -358,7 +358,7 @@ public interface GroupsResource {
    * content is created under a unique artifact ID that can be provided in the request
    * using the `X-Registry-ArtifactId` request header.  If not provided in the request,
    * the server generates a unique ID for the artifact.  It is typically recommended
-   * that callers provide the ID, because this is typically a meaningful identifier, 
+   * that callers provide the ID, because this is typically a meaningful identifier,
    * and for most use cases should be supplied by the caller.
    *
    * If an artifact with the provided artifact ID already exists, the default behavior
@@ -368,9 +368,9 @@ public interface GroupsResource {
    *
    * * `FAIL` (*default*) - server rejects the content with a 409 error
    * * `UPDATE` - server updates the existing artifact and returns the new metadata
-   * * `RETURN` - server does not create or add content to the server, but instead 
+   * * `RETURN` - server does not create or add content to the server, but instead
    * returns the metadata for the existing artifact
-   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the 
+   * * `RETURN_OR_UPDATE` - server returns an existing **version** that matches the
    * provided content if such a version exists, otherwise a new version is created
    *
    * This operation may fail for one of the following reasons:
@@ -406,7 +406,7 @@ public interface GroupsResource {
 
   /**
    * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
-   * response depends on the artifact type.  In most cases, this is `application/json`, but 
+   * response depends on the artifact type.  In most cases, this is `application/json`, but
    * for some types it may be different (for example, `PROTOBUF`).
    *
    * This operation may fail for one of the following reasons:
@@ -481,7 +481,7 @@ public interface GroupsResource {
 
   /**
    * Creates a new version of the artifact by uploading new content.  The configured rules for
-   * the artifact are applied, and if they all pass, the new content is added as the most recent 
+   * the artifact are applied, and if they all pass, the new content is added as the most recent
    * version of the artifact.  If any of the rules fail, an error is returned.
    *
    * The body of the request should be the raw content of the new artifact version, and the type

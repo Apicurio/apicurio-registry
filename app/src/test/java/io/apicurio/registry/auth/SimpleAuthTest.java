@@ -18,9 +18,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
-import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
@@ -32,6 +30,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
@@ -49,7 +48,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
-import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -64,24 +62,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
-    String adminClientId = "registry-api";
-    String developerClientId = "registry-api-dev";
-    String readOnlyClientId = "registry-api-readonly";
-
-    String testUsername = "sr-test-user";
-    String testPassword = "sr-test-password";
-
     final String groupId = "authTestGroupId";
 
     ApicurioHttpClient httpClient;
-
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
-
-    private AdminClient createAdminClient(Auth auth) {
-        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
 
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
@@ -89,20 +72,20 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
     }
 
     @Override
     protected AdminClient createAdminClientV2(){
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createAdminClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(httpClient, readOnlyClientId, "test55");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -111,7 +94,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        Auth auth = new OidcAuth(httpClient, readOnlyClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.READONLY_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         client.listArtifactsInGroup(groupId);
@@ -121,7 +104,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.createArtifact("testReadOnly", artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
         {
-            Auth devAuth = new OidcAuth(httpClient, developerClientId, "test1");
+            Auth devAuth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
             RegistryClient devClient = createClient(devAuth);
             ArtifactMetaData meta = devClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
             TestUtils.retry(() -> devClient.getArtifactMetaData(groupId, meta.getId()));
@@ -130,7 +113,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
         UserInfo userInfo = client.getCurrentUserInfo();
         assertNotNull(userInfo);
-        Assertions.assertEquals("service-account-registry-api-readonly", userInfo.getUsername());
+        Assertions.assertEquals("readonly-client", userInfo.getUsername());
         Assertions.assertFalse(userInfo.getAdmin());
         Assertions.assertFalse(userInfo.getDeveloper());
         Assertions.assertTrue(userInfo.getViewer());
@@ -138,7 +121,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        Auth auth = new OidcAuth(httpClient, developerClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -160,7 +143,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             UserInfo userInfo = client.getCurrentUserInfo();
             assertNotNull(userInfo);
-            Assertions.assertEquals("service-account-registry-api-dev", userInfo.getUsername());
+            Assertions.assertEquals("developer-client", userInfo.getUsername());
             Assertions.assertFalse(userInfo.getAdmin());
             Assertions.assertTrue(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -171,7 +154,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
         AdminClient adminClient = createAdminClient(auth);
         String artifactId = TestUtils.generateArtifactId();
@@ -189,7 +172,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             UserInfo userInfo = client.getCurrentUserInfo();
             assertNotNull(userInfo);
-            Assertions.assertEquals("service-account-registry-api", userInfo.getUsername());
+            Assertions.assertEquals("admin-client", userInfo.getUsername());
             Assertions.assertTrue(userInfo.getAdmin());
             Assertions.assertFalse(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
@@ -201,7 +184,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     @Test
     public void testAdminRoleBasicAuth() throws Exception {
 
-        Auth auth = new BasicAuth(testUsername, testPassword);
+        Auth auth = new BasicAuth(JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD);
 
         RegistryClient client = createClient(auth);
         AdminClient adminClient = createAdminClient(auth);
@@ -224,10 +207,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        Auth authDev = new OidcAuth(httpClient, developerClientId, "test1");
+        Auth authDev = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
         RegistryClient clientDev = createClient(authDev);
 
-        Auth authAdmin = new OidcAuth(httpClient, adminClientId, "test1");
+        Auth authAdmin = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient clientAdmin = createClient(authAdmin);
 
         // Admin user will create an artifact

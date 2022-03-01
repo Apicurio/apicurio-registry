@@ -35,6 +35,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import io.apicurio.tests.common.auth.JWKSMockServer;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -50,7 +52,6 @@ import org.testcontainers.containers.output.OutputFrame.OutputType;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.tests.common.auth.JWKSMockServer;
 import io.apicurio.tests.common.executor.Exec;
 import io.apicurio.tests.common.utils.RegistryUtils;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -72,7 +73,7 @@ public class TenantContextLoader {
     Long cacheCheckPeriod;
 
     @ConfigProperty(name = "registry.organization-id.claim-name")
-    String organizationIdClaimName;
+    List<String> organizationIdClaims;
 
     public void onStart(@Observes StartupEvent ev) {
         contextsCache = new CheckPeriodCache<>(cacheCheckPeriod);
@@ -137,9 +138,17 @@ public class TenantContextLoader {
                 logger.debug("Tenant access attempted without JWT token for tenant {} [allowing because some endpoints allow anonymous access]", tenant.getTenantId());
                 return;
             }
-            final Optional<Object> accessedOrganizationId = jsonWebToken.get().claim(organizationIdClaimName);
+            String accessedOrganizationId = null;
 
-            if (accessedOrganizationId.isEmpty() || !tenantCanAccessOrganization(tenant, (String) accessedOrganizationId.get())) {
+            for (String organizationIdClaim: organizationIdClaims) {
+                final Optional<Object> claimValue = jsonWebToken.get().claim(organizationIdClaim);
+                if (claimValue.isPresent()) {
+                    accessedOrganizationId = (String) claimValue.get();
+                    break;
+                }
+            }
+
+            if (null == accessedOrganizationId || !tenantCanAccessOrganization(tenant, accessedOrganizationId)) {
                 logger.warn("User not authorized to access tenant {}", tenant.getTenantId());
                 throw new TenantNotAuthorizedException("Tenant not authorized");
             }

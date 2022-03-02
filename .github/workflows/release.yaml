@@ -141,3 +141,10 @@ jobs:
           name: ${{ github.workflow }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           status: ${{ job.status }}
+
+  job-trigger:
+    needs: [release]
+    uses: ./.github/workflows/tag-registry-examples.yaml
+    with:
+      release-version: ${{ github.event.inputs.release-version}}
+      snapshot-version: ${{ github.event.inputs.snapshot-version}}

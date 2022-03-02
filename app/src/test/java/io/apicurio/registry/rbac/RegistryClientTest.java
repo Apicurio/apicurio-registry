@@ -173,7 +173,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(version, created.getVersion());
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
-        assertEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+        assertEquals(
+                TestUtils.normalizeMultiLineString(ARTIFACT_OPENAPI_JSON_CONTENT),
+                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
+        );
     }
 
 
@@ -240,7 +243,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, amd.getName());
         assertEquals(description, amd.getDescription());
 
-        assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+        assertEquals(
+                TestUtils.normalizeMultiLineString(UPDATED_OPENAPI_JSON_CONTENT),
+                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
+        );
     }
 
     @Test
@@ -964,7 +970,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.updateArtifact(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
 
         //Assertions
-        assertEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
+        assertEquals(
+                TestUtils.normalizeMultiLineString(UPDATED_OPENAPI_JSON_CONTENT),
+                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
+        );
 
         ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
         assertNotNull(artifactMetaData);

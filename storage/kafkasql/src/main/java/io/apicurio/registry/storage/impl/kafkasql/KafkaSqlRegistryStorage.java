@@ -20,6 +20,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
@@ -89,6 +90,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1162,6 +1164,56 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         sqlStore.deleteAllExpiredDownloads();
     }
 
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
+     */
+    @Override
+    public List<DynamicConfigPropertyDto> getConfigProperties() {
+        return sqlStore.getConfigProperties();
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
+        return sqlStore.getConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        return sqlStore.getRawConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
+        return sqlStore.getTenantsWithStaleConfigProperties(since);
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
+     */
+    @Override
+    public void setConfigProperty(DynamicConfigPropertyDto propertyDto) {
+        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(tenantContext.tenantId(), propertyDto.getName(), ActionType.UPDATE, propertyDto.getValue()));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#deleteConfigProperty(java.lang.String)
+     */
+    @Override
+    public void deleteConfigProperty(String propertyName) {
+        UUID reqId = ConcurrentUtil.get(submitter.submitConfigProperty(tenantContext.tenantId(), propertyName, ActionType.DELETE));
+        coordinator.waitForResponse(reqId);
+    }
+
     protected void importEntity(Entity entity) throws RegistryStorageException {
         switch (entity.getEntityType()) {
             case ArtifactRule:
@@ -1254,14 +1306,4 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         }
     }
 
-    private long nextGlobalIdIfInvalid(long globalId) {
-        if(globalId == -1) {
-            return sqlStore.nextGlobalId();
-        }
-        return globalId;
-    }
-
-    private long computeContentId(long contentId, Map<Long, Long> mapping) {
-        return mapping.computeIfAbsent(contentId, (k) -> sqlStore.nextContentId());
-    }
 }

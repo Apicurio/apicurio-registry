@@ -2062,7 +2062,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
      */
-    @Override
+    @Override @Transactional
     public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
         log.debug("Setting a config property with name: {}  and value: {}", propertyDto.getName(), propertyDto.getValue());
         this.handles.withHandleNoException( handle -> {
@@ -2092,7 +2092,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#deleteConfigProperty(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
         handles.withHandle(handle -> {
             String sql = sqlStatements.deleteConfigProperty();
@@ -2107,7 +2107,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
      */
-    @Override @Transactional
+    @Override
     public List<String> getTenantsWithStaleConfigProperties(Instant lastRefresh) throws RegistryStorageException {
         log.debug("Getting all tenant IDs with stale config properties.");
         return handles.withHandleNoException( handle -> {

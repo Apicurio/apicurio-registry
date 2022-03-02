@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.mt.RegistryTenantContext;
 import io.apicurio.registry.mt.TenantContext;
@@ -27,6 +28,7 @@ import io.apicurio.registry.storage.impl.kafkasql.MessageType;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactRuleKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactVersionKey;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ConfigPropertyKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentIdKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.ContentKey;
 import io.apicurio.registry.storage.impl.kafkasql.keys.DownloadKey;
@@ -41,6 +43,7 @@ import io.apicurio.registry.storage.impl.kafkasql.values.AbstractMessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactRuleValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactVersionValue;
+import io.apicurio.registry.storage.impl.kafkasql.values.ConfigPropertyValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentIdValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.ContentValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.DownloadValue;
@@ -173,6 +176,8 @@ public class KafkaSqlSink {
                     return processGlobalAction((GlobalActionKey) key, (GlobalActionValue) value);
                 case Download:
                     return processDownload((DownloadKey) key, (DownloadValue) value);
+                case ConfigProperty:
+                    return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -209,6 +214,25 @@ public class KafkaSqlSink {
                 return sqlStore.createDownload(value.getDownloadContext());
             case DELETE:
                 return sqlStore.consumeDownload(key.getDownloadId());
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "configProperty".
+     * @param key
+     * @param value
+     */
+    private Object processConfigProperty(ConfigPropertyKey key, ConfigPropertyValue value) {
+        switch (value.getAction()) {
+            case UPDATE:
+                DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto(key.getPropertyName(), value.getValue());
+                sqlStore.setConfigProperty(dto);
+                return null;
+            case DELETE:
+                sqlStore.deleteConfigProperty(key.getPropertyName());
+                return null;
             default:
                 return unsupported(key, value);
         }

@@ -18,6 +18,7 @@ package io.apicurio.registry.storage;
 
 import javax.inject.Inject;
 
+import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
 import io.quarkus.test.junit.QuarkusTest;
 

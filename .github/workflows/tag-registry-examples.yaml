@@ -1,0 +1,89 @@
+name: Tag Registry Examples
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Registry Release Version'
+        required: true
+      snapshot-version:
+        description: 'Next snapshot version'
+        required: true
+  workflow_call:
+    inputs:
+      release-version:
+        required: true
+        type: string
+      snapshot-version: 
+        required: true
+        type: string
+
+
+jobs:
+  tag-registry-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Versions
+        run: |
+          set -x
+          if [ -z "${{inputs.release-version}}" ] || [ -z "${{inputs.snapshot-version}}" ]
+          then
+            echo "Workflow Triggered via workflow_dispatch event. Setting Versions as ENV variables..."
+            echo "RELEASE_VERSION=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
+            echo "SNAPSHOT_VERSION=${{ github.event.inputs.snapshot-version }}" >> $GITHUB_ENV
+          else
+            echo "Workflow Triggered via workflow_call event. Setting Versions as ENV variables..."
+            echo "RELEASE_VERSION=${{ inputs.release-version }}" >> $GITHUB_ENV
+            echo "SNAPSHOT_VERSION=${{ inputs.snapshot-version }}" >> $GITHUB_ENV
+          fi
+
+      - name: Print Env variables
+        run: |
+          echo "Release Version: $RELEASE_VERSION"
+          echo "Snapshot Version: $SNAPSHOT_VERSION"
+
+      - name: Apicurio Registry Examples Checkout
+        run: |
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
+          git fetch
+          git checkout master
+          git branch --set-upstream-to=origin/master
+          git pull
+
+      - name: Update Release Version ${{ env.RELEASE_VERSION }}
+        run: |
+          mvn versions:set -DnewVersion=${{ env.RELEASE_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn versions:set-property -Dproperty=apicurio-registry.version -DgenerateBackupPoms=false -DnewVersion=${{ env.RELEASE_VERSION }}
+
+      - name: Build Examples
+        run: ./mvnw clean install
+
+      - name: Commit Release Version Changes
+        run: |
+          git add .
+          git commit -m "Automated update to Release Version:: ${{ env.RELEASE_VERSION }}"
+          git push
+
+      - name: Tag Examples
+        run: |
+          git tag -a -m "Tagging release ${{ env.RELEASE_VERSION }}" ${{ env.RELEASE_VERSION }}
+          git push origin ${{ env.RELEASE_VERSION }}
+
+      - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
+        run: mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
+      
+      - name: Commit Snapshot Version Changes
+        run: |
+          git add .
+          git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
+          git push
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@releases/v1
+        with:
+          name: ${{ github.workflow }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

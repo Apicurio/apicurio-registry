@@ -41,11 +41,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-verify-
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build and Test All Variants
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Psystemtests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -101,8 +107,14 @@ jobs:
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
+      - name: Build api-model
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry-operator.git
+          cd apicurio-registry-operator
+          mvn install
+
       - name: Build All Variants
-        run: make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=true BUILD_FLAGS='-Psystemtests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Build Native executables
         env:
@@ -120,8 +132,6 @@ jobs:
         run: ./mvnw verify -Pintegration-tests -Pmigration -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
       - name: Run Integration Tests - sql auth
         run: ./mvnw verify -Pintegration-tests -Pauth -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
-      - name: Run UI tests
-        run: ./mvnw verify -Pintegration-tests -Pui -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DtestNative=true
       - name: Run Legacy Tests - sql
         run: ./mvnw verify -Pintegration-tests -Pacceptance -Psql -pl integration-tests/legacy-tests -Dmaven.javadoc.skip=true --no-transfer-progress -DtestNative=true
 

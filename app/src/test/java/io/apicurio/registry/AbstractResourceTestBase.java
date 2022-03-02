@@ -20,6 +20,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.apicurio.registry.rest.client.AdminClientFactory;
+import io.apicurio.rest.client.auth.Auth;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +39,8 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
+
+import java.util.Collections;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -72,6 +75,14 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected AdminClient createAdminClientV2() {
         return AdminClientFactory.create(registryV2ApiUrl);
+    }
+
+    protected RegistryClient createClient(Auth auth) {
+        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
+    }
+
+    protected AdminClient createAdminClient(Auth auth) {
+        return AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
     }
 
     @BeforeEach

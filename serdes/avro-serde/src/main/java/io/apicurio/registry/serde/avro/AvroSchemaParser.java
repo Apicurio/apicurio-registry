@@ -25,6 +25,9 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,9 +63,41 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
+
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
+                .setReferenceName(schema.getName())
+                .setSchemaReferences(handleReferences(schema.getFields()))
                 .setRawSchema(IoUtil.toBytes(schema.toString()));
+    }
+
+    private List<ParsedSchema<Schema>> handleReferences(List<Schema.Field> schemaFields) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema.Field field: schemaFields) {
+            if (field.schema().getType().equals(Schema.Type.RECORD)) {
+
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString());
+
+                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
+                        .setParsedSchema(field.schema())
+                        .setReferenceName(field.schema().getName())
+                        .setSchemaReferences(handleReferences(field.schema().getFields()))
+                        .setRawSchema(rawSchema);
+
+                schemaReferences.add(referencedSchema);
+            } else if (field.schema().getType().equals(Schema.Type.ENUM)) {
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString());
+
+                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
+                        .setParsedSchema(field.schema())
+                        .setReferenceName(field.schema().getName())
+                        .setSchemaReferences(Collections.emptyList())
+                        .setRawSchema(rawSchema);
+
+                schemaReferences.add(referencedSchema);
+            }
+        }
+        return schemaReferences;
     }
 
 }

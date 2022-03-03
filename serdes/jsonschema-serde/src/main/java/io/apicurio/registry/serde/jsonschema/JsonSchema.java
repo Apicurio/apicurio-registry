@@ -27,6 +27,8 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.everit.json.schema.ObjectSchema;
+import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -226,13 +228,22 @@ public class JsonSchema {
                 jsonObject = objectMapper.treeToValue((JsonNode) value, JSONObject.class);
             } else if (value.getClass().isArray()) {
                 jsonObject = objectMapper.convertValue(value, JSONArray.class);
+            } else if (value instanceof JSONObject) {
+                jsonObject = value;
             } else {
                 jsonObject = objectMapper.convertValue(value, JSONObject.class);
             }
 
             this.rawSchema().validate(jsonObject);
-        }
 
+            if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
+                for (Map.Entry<String, Schema> schema: ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
+                    if (schema.getValue() instanceof ReferenceSchema) {
+                        (resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue())).validate(((JSONObject) jsonObject).get(schema.getKey()));
+                    }
+                }
+            }
+        }
     }
 
     private static boolean isPrimitive(Object value) {

@@ -22,40 +22,37 @@ import static org.hamcrest.Matchers.is;
 public class SimpleTestsIT {
     private static Logger LOGGER = LoggerFactory.getLogger(SimpleTestsIT.class);
 
-    private ApicurioRegistry createSR() {
-        return new ApicurioRegistryBuilder()
-                .withNewMetadata()
-                    .withName("reg-test")
-                .endMetadata()
-                .withNewSpec()
-                    .withNewConfiguration()
-                        .withPersistence("kafkasql")
-                        .withNewKafkasql()
-                            .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
-                        .endKafkasql()
-                    .endConfiguration()
-                .endSpec()
-                .build();
-    }
-
-    //INFO: In order to get this test working operator has to be deployed first.
     @Test
-    @Disabled
-    public void simpleTestIT() {
-        LOGGER.info("First test log!");
-        assertThat("123", is("123"));
+    public void simpleTestCreate() {
         Config config = Config.autoConfigure(System.getenv()
                 .getOrDefault("TEST_CLUSTER_CONTEXT", null));
 
         try (OpenShiftClient ocClient = new DefaultOpenShiftClient(new OpenShiftConfig(config))) {
-            ApicurioRegistry ap = createSR();
+            ApicurioRegistry ap = ResourceManager.getInstance().getServiceRegistry();
+
+            MixedOperation<ApicurioRegistry, ApicurioRegistryList, Resource<ApicurioRegistry>> resourceClient =
+                    ocClient.resources(ApicurioRegistry.class, ApicurioRegistryList.class);
+
+
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void simpleTestDelete() {
+        Config config = Config.autoConfigure(System.getenv()
+                .getOrDefault("TEST_CLUSTER_CONTEXT", null));
+
+        try (OpenShiftClient ocClient = new DefaultOpenShiftClient(new OpenShiftConfig(config))) {
+            ApicurioRegistry ap = ResourceManager.getInstance().getServiceRegistry();
 
             MixedOperation<ApicurioRegistry, ApicurioRegistryList, Resource<ApicurioRegistry>> resourceClient =
                     ocClient.resources(ApicurioRegistry.class, ApicurioRegistryList.class);
 
             String yaml = SerializationUtils.dumpAsYaml(ap);
-            resourceClient.inNamespace("apicurio-test").createOrReplace(ap);
-            LOGGER.info("Yaml file deployemnt:\n\n " + yaml);
+            resourceClient.inNamespace("apicurio-test").delete(ap);
+            LOGGER.info("Yaml file deployment:\n\n " + yaml);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

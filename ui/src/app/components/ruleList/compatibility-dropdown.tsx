@@ -48,6 +48,10 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
 
     public render(): React.ReactElement {
         const dropdownItems = [
+            <DropdownItem key="NONE"
+                          tooltip="No compatibility checking should be performed"
+                          data-testid="rules-compatibility-config-none"
+                          id="NONE">None</DropdownItem>,
             <DropdownItem key="BACKWARD"
                           tooltip="Clients using the new artifact can read data written using the most recently added artifact"
                           data-testid="rules-compatibility-config-backward"
@@ -107,6 +111,8 @@ export class CompatibilityDropdown extends PureComponent<CompatibilityDropdownPr
 
     private displayValue(): string {
         switch (this.props.value) {
+            case "NONE":
+                return "None";
             case "BACKWARD":
                 return "Backward";
             case "BACKWARD_TRANSITIVE":

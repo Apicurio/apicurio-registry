@@ -168,7 +168,7 @@ jobs:
         run: docker images
 
   notify-sdk:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -192,3 +192,15 @@ jobs:
            repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
            event-type: on-oas-updated
            client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
+
+  trigger-examples-build:
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: [build-verify]
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+           token: ${{ secrets.ACCESS_TOKEN }}
+           repository: Apicurio/apicurio-registry-examples
+           event-type: on-registry-updated

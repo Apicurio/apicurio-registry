@@ -17,8 +17,10 @@
 package io.apicurio.registry.utils.tests;
 
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -350,6 +352,18 @@ public class TestUtils {
         long id = globalIdExtractor.apply(bytes);
         boolean schemaExists = retry(() -> schemaFinder.test(id));
         Assertions.assertTrue(schemaExists); // wait for global id to populate
+    }
+
+    public static final String normalizeMultiLineString(String value) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new StringReader(value));
+        String line = reader.readLine();
+        while (line != null) {
+            builder.append(line);
+            builder.append("\n");
+            line = reader.readLine();
+        }
+        return builder.toString();
     }
 
 }

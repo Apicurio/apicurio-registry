@@ -17,25 +17,23 @@ package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /**
- * @author Fabian Martinez
+ * @author Carles Arnal
  */
 public class AuthTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.emptyMap();
+        return Map.of("smallrye.jwt.sign.key.location", "privateKey.jwk");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
-        return Arrays.asList(
-                new TestResourceEntry(KeycloakTestResource.class));
+        return List.of(
+                new TestResourceEntry(JWKSMockServer.class));
     }
 
 }

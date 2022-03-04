@@ -17,6 +17,8 @@
 package io.apicurio.registry.rest.client.request.provider;
 
 
+import static io.apicurio.registry.rest.client.request.provider.Routes.CONFIG_PROPERTIES_BASE_PATH;
+import static io.apicurio.registry.rest.client.request.provider.Routes.CONFIG_PROPERTY_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.EXPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.IMPORT_PATH;
 import static io.apicurio.registry.rest.client.request.provider.Routes.LOGS_BASE_PATH;
@@ -40,10 +42,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -225,5 +229,46 @@ public class AdminRequestsProvider {
                 })
                 .build();
     }
+
+    public static Request<List<ConfigurationProperty>> listConfigProperties() {
+        return new Request.RequestBuilder<List<ConfigurationProperty>>()
+                .operation(GET)
+                .path(CONFIG_PROPERTIES_BASE_PATH)
+                .responseType(new TypeReference<List<ConfigurationProperty>>() {})
+                .build();
+    }
+
+    public static Request<ConfigurationProperty> getConfigProperty(String propertyName) {
+        return new Request.RequestBuilder<ConfigurationProperty>()
+                .operation(GET)
+                .path(CONFIG_PROPERTY_PATH)
+                .pathParams(List.of(propertyName))
+                .responseType(new TypeReference<ConfigurationProperty>() {
+                })
+                .build();
+   }
+
+    public static Request<Void> setConfigProperty(String propertyName, String propertyValue) throws JsonProcessingException {
+        UpdateConfigurationProperty property = new UpdateConfigurationProperty();
+        property.setValue(propertyValue);
+        return new Request.RequestBuilder<Void>()
+                .operation(PUT)
+                .path(CONFIG_PROPERTY_PATH)
+                .pathParams(List.of(propertyName))
+                .responseType(new TypeReference<Void>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(property)))
+                .build();
+   }
+
+    public static Request<Void> deleteConfigProperty(String propertyName) {
+        return new Request.RequestBuilder<Void>()
+                .operation(DELETE)
+                .path(CONFIG_PROPERTY_PATH)
+                .pathParams(List.of(propertyName))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+   }
 
 }

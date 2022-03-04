@@ -20,7 +20,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.tests.TestUtils;
 
 import org.junit.jupiter.api.Assertions;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,4 +67,9 @@ public abstract class AbstractRegistryTestBase {
     protected final ContentHandle resourceToContentHandle(String resourceName) {
         return ContentHandle.create(resourceToString(resourceName));
     }
+
+    public static void assertMultilineTextEquals(String expected, String actual) throws Exception {
+        Assertions.assertEquals(TestUtils.normalizeMultiLineString(expected), TestUtils.normalizeMultiLineString(actual));
+    }
+
 }

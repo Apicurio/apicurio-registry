@@ -19,15 +19,17 @@ package io.apicurio.registry.ui.config;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import io.apicurio.registry.utils.RegistryProperties;
 import org.slf4j.Logger;
+
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.registry.utils.RegistryProperties;
 
 /**
  * Holds/accesses all configuration settings for the UI.
@@ -40,8 +42,13 @@ public class UiConfigProperties {
     Logger log;
 
     @Inject
+    @Dynamic(label = "UI Read-Only Mode", description = "When enabled, the user interface will be set to Read-Only mode, preventing CRUD operations.")
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
-    boolean featureReadOnly;
+    Supplier<Boolean> featureReadOnly;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.features.settings", defaultValue = "false")
+    boolean featureSettings;
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.uiContextPath", defaultValue = "/ui/")
@@ -71,6 +78,7 @@ public class UiConfigProperties {
         log.debug("============> kcProperties  " + keycloakConfig);
         log.debug("============> tenantEnabled  " + tenantEnabled);
         log.debug("============> featureReadOnly  " + featureReadOnly);
+        log.debug("============> featureSettings  " + featureSettings);
         log.debug("============> uiContextPath  " + uiContextPath);
         log.debug("============> apiUrl  " + apiUrl);
     }
@@ -80,7 +88,11 @@ public class UiConfigProperties {
     }
 
     public boolean isFeatureReadOnly() {
-        return featureReadOnly;
+        return featureReadOnly.get();
+    }
+
+    public boolean isFeatureSettings() {
+        return featureSettings;
     }
 
     public String getUiContextPath() {

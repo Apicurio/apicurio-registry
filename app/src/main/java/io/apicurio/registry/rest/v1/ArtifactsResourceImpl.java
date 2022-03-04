@@ -21,8 +21,8 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.Headers;
@@ -72,15 +72,15 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
 
 /**
  * Implements the {@link ArtifactsResource} interface.

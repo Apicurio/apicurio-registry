@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.storage.decorator;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -47,10 +53,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
-
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * @author Fabian Martinez
@@ -884,5 +886,53 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
         delegate.deleteAllExpiredDownloads();
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
+     */
+    @Override
+    public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
+        return delegate.getConfigProperties();
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
+     */
+    @Override
+    public void setConfigProperty(DynamicConfigPropertyDto property) throws RegistryStorageException {
+        delegate.setConfigProperty(property);
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
+        return delegate.getConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant since) {
+        return delegate.getTenantsWithStaleConfigProperties(since);
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#deleteConfigProperty(java.lang.String)
+     */
+    @Override
+    public void deleteConfigProperty(String propertyName) {
+        delegate.deleteConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        return delegate.getRawConfigProperty(propertyName);
     }
 }

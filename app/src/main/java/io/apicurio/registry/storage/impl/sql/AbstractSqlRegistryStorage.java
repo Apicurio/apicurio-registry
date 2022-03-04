@@ -21,6 +21,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -48,7 +50,8 @@ import org.slf4j.Logger;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.System;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.core.System;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -96,6 +99,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -1114,13 +1118,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     case globalId:
                         where.append("(v.globalId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     case contentId:
                         where.append("(v.contentId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     default :
@@ -2008,6 +2012,114 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
+     */
+    @Override
+    public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
+        log.debug("Getting all config properties.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectConfigProperties();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(DynamicConfigPropertyDtoMapper.instance)
+                    .list()
+                    .stream()
+                    // Filter out possible null values.
+                    .filter(item -> item != null)
+                    .collect(Collectors.toList());
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
+        return this.getRawConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        log.debug("Selecting a single config property: {}", propertyName);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectConfigPropertyByName();
+                Optional<DynamicConfigPropertyDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, propertyName)
+                        .map(DynamicConfigPropertyDtoMapper.instance)
+                        .findOne();
+                return res.orElse(null);
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
+     */
+    @Override @Transactional
+    public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
+        log.debug("Setting a config property with name: {}  and value: {}", propertyDto.getName(), propertyDto.getValue());
+        this.handles.withHandleNoException( handle -> {
+            String propertyName = propertyDto.getName();
+            String propertyValue = propertyDto.getValue();
+
+            // First delete the property row from the table
+            String sql = sqlStatements.deleteConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .execute();
+
+            // Then create the row again with the new value
+            sql = sqlStatements.insertConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .bind(2, propertyValue)
+                  .bind(3, java.lang.System.currentTimeMillis())
+                  .execute();
+
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#deleteConfigProperty(java.lang.String)
+     */
+    @Override @Transactional
+    public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
+        handles.withHandle(handle -> {
+            String sql = sqlStatements.deleteConfigProperty();
+            handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, propertyName)
+                    .execute();
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant lastRefresh) throws RegistryStorageException {
+        log.debug("Getting all tenant IDs with stale config properties.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectTenantIdsByConfigModifiedOn();
+            return handle.createQuery(sql)
+                    .bind(0, lastRefresh.toEpochMilli())
+                    .mapTo(String.class)
+                    .list();
+        });
+    }
+
+    /**
      * @see RegistryStorage#getLogConfiguration(java.lang.String)
      */
     @Override
@@ -2712,6 +2824,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(0, tenantContext.tenantId())
                 .execute();
 
+            // Delete all config properties
+
+            sql = sqlStatements.deleteAllConfigProperties();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
             return null;
         });
 

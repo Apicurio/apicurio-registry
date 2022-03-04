@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
+@lombok.ToString
 public class UserInfo {
 
     @JsonProperty("username")
@@ -86,14 +87,4 @@ public class UserInfo {
         this.viewer = viewer;
     }
 
-    @Override
-    public String toString() {
-        return "UserInfo{" +
-                "username='" + username + '\'' +
-                ", displayName='" + displayName + '\'' +
-                ", admin=" + admin +
-                ", developer=" + developer +
-                ", viewer=" + viewer +
-                '}';
-    }
 }

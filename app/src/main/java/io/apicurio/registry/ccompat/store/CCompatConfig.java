@@ -16,9 +16,13 @@
 
 package io.apicurio.registry.ccompat.store;
 
+import java.util.function.Supplier;
+
 import javax.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import io.apicurio.common.apps.config.Dynamic;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -26,7 +30,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Singleton
 public class CCompatConfig {
 
+    @Dynamic(label = "Legacy ID Mode (Compat API)", description =  "When enabled, this option causes the ccompat API to use 'globalId' instead of 'contentId' for artifact identifiers.")
     @ConfigProperty(name = "registry.ccompat.legacy-id-mode.enabled", defaultValue = "false")
-    boolean legacyIdModeEnabled;
+    Supplier<Boolean> legacyIdModeEnabled;
 
 }

@@ -44,7 +44,7 @@ jobs:
       - name: Build api-model
         run: |
           git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator
+          cd apicurio-registry-operator/api-model
           mvn install
 
       - name: Get maven wrapper
@@ -110,7 +110,7 @@ jobs:
       - name: Build api-model
         run: |
           git clone https://github.com/Apicurio/apicurio-registry-operator.git
-          cd apicurio-registry-operator
+          cd apicurio-registry-operator/api-model
           mvn install
 
       - name: Build All Variants

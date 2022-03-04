@@ -78,6 +78,7 @@
         <servlet-name>ReactAppServlet</servlet-name>
         <url-pattern>/ui/rules/*</url-pattern>
         <url-pattern>/ui/artifacts/*</url-pattern>
+        <url-pattern>/ui/settings/*</url-pattern>
     </servlet-mapping>
 
     <servlet>

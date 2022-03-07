@@ -13,6 +13,7 @@ public class SimpleTestsIT {
         return new ApicurioRegistryBuilder()
                 .withNewMetadata()
                 .withName("reg-test")
+                .withNamespace("apicurio-test")
                 .endMetadata()
                 .withNewSpec()
                 .withNewConfiguration()
@@ -27,11 +28,11 @@ public class SimpleTestsIT {
 
     @Test
     public void simpleTestCreate() {
-        ResourceManager.getInstance().createResource(createSR());
+        ApicurioRegistryResourceManager.getInstance().create(createSR());
     }
 
     @Test
     public void simpleTestDelete() {
-        ResourceManager.getInstance().deleteResource(createSR());
+        ApicurioRegistryResourceManager.getInstance().delete(createSR());
     }
 }

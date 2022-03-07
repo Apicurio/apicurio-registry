@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 7);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 8);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
@@ -62,3 +62,8 @@ ALTER TABLE acls ADD PRIMARY KEY (tenantId, principalId);
 CREATE TABLE downloads (tenantId VARCHAR(128) NOT NULL, downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context VARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (tenantId, downloadId);
 CREATE HASH INDEX IDX_down_1 ON downloads(expires);
+
+CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL, pvalue VARCHAR(1024), modifiedOn BIGINT NOT NULL);
+ALTER TABLE config ADD PRIMARY KEY (tenantId, pname);
+CREATE INDEX IDX_config_1 ON config(modifiedOn);
+

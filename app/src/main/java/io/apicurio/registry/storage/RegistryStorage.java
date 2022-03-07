@@ -17,11 +17,14 @@
 
 package io.apicurio.registry.storage;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -52,7 +55,7 @@ import io.apicurio.registry.utils.impexp.Entity;
  * @author eric.wittmann@gmail.com
  * @author Ales Justin
  */
-public interface RegistryStorage {
+public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * The storage name
@@ -662,6 +665,22 @@ public interface RegistryStorage {
      * @throws RegistryStorageException
      */
     public void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    /**
+     * Gets the raw value of a property, bypassing any caching that might be enabled.
+     * @param propertyName the name of a property
+     * @return the raw value
+     */
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName);
+
+    /**
+     * Gets a list of tenantIds with stale configuration properties.  This would inform a caching
+     * layer that a tenant-specific cache should be invalidated.
+     * @param since instant representing the last time this check was done (has anything changed since)
+     * @return a list of tenant IDs with stale configs
+     */
+    public List<String> getTenantsWithStaleConfigProperties(Instant since);
+
 
     /**
      * @return The artifact references resolved as a map containing the reference name as key and the referenced artifact content.

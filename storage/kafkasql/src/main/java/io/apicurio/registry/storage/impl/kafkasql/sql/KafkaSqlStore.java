@@ -12,7 +12,7 @@ import javax.transaction.Transactional;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;

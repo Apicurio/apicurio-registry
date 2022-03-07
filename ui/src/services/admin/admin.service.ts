@@ -17,6 +17,8 @@
 
 import {BaseService} from "../baseService";
 import {DownloadRef, RoleMapping, Rule} from "../../models";
+import {ConfigurationProperty} from "../../models/configurationProperty.model";
+import {UpdateConfigurationProperty} from "../../models/updateConfigurationProperty.model";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global
@@ -137,4 +139,30 @@ export class AdminService extends BaseService {
         };
         return this.httpPost(endpoint, file, this.options(headers),undefined, progressFunction);
     }
+
+    public listConfigurationProperties(): Promise<ConfigurationProperty[]> {
+        this.logger.info("[AdminService] Getting the dynamic config properties.");
+        const endpoint: string = this.endpoint("/v2/admin/config/properties");
+        return this.httpGet<ConfigurationProperty[]>(endpoint);
+    }
+
+    public setConfigurationProperty(propertyName: string, newValue: string): Promise<void> {
+        this.logger.info("[AdminService] Setting a config property: ", propertyName);
+        const endpoint: string = this.endpoint("/v2/admin/config/properties/:propertyName", {
+            propertyName
+        });
+        const body: UpdateConfigurationProperty = {
+            value: newValue
+        };
+        return this.httpPut<UpdateConfigurationProperty>(endpoint, body);
+    }
+
+    public resetConfigurationProperty(propertyName: string): Promise<void> {
+        this.logger.info("[AdminService] Resetting a config property: ", propertyName);
+        const endpoint: string = this.endpoint("/v2/admin/config/properties/:propertyName", {
+            propertyName
+        });
+        return this.httpDelete(endpoint);
+    }
+
 }

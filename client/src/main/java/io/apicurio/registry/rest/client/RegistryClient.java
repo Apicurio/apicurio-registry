@@ -22,7 +22,22 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -224,6 +239,15 @@ public interface RegistryClient extends Closeable {
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 
     Map<String, String> getHeaders();
+
+    List<ConfigurationProperty> listConfigProperties();
+
+    void setConfigProperty(String propertyName, String propertyValue);
+
+    ConfigurationProperty getConfigProperty(String propertyName);
+
+    void deleteConfigProperty(String propertyName);
+
 
     List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId);
 

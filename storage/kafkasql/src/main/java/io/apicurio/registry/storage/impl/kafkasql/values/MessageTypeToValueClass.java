@@ -70,6 +70,9 @@ public class MessageTypeToValueClass {
                 case Download:
                     index.put(type, DownloadValue.class);
                     break;
+                case ConfigProperty:
+                    index.put(type, ConfigPropertyValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

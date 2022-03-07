@@ -16,16 +16,50 @@
 
 package io.apicurio.registry.rbac;
 
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
+import io.apicurio.registry.rest.client.exception.ConfigPropertyNotFoundException;
+import io.apicurio.registry.rest.client.exception.InvalidPropertyValueException;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 import io.apicurio.registry.rest.client.exception.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.RoleMappingNotFoundException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -50,40 +84,13 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.registry.utils.tests.TooManyRequestsMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
  */
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
+@SuppressWarnings("deprecation")
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);
@@ -173,10 +180,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(version, created.getVersion());
         assertEquals(name, created.getName());
         assertEquals(description, created.getDescription());
-        assertEquals(
-                TestUtils.normalizeMultiLineString(ARTIFACT_OPENAPI_JSON_CONTENT),
-                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
-        );
+        assertMultilineTextEquals(ARTIFACT_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
 
 
@@ -243,10 +247,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(name, amd.getName());
         assertEquals(description, amd.getDescription());
 
-        assertEquals(
-                TestUtils.normalizeMultiLineString(UPDATED_OPENAPI_JSON_CONTENT),
-                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
-        );
+        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
     }
 
     @Test
@@ -970,10 +971,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.updateArtifact(groupId, artifactId, version, name, description, ContentTypes.APPLICATION_YAML, stream);
 
         //Assertions
-        assertEquals(
-                TestUtils.normalizeMultiLineString(UPDATED_OPENAPI_JSON_CONTENT),
-                TestUtils.normalizeMultiLineString(IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)))
-        );
+        assertMultilineTextEquals(UPDATED_OPENAPI_JSON_CONTENT, IoUtil.toString(clientV2.getLatestArtifact(groupId, artifactId)));
 
         ArtifactMetaData artifactMetaData = clientV2.getArtifactMetaData(groupId, artifactId);
         assertNotNull(artifactMetaData);
@@ -1101,7 +1099,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void smokeLogLevels() throws Exception {
         final String logger = "smokeLogLevels";
-        final List<NamedLogConfiguration> namedLogConfigurations = clientV2.listLogConfigurations();
+        /*final List<NamedLogConfiguration> namedLogConfigurations = */clientV2.listLogConfigurations();
 
         setLogLevel(logger, LogLevel.DEBUG);
         final NamedLogConfiguration logConfiguration = clientV2.getLogConfiguration(logger);
@@ -1343,6 +1341,94 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Clean up
         clientV2.deleteRoleMapping("TestUser");
 
+    }
+
+    @Test
+    public void testConfigProperties() throws Exception {
+        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
+        String property2Name = "registry.ui.features.readOnly";
+
+        // Start with all default values
+        List<ConfigurationProperty> configProperties = clientV2.listConfigProperties();
+        Assertions.assertFalse(configProperties.isEmpty());
+        Optional<ConfigurationProperty> anonymousRead = configProperties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst();
+        Assertions.assertTrue(anonymousRead.isPresent());
+        Assertions.assertEquals("false", anonymousRead.get().getValue());
+        Optional<ConfigurationProperty> obacLimit = configProperties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst();
+        Assertions.assertTrue(obacLimit.isPresent());
+        Assertions.assertEquals("false", obacLimit.get().getValue());
+
+        // Change value of anonymous read access
+        clientV2.setConfigProperty(property1Name, "true");
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(property1Name);
+            Assertions.assertEquals(property1Name, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+            Assertions.assertEquals(property1Name, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+
+        // Set another property
+        clientV2.setConfigProperty(property2Name, "true");
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(property2Name);
+            Assertions.assertEquals(property2Name, prop.getName());
+            Assertions.assertEquals("true", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+            Assertions.assertEquals("true", prop.getValue());
+        });
+
+        // Reset a config property
+        clientV2.deleteConfigProperty(property2Name);
+
+        // Verify the property was reset.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(property2Name);
+            Assertions.assertEquals(property2Name, prop.getName());
+            Assertions.assertEquals("false", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+            Assertions.assertEquals("false", prop.getValue());
+        });
+
+        // Reset the other property
+        clientV2.deleteConfigProperty(property1Name);
+
+        // Verify the property was reset.
+        TestUtils.retry(() -> {
+            ConfigurationProperty prop = clientV2.getConfigProperty(property1Name);
+            Assertions.assertEquals(property1Name, prop.getName());
+            Assertions.assertEquals("false", prop.getValue());
+        });
+        TestUtils.retry(() -> {
+            List<ConfigurationProperty> properties = clientV2.listConfigProperties();
+            ConfigurationProperty prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+            Assertions.assertEquals(property1Name, prop.getName());
+            Assertions.assertEquals("false", prop.getValue());
+        });
+
+        // Try to set a config property that doesn't exist.
+        Assertions.assertThrows(ConfigPropertyNotFoundException.class, () -> {
+            clientV2.setConfigProperty("property-does-not-exist", "foobar");
+        });
+
+        // Try to set a Long property to "foobar" (should be invalid type)
+        Assertions.assertThrows(InvalidPropertyValueException.class, () -> {
+            clientV2.setConfigProperty("registry.download.href.ttl", "foobar");
+        });
     }
 
 

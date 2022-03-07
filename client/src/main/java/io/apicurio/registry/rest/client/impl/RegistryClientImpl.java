@@ -27,8 +27,24 @@ import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.LogConfiguration;
+import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.SortBy;
+import io.apicurio.registry.rest.v2.beans.SortOrder;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.UserInfo;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
@@ -447,6 +463,30 @@ public class RegistryClientImpl implements RegistryClient {
         } catch (JsonProcessingException e) {
             throw parseSerializationError(e);
         }
+    }
+
+    @Override
+    public List<ConfigurationProperty> listConfigProperties() {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.listConfigProperties());
+    }
+
+    @Override
+    public ConfigurationProperty getConfigProperty(String propertyName) {
+        return apicurioHttpClient.sendRequest(AdminRequestsProvider.getConfigProperty(propertyName));
+    }
+
+    @Override
+    public void setConfigProperty(String propertyName, String propertyValue) {
+        try {
+            apicurioHttpClient.sendRequest(AdminRequestsProvider.setConfigProperty(propertyName, propertyValue));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteConfigProperty(String propertyName) {
+        apicurioHttpClient.sendRequest(AdminRequestsProvider.deleteConfigProperty(propertyName));
     }
 
     @Override

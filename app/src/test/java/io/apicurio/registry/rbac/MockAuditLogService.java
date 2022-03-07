@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.rbac;
 
-import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.logging.audit.AuditLogService;
+import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
+import io.apicurio.common.apps.logging.audit.AuditLogService;
 import io.quarkus.test.Mock;
 
 import java.util.HashMap;

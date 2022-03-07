@@ -176,8 +176,11 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 </Modal>
                 <PleaseWaitModal message="Creating artifact, please wait..."
                                  isOpen={this.state.isPleaseWaitModalOpen} />
-                <ProgressModal message="Importing artifacts, please wait..."
+                <ProgressModal message="Importing artifacts"
+                               title="Upload multiple artifacts"
+                               isCloseable={true}
                                progress={this.state.importProgress}
+                               onClose={() => this.setSingleState("isImporting", false)}
                                isOpen={this.state.isImporting} />
             </React.Fragment>
         );

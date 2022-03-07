@@ -51,7 +51,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build and Test All Variants
-        run: make SKIP_TESTS=false BUILD_FLAGS='-e -Dquarkus.log.level=DEBUG -Psystemtests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Psystemtests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

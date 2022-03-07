@@ -166,7 +166,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             InputStream rawSchema = client.getContentById(contentIdKey);
 
             //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(contentId);
+            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByContentId(contentId);
             //If there are any references for the schema being parsed, resolve them before parsing the schema
             final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 

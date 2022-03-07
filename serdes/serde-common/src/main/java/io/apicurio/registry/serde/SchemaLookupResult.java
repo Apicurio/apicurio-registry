@@ -98,6 +98,7 @@ public class SchemaLookupResult<T> {
                 .build();
     }
 
+    @SuppressWarnings("rawtypes")
     public io.apicurio.registry.resolver.SchemaLookupResult toCompat() {
         return io.apicurio.registry.resolver.SchemaLookupResult.builder()
             .contentId(contentId)

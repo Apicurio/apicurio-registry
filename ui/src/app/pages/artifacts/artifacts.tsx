@@ -117,7 +117,9 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                             </Flex>
                         :
                         this.artifactsCount() === 0 ?
-                            <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact} isFiltered={this.isFiltered()}/>
+                            <ArtifactsPageEmptyState onUploadArtifact={this.onUploadArtifact}
+                                                     onImportArtifacts={this.onImportArtifacts}
+                                                     isFiltered={this.isFiltered()}/>
                         :
                             <ArtifactList artifacts={this.artifacts()} onGroupClick={this.onGroupClick} />
                     }
@@ -140,7 +142,7 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                                      onClose={this.closeInvalidContentModal} />
                 <Modal
                     title="Upload multiple artifacts"
-                    variant="large"
+                    variant="medium"
                     isOpen={this.state.isImportModalOpen}
                     onClose={this.onImportModalClose}
                     className="import-artifacts-modal pf-m-redhat-font"
@@ -150,19 +152,24 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                     ]}
                 >
                     <Form>
+                        <FormGroup isRequired={false} fieldId="form-summary">
+                            <p>
+                                Select an artifacts .zip file previously downloaded from a Service Registry instance.
+                            </p>
+                        </FormGroup>
                         <FormGroup
                             label="ZIP File"
                             isRequired={true}
                             fieldId="form-file"
+                            helperText="File format must be .zip"
                         >
                             <FileUpload
                                 id="import-content"
                                 data-testid="form-import"
                                 filename={this.state.importFilename}
-                                filenamePlaceholder="Drag and drop or choose a ZIP file"
+                                filenamePlaceholder="Drag and drop or choose a .zip file"
                                 isRequired={true}
                                 onChange={this.onImportFileChange}
-
                             />
                         </FormGroup>
                     </Form>
@@ -393,10 +400,11 @@ export class ArtifactsPage extends PageComponent<ArtifactsPageProps, ArtifactsPa
                 isImportFormValid: false
             });
         } else {
+            const isValid: boolean = filename.toLowerCase().endsWith(".zip");
             this.setMultiState({
                 importFilename: filename,
                 importFile: value,
-                isImportFormValid: true
+                isImportFormValid: isValid
             });
         }
     };

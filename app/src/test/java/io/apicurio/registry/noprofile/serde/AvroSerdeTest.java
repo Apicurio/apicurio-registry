@@ -345,7 +345,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
         String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ParsedSchema schema = new AvroSchema(rawSchema);
-        schemaClient.register(subject + "-value", schema);
+        final int schemaId = schemaClient.register(subject + "-value", schema);
 
         GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
         record.put("bar", "somebar");
@@ -355,7 +355,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt());
+            TestUtils.retry(() -> TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt()));
 
             deserializer1.asLegacyId();
             Map<String, String> config = new HashMap<>();

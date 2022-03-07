@@ -345,7 +345,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
         String rawSchema = "{\"type\":\"record\",\"name\":\"myrecord5\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
         ParsedSchema schema = new AvroSchema(rawSchema);
-        final int schemaId = schemaClient.register(subject + "-value", schema);
+        schemaClient.register(subject + "-value", schema);
 
         GenericData.Record record = new GenericData.Record(new Schema.Parser().parse(rawSchema));
         record.put("bar", "somebar");

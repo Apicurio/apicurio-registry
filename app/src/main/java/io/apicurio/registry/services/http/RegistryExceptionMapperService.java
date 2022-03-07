@@ -161,12 +161,8 @@ public class RegistryExceptionMapperService {
             // and log it.  Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
-                log.error(t.getMessage(), t);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.error(t.getMessage(), t);
-                }
             }
+            log.error("[500 ERROR DETECTED] : " + t.getMessage(), t);
         }
 
         Error error = toError(t, code);

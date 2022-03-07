@@ -22,7 +22,7 @@ CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NUL
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 
-CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL, artifactreferences VARCHAR(512));
+CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL, artifactreferences TEXT);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
@@ -66,3 +66,6 @@ CREATE INDEX IDX_down_1 ON downloads USING HASH (expires);
 CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL, pvalue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
 ALTER TABLE config ADD PRIMARY KEY (tenantId, pname);
 CREATE INDEX IDX_config_1 ON config(modifiedOn);
+
+CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
+ALTER TABLE artifactreferences ADD PRIMARY KEY (tenantId, contentId, name);

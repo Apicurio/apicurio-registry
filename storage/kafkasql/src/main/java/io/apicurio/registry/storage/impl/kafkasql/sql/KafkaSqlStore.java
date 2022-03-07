@@ -9,6 +9,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -122,10 +123,13 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .bind(4, contentBytes)
                     .bind(5, serializedReferences)
                     .execute();
+
+                insertReferences(handle, contentId, SqlUtil.deserializeReferences(serializedReferences));
             }
             return null;
         });
     }
+
 
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,

@@ -144,7 +144,7 @@ export class ArtifactsPageToolbar extends PureComponent<ArtifactsPageToolbarProp
                                 isPlain
                                 dropdownItems={[
                                     <DropdownItem key="import" id="import-action" data-testid="toolbar-import" component="button">Upload multiple artifacts</DropdownItem>,
-                                    <DropdownItem key="export" id="export-action" data-testid="toolbar-export" component="button">Download all artifacts (zip)</DropdownItem>
+                                    <DropdownItem key="export" id="export-action" data-testid="toolbar-export" component="button">Download all artifacts (.zip file)</DropdownItem>
                                 ]}
                             />
 

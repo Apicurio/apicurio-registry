@@ -121,11 +121,17 @@ public class KafkaSqlFactory {
     @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.location")
     Optional<String> trustStoreLocation;
 
+    @ConfigProperty(name = "registry.kafkasql.security.ssl.truststore.type")
+    Optional<String> trustStoreType;
+
     @ConfigProperty(name = "registry.kafkasql.ssl.truststore.password")
     Optional<String> trustStorePassword;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.keystore.location")
     Optional<String> keyStoreLocation;
+
+    @ConfigProperty(name = "registry.kafkasql.ssl.keystore.type")
+    Optional<String> keyStoreType;
 
     @ConfigProperty(name = "registry.kafkasql.ssl.keystore.password")
     Optional<String> keyStorePassword;
@@ -241,12 +247,14 @@ public class KafkaSqlFactory {
             props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
         }
         //Try to configure the trustStore, if specified
-        if (trustStoreLocation.isPresent() && trustStorePassword.isPresent()) {
+        if (trustStoreLocation.isPresent() && trustStorePassword.isPresent() && trustStoreType.isPresent()) {
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.get());
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword.get());
         }
         //Finally, try to configure the keystore, if specified
-        if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyPassword.isPresent()) {
+        if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyPassword.isPresent() && keyStoreType.isPresent()) {
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, keyStoreType.get());
             props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStoreLocation.get());
             props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword.get());
             props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword.get());

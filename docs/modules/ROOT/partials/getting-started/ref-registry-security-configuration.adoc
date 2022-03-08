@@ -230,15 +230,12 @@ content that they themselves created. Users will not be able to update or delete
 other users.
 
 [discrete]
-== Additional {registry} authorization options
+== {registry} anonymous read-only access option
 
 In addition to the two main types of authorization (role-based and owner-based authorization), {registry}
-supports the following authorization related features.
+supports an anonymous read-only access option.
 
-[discrete]
-=== Anonymous read-only access
-
-To enable anonymous users (REST API calls with no authentication credentials provided) to be allowed to make
+To enable anonymous users, such as REST API calls with no authentication credentials provided, to be allowed to make
 read-only calls to the REST API, set the following option to `true`:
 
 .Configuration for anonymous read-only access
@@ -257,15 +254,5 @@ read-only calls to the REST API, set the following option to `true`:
 
 [role="_additional-resources"]
 .Additional resources
-ifdef::apicurio-registry[]
-* For details on how to use the {keycloak} Operator to secure {registry}, see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html[{registry} Operator documentation]
-endif::[]
-* For an open source Docker-based example of authentication using {keycloak}, see https://github.com/Apicurio/apicurio-registry/tree/master/distro/docker-compose
-* For details on how to use {keycloak} in a production environment, see
-ifdef::apicurio-registry[]
-the link:https://www.keycloak.org/documentation[Keycloak documentation]
-endif::[]
-ifdef::rh-service-registry[]
-see link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
-endif::[]
+* For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
 * For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]

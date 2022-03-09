@@ -202,9 +202,15 @@ public class GroupsResourceImpl implements GroupsResource {
      **/
     @Override
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId, String version) {
-        return storage.getArtifactVersion(gidOrNull(groupId), artifactId, version).getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
-                .collect(Collectors.toList());
+        if (null == version) {
+            return storage.getArtifact(gidOrNull(groupId), artifactId).getReferences().stream()
+                    .map(V2ApiUtil::referenceDtoToReference)
+                    .collect(Collectors.toList());
+        } else {
+            return storage.getArtifactVersion(gidOrNull(groupId), artifactId, version).getReferences().stream()
+                    .map(V2ApiUtil::referenceDtoToReference)
+                    .collect(Collectors.toList());
+        }
     }
 
     private ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, InputStream data, List<ArtifactReference> references) {

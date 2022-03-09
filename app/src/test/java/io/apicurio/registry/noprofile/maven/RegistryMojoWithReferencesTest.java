@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.noprofile.maven;
 
+import io.apicurio.registry.maven.DownloadArtifact;
+import io.apicurio.registry.maven.DownloadRegistryMojo;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterArtifactReference;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
@@ -29,31 +31,31 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 @QuarkusTest
-public class RegisterWithReferencesRegistryMojoTest extends RegistryMojoTestBase {
+public class RegistryMojoWithReferencesTest extends RegistryMojoTestBase {
 
-    RegisterRegistryMojo mojo;
+    RegisterRegistryMojo registerMojo;
+    DownloadRegistryMojo downloadMojo;
 
     @BeforeEach
-    public void createMojo() {
-        this.mojo = new RegisterRegistryMojo();
-        this.mojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+    public void createMojos() {
+        this.registerMojo = new RegisterRegistryMojo();
+        this.registerMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
+
+        this.downloadMojo = new DownloadRegistryMojo();
+        this.downloadMojo.setRegistryUrl(TestUtils.getRegistryV2ApiUrl());
     }
 
     @Test
-    public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
+    public void testMojosWithReferences() throws IOException, MojoFailureException, MojoExecutionException {
 
         String groupId = "RegisterWithReferencesRegistryMojoTest";
 
         File exchangeFile = new File(getClass().getResource("Exchange.avsc").getFile());
         File tradeKeyFile = new File(getClass().getResource("TradeKey.avsc").getFile());
         File tradeRawFile = new File(getClass().getResource("TradeRaw.avsc").getFile());
-
-        List<RegisterArtifact> artifacts = new ArrayList<>();
 
         RegisterArtifact tradeRawArtifact = new RegisterArtifact();
         tradeRawArtifact.setGroupId(groupId);
@@ -78,10 +80,30 @@ public class RegisterWithReferencesRegistryMojoTest extends RegistryMojoTestBase
         tradeKeyArtifact.setReferences(Collections.singletonList(exchangeArtifact));
         tradeRawArtifact.setReferences(Collections.singletonList(tradeKeyArtifact));
 
-        artifacts.add(tradeRawArtifact);
 
-        mojo.setArtifacts(artifacts);
-        mojo.execute();
+        registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
+        registerMojo.execute();
 
+
+        DownloadArtifact tradeRawDownload = new DownloadArtifact();
+        tradeRawDownload.setArtifactId("tradeRaw");
+        tradeRawDownload.setGroupId(groupId);
+        tradeRawDownload.setFile(new File(this.tempDirectory, "tradeRaw.avsc"));
+
+        DownloadArtifact tradeKeyDownload = new DownloadArtifact();
+        tradeKeyDownload.setArtifactId("tradeKey");
+        tradeKeyDownload.setGroupId(groupId);
+        tradeKeyDownload.setFile(new File(this.tempDirectory, "tradeKey.avsc"));
+
+        DownloadArtifact exchangeDownload = new DownloadArtifact();
+        exchangeDownload.setArtifactId("tradeKey");
+        exchangeDownload.setGroupId(groupId);
+        exchangeDownload.setFile(new File(this.tempDirectory, "exchange.avsc"));
+
+        tradeKeyDownload.setArtifactReferences(Collections.singletonList(exchangeDownload));
+        tradeRawDownload.setArtifactReferences(Collections.singletonList(tradeKeyDownload));
+
+        downloadMojo.setArtifacts(Collections.singletonList(tradeRawDownload));
+        downloadMojo.execute();
     }
 }

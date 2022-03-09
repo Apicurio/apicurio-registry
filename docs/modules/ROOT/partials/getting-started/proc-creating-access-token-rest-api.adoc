@@ -18,17 +18,18 @@ endif::[]
 
 .Procedure
 
-. Create your service account credentials using the web console: 
-https://console.redhat.com/beta/application-services/service-accounts
+. Create your service account using the web console:
++ 
+https://console.redhat.com/application-services/service-accounts
 
-. Copy the generated *Client ID* and *Client Secret* to a secure location.
+. Copy the generated *Client ID* and *Client secret* credentials to a secure location. To reset your service account credentials, click the options menu on the right (three vertical dots), and select *Reset credentials*.
 
-. Create an OAuth Bearer token using your service account client ID and secret:  
+. Create an OAuth Bearer token using your service account client ID and client secret:  
 +
 [source,bash]
 ----
 $ curl -X POST \
-  -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET" \ 
+  -d "grant_type=client_credentials&client_id=MY-CLIENT-ID&client_secret=MY-CLIENT-SECRET" \ 
   https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token
 ----
 +
@@ -45,7 +46,6 @@ $ curl -X POST \
 ----
 export ACCESS_TOKEN=VALUE
 ----
-
 
 //[role="_additional-resources"]
 //.Additional resources

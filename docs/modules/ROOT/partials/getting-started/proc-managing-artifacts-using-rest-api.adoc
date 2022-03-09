@@ -20,9 +20,9 @@ endif::[]
 .Procedure
 
 ifdef::rh-openshift-sr[]
-. Connect to the {registry} web console on:
+. Connect to the {registry} web console on: 
 +
-`*{registry-url}*`
+{registry-url}
 
 . For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
 . In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. This is the registry API endpoint that you need for connecting to this {registry} instance. 

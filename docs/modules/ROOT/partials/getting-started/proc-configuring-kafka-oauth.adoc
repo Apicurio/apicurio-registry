@@ -1,0 +1,50 @@
+// Metadata created by nebel
+//
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="configuring-kafka-oauth_{context}"]
+
+= Configuring OAuth authentication for Kafka storage
+// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
+
+[role="_abstract"]
+When using Kafka-based storage in {kafka-streams}, {registry} supports accessing a Kafka cluster that requires OAuth authentication. To enable this support, you must to set some environment variables in your {registry} deployment.
+
+When you set these environment variables, the Kafka producer and consumer applications in {registry} will use this configuration to authenticate to the Kafka cluster over OAuth.
+
+
+.Prerequisites
+* You must have already configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage_{context}[].
+
+.Procedure
+
+* Set the following environment variables in your {registry} deployment:
++
+[%header,cols="2,2,2"]
+|===
+|Environment variable
+|Description
+|Default value
+| `ENABLE_KAFKA_SASL`
+| Enables SASL OAuth authentication for {registry} storage in Kafka. You must set this variable to `true` for the other variables to have effect.
+| `false`
+| `CLIENT_ID`
+| The client ID used to authenticate to Kafka. 
+| `-`
+| `CLIENT_SECRET`
+| The client secret used to authenticate to Kafka. 
+| `-`
+| `OAUTH_TOKEN_ENDPOINT_URI`
+| The URL of the OAuth identity server.
+| `\http://localhost:8090`
+|===
+
+
+.Additional resources
+* For an example of how to set {registry} environment variables on OpenShift, see 
+ifdef::apicurio-registry[]
+_Configuring {registry} health checks on OpenShift_ in xref:getting-started/assembly-configuring-the-registry.adoc[]
+endif::[]
+ifdef::rh-service-registry[]
+ xref:configuring-liveness-readiness-probes_{context}[]
+endif::[] 

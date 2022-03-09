@@ -23,7 +23,7 @@ This chapter explains how to use Kafka client SerDe in your producer and consume
 * You have created Kafka producer and consumer client applications
 +
 ifdef::rh-service-registry[]
-For more details on Kafka client applications, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift[Using AMQ Streams on Openshift].
+For more details on Kafka client applications, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift[Using AMQ Streams on OpenShift].
 endif::[]
 
 //INCLUDES

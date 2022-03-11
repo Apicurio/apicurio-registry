@@ -164,7 +164,7 @@
 
         <!-- Schema types -->
         <avro.version>1.11.0</avro.version>
-        <json-schema-validator.version>1.0.66</json-schema-validator.version>
+        <json-schema-validator.version>1.0.67</json-schema-validator.version>
         <wire-schema.version>3.7.1</wire-schema.version>
         <wire-compiler.version>3.7.1</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
@@ -201,7 +201,8 @@
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.1.7.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.1.8.Final</apicurio-common-rest-client.version>
+        <apicurio-common-app-components.version>0.1.9.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.8.1</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
@@ -244,7 +245,7 @@
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>16.1.1</keycloak-admin-client.version>
         <embedded-postgres.version>1.3.1</embedded-postgres.version>
-        <strimzi.version>0.100.0</strimzi.version>
+        <strimzi.version>0.101.0</strimzi.version>
         <wiremock-jre8.version>2.32.0</wiremock-jre8.version>
     </properties>
 
@@ -380,6 +381,27 @@
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-rest-client-common</artifactId>
                 <version>${apicurio-common-rest-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-core</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-logging</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-config-index</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
             </dependency>
 
             <dependency>

@@ -22,7 +22,7 @@
         <junit.version>5.8.2</junit.version>
         <junit.platform-launcher.version>1.8.2</junit.platform-launcher.version>
         
-        <logback.version>1.2.10</logback.version>
+        <logback.version>1.2.11</logback.version>
         <hamcrest.version>2.2</hamcrest.version>
         <commons-logging.version>1.2</commons-logging.version>
         <version.failsafe.plugin>3.0.0-M5</version.failsafe.plugin>

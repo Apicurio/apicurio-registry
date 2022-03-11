@@ -37,6 +37,7 @@ import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.AlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.ContentNotFoundException;
 import io.apicurio.registry.storage.DownloadNotFoundException;
 import io.apicurio.registry.storage.GroupNotFoundException;
@@ -44,6 +45,7 @@ import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.InvalidGroupIdException;
+import io.apicurio.registry.storage.InvalidPropertyValueException;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.NotFoundException;
 import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
@@ -115,6 +117,7 @@ public class RegistryExceptionMapperService {
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
@@ -127,6 +130,7 @@ public class RegistryExceptionMapperService {
         map.put(TenantManagerClientException.class, HTTP_INTERNAL_ERROR);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         // From io.apicurio.registry.mt.TenantMetadataService:
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);
@@ -157,12 +161,8 @@ public class RegistryExceptionMapperService {
             // and log it.  Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
-                log.error(t.getMessage(), t);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.error(t.getMessage(), t);
-                }
             }
+            log.error("[500 ERROR DETECTED] : " + t.getMessage(), t);
         }
 
         Error error = toError(t, code);

@@ -22,7 +22,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.SchemasResource;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.types.ArtifactType;

@@ -30,6 +30,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -699,6 +700,38 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void updateRoleMapping(String principalId, RoleType role) {
         getTarget().updateRoleMapping(principalId, role);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#listConfigProperties()
+     */
+    @Override
+    public List<ConfigurationProperty> listConfigProperties() {
+        return getTarget().listConfigProperties();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public ConfigurationProperty getConfigProperty(String propertyName) {
+        return getTarget().getConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#setConfigProperty(java.lang.String, java.lang.String)
+     */
+    @Override
+    public void setConfigProperty(String propertyName, String propertyValue) {
+        getTarget().setConfigProperty(propertyName, propertyValue);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.client.RegistryClient#deleteConfigProperty(java.lang.String)
+     */
+    @Override
+    public void deleteConfigProperty(String propertyName) {
+        getTarget().deleteConfigProperty(propertyName);
     }
 
     /**

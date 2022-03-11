@@ -24,9 +24,12 @@ import {PureComponent, PureComponentProps, PureComponentState} from "../baseComp
  * Properties
  */
 export interface ProgressModalProps extends PureComponentProps {
+    title: string;
+    isCloseable: boolean;
     message: string;
     isOpen: boolean;
     progress: number | undefined;
+    onClose: () => void;
 }
 
 /**
@@ -49,11 +52,11 @@ export class ProgressModal extends PureComponent<ProgressModalProps, ProgressMod
     public render(): React.ReactElement {
         return (
             <Modal
-                title="Working"
+                title={this.props.title}
                 variant="small"
                 isOpen={this.props.isOpen}
-                header={<a href="#" />}
-                showClose={false}
+                showClose={this.props.isCloseable}
+                onClose={this.props.onClose}
                 className="progress pf-m-redhat-font"
                 aria-label="progress-modal"
             >

@@ -534,4 +534,21 @@ public interface SqlStatements {
 
     public String deleteExpiredDownloads();
 
+
+    /*
+     * The next few statements support config properties.
+     */
+
+    public String selectConfigProperties();
+
+    public String deleteConfigProperty();
+
+    public String insertConfigProperty();
+
+    public String deleteAllConfigProperties();
+
+    public String selectConfigPropertyByName();
+
+    public String selectTenantIdsByConfigModifiedOn();
+
 }

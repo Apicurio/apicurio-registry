@@ -56,6 +56,7 @@ import io.apicurio.registry.rest.v2.beans.LogConfiguration;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -846,9 +847,160 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(204)
                 .body(anything());
-
-
     }
 
+    @Test
+    public void testConfigProperties() throws Exception {
+        String property1Name = "registry.ccompat.legacy-id-mode.enabled";
+        String property2Name = "registry.ui.features.readOnly";
+
+        // Start with default mappings
+        given()
+            .when()
+                .get("/registry/v2/admin/config/properties")
+            .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON);
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property1Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property1Name))
+                    .body("value", equalTo("false"));
+        });
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property2Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property2Name))
+                    .body("value", equalTo("false"));
+        });
+
+        // Set value for a property
+        UpdateConfigurationProperty update = new UpdateConfigurationProperty();
+        update.setValue("true");
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", property1Name)
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property1Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property1Name))
+                    .body("value", equalTo("true"));
+        });
+
+        // Set another property
+        update = new UpdateConfigurationProperty();
+        update.setValue("true");
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", property2Name)
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was set.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property2Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property2Name))
+                    .body("value", equalTo("true"));
+        });
+
+        // Reset a config property
+        given()
+            .when()
+                .pathParam("propertyName", property2Name)
+                .delete("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was reset.
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property2Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property2Name))
+                    .body("value", equalTo("false"));
+        });
+
+        // Reset the other property
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", property1Name)
+                .delete("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(204)
+                .body(anything());
+
+        // Verify the property was reset
+        TestUtils.retry(() -> {
+            given()
+                .when()
+                    .pathParam("propertyName", property1Name)
+                    .get("/registry/v2/admin/config/properties/{propertyName}")
+                .then()
+                    .statusCode(200)
+                    .contentType(ContentType.JSON)
+                    .body("name", equalTo(property1Name))
+                    .body("value", equalTo("false"));
+        });
+
+        // Try to set a config property that doesn't exist.
+        update = new UpdateConfigurationProperty();
+        update.setValue("foobar");
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", "property-does-not-exist")
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(404);
+
+        // Try to set a Long property to "foobar" (should be invalid type)
+        update = new UpdateConfigurationProperty();
+        update.setValue("foobar");
+        given()
+            .when()
+                .contentType(CT_JSON).body(update)
+                .pathParam("propertyName", "registry.download.href.ttl")
+                .put("/registry/v2/admin/config/properties/{propertyName}")
+            .then()
+                .statusCode(400);
+
+    }
 
 }

@@ -1,0 +1,16 @@
+.configuration-property {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #fafafa;
+    margin-bottom: 15px;
+}
+
+.configuration-property > .property-name {
+}
+.configuration-property > .property-description {
+    color: rgb(106, 110, 115);
+    font-size: 14px;
+}
+.configuration-property > .property-value {
+    margin-top: 5px;
+    max-width: 740px;
+}

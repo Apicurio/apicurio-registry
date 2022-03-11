@@ -27,6 +27,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.impl.sql.InMemoryRegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -49,21 +50,24 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorageDecorator> decorators;
 
+    private RegistryStorage cachedImpl;
+
     @Produces
     @ApplicationScoped
     @Current
     public RegistryStorage realImpl() {
-
-        RegistryStorage impl = null;
-
-        if (provider.isResolvable()) {
-            impl = provider.get().storage();
-        } else {
-            impl = defaultStorage.get();
+        if (cachedImpl != null) {
+            return cachedImpl;
         }
 
-        if (impl != null) {
-            log.info(String.format("Using RegistryStore: %s", impl.getClass().getName()));
+        if (provider.isResolvable()) {
+            cachedImpl = provider.get().storage();
+        } else {
+            cachedImpl = defaultStorage.get();
+        }
+
+        if (cachedImpl != null) {
+            log.info(String.format("Using RegistryStore: %s", cachedImpl.getClass().getName()));
 
             Comparator<RegistryStorageDecorator> decoratorsComparator = Comparator.comparing(RegistryStorageDecorator::order);
 
@@ -79,13 +83,20 @@ public class RegistryStorageProducer {
 
             for (int i = declist.size() - 1 ; i >= 0; i--) {
                 RegistryStorageDecorator decorator = declist.get(i);
-                decorator.setDelegate(impl);
-                impl = decorator;
+                decorator.setDelegate(cachedImpl);
+                cachedImpl = decorator;
             }
 
-            return impl;
+            return cachedImpl;
         }
 
         throw new IllegalStateException("No RegistryStorage available on the classpath!");
     }
+
+    @Produces
+    @ApplicationScoped
+    public DynamicConfigStorage configStorage() {
+        return realImpl();
+    }
+
 }

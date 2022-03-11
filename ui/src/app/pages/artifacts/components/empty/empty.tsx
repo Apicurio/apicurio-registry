@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import React from "react";
+import "./empty.css";
 import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title} from '@patternfly/react-core';
 import {PlusCircleIcon} from "@patternfly/react-icons";
 import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
@@ -27,6 +28,7 @@ import {If} from "../../../../components/common/if";
 export interface ArtifactsPageEmptyStateProps extends PureComponentProps {
     isFiltered: boolean;
     onUploadArtifact: () => void;
+    onImportArtifacts: () => void;
 }
 
 /**
@@ -51,7 +53,7 @@ export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptySta
             <EmptyState variant={EmptyStateVariant.full}>
                 <EmptyStateIcon icon={PlusCircleIcon}/>
                 <Title headingLevel="h5" size="lg">
-                    No Artifacts Found!
+                    No artifacts found
                 </Title>
                 <If condition={() => this.props.isFiltered}>
                     <EmptyStateBody>
@@ -61,13 +63,17 @@ export class ArtifactsPageEmptyState extends PureComponent<ArtifactsPageEmptySta
                 </If>
                 <If condition={() => !this.props.isFiltered}>
                     <EmptyStateBody>
-                        There are currently no artifacts in the registry.  Artifacts must be created before
-                        you will see anything here.
+                        There are currently no artifacts in the registry.  Upload artifacts to view them here.
                     </EmptyStateBody>
                 </If>
                 <IfAuth isDeveloper={true}>
                     <IfFeature feature="readOnly" isNot={true}>
-                        <Button variant="primary" data-testid="empty-btn-upload" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                        <Button className="empty-btn-upload" variant="primary" data-testid="empty-btn-upload" onClick={this.props.onUploadArtifact}>Upload artifact</Button>
+                    </IfFeature>
+                </IfAuth>
+                <IfAuth isAdmin={true}>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <Button className="empty-btn-import" variant="secondary" data-testid="empty-btn-import" onClick={this.props.onImportArtifacts}>Upload multiple artifacts</Button>
                     </IfFeature>
                 </IfAuth>
             </EmptyState>

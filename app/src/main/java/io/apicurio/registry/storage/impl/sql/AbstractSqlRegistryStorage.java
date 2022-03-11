@@ -2917,8 +2917,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         log.debug("Deleting all orphaned content");
         handles.withHandleNoException( handle -> {
 
+            // Delete orphaned references
+            String sql = sqlStatements.deleteOrphanedReferences();
+            handle.createUpdate(sql)
+                    .execute();
+
             // Delete orphaned content
-            String sql = sqlStatements.deleteAllOrphanedContent();
+            sql = sqlStatements.deleteAllOrphanedContent();
             handle.createUpdate(sql)
                 .execute();
 

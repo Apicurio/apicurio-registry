@@ -973,4 +973,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllReferences() {
         return "DELETE FROM artifactreferences ar WHERE ar.tenantId = ?";
     }
+
+    @Override
+    public String deleteOrphanedReferences() {
+        return "DELETE FROM artifactreferences ar WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = ar.contentId AND v.tenantId = ar.tenantId)";
+    }
 }

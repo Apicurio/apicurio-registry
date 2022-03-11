@@ -557,4 +557,6 @@ public interface SqlStatements {
     public String selectTenantIdsByConfigModifiedOn();
 
     public String deleteAllReferences();
+
+    public String deleteOrphanedReferences();
 }

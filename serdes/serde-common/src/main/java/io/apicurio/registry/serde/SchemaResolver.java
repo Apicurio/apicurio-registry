@@ -37,7 +37,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "rawtypes", "unchecked" })
 @Deprecated
 public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resolver.SchemaResolver<SCHEMA, DATA>, Closeable {
 

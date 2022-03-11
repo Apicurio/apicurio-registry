@@ -8,7 +8,7 @@
 This section shows a simple curl-based example of using the registry v2 core REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating or upgrading from one {registry} v2.x instance to another. 
 
 ifdef::rh-openshift-sr[]
-IMPORTANT: You can import Service Registry data that has been exported from another {product-long} instance. You cannot currently import Service Registry data from a Red Hat Integration Service Registry instance.   
+IMPORTANT: You can import {registry} data that has been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a Red Hat Integration {registry} instance.   
 endif::[]
 
 .Prerequisites
@@ -24,9 +24,9 @@ endif::[]
 .Procedure
 
 ifdef::rh-openshift-sr[]
-. Connect to the {registry} web console on:
+. Connect to the {registry} web console on: 
 +
-`*{registry-url}*`
+{registry-url}
 
 . For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
 . In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. This is the registry API endpoint that you need for connecting to this {registry} instance. 

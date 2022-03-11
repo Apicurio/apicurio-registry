@@ -968,4 +968,9 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectTenantIdsByConfigModifiedOn() {
         return "SELECT DISTINCT c.tenantId FROM config c WHERE c.modifiedOn >= ?";
     }
+
+    @Override
+    public String deleteAllReferences() {
+        return "DELETE FROM artifactreferences ar WHERE ar.tenantId = ?";
+    }
 }

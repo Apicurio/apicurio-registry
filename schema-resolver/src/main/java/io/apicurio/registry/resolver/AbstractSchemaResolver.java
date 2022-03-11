@@ -36,6 +36,7 @@ import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import java.util.UUID;
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
+ * @author Carles Arnal
  */
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
@@ -212,7 +214,13 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         artifactReferences.forEach(reference -> {
             final InputStream referenceContent = client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
             final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> referenceReferences = client.getArtifactReferencesByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
+            if (!referenceReferences.isEmpty()) {
+                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
+                resolvedReferences.putAll(nestedReferences);
+                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
+            } else {
+                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+            }
         });
         return resolvedReferences;
     }

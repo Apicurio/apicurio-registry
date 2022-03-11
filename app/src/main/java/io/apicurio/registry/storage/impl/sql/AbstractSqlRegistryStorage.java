@@ -2813,7 +2813,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         handles.withHandleNoException( handle -> {
             // Delete all artifacts and related data
 
-            String sql = sqlStatements.deleteAllLabels();
+            String sql = sqlStatements.deleteAllReferences();
+            handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+            sql = sqlStatements.deleteAllLabels();
             handle.createUpdate(sql)
                 .bind(0, tenantContext.tenantId())
                 .bind(1, tenantContext.tenantId())

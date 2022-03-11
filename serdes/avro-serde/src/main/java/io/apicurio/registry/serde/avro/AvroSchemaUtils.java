@@ -18,17 +18,21 @@
 package io.apicurio.registry.serde.avro;
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.reflect.ReflectData;
 import org.apache.kafka.common.errors.SerializationException;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * @author Confluent Inc.
  * @author Ales Justin
+ * @author Carles Arnal
  */
 public class AvroSchemaUtils {
 
@@ -53,7 +57,22 @@ public class AvroSchemaUtils {
     }
 
     public static Schema parse(String schema) {
-        return new Schema.Parser().parse(schema);
+        return parse(schema, Collections.emptyList());
+    }
+
+    public static Schema parse(String schema, List<String> references) {
+        //First try to parse without references, useful when the content is dereferenced
+        try {
+            final Schema.Parser parser = new Schema.Parser();
+            return parser.parse(schema);
+        } catch (SchemaParseException e) {
+            //If we fail to parse the content from the main schema, then parse first the references and then the main schema
+            final Schema.Parser parser = new Schema.Parser();
+            for (String referencedContent : references) {
+                parser.parse(referencedContent);
+            }
+            return parser.parse(schema);
+        }
     }
 
     public static boolean isPrimitive(Schema schema) {

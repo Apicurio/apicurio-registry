@@ -19,7 +19,7 @@ endif::[]
 
 * {registry} instances have been created: 
 ** The source instance that you want to export data from contains at least one schema or API artifact 
-** The target instance that you want to export data from  can contain artifacts or be empty 
+** The target instance that you want to import data into can contain artifacts or be empty 
 * You have administrator access to the {registry} web console 
 ifdef::apicurio-registry,rh-service-registry[]
 for each instance 

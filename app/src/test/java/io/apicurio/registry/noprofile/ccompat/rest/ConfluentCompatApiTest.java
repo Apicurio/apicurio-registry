@@ -103,6 +103,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
+
+        // Verify
+        given()
+                .when()
+                .get("/ccompat/v6/subjects/").then().body(Matchers.containsString("subject1"));
     }
 
     /**

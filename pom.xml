@@ -109,8 +109,9 @@
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>utils/importexport</module>
-        <module>utils/protobuf-schema-utilities</module>
         <module>utils/exportV1</module>
+        <module>utils/exportConfluent</module>
+        <module>utils/protobuf-schema-utilities</module>
         <module>utils/tests</module>
         <module>schema-resolver</module>
         <module>serdes/serde-common</module>
@@ -184,7 +185,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.20</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>17.3</graphql.version>
@@ -217,7 +218,7 @@
         <scala.version>2.13.8</scala.version>
 
         <!-- Plugin Versions -->
-        <version.compiler.plugin>3.10.0</version.compiler.plugin>
+        <version.compiler.plugin>3.10.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.3.2</version.javadoc.plugin>

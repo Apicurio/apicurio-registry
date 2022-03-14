@@ -22,7 +22,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 /**
  * @author eric.wittmann@gmail.com
  */
-@QuarkusMain
+@QuarkusMain(name = "RegistryQuarkusMain")
 public class RegistryQuarkusMain {
     public static void main(String... args) {
         Quarkus.run(args);

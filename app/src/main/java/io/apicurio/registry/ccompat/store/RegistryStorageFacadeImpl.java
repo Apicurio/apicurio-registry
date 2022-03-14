@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.ccompat.store;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.Collections;
@@ -50,7 +50,11 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -62,6 +66,7 @@ import io.apicurio.registry.util.VersionUtil;
 /**
  * @author Ales Justin
  * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @ApplicationScoped
 public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
@@ -83,8 +88,10 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<String> getSubjects() {
-        // TODO maybe not necessary...
-        return new ArrayList<>(storage.getArtifactIds(null));
+        return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, 1000)
+                .getArtifacts()
+                .stream()
+                .map(SearchedArtifactDto::getId).collect(Collectors.toList());
     }
 
     @Override

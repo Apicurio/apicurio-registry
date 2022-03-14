@@ -184,7 +184,7 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.20</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>17.3</graphql.version>
@@ -217,7 +217,7 @@
         <scala.version>2.13.8</scala.version>
 
         <!-- Plugin Versions -->
-        <version.compiler.plugin>3.10.0</version.compiler.plugin>
+        <version.compiler.plugin>3.10.1</version.compiler.plugin>
         <version.deploy.plugin>2.8.2</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.3.2</version.javadoc.plugin>
@@ -226,7 +226,7 @@
         <version.jar.plugin>3.2.2</version.jar.plugin>
         <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
         <version.properties.plugin>1.0.0</version.properties.plugin>
-        <version.dependency.plugin>3.2.0</version.dependency.plugin>
+        <version.dependency.plugin>3.3.0</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.1.0</version.clean.plugin>

@@ -24,7 +24,7 @@ endif::[]
 ifdef::apicurio-registry,rh-service-registry[]
 for each instance 
 endif::[] 
-running on
+running on:
 +
 `{registry-url}`
 
@@ -50,9 +50,9 @@ endif::[]
 
 . Next to the *Upload artifacts* button, select the options icon (three vertical dots), and click *Upload multiple artifacts*.
 
-. Drag and drop or browse to the previously exported `.zip` download file that contains the data from the previously exported registry instance that you want to import.
+. Drag and drop or browse to the previously exported `.zip` download file that contains the data from the registry instance that you want to import.
 
-. Click *Upload* and wait for the upload to complete.
+. Click *Upload* and wait for the data to be imported.
 
 //[role="_additional-resources"]
 //.Additional resources

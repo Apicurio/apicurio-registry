@@ -109,8 +109,9 @@
         <module>utils/maven-plugin</module>
         <module>utils/tools</module>
         <module>utils/importexport</module>
-        <module>utils/protobuf-schema-utilities</module>
         <module>utils/exportV1</module>
+        <module>utils/exportConfluent</module>
+        <module>utils/protobuf-schema-utilities</module>
         <module>utils/tests</module>
         <module>schema-resolver</module>
         <module>serdes/serde-common</module>

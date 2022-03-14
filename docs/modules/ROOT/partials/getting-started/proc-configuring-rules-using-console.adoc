@@ -21,7 +21,7 @@ endif::[]
 
 . Connect to the {registry} web console on: 
 +
-{registry-url}
+`{registry-url}`
 ifdef::rh-openshift-sr[]
 . Click your existing {registry} instance. 
 endif::[]

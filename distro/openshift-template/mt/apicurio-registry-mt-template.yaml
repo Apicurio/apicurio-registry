@@ -802,3 +802,28 @@ parameters:
 - name: CORS_ALLOWED_ORIGINS
   description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.
   value: ""
+
+- name: REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW
+  description: "When true, the 'Download HREF TTL' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW
+  description: "When true, the 'Owner Only Auth' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS_DYNAMIC_ALLOW
+  description: "When true, the 'Owner Only Auth (Limit Groups)' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow Anonymous Read Access' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow Authenticated Read Access' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_BASIC_AUTH_CLIENT_CREDENTIALS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow BASIC Authentication' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_CCOMPAT_LEGACY_ID_MODE_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'CCompat Compatibility' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
+  description: "When true, the 'UI Read Only Mode' dynamic property is exposed to admins."
+  value: "true"

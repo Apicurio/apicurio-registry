@@ -5,10 +5,10 @@
 = Exporting and importing registry content using {registry} REST API commands
 
 [role="_abstract"]
-This section shows a simple curl-based example of using the registry v2 core REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating or upgrading from one {registry} v2.x instance to another. 
+This section shows a simple curl-based example of using the core registry v2 REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating data between {registry} instances. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
 ifdef::rh-openshift-sr[]
-IMPORTANT: You can import {registry} data that has been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a Red Hat Integration {registry} instance.   
+IMPORTANT: You can import {registry} data that has previously been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a {org-name} Integration {registry} instance.   
 endif::[]
 
 .Prerequisites
@@ -16,9 +16,12 @@ endif::[]
 ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment
 endif::[]
+* {registry} instances have been created: 
+** The source instance that you want to export data from contains at least one schema or API artifact 
+** The target instance that you want to export data from  can contain artifacts or be empty
 ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances.
-* You  have created an access token using your service account credentials. 
+* You have a service account with the correct access permissions for {registry} instances
+* You have created an access token using your service account credentials 
 endif::[]
 
 .Procedure
@@ -28,7 +31,7 @@ ifdef::rh-openshift-sr[]
 +
 {registry-url}
 
-. For the relevant {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
+. For the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
 . In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. This is the registry API endpoint that you need for connecting to this {registry} instance. 
 endif::[]
 

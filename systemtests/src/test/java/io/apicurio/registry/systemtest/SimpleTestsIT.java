@@ -1,17 +1,15 @@
 package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
-import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.systemtest.messaginginfra.ResourceManager;
 import io.apicurio.registry.systemtest.messaginginfra.resources.ApicurioRegistryResourceType;
-import io.apicurio.registry.systemtest.messaginginfra.resources.ResourceType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleTestsIT extends BaseTest{
+public class SimpleTestsIT extends BaseTest {
     private static Logger LOGGER = LoggerFactory.getLogger(SimpleTestsIT.class);
 
     @BeforeAll

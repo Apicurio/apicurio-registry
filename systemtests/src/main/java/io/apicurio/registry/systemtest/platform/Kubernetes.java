@@ -1,10 +1,8 @@
 package io.apicurio.registry.systemtest.platform;
 
-import io.apicurio.registry.systemtest.messaginginfra.ResourceManager;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfig;
 
 public class Kubernetes {

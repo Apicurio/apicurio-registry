@@ -188,7 +188,7 @@
         <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>17.3</graphql.version>
+        <graphql.version>18.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->

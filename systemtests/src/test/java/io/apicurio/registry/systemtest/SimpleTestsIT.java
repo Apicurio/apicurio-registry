@@ -2,46 +2,38 @@ package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
-import io.fabric8.kubernetes.api.model.Namespace;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.apicurio.registry.systemtest.messaginginfra.ResourceManager;
+import io.apicurio.registry.systemtest.messaginginfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtest.messaginginfra.resources.ResourceType;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleTestsIT {
+public class SimpleTestsIT extends BaseTest{
     private static Logger LOGGER = LoggerFactory.getLogger(SimpleTestsIT.class);
 
-    private ApicurioRegistry createSR() {
-        return new ApicurioRegistryBuilder()
-                .withNewMetadata()
-                .withName("reg-test")
-                .withNamespace("apicurio-test")
-                .endMetadata()
-                .withNewSpec()
-                .withNewConfiguration()
-                .withPersistence("kafkasql")
-                .withNewKafkasql()
-                .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
-                .endKafkasql()
-                .endConfiguration()
-                .endSpec()
-                .build();
+    @BeforeAll
+    public static void prepareInfra() {
+    }
+
+    @AfterAll
+    public static void destroyInfra() {
     }
 
     @Test
-    public void simpleTestCreate() {
-        ResourceManager.getInstance().create(createSR());
-    }
+    public void simpleTest() {
+        ApicurioRegistry ar = ApicurioRegistryResourceType.getDefault();
 
-    @Test
-    public void simpleTestCreateMy() {
-        Namespace n = new NamespaceBuilder().withNewMetadata().withName("rkubis").endMetadata().build();
+        try {
+            ResourceManager.getInstance().createResource("SimpleTestIT.simpleTest", true, ar);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        ResourceManager.getInstance().create(n);
-    }
+        LOGGER.info("Resource: {}", ApicurioRegistryResourceType.getOperation().inNamespace(ar.getMetadata().getNamespace()).withName(ar.getMetadata().getName()).get().toString());
 
-    @Test
-    public void simpleTestDelete() {
-        ResourceManager.getInstance().delete(createSR());
+        ResourceManager.getInstance().deleteResources("SimpleTestIT.simpleTest");
     }
 }

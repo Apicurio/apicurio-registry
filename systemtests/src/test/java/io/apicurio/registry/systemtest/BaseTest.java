@@ -1,4 +1,4 @@
 package io.apicurio.registry.systemtest;
 
-public class TestClass {
+public abstract class BaseTest {
 }

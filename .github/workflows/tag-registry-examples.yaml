@@ -41,44 +41,71 @@ jobs:
           echo "Release Version: $RELEASE_VERSION"
           echo "Snapshot Version: $SNAPSHOT_VERSION"
 
-      - name: Apicurio Registry Examples Checkout
+      - name: Set up JDK 11
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: 11
+          architecture: x64
+      
+      - name: Configure Git
         run: |
-          git init
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-examples.git"
-          git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
-          git pull
+          
+      - name: Checkout Apicurio Registry Tag ${{ env.RELEASE_VERSION }}
+        uses: actions/checkout@v2
+        with:
+           ref: ${{ env.RELEASE_VERSION }}
+           path: apicurio-registry
+
+      - name: Build Apicurio Registry
+        env:
+          SKIP_TESTS: "true"
+        run: cd apicurio-registry && make build-all
+      
+      - name: Checkout Apicurio Registry Examples
+        uses: actions/checkout@v2
+        with:
+           repository: Apicurio/apicurio-registry-examples
+           path: apicurio-registry-examples
+           token: ${{ secrets.ACCESS_TOKEN }}
+
+      - name: list files
+        run: ls -lrt
 
       - name: Update Release Version ${{ env.RELEASE_VERSION }}
         run: |
+          cd apicurio-registry-examples
           mvn versions:set -DnewVersion=${{ env.RELEASE_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
           mvn versions:set-property -Dproperty=apicurio-registry.version -DgenerateBackupPoms=false -DnewVersion=${{ env.RELEASE_VERSION }}
 
-      - name: Build Examples
-        run: ./mvnw clean install
+      - name: Build Registry Examples
+        run: cd apicurio-registry-examples && ./mvnw clean install
 
       - name: Commit Release Version Changes
         run: |
+          cd apicurio-registry-examples
           git add .
           git commit -m "Automated update to Release Version:: ${{ env.RELEASE_VERSION }}"
-          git push
+          git push origin master
 
       - name: Tag Examples
         run: |
+          cd apicurio-registry-examples
           git tag -a -m "Tagging release ${{ env.RELEASE_VERSION }}" ${{ env.RELEASE_VERSION }}
           git push origin ${{ env.RELEASE_VERSION }}
 
       - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
-        run: mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
+        run: |
+          cd apicurio-registry-examples
+          mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
       
       - name: Commit Snapshot Version Changes
         run: |
+          cd apicurio-registry-examples
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
-          git push
+          git push origin master
 
       - name: Google Chat Notification
         if: ${{ failure() }}

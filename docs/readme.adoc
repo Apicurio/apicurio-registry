@@ -80,7 +80,7 @@ You can perform a local build of the documentation for test purposes using the `
 $ antora local-test-playbook.yml
 ----
 +
-. Change to the `apicurio-registry/docs/build/site` directory.
+. Change to the `apicurio-registry/docs/target/dist` directory.
 . Open the generated `index.html` file in your browser. 
 
 For details on how the Apicurio Registry project documentation website is automatically generated, see https://github.com/Apicurio/apicurio-docs-playbook.  

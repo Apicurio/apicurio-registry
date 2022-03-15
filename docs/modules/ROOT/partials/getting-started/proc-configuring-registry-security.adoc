@@ -25,7 +25,7 @@ You can enable authentication for the {registry} web console and core REST API u
 .Prerequisites
 * {keycloak} is installed and running. For more details, see
 ifdef::apicurio-registry[]
-link:https://www.keycloak.org/getting-started[Getting Started with {keycloak}]. 
+link:https://www.keycloak.org/documentation[{keycloak} user documentation]. 
 endif::[]
 ifdef::rh-service-registry[]
 the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].

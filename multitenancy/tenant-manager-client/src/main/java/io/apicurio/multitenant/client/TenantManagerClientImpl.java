@@ -15,156 +15,141 @@
  */
 package io.apicurio.multitenant.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
+import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.SortBy;
 import io.apicurio.multitenant.api.datamodel.SortOrder;
+import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.multitenant.client.exception.TenantManagerClientErrorHandler;
-import io.apicurio.multitenant.client.exception.TenantManagerClientException;
-import io.apicurio.rest.client.JdkHttpClient;
-import io.apicurio.rest.client.VertxHttpClient;
 import io.apicurio.rest.client.auth.Auth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.request.Request;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.util.IoUtil;
-import io.vertx.core.Vertx;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenantList;
+import io.apicurio.tenantmanager.api.datamodel.NewApicurioTenantRequest;
+import io.apicurio.tenantmanager.api.datamodel.UpdateApicurioTenantRequest;
 
-import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static io.apicurio.rest.client.request.Operation.DELETE;
-import static io.apicurio.rest.client.request.Operation.GET;
-import static io.apicurio.rest.client.request.Operation.POST;
-import static io.apicurio.rest.client.request.Operation.PUT;
 
 /**
  * @author Fabian Martinez
  */
 public class TenantManagerClientImpl implements TenantManagerClient {
 
-    private static final String TENANTS_API_BASE_PATH = "api/v1/tenants";
-    private static final String TENANTS_API_BASE_PATH_TENANT_PARAM = "api/v1/tenants/%s";
-
-    private final ApicurioHttpClient client;
-    private final ObjectMapper mapper;
+    private final io.apicurio.tenantmanager.client.TenantManagerClient tenantManagerClient;
 
     public TenantManagerClientImpl(String endpoint) {
         this(endpoint, Collections.emptyMap(), null);
     }
 
     public TenantManagerClientImpl(String baseUrl, Map<String, Object> configs, Auth auth) {
-        if (!baseUrl.endsWith("/")) {
-            baseUrl += "/";
-        }
-        final String endpoint = baseUrl;
-        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        this.client = new JdkHttpClient(endpoint, configs, auth, new TenantManagerClientErrorHandler());
-    }
-
-    public TenantManagerClientImpl(Vertx vertx, String baseUrl, Map<String, Object> configs, Auth auth) {
-        if (!baseUrl.endsWith("/")) {
-            baseUrl += "/";
-        }
-        final String endpoint = baseUrl;
-        this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        this.client = new VertxHttpClient(vertx, endpoint, configs, auth, new AuthErrorHandler());
+        this.tenantManagerClient = new io.apicurio.tenantmanager.client.TenantManagerClientImpl(baseUrl, configs, auth);
     }
 
     @Override
     public List<RegistryTenant> listTenants() {
-        return listTenants(null, 0, 50, null, null).getItems();
+        var tenantList = tenantManagerClient.listTenants(null, 0, 50, null, null);
+
+        var registryTenantList = convertTenantListToRegistryTenantList(tenantList);
+
+        return registryTenantList.getItems();
     }
 
     @Override
     public RegistryTenantList listTenants(TenantStatusValue status, Integer offset, Integer limit, SortOrder order, SortBy orderby) {
+        io.apicurio.tenantmanager.api.datamodel.TenantStatusValue st = io.apicurio.tenantmanager.api.datamodel.TenantStatusValue.valueOf(status.value());
+        io.apicurio.tenantmanager.api.datamodel.SortOrder ord = io.apicurio.tenantmanager.api.datamodel.SortOrder.valueOf(status.value());
+        io.apicurio.tenantmanager.api.datamodel.SortBy sb = io.apicurio.tenantmanager.api.datamodel.SortBy.valueOf(orderby.value());
 
-        Map<String, List<String>> queryParams = new HashMap<>();
-        if (status != null) {
-            queryParams.put("status", Arrays.asList(status.value()));
-        }
-        if (offset != null) {
-            queryParams.put("offset", Arrays.asList(String.valueOf(offset)));
-        }
-        if (limit != null) {
-            queryParams.put("limit", Arrays.asList(String.valueOf(limit)));
-        }
-        if (order != null) {
-            queryParams.put("order", Arrays.asList(order.value()));
-        }
-        if (orderby != null) {
-            queryParams.put("orderby", Arrays.asList(orderby.value()));
-        }
+        var tenantList = tenantManagerClient.listTenants(st, offset, limit, ord, sb);
 
-        return client.sendRequest(new Request.RequestBuilder<RegistryTenantList>()
-                .operation(GET)
-                .path(TENANTS_API_BASE_PATH)
-                .queryParams(queryParams)
-                .responseType(new TypeReference<RegistryTenantList>() {
-                })
-                .build());
+        return convertTenantListToRegistryTenantList(tenantList);
     }
 
     @Override
     public RegistryTenant createTenant(NewRegistryTenantRequest tenantRequest) {
-        try {
-            return client.sendRequest(new Request.RequestBuilder<RegistryTenant>()
-                    .operation(POST)
-                    .path(TENANTS_API_BASE_PATH)
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(tenantRequest)))
-                    .responseType(new TypeReference<RegistryTenant>() {
-                    })
-                    .build());
-        } catch (JsonProcessingException e) {
-            throw new TenantManagerClientException(e.getMessage());
-        }
+        NewApicurioTenantRequest newApicurioTenantRequest = new NewApicurioTenantRequest();
+        newApicurioTenantRequest.setTenantId(tenantRequest.getTenantId());
+        newApicurioTenantRequest.setOrganizationId(tenantRequest.getOrganizationId());
+        newApicurioTenantRequest.setName(tenantRequest.getName());
+        newApicurioTenantRequest.setDescription(tenantRequest.getDescription());
+        newApicurioTenantRequest.setCreatedBy(tenantRequest.getCreatedBy());
+        newApicurioTenantRequest.setResources(registryTenantResourceToApicurioTenantResource(tenantRequest.getResources()));
+
+        ApicurioTenant createdTenant = tenantManagerClient.createTenant(newApicurioTenantRequest);
+
+        return convertApicurioTenantToRegistryTenant(createdTenant);
     }
 
     @Override
     public void updateTenant(String tenantId, UpdateRegistryTenantRequest updateRequest) {
-        try {
-            client.sendRequest(new Request.RequestBuilder<Void>()
-                    .operation(PUT)
-                    .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
-                    .pathParams(Collections.singletonList(tenantId))
-                    .data(IoUtil.toStream(mapper.writeValueAsBytes(updateRequest)))
-                    .responseType(new TypeReference<Void>() {
-                    }).build());
+        UpdateApicurioTenantRequest newApicurioTenantRequest = new UpdateApicurioTenantRequest();
+        newApicurioTenantRequest.setName(updateRequest.getName());
+        newApicurioTenantRequest.setDescription(updateRequest.getDescription());
+        newApicurioTenantRequest.setResources(registryTenantResourceToApicurioTenantResource(updateRequest.getResources()));
 
-        } catch (IOException e) {
-            throw new TenantManagerClientException(e.getMessage());
-        }
+        tenantManagerClient.updateTenant(tenantId, newApicurioTenantRequest);
     }
 
     @Override
     public RegistryTenant getTenant(String tenantId) {
-        return client.sendRequest(new Request.RequestBuilder<RegistryTenant>()
-                .operation(GET)
-                .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
-                .pathParams(Collections.singletonList(tenantId))
-                .responseType(new TypeReference<RegistryTenant>() {
-                }).build());
+       var tenant = tenantManagerClient.getTenant(tenantId);
+
+       return convertApicurioTenantToRegistryTenant(tenant);
     }
 
     @Override
     public void deleteTenant(String tenantId) {
-        client.sendRequest(new Request.RequestBuilder<Void>()
-                .operation(DELETE)
-                .path(TENANTS_API_BASE_PATH_TENANT_PARAM)
-                .pathParams(Collections.singletonList(tenantId))
-                .responseType(new TypeReference<Void>() {
-                }).build());
+       tenantManagerClient.deleteTenant(tenantId);
+    }
 
+    private RegistryTenantList convertTenantListToRegistryTenantList(ApicurioTenantList tenants) {
+        var registryTenantList = new RegistryTenantList();
+        List<RegistryTenant> registryTenants = new ArrayList<>();
+        for (ApicurioTenant tenant: tenants.getItems()) {
+            var registryTenant = convertApicurioTenantToRegistryTenant(tenant);
+            registryTenants.add(registryTenant);
+        }
+
+        registryTenantList.setItems(registryTenants);
+        return registryTenantList;
+    }
+
+    private RegistryTenant convertApicurioTenantToRegistryTenant(ApicurioTenant tenant) {
+        var registryTenant = new RegistryTenant();
+
+        registryTenant.setTenantId(tenant.getTenantId());
+        registryTenant.setCreatedOn(tenant.getCreatedOn());
+        registryTenant.setCreatedBy(tenant.getCreatedBy());
+        registryTenant.setDescription(tenant.getDescription());
+        registryTenant.setOrganizationId(tenant.getOrganizationId());
+
+        var resources = new ArrayList<TenantResource>();
+        for (var tenantResource : tenant.getResources()) {
+            var type = ResourceType.valueOf(tenantResource.getType());
+            var newTenantResource = new TenantResource(type, tenantResource.getLimit());
+            resources.add(newTenantResource);
+        }
+        registryTenant.setResources(resources);
+        TenantStatusValue.fromValue(tenant.getStatus().value());
+        registryTenant.setStatus(TenantStatusValue.fromValue(tenant.getStatus().value()));
+
+        return registryTenant;
+    }
+
+    private List<io.apicurio.tenantmanager.api.datamodel.TenantResource> registryTenantResourceToApicurioTenantResource(List<TenantResource> tenantResources) {
+        var resources = new ArrayList<io.apicurio.tenantmanager.api.datamodel.TenantResource>();
+        for (var tenantResource : tenantResources) {
+            var type = ResourceType.valueOf(tenantResource.getType().value());
+            var newTenantResource = new io.apicurio.tenantmanager.api.datamodel.TenantResource();
+            newTenantResource.setType(type.value());
+            newTenantResource.setLimit(tenantResource.getLimit());
+            resources.add(newTenantResource);
+        }
+        return resources;
     }
 }

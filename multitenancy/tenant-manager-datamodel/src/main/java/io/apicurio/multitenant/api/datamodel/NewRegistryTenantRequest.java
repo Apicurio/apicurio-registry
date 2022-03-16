@@ -1,13 +1,13 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "createdBy"
 })
-@Generated("jsonschema2pojo")
 public class NewRegistryTenantRequest {
 
     /**

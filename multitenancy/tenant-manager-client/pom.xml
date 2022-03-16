@@ -19,6 +19,16 @@
         </dependency>
 
         <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-tenant-manager-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-tenant-manager-datamodel</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>

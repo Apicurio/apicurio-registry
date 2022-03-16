@@ -29,7 +29,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "description",
     "status"
 })
-@Generated("jsonschema2pojo")
 public class RegistryTenant {
 
     /**

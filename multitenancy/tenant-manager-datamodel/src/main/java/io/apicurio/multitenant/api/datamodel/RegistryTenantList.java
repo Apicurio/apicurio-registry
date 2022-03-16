@@ -1,13 +1,14 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import javax.annotation.processing.Generated;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -19,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "items",
     "count"
 })
-@Generated("jsonschema2pojo")
 public class RegistryTenantList {
 
     /**
@@ -68,18 +68,6 @@ public class RegistryTenantList {
      */
     @JsonProperty("count")
     public Integer getCount() {
-        return count;
+        return items.size();
     }
-
-    /**
-     * The total number of items that matched the query that produced the result set (may be 
-     * more than the number of items in the result set).
-     * (Required)
-     * 
-     */
-    @JsonProperty("count")
-    public void setCount(Integer count) {
-        this.count = count;
-    }
-
 }

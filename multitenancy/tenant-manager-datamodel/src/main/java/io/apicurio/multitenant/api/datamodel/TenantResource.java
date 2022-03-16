@@ -1,7 +1,6 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
-import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -19,8 +18,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "type",
     "limit"
 })
-@Generated("jsonschema2pojo")
 public class TenantResource {
+
+    public TenantResource(ResourceType type, Long limit) {
+        this.type = type;
+        this.limit = limit;
+    }
 
     /**
      * The list of possible types of a resource that can be limited

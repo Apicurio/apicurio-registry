@@ -121,7 +121,7 @@ public class AdminResourceImpl implements AdminResource {
     @Context
     HttpServletRequest request;
 
-    @Dynamic(label = "Download HREF Time to Live", description = "Determines the number of seconds that a generated download link should remain active.")
+    @Dynamic(label = "Download link time to live", description = "The number of seconds that a generated link to a download .zip file remains active.")
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
     Supplier<Long> downloadHrefTtl;
 

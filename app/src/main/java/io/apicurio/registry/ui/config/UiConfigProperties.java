@@ -42,7 +42,7 @@ public class UiConfigProperties {
     Logger log;
 
     @Inject
-    @Dynamic(label = "UI Read-Only Mode", description = "When enabled, the user interface will be set to Read-Only mode, preventing CRUD operations.")
+    @Dynamic(label = "UI read-only mode", description = "When enabled, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations.")
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
     Supplier<Boolean> featureReadOnly;
 

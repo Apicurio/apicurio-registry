@@ -58,7 +58,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                 </PageSection>
                 <PageSection className="ps_settings-description" variant={PageSectionVariants.light}>
                     <TextContent>
-                        Configure some global settings for this Service Registry instance.
+                        Configure global settings for this Service Registry instance.
                     </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>

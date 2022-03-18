@@ -51,4 +51,15 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         validator.validate(ValidityLevel.FULL, content);
     }
 
+    @Test
+    public void testInvalidJsonSchemaFull() throws Exception {
+        ContentHandle content = resourceToContentHandle("bad-json-schema-v1.json");
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content);
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertEquals("expected type: Number, found: Boolean", error.getCauses().iterator().next().getDescription());
+        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum", error.getCauses().iterator().next().getContext());
+    }
 }

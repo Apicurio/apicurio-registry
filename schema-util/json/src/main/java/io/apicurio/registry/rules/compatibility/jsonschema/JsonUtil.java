@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
+import org.everit.json.schema.Schema;
+import org.everit.json.schema.loader.SchemaLoader;
+import org.json.JSONObject;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 
@@ -29,5 +35,13 @@ public class JsonUtil {
     static {
         MAPPER =  new ObjectMapper();
         MAPPER.registerModule(new JsonOrgModule());
+    }
+
+    public static Schema readSchema(String content) throws JsonMappingException, JsonProcessingException {
+        JSONObject json = MAPPER.readValue(content, JSONObject.class);
+        Schema schema = SchemaLoader.builder()
+                .schemaJson(json)
+                .build().load().build();
+        return schema;
     }
 }

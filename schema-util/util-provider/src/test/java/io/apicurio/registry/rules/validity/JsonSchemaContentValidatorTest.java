@@ -58,7 +58,7 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         ContentHandle content = resourceToContentHandle("bad-json-schema-v1.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content);
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
         Assertions.assertEquals("expected type: Number, found: Boolean", error.getCauses().iterator().next().getDescription());

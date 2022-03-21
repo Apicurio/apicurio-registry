@@ -21,10 +21,15 @@ import javax.inject.Singleton;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.types.ArtifactType;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Singleton
 public class FacadeConverter {
@@ -49,15 +54,20 @@ public class FacadeConverter {
                 subject,
                 convertUnsigned(storedArtifact.getVersionId()),
                 storedArtifact.getContent().content(),
-                artifactType != null ? artifactType.value() : null
+                artifactType != null ? artifactType.value() : null,
+                storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList())
         );
     }
 
-    public SchemaInfo convert(ContentHandle content, ArtifactType artifactType) {
-        return new SchemaInfo(content.content(), artifactType.value());
+    public SchemaInfo convert(ContentHandle content, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
+        return new SchemaInfo(content.content(), artifactType.value(), references.stream().map(this::convert).collect(Collectors.toList()));
     }
 
     public SubjectVersion convert(String artifactId, Number version) {
         return new SubjectVersion(artifactId, version.longValue());
+    }
+
+    public SchemaReference convert(ArtifactReferenceDto reference) {
+        return new SchemaReference(reference.getName(), reference.getArtifactId(), Integer.parseInt(reference.getVersion()));
     }
 }

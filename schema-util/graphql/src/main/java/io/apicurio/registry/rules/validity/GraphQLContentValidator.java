@@ -21,6 +21,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Map;
+
 /**
  * A content validator implementation for the GraphQL content type.
  * @author eric.wittmann@gmail.com
@@ -34,10 +36,10 @@ public class GraphQLContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, java.util.Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle content) throws RuleViolationException {
+    public void validate(ValidityLevel level, ContentHandle content, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 new SchemaParser().parse(content.content());

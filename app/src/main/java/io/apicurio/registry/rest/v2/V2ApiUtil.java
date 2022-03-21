@@ -17,12 +17,14 @@
 
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -88,7 +90,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static final ArtifactMetaData dtoToMetaData(String groupId, String artifactId, ArtifactType artifactType,
-            ArtifactVersionMetaDataDto dto) {
+                                                       ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getCreatedBy());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -273,4 +275,21 @@ public final class V2ApiUtil {
         return results;
     }
 
+    public static ArtifactReferenceDto referenceToDto(ArtifactReference reference) {
+        final ArtifactReferenceDto artifactReference = new ArtifactReferenceDto();
+        artifactReference.setGroupId(reference.getGroupId());
+        artifactReference.setName(reference.getName());
+        artifactReference.setVersion(reference.getVersion());
+        artifactReference.setArtifactId(reference.getArtifactId());
+        return artifactReference;
+    }
+
+    public static ArtifactReference referenceDtoToReference(ArtifactReferenceDto reference) {
+        final ArtifactReference artifactReference = new ArtifactReference();
+        artifactReference.setGroupId(reference.getGroupId());
+        artifactReference.setName(reference.getName());
+        artifactReference.setVersion(reference.getVersion());
+        artifactReference.setArtifactId(reference.getArtifactId());
+        return artifactReference;
+    }
 }

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -86,7 +87,7 @@ public class ProtobufCanonicalHashUpgrader implements IDbUpgrader {
     private ContentHandle canonicalizeContent(ContentHandle content) {
         try {
             ContentCanonicalizer canonicalizer = new ProtobufContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
             logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF.name());

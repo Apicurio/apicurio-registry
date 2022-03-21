@@ -32,6 +32,8 @@ public class Routes {
     protected static final String ARTIFACT_RULES = ARTIFACT_BASE_PATH + "/rules";
     protected static final String ARTIFACT_VERSIONS = ARTIFACT_BASE_PATH + "/versions";
     protected static final String ARTIFACT_VERSION = ARTIFACT_VERSIONS + "/%s";
+    protected static final String ARTIFACT_VERSION_REFERENCES = ARTIFACT_VERSION + "/references";
+
 
     protected static final String ARTIFACT_METADATA = ARTIFACT_BASE_PATH + "/meta";
     protected static final String ARTIFACT_RULE = ARTIFACT_RULES + "/%s";
@@ -44,6 +46,10 @@ public class Routes {
     protected static final String IDS_CONTENT_ID = IDS_BASE_PATH + "/contentIds/%s";
     protected static final String IDS_CONTENT_HASH = IDS_BASE_PATH + "/contentHashes/%s";
     protected static final String IDS_GLOBAL_ID = IDS_BASE_PATH + "/globalIds/%s";
+
+    protected static final String IDS_REFERENCES_CONTENT_ID = IDS_BASE_PATH + "/contentIds/%s/references";
+    protected static final String IDS_REFERENCES_CONTENT_HASH = IDS_BASE_PATH + "/contentHashes/%s/references";
+    protected static final String IDS_REFERENCES_GLOBAL_ID = IDS_BASE_PATH + "/globalIds/%s/references";
 
     protected static final String RULES_BASE_PATH = ADMIN_BASE_PATH + "/rules";
     protected static final String RULE_PATH = RULES_BASE_PATH + "/%s";

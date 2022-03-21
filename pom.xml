@@ -189,7 +189,7 @@
         <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>17.3</graphql.version>
+        <graphql.version>18.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
@@ -227,7 +227,7 @@
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.2</version.jar.plugin>
         <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
-        <version.properties.plugin>1.0.0</version.properties.plugin>
+        <version.properties.plugin>1.1.0</version.properties.plugin>
         <version.dependency.plugin>3.3.0</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>

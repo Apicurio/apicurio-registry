@@ -26,6 +26,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import javax.inject.Inject;
+import java.util.Collections;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -60,7 +61,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         String expected = "{\"components\":{},\"info\":{\"title\":\"Empty 3.0 API\",\"version\":\"1.0.0\"},\"openapi\":\"3.0.2\",\"paths\":{\"/\":{}}}";
         
         ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -81,7 +82,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         String expected = "{\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"},{\"name\":\"middle\",\"type\":\"string\"}],\"name\":\"FullName\",\"namespace\":\"com.example\",\"type\":\"record\"}";
         
         ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -106,7 +107,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 + "}\n";
 
         ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -149,7 +150,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
                 "";
         
         ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
     }
     
@@ -171,7 +172,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         String expected = "{\"fields\":[{\"field\":\"bar\",\"optional\":false,\"type\":\"string\"}],\"optional\":false,\"type\":\"struct\"}";
         
         ContentHandle content = ContentHandle.create(before);
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
     }
 
@@ -185,7 +186,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
        ContentHandle content = resourceToContentHandle("xml-schema-before.xsd");
        String expected = resourceToString("xml-schema-expected.xsd");
        
-       String actual = canonicalizer.canonicalize(content).content();
+       String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
        Assertions.assertEquals(expected, actual);
     }
     
@@ -199,7 +200,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         ContentHandle content = resourceToContentHandle("wsdl-before.wsdl");
         String expected = resourceToString("wsdl-expected.wsdl");
         
-        String actual = canonicalizer.canonicalize(content).content();
+        String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
         Assertions.assertEquals(expected, actual);
      }
      
@@ -213,7 +214,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
          ContentHandle content = resourceToContentHandle("xml-before.xml");
          String expected = resourceToString("xml-expected.xml");
          
-         String actual = canonicalizer.canonicalize(content).content();
+         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).content();
          Assertions.assertEquals(expected, actual);
       }
 }

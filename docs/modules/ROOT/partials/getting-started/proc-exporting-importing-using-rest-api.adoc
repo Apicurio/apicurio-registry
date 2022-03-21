@@ -5,10 +5,12 @@
 = Exporting and importing registry content using {registry} REST API commands
 
 [role="_abstract"]
-This section shows a simple curl-based example of using the core registry v2 REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. For example, this is useful when migrating data between {registry} instances. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
+As an administrator, you can use the {registry} REST API to export data from one {registry} instance and import it into another {registry} instance, so you can migrate data between different instances.
+
+This section shows a simple curl-based example of using the core registry v2 REST API to export and import existing registry data in `.zip` format from one {registry} instance to another. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
 ifdef::rh-openshift-sr[]
-IMPORTANT: You can import {registry} data that has previously been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a {org-name} Integration {registry} instance.   
+NOTE: You can import {registry} data that has previously been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a {org-name} Integration {registry} instance.   
 endif::[]
 
 .Prerequisites
@@ -18,9 +20,9 @@ ifdef::apicurio-registry,rh-service-registry[]
 endif::[]
 * {registry} instances have been created: 
 ** The source instance that you want to export data from contains at least one schema or API artifact 
-** The target instance that you want to export data from  can contain artifacts or be empty
+** The target instance that you want to import data into can contain artifacts or be empty 
 ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances
+* You have a service account with administrator access to the {registry} instances
 * You have created an access token using your service account credentials 
 endif::[]
 

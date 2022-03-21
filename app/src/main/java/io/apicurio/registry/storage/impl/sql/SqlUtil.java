@@ -16,12 +16,15 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.utils.StringUtil;
 
 /**
@@ -96,6 +99,37 @@ public class SqlUtil {
                 return null;
             }
             return mapper.readValue(propertiesStr, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Serializes the given collection of references to a string for artifactStore in the DB.
+     * @param references
+     */
+    public static String serializeReferences(List<ArtifactReferenceDto> references) {
+        try {
+            if (references == null || references.isEmpty()) {
+                return null;
+            }
+            return mapper.writeValueAsString(references);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Deserialize the references from their string form to a List<ArtifactReferenceDto> form.
+     * @param references
+     */
+    @SuppressWarnings("unchecked")
+    public static List<ArtifactReferenceDto> deserializeReferences(String references) {
+        try {
+            if (StringUtil.isEmpty(references)) {
+                return Collections.emptyList();
+            }
+            return mapper.readValue(references, new TypeReference<List<ArtifactReferenceDto>>(){});
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

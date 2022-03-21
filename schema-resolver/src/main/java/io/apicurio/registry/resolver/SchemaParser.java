@@ -19,6 +19,8 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.Map;
+
 /**
  * @author Fabian Martinez
  */
@@ -26,7 +28,7 @@ public interface SchemaParser<S, U> {
 
     public ArtifactType artifactType();
 
-    public S parseSchema(byte[] rawSchema);
+    public S parseSchema(byte[] rawSchema, Map<String, ParsedSchema<S>> resolvedReferences);
 
     /**
      * In some artifact types, such as AVRO, it is possible to extract the schema from the java object.

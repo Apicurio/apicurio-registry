@@ -42,22 +42,22 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
     boolean roleBasedAuthorizationEnabled;
 
-    @Dynamic(label = "Owner Only Authorization", description = "When enabled, the registry will allow only the artifact owner (creator) to modify an artifact.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Artifact owner-only authorization", description = "When enabled, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
     Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
-    @Dynamic(label = "Owner Only Authorization (Limit Groups)", description = "When enabled, the registry will limit access to groups to only the user who created the group.", requires = {
+    @Dynamic(label = "Artifact group owner-only authorization", description = "When enabled, Service Registry allows only the artifact group owner (creator) to access an artifact group.", requires = {
             "registry.auth.enabled=true",
             "registry.auth.owner-only-authorization=true"
     })
     @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
-    @Dynamic(label = "Anonymous Read Access", description = "When enabled, requests from anonymous users (requests without any credentials) will be granted read-only access.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Anonymous read access", description = "When enabled, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
-    @Dynamic(label = "Authenticated Read Access", description = "When enabled, requests from any authenticated user will be granted at least read-only access.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Authenticated read access", description = "When enabled, requests from any authenticated user are granted at least read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
     Supplier<Boolean> authenticatedReadAccessEnabled;
 

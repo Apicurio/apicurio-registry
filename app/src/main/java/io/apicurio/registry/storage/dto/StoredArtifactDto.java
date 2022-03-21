@@ -20,6 +20,8 @@ import io.apicurio.registry.content.ContentHandle;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -39,5 +41,7 @@ public class StoredArtifactDto {
 
     // TODO Can the CH be used multiple times?
     private ContentHandle content;
+
+    private List<ArtifactReferenceDto> references; //TODO create a new class StoredArtifactReference?
 
 }

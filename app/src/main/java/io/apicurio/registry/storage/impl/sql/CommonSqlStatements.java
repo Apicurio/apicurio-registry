@@ -207,7 +207,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ?";
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.contentHash = ? ORDER BY v.globalId";
     }
 
     @Override
@@ -226,7 +226,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ?";
+                + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ? ORDER BY v.globalId";
     }
 
     /**

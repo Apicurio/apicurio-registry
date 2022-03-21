@@ -19,6 +19,7 @@ package io.apicurio.registry.rbac;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1507,6 +1508,29 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         } finally {
             mock.stop();
         }
+    }
+
+    @Test
+    public void testGetArtifactVersionByContent_DuplicateContent() throws Exception {
+        //Preparation
+        final String groupId = "testGetArtifactVersionByContent_DuplicateContent";
+        final String artifactId = generateArtifactId();
+
+        final ArtifactMetaData v1md = createArtifact(groupId, artifactId);
+
+        final InputStream v2stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final VersionMetaData v2md = clientV2.createArtifactVersion(groupId, artifactId, null, v2stream);
+
+        //Execution
+        final VersionMetaData vmd = clientV2.getArtifactVersionMetaDataByContent(groupId, artifactId, IoUtil.toStream(ARTIFACT_CONTENT.getBytes()));
+
+        //Assertions
+        assertNotEquals(v1md.getGlobalId(), v2md.getGlobalId());
+        assertEquals(v1md.getContentId(), v2md.getContentId());
+
+        assertEquals(v2md.getGlobalId(), vmd.getGlobalId());
+        assertEquals(v2md.getId(), vmd.getId());
+        assertEquals(v2md.getContentId(), vmd.getContentId());
     }
 
 }

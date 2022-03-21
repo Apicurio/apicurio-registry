@@ -179,7 +179,7 @@ public class TestResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(409)
                 .body("error_code", equalTo(409))
-                .body("message", equalTo("Syntax violation for JSON Schema artifact."));
+                .body("message", equalTo("Syntax or semantic violation for JSON Schema artifact."));
     }
 
     @Test

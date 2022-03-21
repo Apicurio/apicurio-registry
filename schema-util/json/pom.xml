@@ -20,20 +20,15 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-schema-util-common</artifactId>
         </dependency>
+        
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-common-app-components-logging</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.networknt</groupId>
-            <artifactId>json-schema-validator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.github.everit-org.json-schema</groupId>
@@ -43,6 +38,13 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-json-org</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-parameter-names</artifactId>
@@ -58,7 +60,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

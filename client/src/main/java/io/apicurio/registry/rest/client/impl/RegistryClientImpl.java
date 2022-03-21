@@ -28,8 +28,10 @@ import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.IfExists;
@@ -47,6 +49,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -238,6 +241,38 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences) {
+        if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
+            throw new InvalidArtifactIdException();
+        }
+        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+        if (artifactId != null) {
+            headers.put(Headers.ARTIFACT_ID, artifactId);
+        }
+        if (artifactType != null) {
+            headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+        }
+        final Map<String, List<String>> queryParams = new HashMap<>();
+        if (canonical != null) {
+            queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+        }
+        if (ifExists != null) {
+            queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+        }
+
+        final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
+        contentCreateRequest.setContent(IoUtil.toString(data));
+        contentCreateRequest.setReferences(artifactReferences);
+
+        try {
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactWithReferences(normalizeGid(groupId), headers, contentCreateRequest, queryParams));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+
+    @Override
     public void deleteArtifactsInGroup(String groupId) {
         apicurioHttpClient.sendRequest(GroupRequestsProvider.deleteArtifactsInGroup(normalizeGid(groupId)));
     }
@@ -249,13 +284,19 @@ public class RegistryClientImpl implements RegistryClient {
 
     @Override
     public InputStream getContentByGlobalId(long globalId) {
-        return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentByGlobalId(globalId));
+        return getContentByGlobalId(globalId, false, false);
+    }
+
+    @Override
+    public InputStream getContentByGlobalId(long globalId, Boolean canonical, Boolean dereference) {
+        final Map<String, List<String>> queryParams = dereference != null ? Map.of(Parameters.DEREFERENCE, Collections.singletonList(String.valueOf(dereference))) : Collections.emptyMap();
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentByGlobalId(globalId, queryParams));
     }
 
     @Override
     public InputStream getContentByHash(String contentHash, Boolean canonical) {
         final Map<String, List<String>> queryParams = canonical != null ? Map.of(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical))) : Collections.emptyMap();
-        return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentByHash(contentHash, canonical, queryParams));
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentByHash(contentHash, queryParams));
     }
 
     @Override
@@ -451,6 +492,26 @@ public class RegistryClientImpl implements RegistryClient {
     @Override
     public UserInfo getCurrentUserInfo() {
         return apicurioHttpClient.sendRequest(UsersRequestsProvider.getCurrentUserInfo());
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByGlobalId(globalId));
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentId(long contentId) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByContentId(contentId));
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentHash(String contentHash) {
+        return apicurioHttpClient.sendRequest(IdRequestsProvider.getArtifactReferencesByContentHash(contentHash));
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactReferencesByCoordinates(normalizeGid(groupId), artifactId, version));
     }
 
     @Override

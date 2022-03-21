@@ -20,6 +20,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
+import java.util.Map;
+
 /**
  * A service used to apply configured rules to a given content update.  In other words,
  * when artifact content is being created or updated, this service is used to apply
@@ -40,7 +42,7 @@ public interface RulesService {
      * @throws RuleViolationException
      */
     public void applyRules(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
-                    RuleApplicationType ruleApplicationType) throws RuleViolationException;
+                    RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
 
     /**
      * Applies a single, specific rule to the content update for the given artifact.
@@ -54,7 +56,7 @@ public interface RulesService {
      * @throws RuleViolationException
      */
     public void applyRule(String groupId, String artifactId, ArtifactType artifactType, ContentHandle artifactContent,
-                   RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType)
+                   RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
 
 
@@ -67,6 +69,6 @@ public interface RulesService {
      * @param updatedContent
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent)
+    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences)
             throws RuleViolationException;
 }

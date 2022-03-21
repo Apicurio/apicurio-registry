@@ -28,10 +28,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.util.List;
+
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
  * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
@@ -57,4 +60,7 @@ public class Schema {
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = SchemaTypeFilter.class)
     @JsonProperty("schemaType")
     private String schemaType;
+
+    @JsonProperty("references")
+    private List<SchemaReference> references;
 }

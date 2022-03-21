@@ -18,6 +18,7 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -71,4 +72,8 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
         return new WsdlOrXsdContentExtractor();
     }
 
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return null;
+    }
 }

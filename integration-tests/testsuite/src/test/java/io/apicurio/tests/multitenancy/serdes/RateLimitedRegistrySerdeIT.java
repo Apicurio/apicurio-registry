@@ -146,7 +146,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
     @Test
     void testFindLatestRateLimited() throws Exception {
 
-        RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+        RateLimitingProxy proxy = new RateLimitingProxy(3, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
 
         MultitenancySupport mt = new MultitenancySupport();
         var tenant = mt.createTenant();
@@ -199,7 +199,7 @@ public class RateLimitedRegistrySerdeIT extends ApicurioRegistryBaseIT {
     @Test
     void testAutoRegisterRateLimited() throws Exception {
 
-        RateLimitingProxy proxy = new RateLimitingProxy(2, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
+        RateLimitingProxy proxy = new RateLimitingProxy(3, TestUtils.getRegistryHost(), TestUtils.getRegistryPort());
 
         MultitenancySupport mt = new MultitenancySupport();
         var tenant = mt.createTenant();

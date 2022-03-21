@@ -86,39 +86,51 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         int errorCount = 0;
         if (artifacts != null) {
             for (DownloadArtifact artifact : artifacts) {
-                String groupId = artifact.getGroupId();
-                String artifactId = artifact.getArtifactId();
-                String version = artifact.getVersion();
-                boolean replaceExisting = artifact.getOverwrite() == null ? false : artifact.getOverwrite();
-
-                getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId, version));
-
-                try (InputStream content = version == null ?
-                            getClient().getLatestArtifact(groupId, artifactId) :
-                            getClient().getArtifactVersion(groupId, artifactId, version)) {
-
-                    if (!artifact.getFile().getParentFile().exists()) {
-                        artifact.getFile().getParentFile().mkdirs();
-                    }
-
-                    if (replaceExisting) {
-                        Files.copy(content, artifact.getFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        Files.copy(content, artifact.getFile().toPath());
-                    }
-                } catch (Exception e) {
-                    errorCount++;
-                    getLog().error(String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId), e);
-                }
-
-                getLog().info(String.format("Downloaded artifact [%s] / [%s] to %s.", groupId, artifactId, artifact.getFile()));
+                errorCount += downloadArtifact(artifact);
             }
         }
 
         if (errorCount > 0) {
             throw new MojoExecutionException("Errors while downloading artifacts ...");
         }
+    }
 
+    private int downloadArtifact(DownloadArtifact artifact) {
+        int errorCount = 0;
+        String groupId = artifact.getGroupId();
+        String artifactId = artifact.getArtifactId();
+        String version = artifact.getVersion();
+        boolean replaceExisting = artifact.getOverwrite() != null && artifact.getOverwrite();
+
+        getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId, version));
+
+        try (InputStream content = version == null ?
+                getClient().getLatestArtifact(groupId, artifactId) :
+                getClient().getArtifactVersion(groupId, artifactId, version)) {
+
+            if (!artifact.getFile().getParentFile().exists()) {
+                artifact.getFile().getParentFile().mkdirs();
+            }
+
+            if (replaceExisting) {
+                Files.copy(content, artifact.getFile().toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.copy(content, artifact.getFile().toPath());
+            }
+        } catch (Exception e) {
+            errorCount++;
+            getLog().error(String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId), e);
+        }
+
+        getLog().info(String.format("Downloaded artifact [%s] / [%s] to %s.", groupId, artifactId, artifact.getFile()));
+
+        if (artifact.getArtifactReferences() != null && !artifact.getArtifactReferences().isEmpty()) {
+            for (DownloadArtifact reference: artifact.getArtifactReferences()) {
+                errorCount += downloadArtifact(reference);
+            }
+        }
+
+        return errorCount;
     }
 
     public void setArtifacts(List<DownloadArtifact> artifacts) {

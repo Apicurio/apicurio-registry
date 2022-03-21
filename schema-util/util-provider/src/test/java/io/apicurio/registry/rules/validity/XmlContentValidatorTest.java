@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * @author cfoskin@redhat.com
  */
@@ -30,7 +32,7 @@ public class XmlContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("xml-valid.xml");
         XsdContentValidator validator = new XsdContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
@@ -38,7 +40,7 @@ public class XmlContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("xml-invalid-syntax.xml");
         XsdContentValidator validator = new XsdContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 }

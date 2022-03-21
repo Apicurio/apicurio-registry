@@ -137,6 +137,27 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#findLast()
+     */
+    @Override
+    public Optional<T> findLast() {
+        Optional<T> rval = null;
+        try {
+            while (this.resultSet.next()) {
+                rval = Optional.of(this.mapper.map(resultSet));
+            }
+            if (rval == null) {
+                rval = Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeSqlException(e);
+        } finally {
+            close();
+        }
+        return rval;
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.jdb.MappedQuery#list()
      */
     @Override

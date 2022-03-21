@@ -18,21 +18,16 @@
 package io.apicurio.registry.serde.avro;
 
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.reflect.ReflectData;
 import org.apache.kafka.common.errors.SerializationException;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * @author Confluent Inc.
  * @author Ales Justin
- * @author Carles Arnal
  */
 public class AvroSchemaUtils {
 
@@ -57,22 +52,7 @@ public class AvroSchemaUtils {
     }
 
     public static Schema parse(String schema) {
-        return parse(schema, Collections.emptyList());
-    }
-
-    public static Schema parse(String schema, List<String> references) {
-        //First try to parse without references, useful when the content is dereferenced
-        try {
-            final Schema.Parser parser = new Schema.Parser();
-            return parser.parse(schema);
-        } catch (SchemaParseException e) {
-            //If we fail to parse the content from the main schema, then parse first the references and then the main schema
-            final Schema.Parser parser = new Schema.Parser();
-            for (String referencedContent : references) {
-                parser.parse(referencedContent);
-            }
-            return parser.parse(schema);
-        }
+        return new Schema.Parser().parse(schema);
     }
 
     public static boolean isPrimitive(Schema schema) {
@@ -89,10 +69,6 @@ public class AvroSchemaUtils {
     }
 
     static Schema getSchema(Object object) {
-        return getSchema(object, false);
-    }
-
-    static Schema getSchema(Object object, boolean useReflection) {
         if (object == null) {
             return primitiveSchemas.get("Null");
         } else if (object instanceof Boolean) {
@@ -107,34 +83,14 @@ public class AvroSchemaUtils {
             return primitiveSchemas.get("Double");
         } else if (object instanceof CharSequence) {
             return primitiveSchemas.get("String");
-        } else if (object instanceof byte[] || object instanceof ByteBuffer) {
+        } else if (object instanceof byte[]) {
             return primitiveSchemas.get("Bytes");
-        } else if (useReflection) {
-            Schema schema = ReflectData.get().getSchema(object.getClass());
-            if (schema == null) {
-                throw new SerializationException("Schema is null for object of class " + object.getClass()
-                        .getCanonicalName());
-            } else {
-                return schema;
-            }
         } else if (object instanceof GenericContainer) {
             return ((GenericContainer) object).getSchema();
-        } else if (object instanceof Map) {
-            // This case is unusual -- the schema isn't available directly anywhere, instead we have to
-            // take get the value schema out of one of the entries and then construct the full schema.
-            Map mapValue = ((Map) object);
-            if (mapValue.isEmpty()) {
-                // In this case the value schema doesn't matter since there is no content anyway. This
-                // only works because we know in this case that we are only using this for conversion and
-                // no data will be added to the map.
-                return Schema.createMap(primitiveSchemas.get("Null"));
-            }
-            Schema valueSchema = getSchema(mapValue.values().iterator().next());
-            return Schema.createMap(valueSchema);
         } else {
             throw new IllegalArgumentException(
-                    "Unsupported Avro type. Supported types are null, Boolean, Integer, Long, "
-                            + "Float, Double, String, byte[] and IndexedRecord");
+                "Unsupported Avro type. Supported types are null, Boolean, Integer, Long, "
+                + "Float, Double, String, byte[], ReflectData and GenericContainer");
         }
     }
 }

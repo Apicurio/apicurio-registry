@@ -28,9 +28,7 @@ import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
@@ -48,7 +46,6 @@ import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -63,12 +60,10 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
-import io.apicurio.registry.utils.IoUtil;
 import org.jose4j.base64url.Base64;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -80,13 +75,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
@@ -128,21 +120,14 @@ public class GroupsResourceImpl implements GroupsResource {
     @Context
     HttpServletRequest request;
 
-    @Inject
-    ArtifactTypeUtilProviderFactory factory;
-
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
-    public Response getLatestArtifact(String groupId, String artifactId, Boolean dereference) {
+    public Response getLatestArtifact(String groupId, String artifactId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-
-        if (dereference == null) {
-            dereference = Boolean.FALSE;
-        }
 
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -162,15 +147,7 @@ public class GroupsResourceImpl implements GroupsResource {
             contentType = ArtifactMediaTypes.XML;
         }
 
-        ContentHandle contentToReturn = artifact.getContent();
-
-        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
-        /*
-        if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
-        }
-        */
-        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
+        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, metaData.getVersion(), builder);
         return builder.build();
     }
@@ -184,37 +161,6 @@ public class GroupsResourceImpl implements GroupsResource {
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
                                            String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
                                            String xRegistryDescriptionEncoded, InputStream data) {
-        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, data, Collections.emptyList());
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#updateArtifactWithRefs(String, String, String, String, String, String, String, ContentCreateRequest)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_NAME_ENCODED, "5", KEY_DESCRIPTION, "6", KEY_DESCRIPTION_ENCODED})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, ContentCreateRequest data) {
-        return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersionReferences(String, String, String)
-     **/
-    @Override
-    public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId, String version) {
-        if (null == version) {
-            return storage.getArtifact(gidOrNull(groupId), artifactId).getReferences().stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
-                    .collect(Collectors.toList());
-        } else {
-            return storage.getArtifactVersion(gidOrNull(groupId), artifactId, version).getReferences().stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
-                    .collect(Collectors.toList());
-        }
-    }
-
-    private ArtifactMetaData updateArtifactWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription, String xRegistryDescriptionEncoded, InputStream data, List<ArtifactReference> references) {
-
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -228,7 +174,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType(), references);
+        return updateArtifactInternal(groupId, artifactId, xRegistryVersion, artifactName, artifactDescription, content, getContentType());
     }
 
     /**
@@ -425,22 +371,18 @@ public class GroupsResourceImpl implements GroupsResource {
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //TODO:references not supported for testing update
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String, java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
-    public Response getArtifactVersion(String groupId, String artifactId, String version, Boolean dereference) {
+    public Response getArtifactVersion(String groupId, String artifactId, String version) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
-
-        if (dereference == null) {
-            dereference = Boolean.FALSE;
-        }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, version);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
@@ -460,15 +402,7 @@ public class GroupsResourceImpl implements GroupsResource {
             contentType = ArtifactMediaTypes.XML;
         }
 
-        ContentHandle contentToReturn = artifact.getContent();
-        //TODO:carnalca when dereferencing is implemented, we should return the content dereferenced here
-        /*
-        if (dereference && !artifact.getReferences().isEmpty()) {
-            contentToReturn = factory.getArtifactTypeProvider(metaData.getType()).getContentDereferencer().dereference(artifact.getContent(), storage.resolveReferences(artifact.getReferences()));
-        }
-        */
-
-        Response.ResponseBuilder builder = Response.ok(contentToReturn, contentType);
+        Response.ResponseBuilder builder = Response.ok(artifact.getContent(), contentType);
         checkIfDeprecated(metaData::getState, groupId, artifactId, version, builder);
         return builder.build();
     }
@@ -587,25 +521,6 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded, InputStream data) {
-
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, data, Collections.emptyList());
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactWithRefs(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, ContentCreateRequest)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
-    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifactWithRefs(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical, String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryName, String xRegistryNameEncoded, ContentCreateRequest data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
-    }
-
-    private ArtifactMetaData createArtifactWithRefs(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
-                                                    String xRegistryVersion, IfExists ifExists, Boolean canonical,
-                                                    String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                                    String xRegistryName, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
-
         requireParameter("groupId", groupId);
 
         maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
@@ -640,22 +555,13 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-
-            final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                    .map(V2ApiUtil::referenceToDto)
-                    .collect(Collectors.toList());
-
-            //Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
-
-            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE, resolvedReferences);
-
+            rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.CREATE);
             final String finalArtifactId = artifactId;
             EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
+            ArtifactMetaDataDto amd = storage.createArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
             return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical, references);
+            return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, content, ct, fcanonical);
         }
     }
 
@@ -689,21 +595,8 @@ public class GroupsResourceImpl implements GroupsResource {
                                                  String xRegistryVersion, String xRegistryName,
                                                  String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                  String xRegistryNameEncoded, InputStream data) {
-        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, data, Collections.emptyList());
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifactVersionWithRefs(String, String, String, String, String, String, String, ContentCreateRequest)
-     */
-    @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", KEY_NAME, "4", KEY_DESCRIPTION, "5", KEY_DESCRIPTION_ENCODED, "6", KEY_NAME_ENCODED})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public VersionMetaData createArtifactVersionWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, ContentCreateRequest data) {
-        return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
-    }
-
-    private VersionMetaData createArtifactVersionWithRefs(String groupId, String artifactId, String xRegistryVersion, String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
         // TODO do something with the user-provided version info
+
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -722,18 +615,10 @@ public class GroupsResourceImpl implements GroupsResource {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
-        //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
-        final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                .map(V2ApiUtil::referenceToDto)
-                .collect(Collectors.toList());
-
-        //Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
-
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(artifactName, artifactDescription);
-        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData, referencesAsDtos);
+        ArtifactMetaDataDto amd = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, xRegistryVersion, artifactType, content, metaData);
         return V2ApiUtil.dtoToVersionMetaData(gidOrNull(groupId), artifactId, artifactType, amd);
     }
 
@@ -791,7 +676,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     private ArtifactMetaData handleIfExists(String groupId, String artifactId, String version,
-            IfExists ifExists, ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
+            IfExists ifExists, ContentHandle content, String contentType, boolean canonical) {
         final ArtifactMetaData artifactMetaData = getArtifactMetaData(groupId, artifactId);
         if (ifExists == null) {
             ifExists = IfExists.FAIL;
@@ -799,18 +684,18 @@ public class GroupsResourceImpl implements GroupsResource {
 
         switch (ifExists) {
             case UPDATE:
-                return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
+                return updateArtifactInternal(groupId, artifactId, version, content, contentType);
             case RETURN:
                 return artifactMetaData;
             case RETURN_OR_UPDATE:
-                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical, references);
+                return handleIfExistsReturnOrUpdate(groupId, artifactId, version, content, contentType, canonical);
             default:
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
     }
 
     private ArtifactMetaData handleIfExistsReturnOrUpdate(String groupId, String artifactId, String version,
-            ContentHandle content, String contentType, boolean canonical, List<ArtifactReference> references) {
+            ContentHandle content, String contentType, boolean canonical) {
         try {
             ArtifactVersionMetaDataDto mdDto = this.storage.getArtifactVersionMetaData(gidOrNull(groupId), artifactId, canonical, content);
             ArtifactMetaData md = V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, null, mdDto);
@@ -818,32 +703,26 @@ public class GroupsResourceImpl implements GroupsResource {
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, version, content, contentType, references);
+        return updateArtifactInternal(groupId, artifactId, version, content, contentType);
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
-                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
-        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType, references);
+                                                    ContentHandle content, String contentType) {
+        return this.updateArtifactInternal(groupId, artifactId, version, null, null, content, contentType);
     }
 
     private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
                                                     String name, String description,
-                                                    ContentHandle content, String contentType, List<ArtifactReference> references) {
+                                                    ContentHandle content, String contentType) {
 
         if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
         }
 
         ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
-
-        //Transform the given references into dtos and set the contentId, this will also detect if any of the passed references does not exist.
-        final List<ArtifactReferenceDto> referencesAsDtos = references.stream()
-                .map(V2ApiUtil::referenceToDto)
-                .collect(Collectors.toList());
-
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
-        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
+        ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);
     }
 

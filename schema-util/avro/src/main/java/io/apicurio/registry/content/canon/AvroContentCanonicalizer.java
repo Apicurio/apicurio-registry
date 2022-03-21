@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2020 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,15 +31,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.apicurio.registry.content.ContentHandle;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
- * An Avro implementation of a content Canonicalizer that handles avro references.
- *
+ * An Avro implementation of a content Canonicalizer. This will use Jackson to remove any formatting that is
+ * not needed (i.e. whitespace). It will also order the list of fields, since that is not important.
+ * 
  * @author eric.wittmann@gmail.com
- * @author carnalca@redhat.com
  */
 public class AvroContentCanonicalizer implements ContentCanonicalizer {
 
@@ -52,10 +48,10 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
     };
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+    public ContentHandle canonicalize(ContentHandle content) {
         try {
             JsonNode root = mapper.readTree(content.content());
 
@@ -76,14 +72,7 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
             return ContentHandle.create(converted);
         } catch (Throwable t) {
             // best effort
-            final Schema.Parser parser = new Schema.Parser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (ContentHandle referencedContent : resolvedReferences.values()) {
-                Schema schemaRef = parser.parse(referencedContent.content());
-                schemaRefs.add(schemaRef);
-            }
-            final Schema schema = parser.parse(content.content());
-            return ContentHandle.create(schema.toString(schemaRefs, false));
+            return ContentHandle.create(new Schema.Parser().parse(content.content()).toString());
         }
     }
 

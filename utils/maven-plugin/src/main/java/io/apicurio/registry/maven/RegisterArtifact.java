@@ -17,7 +17,6 @@
 package io.apicurio.registry.maven;
 
 import java.io.File;
-import java.util.List;
 
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
@@ -35,7 +34,6 @@ public class RegisterArtifact {
     private IfExists ifExists;
     private Boolean canonicalize;
     private String contentType;
-    private List<RegisterArtifactReference> references;
 
     /**
      * Constructor.
@@ -155,17 +153,4 @@ public class RegisterArtifact {
         this.contentType = contentType;
     }
 
-    /**
-     * @return the referenced artifacts
-     */
-    public List<RegisterArtifactReference> getReferences() {
-        return references;
-    }
-
-    /**
-     * @param references the references to set
-     */
-    public void setReferences(List<RegisterArtifactReference> references) {
-        this.references = references;
-    }
 }

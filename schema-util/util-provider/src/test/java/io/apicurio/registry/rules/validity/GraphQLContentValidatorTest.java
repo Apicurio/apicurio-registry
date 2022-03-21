@@ -22,8 +22,6 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
-import java.util.Collections;
-
 /**
  * Tests the GraphQL content validator.
  * @author eric.wittmann@gmail.com
@@ -34,7 +32,7 @@ public class GraphQLContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("graphql-valid.graphql");
         GraphQLContentValidator validator = new GraphQLContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
@@ -42,7 +40,7 @@ public class GraphQLContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("graphql-invalid.graphql");
         GraphQLContentValidator validator = new GraphQLContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 

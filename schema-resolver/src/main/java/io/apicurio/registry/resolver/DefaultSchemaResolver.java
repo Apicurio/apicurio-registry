@@ -21,12 +21,9 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -80,7 +77,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             parsedSchema = schemaParser.getSchemaFromData(data);
         }
 
-        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false);
+        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
@@ -90,14 +87,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             if (parsedSchema == null) {
                 parsedSchema = schemaParser.getSchemaFromData(data);
             }
-
-            if (parsedSchema.hasReferences()) {
-                //List of references lookup, to be used to create the references for the artifact
-                final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data, parsedSchema);
-                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-            } else {
-                return handleAutoCreateArtifact(parsedSchema, artifactReference);
-            }
+            return handleAutoCreateArtifact(parsedSchema, artifactReference);
         }
 
         if (findLatest || artifactReference.getVersion() != null) {
@@ -114,24 +104,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion());
     }
 
-    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data, ParsedSchema<S> parsedSchema) {
-        final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
-
-        for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-
-            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
-
-            if (nestedReferences.isEmpty()) {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true)));
-            } else {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true), nestedReferences));
-            }
-        }
-        return referencesLookup;
-    }
-
     /**
-     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
+     * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -165,13 +139,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok for this case
             InputStream rawSchema = client.getContentById(contentIdKey);
 
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByContentId(contentId);
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
-
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+            S parsed = schemaParser.parseSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -218,7 +187,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
 
             ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(),
-                schemaParser.artifactType(), this.autoCreateBehavior, false,  IoUtil.toStream(parsedSchema.getRawSchema()));
+                schemaParser.artifactType(), this.autoCreateBehavior, false, IoUtil.toStream(parsedSchema.getRawSchema()));
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
@@ -228,43 +197,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             return result.build();
         });
-    }
-
-    private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
-
-        String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
-
-        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = parseReferences(referenceLookups);
-
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
-
-            ArtifactMetaData artifactMetadata = client.createArtifact(artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion(),
-                    schemaParser.artifactType(), this.autoCreateBehavior, false, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED,  IoUtil.toStream(parsedSchema.getRawSchema()), artifactReferences);
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromArtifactMetaData(artifactMetadata, result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
-        });
-    }
-
-    private List<io.apicurio.registry.rest.v2.beans.ArtifactReference> parseReferences(List<SchemaLookupResult<S>> referenceLookups) {
-        final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = new ArrayList<>();
-
-        referenceLookups.forEach(referenceLookup -> {
-            io.apicurio.registry.rest.v2.beans.ArtifactReference artifactReferenceLookup = new io.apicurio.registry.rest.v2.beans.ArtifactReference();
-            artifactReferenceLookup.setArtifactId(referenceLookup.getArtifactId());
-            artifactReferenceLookup.setGroupId(referenceLookup.getGroupId());
-            artifactReferenceLookup.setName(referenceLookup.getParsedSchema().referenceName());
-            artifactReferenceLookup.setVersion(referenceLookup.getVersion());
-            artifactReferences.add(artifactReferenceLookup);
-        });
-
-        return artifactReferences;
     }
 
     private SchemaLookupResult<S> resolveSchemaByArtifactReferenceCached(ArtifactReference artifactReference) {
@@ -286,13 +218,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             InputStream rawSchema = client.getContentByGlobalId(gid);
 
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(gid);
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
-
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+            S parsed = schemaParser.parseSchema(schema);
 
             result.parsedSchema(new ParsedSchemaImpl<S>()
                         .setParsedSchema(parsed)

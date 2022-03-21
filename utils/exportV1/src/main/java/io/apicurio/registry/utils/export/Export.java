@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -234,7 +233,7 @@ public class Export implements QuarkusApplication {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
             return canonicalContent;
         } catch (Exception e) {
             e.printStackTrace();

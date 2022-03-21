@@ -67,7 +67,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -94,11 +94,4 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "MERGE INTO sequences (tenantId, name, value) KEY (tenantId, name) VALUES(?, ?, ?)";
     }
 
-    /**
-     * @see SqlStatements#upsertReference()
-     */
-    @Override
-    public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?)";
-    }
 }

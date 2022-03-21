@@ -24,8 +24,6 @@ import io.apicurio.registry.ccompat.SchemaTypeFilter;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.*;
 
-import java.util.List;
-
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
@@ -45,13 +43,10 @@ public class SchemaInfo {
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = SchemaTypeFilter.class)
     private String schemaType;
 
-    @JsonProperty("references")
-    private List<SchemaReference> references;
 
-    public SchemaInfo(String schema, String schemaType, List<SchemaReference> references) {
+    public SchemaInfo(String schema, String schemaType) {
         this.schema = schema;
         this.schemaType = schemaType;
-        this.references = references;
     }
 
     public SchemaInfo(String schema) {

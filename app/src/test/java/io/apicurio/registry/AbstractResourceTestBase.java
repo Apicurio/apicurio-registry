@@ -20,8 +20,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.apicurio.registry.rest.client.AdminClientFactory;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
 import io.apicurio.rest.client.auth.Auth;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Assertions;
@@ -43,7 +41,6 @@ import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
 
 import java.util.Collections;
-import java.util.List;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
@@ -56,8 +53,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
-    public static final String CT_JSON_EXTENDED = "application/create.extended+json";
-
 
     protected String registryApiBaseUrl;
     protected String registryV1ApiUrl;
@@ -138,30 +133,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 .body(artifactContent)
             .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("type", equalTo(artifactType.name()));
-
-        waitForArtifact(groupId, artifactId);
-
-        return response.extract().body().path("globalId");
-    }
-
-    protected Integer createArtifactWithReferences(String groupId, String artifactId, ArtifactType artifactType, String artifactContent, List<ArtifactReference> artifactReferences) throws Exception {
-
-        ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(artifactContent);
-        contentCreateRequest.setReferences(artifactReferences);
-
-        ValidatableResponse response = given()
-                .when()
-                .contentType(CT_JSON_EXTENDED)
-                .pathParam("groupId", groupId)
-                .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
-                .body(contentCreateRequest)
-                .post("/registry/v2/groups/{groupId}/artifacts")
-                .then()
                 .statusCode(200)
                 .body("id", equalTo(artifactId))
                 .body("type", equalTo(artifactType.name()));

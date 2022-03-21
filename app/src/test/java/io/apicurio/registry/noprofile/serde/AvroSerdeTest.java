@@ -23,14 +23,10 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
-import com.kubetrade.schema.common.Exchange;
-import com.kubetrade.schema.trade.TradeKey;
-import com.kubetrade.schema.trade.TradeRaw;
 import io.apicurio.registry.serde.config.IdOption;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -227,49 +223,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void avroJsonWithReferences() throws Exception {
-        try (AvroKafkaSerializer<TradeRaw> serializer = new AvroKafkaSerializer<TradeRaw>(restClient);
-             Deserializer<TradeRaw> deserializer = new AvroKafkaDeserializer<>(restClient)) {
-
-            Map<String, String> config = new HashMap<>();
-            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
-            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
-            serializer.configure(config, false);
-
-            config = new HashMap<>();
-            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
-            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
-            deserializer.configure(config, false);
-
-            TradeRaw tradeRaw = new TradeRaw();
-            TradeKey tradeKey = new TradeKey();
-            tradeKey.setKey(UUID.randomUUID().toString());
-            tradeKey.setExchange(Exchange.GEMINI);
-            tradeRaw.setTradeKey(tradeKey);
-            tradeRaw.setPayload("testPayload");
-            tradeRaw.setSymbol("testSymbol");
-
-            String artifactId = generateArtifactId();
-
-            byte[] bytes = serializer.serialize(artifactId, tradeRaw);
-
-            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
-            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
-            Assertions.assertEquals("testSymbol", msgAsJson.getString("symbol"));
-
-            // some impl details ...
-            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
-
-            TradeRaw ir = deserializer.deserialize(artifactId, bytes);
-
-            Assertions.assertEquals(tradeRaw, ir);
-            Assertions.assertEquals("testSymbol", ir.getSymbol());
-            Assertions.assertEquals(Exchange.GEMINI, ir.getTradeKey().getExchange());
-        }
-    }
-
-    @Test
     public void testAvroUsingHeaders() throws Exception {
         Schema schema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
@@ -355,7 +308,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         {
             byte[] bytes = serializer1.serialize(subject, record);
 
-            TestUtils.retry(() -> TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt()));
+            TestUtils.waitForSchema(globalId -> restClient.getContentById(globalId) != null, bytes, bb -> (long) bb.getInt());
 
             deserializer1.asLegacyId();
             Map<String, String> config = new HashMap<>();

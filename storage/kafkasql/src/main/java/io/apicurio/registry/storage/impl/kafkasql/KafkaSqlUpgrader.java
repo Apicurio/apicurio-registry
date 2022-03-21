@@ -18,7 +18,6 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -112,7 +111,7 @@ public class KafkaSqlUpgrader {
             logger.debug("Protobuf content canonicalHash outdated value detected, updating contentId {}", contentEntity.contentId);
 
             CompletableFuture<UUID> future = submitter
-                    .submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null, null);
+                    .submitContent(tenantContentEntity.tenantId, contentEntity.contentId, contentEntity.contentHash, ActionType.UPDATE, canonicalContentHash, null);
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
 
@@ -121,7 +120,8 @@ public class KafkaSqlUpgrader {
         protected ContentHandle canonicalizeContent(ContentHandle content) {
             try {
                 ContentCanonicalizer canonicalizer = new ProtobufContentCanonicalizer();
-                return canonicalizer.canonicalize(content, Collections.emptyMap());
+                ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+                return canonicalContent;
             } catch (Exception e) {
                 logger.debug("Failed to canonicalize content of type: {}", ArtifactType.PROTOBUF.name());
                 return content;

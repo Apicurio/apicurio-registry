@@ -35,20 +35,14 @@ import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Base implementation of {@link SchemaResolver}
  *
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
- * @author Carles Arnal
  */
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
@@ -152,27 +146,16 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * values (groupId, artifactId, version).
      * @param data
      * @param parsedSchema
-     * @param isReference
      * @return artifact reference
      */
-    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema, boolean isReference) {
+    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
-                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference))
+                .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
-
-
         return artifactReference;
-    }
-
-    protected String resolveArtifactId(String artifactId, boolean isReference) {
-        if (isReference) {
-            return UUID.randomUUID().toString(); //When a reference is being auto-registered, we create a new random id for it.
-        } else {
-            return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
-        }
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
@@ -180,20 +163,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
             //TODO or at least add some method to the api to return the version metadata by globalId
 //            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
-
-            InputStream rawSchema = client.getContentByGlobalId(globalIdKey, false,  true);
-
-            //Get the artifact references
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences = client.getArtifactReferencesByGlobalId(globalId);
-            //If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+            InputStream rawSchema = client.getContentByGlobalId(globalIdKey);
 
             byte[] schema = IoUtil.toBytes(rawSchema);
-            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-
+            S parsed = schemaParser.parseSchema(schema);
             ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
                     .setParsedSchema(parsed)
-                    .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
                     .setRawSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -207,32 +182,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .parsedSchema(ps)
                 .build();
         });
-    }
-
-    protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.v2.beans.ArtifactReference> artifactReferences) {
-        Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
-        artifactReferences.forEach(reference -> {
-            final InputStream referenceContent = client.getArtifactVersion(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            final List<io.apicurio.registry.rest.v2.beans.ArtifactReference> referenceReferences = client.getArtifactReferencesByCoordinates(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-            if (!referenceReferences.isEmpty()) {
-                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
-                resolvedReferences.putAll(nestedReferences);
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
-            } else {
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
-            }
-        });
-        return resolvedReferences;
-    }
-
-    private ParsedSchema<S> parseSchemaFromStream(String name, InputStream rawSchema, Map<String, ParsedSchema<S>> resolvedReferences) {
-        byte[] schema = IoUtil.toBytes(rawSchema);
-        S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-        return new ParsedSchemaImpl<S>()
-                .setParsedSchema(parsed)
-                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                .setReferenceName(name)
-                .setRawSchema(schema);
     }
 
     /**

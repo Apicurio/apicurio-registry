@@ -29,20 +29,19 @@ public class ContentValue extends AbstractMessageValue {
     private String canonicalHash;
     @ToString.Exclude
     private ContentHandle content;
-    private String serializedReferences;
 
     /**
      * Creator method.
      * @param action
+     * @param contentId
      * @param canonicalHash
      * @param content
      */
-    public static final ContentValue create(ActionType action, String canonicalHash, ContentHandle content, String serializedReferences) {
+    public static final ContentValue create(ActionType action, String canonicalHash, ContentHandle content) {
         ContentValue value = new ContentValue();
         value.setAction(action);
         value.setCanonicalHash(canonicalHash);
         value.setContent(content);
-        value.setSerializedReferences(serializedReferences);
         return value;
     }
 
@@ -83,17 +82,4 @@ public class ContentValue extends AbstractMessageValue {
         this.canonicalHash = canonicalHash;
     }
 
-    /**
-     * @return the serialized references
-     */
-    public String getSerializedReferences() {
-        return serializedReferences;
-    }
-
-    /**
-     * @param serializedReferences
-     */
-    public void setSerializedReferences(String serializedReferences) {
-        this.serializedReferences = serializedReferences;
-    }
 }

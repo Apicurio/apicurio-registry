@@ -34,5 +34,4 @@ public class Parameters {
     public static String IF_EXISTS = "ifExists";
     public static String GLOBAL_ID = "globalId";
     public static String CONTENT_ID = "contentId";
-    public static final String DEREFERENCE = "dereference";
 }

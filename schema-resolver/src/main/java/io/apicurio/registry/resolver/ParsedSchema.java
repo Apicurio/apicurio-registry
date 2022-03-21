@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.resolver;
 
-import java.util.List;
-
 /**
  * @author Fabian Martinez
  */
@@ -33,25 +31,4 @@ public interface ParsedSchema<T> {
      */
     public byte[] getRawSchema();
 
-    /**
-     * @return the the schema references (if any)
-     */
-    public List<ParsedSchema<T>> getSchemaReferences();
-
-    /**
-     * @return true if the schema has references
-     */
-    public boolean hasReferences();
-
-    /**
-     *
-     * @return the name to be used when referencing this schema
-     */
-    public String referenceName();
-
-
-    /**
-     * set the name to be used when referencing this schema
-     */
-    public ParsedSchemaImpl<T> setReferenceName(String referenceName);
 }

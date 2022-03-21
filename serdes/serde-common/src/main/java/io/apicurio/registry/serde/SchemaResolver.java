@@ -18,7 +18,6 @@ package io.apicurio.registry.serde;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.resolver.data.Record;
@@ -107,7 +106,7 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
              */
             @Override
             public Object parseSchema(byte[] rawSchema) {
-                return schemaMapper.parseSchema(rawSchema, Collections.emptyMap());
+                return schemaMapper.parseSchema(rawSchema);
             }
 
         });

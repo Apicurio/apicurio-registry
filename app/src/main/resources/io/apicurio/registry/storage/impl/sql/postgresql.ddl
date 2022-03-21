@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 8);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 7);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
@@ -22,7 +22,7 @@ CREATE TABLE rules (tenantId VARCHAR(128) NOT NULL, groupId VARCHAR(512) NOT NUL
 ALTER TABLE rules ADD PRIMARY KEY (tenantId, groupId, artifactId, type);
 ALTER TABLE rules ADD CONSTRAINT FK_rules_1 FOREIGN KEY (tenantId, groupId, artifactId) REFERENCES artifacts(tenantId, groupId, artifactId);
 
-CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL, artifactreferences TEXT);
+CREATE TABLE content (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, content BYTEA NOT NULL);
 ALTER TABLE content ADD PRIMARY KEY (tenantId, contentId);
 ALTER TABLE content ADD CONSTRAINT UNQ_content_1 UNIQUE (tenantId, contentHash);
 CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
@@ -66,9 +66,3 @@ CREATE INDEX IDX_down_1 ON downloads USING HASH (expires);
 CREATE TABLE config (tenantId VARCHAR(128) NOT NULL, pname VARCHAR(255) NOT NULL, pvalue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
 ALTER TABLE config ADD PRIMARY KEY (tenantId, pname);
 CREATE INDEX IDX_config_1 ON config(modifiedOn);
-
-CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
-ALTER TABLE artifactreferences ADD PRIMARY KEY (tenantId, contentId, name);
-ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_1 FOREIGN KEY (tenantId, contentId) REFERENCES content(tenantId, contentId);
-ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_2 FOREIGN KEY (tenantId, groupId, artifactId, version) REFERENCES versions(tenantId, groupId, artifactId, version);
-

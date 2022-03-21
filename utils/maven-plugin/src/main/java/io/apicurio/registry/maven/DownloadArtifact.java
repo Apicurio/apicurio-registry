@@ -17,7 +17,6 @@
 package io.apicurio.registry.maven;
 
 import java.io.File;
-import java.util.List;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -29,7 +28,6 @@ public class DownloadArtifact {
     private String version;
     private File file;
     private Boolean overwrite;
-    private List<DownloadArtifact> artifactReferences;
 
     /**
      * Constructor.
@@ -107,17 +105,4 @@ public class DownloadArtifact {
         this.version = version;
     }
 
-    /**
-     * @return the artifactReferences
-     */
-    public List<DownloadArtifact> getArtifactReferences() {
-        return artifactReferences;
-    }
-
-    /**
-     * @param artifactReferences the references to set
-     */
-    public void setArtifactReferences(List<DownloadArtifact> artifactReferences) {
-        this.artifactReferences = artifactReferences;
-    }
 }

@@ -19,7 +19,13 @@ package io.apicurio.registry.rest.client.request.provider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateState;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
+import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.rest.client.request.Operation;
@@ -28,8 +34,6 @@ import io.apicurio.rest.client.request.Request;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-
-import static io.apicurio.rest.client.request.Operation.GET;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -58,20 +62,6 @@ public class GroupRequestsProvider {
                 .responseType(new TypeReference<ArtifactMetaData>() {
                 })
                 .data(data)
-                .build();
-    }
-
-    public static Request<ArtifactMetaData> createArtifactWithReferences(String groupId, Map<String, String> headers, ContentCreateRequest data, Map<String, List<String>> queryParams)
-            throws JsonProcessingException {
-        return new Request.RequestBuilder<ArtifactMetaData>()
-                .operation(Operation.POST)
-                .path(Routes.GROUP_BASE_PATH)
-                .headers(headers)
-                .pathParams(List.of(groupId))
-                .queryParams(queryParams)
-                .responseType(new TypeReference<ArtifactMetaData>() {
-                })
-                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
                 .build();
     }
 
@@ -333,15 +323,6 @@ public class GroupRequestsProvider {
                 .pathParams(List.of(groupId, artifactId))
                 .responseType(new TypeReference<InputStream>() {
                 })
-                .build();
-    }
-
-    public static Request<List<ArtifactReference>> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
-        return new Request.RequestBuilder<List<ArtifactReference>>()
-                .operation(GET)
-                .path(Routes.ARTIFACT_VERSION_REFERENCES)
-                .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version))
-                .responseType(new TypeReference<List<ArtifactReference>>(){})
                 .build();
     }
 }

@@ -25,7 +25,6 @@ import org.apache.xml.security.parser.XMLParserException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * A common XML content canonicalizer.
@@ -35,7 +34,8 @@ import java.util.Map;
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 
     private static ThreadLocal<Canonicalizer> xmlCanonicalizer = new ThreadLocal<Canonicalizer>() {
-        @Override protected Canonicalizer initialValue() {
+        @Override
+        protected Canonicalizer initialValue() {
             try {
                 return Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
             } catch (InvalidCanonicalizerException e) {
@@ -49,10 +49,10 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
      */
-    @Override public ContentHandle canonicalize(ContentHandle content,
-            Map<String, ContentHandle> resolvedReferences) {
+    @Override
+    public ContentHandle canonicalize(ContentHandle content) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
             var out = new ByteArrayOutputStream(content.sizeHint());

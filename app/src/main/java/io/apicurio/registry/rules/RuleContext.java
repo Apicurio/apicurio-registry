@@ -19,7 +19,6 @@ package io.apicurio.registry.rules;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -35,7 +34,6 @@ public class RuleContext {
     private final String configuration;
     private final ContentHandle currentContent;
     private final ContentHandle updatedContent;
-    private final Map<String, ContentHandle> resolvedReferences;
 
     /**
      * Constructor.
@@ -47,14 +45,13 @@ public class RuleContext {
      * @param updatedContent
      */
     public RuleContext(String groupId, String artifactId, ArtifactType artifactType, String configuration,
-                       ContentHandle currentContent, ContentHandle updatedContent, Map<String, ContentHandle> resolvedReferences) {
+                       ContentHandle currentContent, ContentHandle updatedContent) {
         this.groupId = groupId;
         this.artifactId = Objects.requireNonNull(artifactId);
         this.artifactType = Objects.requireNonNull(artifactType);
         this.configuration = Objects.requireNonNull(configuration);
         this.currentContent = currentContent; // Current Content will be null when creating an artifact.
         this.updatedContent = Objects.requireNonNull(updatedContent);
-        this.resolvedReferences = Objects.requireNonNull(resolvedReferences);
     }
 
     /**
@@ -97,12 +94,5 @@ public class RuleContext {
      */
     public ContentHandle getUpdatedContent() {
         return updatedContent;
-    }
-
-    /**
-     * @return the references
-     */
-    public Map<String, ContentHandle> getResolvedReferences() {
-        return resolvedReferences;
     }
 }

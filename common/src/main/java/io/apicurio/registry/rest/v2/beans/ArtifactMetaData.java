@@ -37,8 +37,7 @@ import io.apicurio.registry.types.ArtifactType;
     "labels",
     "properties",
     "groupId",
-    "contentId",
-    "references"
+    "contentId"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -153,12 +152,6 @@ public class ArtifactMetaData {
     @JsonProperty("contentId")
     @JsonPropertyDescription("")
     private Long contentId;
-    /**
-     *
-     */
-    @JsonProperty("references")
-    @JsonPropertyDescription("")
-    private List<ArtifactReference> references = new ArrayList<ArtifactReference>();
 
     @JsonProperty("name")
     public String getName() {
@@ -442,22 +435,6 @@ public class ArtifactMetaData {
     @JsonProperty("contentId")
     public void setContentId(Long contentId) {
         this.contentId = contentId;
-    }
-
-    /**
-     *
-     */
-    @JsonProperty("references")
-    public List<ArtifactReference> getReferences() {
-        return references;
-    }
-
-    /**
-     *
-     */
-    @JsonProperty("references")
-    public void setReferences(List<ArtifactReference> references) {
-        this.references = references;
     }
 
 }

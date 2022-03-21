@@ -17,7 +17,6 @@
 package io.apicurio.registry.ibmcompat.api.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -317,7 +316,7 @@ public class ApiServiceImpl implements ApiService {
             artifactId = ApiUtil.normalizeSchemaID(schemaName);
         }
         ContentHandle content = ContentHandle.create(schema.getDefinition());
-        rulesService.applyRules(null, artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
+        rulesService.applyRules(null, artifactId, ArtifactType.AVRO, content, RuleApplicationType.CREATE);
         if (verify) {
             handleVerifiedArtifact(response, content);
         } else {
@@ -328,7 +327,7 @@ public class ApiServiceImpl implements ApiService {
             properties.put(SCHEMA_NAME_ADDITIONAL_PROPERTY, schemaName);
             dto.setProperties(properties);
             try {
-                ArtifactMetaDataDto amdd = storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto, null);
+                ArtifactMetaDataDto amdd = storage.createArtifactWithMetadata(null, artifactId, null, ArtifactType.AVRO, content, dto);
                 handleArtifactCreation(response, artifactId, amdd);
             } catch (Exception e) {
                 response.resume(e);
@@ -419,14 +418,14 @@ public class ApiServiceImpl implements ApiService {
     public void apiSchemasSchemaidVersionsPost(AsyncResponse response, String schemaid, NewSchemaVersion newSchemaVersion, boolean verify)
     throws ArtifactNotFoundException, ArtifactAlreadyExistsException {
         ContentHandle body = ContentHandle.create(newSchemaVersion.getDefinition());
-        rulesService.applyRules(null, schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+        rulesService.applyRules(null, schemaid, ArtifactType.AVRO, body, RuleApplicationType.UPDATE);
         if (verify) {
             handleVerifiedArtifact(response, body);
         } else {
             EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
             dto.setName(newSchemaVersion.getVersion());
             try {
-                ArtifactMetaDataDto amdd = storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto, null);
+                ArtifactMetaDataDto amdd = storage.updateArtifactWithMetadata(null, schemaid, null, ArtifactType.AVRO, body, dto);
                 handleArtifactCreation(response, schemaid, amdd);
             } catch (Exception e) {
                 response.resume(e);

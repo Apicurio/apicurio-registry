@@ -22,8 +22,6 @@ import io.apicurio.registry.rules.RuleViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-
 /**
  * Tests the AsyncAPI content validator.
  * @author eric.wittmann@gmail.com
@@ -34,14 +32,14 @@ public class AsyncApiContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("asyncapi-valid-syntax.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
     }
 
     @Test
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("asyncapi-valid-semantics.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
-        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        validator.validate(ValidityLevel.FULL, content);
     }
 
     @Test
@@ -49,7 +47,7 @@ public class AsyncApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("asyncapi-invalid-syntax.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 
@@ -58,7 +56,7 @@ public class AsyncApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("asyncapi-invalid-semantics.json");
         AsyncApiContentValidator validator = new AsyncApiContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+            validator.validate(ValidityLevel.FULL, content);
         });
     }
 

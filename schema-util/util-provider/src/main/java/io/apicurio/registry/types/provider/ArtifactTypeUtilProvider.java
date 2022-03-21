@@ -17,7 +17,6 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -43,6 +42,4 @@ public interface ArtifactTypeUtilProvider {
     ContentValidator getContentValidator();
 
     ContentExtractor getContentExtractor();
-
-    ContentDereferencer getContentDereferencer();
 }

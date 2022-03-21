@@ -22,8 +22,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.Map;
-
 /**
  * A content validator implementation for the Avro content type.
  * @author eric.wittmann@gmail.com
@@ -37,16 +35,13 @@ public class AvroContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, Map)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel, ContentHandle)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 Schema.Parser parser = new Schema.Parser();
-                for (ContentHandle schema : resolvedReferences.values()) {
-                    parser.parse(schema.content());
-                }
                 parser.parse(artifactContent.content());
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Avro artifact.", RuleType.VALIDITY, level.name(), e);

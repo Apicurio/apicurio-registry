@@ -18,7 +18,6 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
-import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -54,10 +53,5 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     protected ContentExtractor createContentExtractor() {
         return NoopContentExtractor.INSTANCE;
-    }
-
-    @Override
-    public ContentDereferencer getContentDereferencer() {
-        return null;
     }
 }

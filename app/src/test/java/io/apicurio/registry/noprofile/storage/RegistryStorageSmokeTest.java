@@ -98,11 +98,11 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         int size = getStorage().getArtifactIds(null).size();
 
         // Create 2 version of an artifact and one other artifact
-        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
+        ArtifactMetaDataDto meta1 = getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content1"));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_1);
-        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"), null);
+        ArtifactMetaDataDto meta2 = getStorage().updateArtifact(GROUP_ID, ARTIFACT_ID_1, null, ArtifactType.JSON, ContentHandle.create("content2"));
         this.waitForGlobalId(meta2.getGlobalId());
-        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3"), null);
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_2, null, ArtifactType.AVRO, ContentHandle.create("content3"));
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_2);
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
@@ -157,7 +157,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
     @Test
     public void testRules() throws Exception {
-        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1"), null);
+        getStorage().createArtifact(GROUP_ID, ARTIFACT_ID_3, null, ArtifactType.JSON, ContentHandle.create("content1"));
 
         this.waitForArtifact(GROUP_ID, ARTIFACT_ID_3);
 
@@ -193,16 +193,16 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
 
         try {
             getStorage()
-                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
+                    .createArtifact(GROUP_ID, testId0, null, ArtifactType.JSON, ContentHandle.create("{}"));
             this.waitForArtifact(GROUP_ID, testId0);
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
             getStorage()
-                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
+                    .createArtifact(GROUP_ID, testId1, null, ArtifactType.JSON, ContentHandle.create("{}"));
             getStorage()
-                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}"), null);
+                    .createArtifact(GROUP_ID, testId2, null, ArtifactType.JSON, ContentHandle.create("{}"));
 
             this.waitForArtifact(GROUP_ID, testId1);
             this.waitForArtifact(GROUP_ID, testId2);

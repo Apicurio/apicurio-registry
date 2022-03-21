@@ -22,8 +22,6 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
-import java.util.Collections;
-
 /**
  * @author cfoskin@redhat.com
  */
@@ -32,9 +30,9 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle contentA = resourceToContentHandle("wsdl-valid.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA, Collections.emptyMap());
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentA);
         ContentHandle contentB = resourceToContentHandle("wsdl-invalid-semantics.wsdl");
-        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB, Collections.emptyMap());
+        validator.validate(ValidityLevel.SYNTAX_ONLY, contentB);
     }
 
     @Test
@@ -42,7 +40,7 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("wsdl-invalid-syntax.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
         });
     }
 
@@ -50,7 +48,7 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("wsdl-valid.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
-        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        validator.validate(ValidityLevel.FULL, content);
     }
 
     @Test
@@ -59,7 +57,7 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
             //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's
-            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+            validator.validate(ValidityLevel.FULL, content);
         });
     }
 }

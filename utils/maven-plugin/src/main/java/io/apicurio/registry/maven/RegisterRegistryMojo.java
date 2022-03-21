@@ -18,8 +18,12 @@
 package io.apicurio.registry.maven;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
+
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -84,16 +88,17 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         int errorCount = 0;
         if (artifacts != null) {
             for (RegisterArtifact artifact : artifacts) {
+
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
-                String version = artifact.getVersion();
-                ArtifactType type = artifact.getType();
-                IfExists ifExists = artifact.getIfExists();
-                Boolean canonicalize = artifact.getCanonicalize();
-                String contentType = contentType(artifact);
-                try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, contentType, data);
-                    getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+
+                try {
+                    List<ArtifactReference> references = new ArrayList<>();
+                    //First, we check if the artifact being processed has references defined
+                    if (hasReferences(artifact)) {
+                        references = registerArtifactReferences(artifact.getReferences());
+                    }
+                    registerArtifact(artifact, references);
                 } catch (Exception e) {
                     errorCount++;
                     getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId, artifactId), e);
@@ -104,6 +109,48 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         if (errorCount > 0) {
             throw new MojoExecutionException("Errors while registering artifacts ...");
         }
+    }
+
+    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws FileNotFoundException {
+        String groupId = artifact.getGroupId();
+        String artifactId = artifact.getArtifactId();
+        String version = artifact.getVersion();
+        ArtifactType type = artifact.getType();
+        IfExists ifExists = artifact.getIfExists();
+        Boolean canonicalize = artifact.getCanonicalize();
+        String contentType = contentType(artifact);
+        InputStream data = new FileInputStream(artifact.getFile());
+        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, contentType, data, references);
+        getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+
+        return amd;
+    }
+
+    private boolean hasReferences(RegisterArtifact artifact) {
+        return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
+    }
+
+    private List<ArtifactReference> registerArtifactReferences(List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException {
+        List<ArtifactReference> references = new ArrayList<>();
+        for (RegisterArtifactReference artifact: referencedArtifacts) {
+            List<ArtifactReference> nestedReferences = new ArrayList<>();
+            //First, we check if the artifact being processed has references defined, and register them if needed
+            if (hasReferences(artifact)) {
+                nestedReferences = registerArtifactReferences(artifact.getReferences());
+            }
+            final ArtifactMetaData artifactMetaData = registerArtifact(artifact, nestedReferences);
+            references.add(buildReferenceFromMetadata(artifactMetaData, artifact.getName()));
+        }
+        return references;
+    }
+
+    private ArtifactReference buildReferenceFromMetadata(ArtifactMetaData amd, String referenceName) {
+        ArtifactReference reference = new ArtifactReference();
+        reference.setName(referenceName);
+        reference.setArtifactId(amd.getId());
+        reference.setGroupId(amd.getGroupId());
+        reference.setVersion(amd.getVersion());
+        return reference;
     }
 
     private String contentType(RegisterArtifact registerArtifact) {

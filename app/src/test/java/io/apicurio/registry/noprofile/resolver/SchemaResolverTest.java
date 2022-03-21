@@ -68,7 +68,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         resolver.configure(config, new SchemaParser<Schema, GenericRecord>() {
 
             @Override
-            public Schema parseSchema(byte[] rawSchema) {
+            public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
                 return null;
             }
 

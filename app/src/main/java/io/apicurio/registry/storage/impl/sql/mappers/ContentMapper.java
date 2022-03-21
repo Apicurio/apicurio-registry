@@ -20,12 +20,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class ContentMapper implements RowMapper<ContentHandle> {
+public class ContentMapper implements RowMapper<ContentWrapperDto> {
 
     public static final ContentMapper instance = new ContentMapper();
 
@@ -39,10 +41,13 @@ public class ContentMapper implements RowMapper<ContentHandle> {
      * @see io.apicurio.registry.storage.impl.sql.jdb.RowMapper#map(java.sql.ResultSet)
      */
     @Override
-    public ContentHandle map(ResultSet rs) throws SQLException {
+    public ContentWrapperDto map(ResultSet rs) throws SQLException {
+        final ContentWrapperDto contentWrapperDto = new ContentWrapperDto();
         byte[] contentBytes = rs.getBytes("content");
         ContentHandle content = ContentHandle.create(contentBytes);
-        return content;
+        contentWrapperDto.setContent(content);
+        contentWrapperDto.setReferences(SqlUtil.deserializeReferences(rs.getString("artifactreferences")));
+        return contentWrapperDto;
     }
 
 }

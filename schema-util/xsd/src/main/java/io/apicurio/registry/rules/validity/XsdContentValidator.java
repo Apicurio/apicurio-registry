@@ -17,6 +17,7 @@
 package io.apicurio.registry.rules.validity;
 
 import java.io.InputStream;
+import java.util.Map;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -37,12 +38,11 @@ public class XsdContentValidator extends XmlContentValidator {
     public XsdContentValidator() {
     }
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(io.apicurio.registry.rules.validity.ValidityLevel,
-     *      io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException {
-        super.validate(level, artifactContent);
+    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+        super.validate(level, artifactContent, resolvedReferences);
 
         if (level == ValidityLevel.FULL) {
             try (InputStream semanticStream = artifactContent.stream()) {

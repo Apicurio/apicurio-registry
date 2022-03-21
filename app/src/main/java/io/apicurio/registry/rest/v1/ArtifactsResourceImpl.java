@@ -67,6 +67,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -215,7 +216,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
     }
 
     /**
@@ -246,9 +247,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             }
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
+            rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap());
             final String finalArtifactId = artifactId;
-            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content);
+            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content, null);
             return V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical);
@@ -292,8 +293,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
     }
 
@@ -349,8 +350,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
     }
 

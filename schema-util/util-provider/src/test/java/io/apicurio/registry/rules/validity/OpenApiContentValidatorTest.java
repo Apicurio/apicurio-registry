@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Collections;
+
 /**
  * Tests the OpenAPI content validator.
  * @author eric.wittmann@gmail.com
@@ -32,14 +34,14 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testValidSyntax() throws Exception {
         ContentHandle content = resourceToContentHandle("openapi-valid-syntax.json");
         OpenApiContentValidator validator = new OpenApiContentValidator();
-        validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
     @Test
     public void testValidSemantics() throws Exception {
         ContentHandle content = resourceToContentHandle("openapi-valid-semantics.json");
         OpenApiContentValidator validator = new OpenApiContentValidator();
-        validator.validate(ValidityLevel.FULL, content);
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
     }
 
     @Test
@@ -47,7 +49,7 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("openapi-invalid-syntax.json");
         OpenApiContentValidator validator = new OpenApiContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.SYNTAX_ONLY, content);
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
         });
     }
 
@@ -56,7 +58,7 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         ContentHandle content = resourceToContentHandle("openapi-invalid-semantics.json");
         OpenApiContentValidator validator = new OpenApiContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            validator.validate(ValidityLevel.FULL, content);
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
     }
 

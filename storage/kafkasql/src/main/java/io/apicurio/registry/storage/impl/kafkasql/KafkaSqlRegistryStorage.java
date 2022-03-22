@@ -39,8 +39,10 @@ import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -60,6 +62,7 @@ import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
@@ -337,18 +340,20 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param artifactId
      * @param artifactType
      */
-    private String ensureContent(ContentHandle content, String groupId, String artifactId, ArtifactType artifactType) {
+    private String ensureContent(ContentHandle content, String groupId, String artifactId, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
+
+        Map<String, ContentHandle> resolvedReferences = this.resolveReferences(references);
 
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, resolvedReferences);
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
         }
@@ -370,7 +375,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content);
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, "");
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
             return contentId;
@@ -380,25 +385,25 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactAlreadyExistsException, RegistryStorageException {
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, RegistryStorageException {
         if (sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType);
+        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -463,7 +468,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
      */
     @Override
-    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentId(contentId);
     }
 
@@ -471,30 +476,30 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
-    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return sqlStore.getArtifactByContentHash(contentHash);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
     @Override
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
-        String contentHash = ensureContent(content, groupId, artifactId, artifactType);
+        String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
@@ -1164,6 +1169,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         sqlStore.deleteAllExpiredDownloads();
     }
 
+    @Override
+    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+        return sqlStore.resolveReferences(references);
+    }
+
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
      */
@@ -1261,7 +1271,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes));
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), ""); //FIXME:references handle references when importing an artifact
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
@@ -1295,10 +1305,19 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param content
      */
     protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+        return canonicalizeContent(artifactType, content, Collections.emptyMap());
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     * @param artifactType
+     * @param content
+     */
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, resolvedReferences);
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

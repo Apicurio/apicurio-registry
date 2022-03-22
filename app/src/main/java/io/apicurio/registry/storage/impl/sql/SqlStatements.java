@@ -363,6 +363,11 @@ public interface SqlStatements {
     public String insertProperty();
 
     /**
+     * A statement to insert a row in the "references" table.
+     */
+    public String upsertReference();
+
+    /**
      * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).
      */
     public String selectArtifactCountById();
@@ -551,4 +556,7 @@ public interface SqlStatements {
 
     public String selectTenantIdsByConfigModifiedOn();
 
+    public String deleteAllReferences();
+
+    public String deleteOrphanedReferences();
 }

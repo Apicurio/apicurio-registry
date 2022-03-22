@@ -9,6 +9,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import org.slf4j.Logger;
 
 import io.apicurio.registry.content.ContentHandle;
@@ -52,16 +53,12 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public long nextGlobalId() {
-        return handles.withHandleNoException( handle -> {
-            return nextGlobalId(handle);
-        });
+        return handles.withHandleNoException(this::nextGlobalId);
     }
 
     @Transactional
     public long nextContentId() {
-        return handles.withHandleNoException( handle -> {
-            return nextContentId(handle);
-        });
+        return handles.withHandleNoException(this::nextContentId);
     }
 
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
@@ -113,7 +110,7 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
 
     @Transactional
-    public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content) throws RegistryStorageException {
+    public void storeContent(long contentId, String contentHash, String canonicalHash, ContentHandle content, String serializedReferences) throws RegistryStorageException {
         handles.withHandleNoException( handle -> {
             if (!isContentExists(contentId)) {
                 byte [] contentBytes = content.bytes();
@@ -124,11 +121,15 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
                     .bind(2, canonicalHash)
                     .bind(3, contentHash)
                     .bind(4, contentBytes)
+                    .bind(5, serializedReferences)
                     .execute();
+
+                insertReferences(handle, contentId, SqlUtil.deserializeReferences(serializedReferences));
             }
             return null;
         });
     }
+
 
     @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -147,8 +148,9 @@ public class KafkaSqlStore extends AbstractSqlRegistryStorage {
 
     @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
-            EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
+                                                          ArtifactType artifactType, String contentHash, String createdBy, Date createdOn,
+                                                          EditableArtifactMetaDataDto metaData,
+                                                          GlobalIdGenerator globalIdGenerator)
             throws ArtifactNotFoundException, RegistryStorageException {
         long contentId = this.contentIdFromHash(contentHash);
 

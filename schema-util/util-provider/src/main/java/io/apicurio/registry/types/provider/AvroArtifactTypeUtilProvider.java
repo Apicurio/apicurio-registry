@@ -18,6 +18,8 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.dereference.AvroDereferencer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
@@ -56,4 +58,8 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
         return new AvroContentExtractor();
     }
 
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return new AvroDereferencer();
+    }
 }

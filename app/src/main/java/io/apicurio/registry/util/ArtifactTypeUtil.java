@@ -17,6 +17,10 @@
 package io.apicurio.registry.util;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
@@ -59,16 +63,20 @@ public final class ArtifactTypeUtil {
      * @param xArtifactType the artifact type
      * @param ct            content type from request API
      */
+    //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
     public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {
+       return determineArtifactType(content, xArtifactType, contentType, Collections.emptyMap());
+    }
+
+    public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType, Map<String, ContentHandle> resolvedReferences) {
         ArtifactType artifactType = xArtifactType;
         if (artifactType == null) {
             artifactType = getArtifactTypeFromContentType(contentType);
             if (artifactType == null) {
-                artifactType = ArtifactTypeUtil.discoverType(content, contentType);
+                artifactType = ArtifactTypeUtil.discoverType(content, contentType, resolvedReferences);
             }
         }
-        return artifactType;
-    }
+        return artifactType;    }
 
     /**
      * Tries to figure out the artifact type by analyzing the content-type.
@@ -107,11 +115,11 @@ public final class ArtifactTypeUtil {
      * formatted. So in these cases we will need to look for some sort of type-specific marker in the content
      * of the artifact. The method does its best to figure out the type, but will default to Avro if all else
      * fails.
-     *
-     * @param content
+     *  @param content
      * @param contentType
+     * @param resolvedReferences
      */
-    private static ArtifactType discoverType(ContentHandle content, String contentType) throws InvalidArtifactTypeException {
+    private static ArtifactType discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 
         // If the content-type suggests it's protobuf, try that first.
@@ -149,7 +157,14 @@ public final class ArtifactTypeUtil {
 
         try {
             // Avro
-            new Schema.Parser().parse(content.content());
+            final Schema.Parser parser = new Schema.Parser();
+            final List<Schema> schemaRefs = new ArrayList<>();
+            for (ContentHandle referencedContent : resolvedReferences.values()) {
+                Schema schemaRef = parser.parse(referencedContent.content());
+                schemaRefs.add(schemaRef);
+            }
+            final Schema schema = parser.parse(content.content());
+            schema.toString(schemaRefs, false);
             return ArtifactType.AVRO;
         } catch (Exception e) {
             //ignored
@@ -213,5 +228,4 @@ public final class ArtifactTypeUtil {
         }
         return false;
     }
-
 }

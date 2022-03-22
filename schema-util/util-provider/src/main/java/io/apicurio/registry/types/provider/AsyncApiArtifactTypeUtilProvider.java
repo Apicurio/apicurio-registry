@@ -18,6 +18,8 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiOrAsyncApiContentExtractor;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -54,5 +56,10 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     protected ContentExtractor createContentExtractor() {
         return new OpenApiOrAsyncApiContentExtractor();
+    }
+
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        return new JsonSchemaDereferencer();
     }
 }

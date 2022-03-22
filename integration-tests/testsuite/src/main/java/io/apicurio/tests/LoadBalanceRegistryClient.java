@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class LoadBalanceRegistryClient implements RegistryClient {
 
     /**
      * Constructor.
-     * @param endpoint
+     * @param hosts
      */
     public LoadBalanceRegistryClient(List<String> hosts) {
 
@@ -393,6 +394,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, contentType, data);
     }
 
+    @Override
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences) {
+        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, contentType, data, artifactReferences);
+    }
+
     /**
      * @param groupId
      * @param artifactId
@@ -475,6 +481,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public InputStream getContentByGlobalId(long globalId) {
         return getTarget().getContentByGlobalId(globalId);
+    }
+
+    @Override
+    public InputStream getContentByGlobalId(long globalId, Boolean canonical, Boolean dereference) {
+        return getTarget().getContentByGlobalId(globalId, canonical, dereference);
     }
 
     /**
@@ -618,6 +629,26 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public NamedLogConfiguration removeLogConfiguration(String logger) {
         return getTarget().removeLogConfiguration(logger);
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId) {
+        return getTarget().getArtifactReferencesByGlobalId(globalId);
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentId(long contentId) {
+        return getTarget().getArtifactReferencesByContentId(contentId);
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByContentHash(String contentHash) {
+        return getTarget().getArtifactReferencesByContentHash(contentHash);
+    }
+
+    @Override
+    public List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version) {
+        return getTarget().getArtifactReferencesByCoordinates(groupId, artifactId, version);
     }
 
     /**

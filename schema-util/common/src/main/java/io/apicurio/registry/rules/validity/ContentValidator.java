@@ -19,6 +19,8 @@ package io.apicurio.registry.rules.validity;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 
+import java.util.Map;
+
 /**
  * Validates content.  Syntax and semantic validations are possible based on configuration.  An
  * implementation of this interface should exist for each content-type supported by the registry.
@@ -32,8 +34,9 @@ public interface ContentValidator {
      *
      * @param level           the level
      * @param artifactContent the content
+     * @param resolvedReferences a map containing the resolved references
      * @throws RuleViolationException for any invalid content
      */
-    public void validate(ValidityLevel level, ContentHandle artifactContent) throws RuleViolationException;
+    public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException;
 
 }

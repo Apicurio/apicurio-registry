@@ -234,7 +234,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContentByGlobalId() {
-        return "SELECT v.globalId, v.version, v.versionId, v.contentId, c.content FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionId, v.contentId, c.content, c.artifactreferences FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "WHERE v.tenantId = ? AND v.globalId = ?";
     }
@@ -244,7 +244,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionContent() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM versions v "
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM versions v "
                 + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
@@ -254,7 +254,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectLatestArtifactContent() {
-        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content FROM artifacts a "
+        return "SELECT v.globalId, v.version, v.versionId, c.contentId, c.content, c.artifactreferences FROM artifacts a "
                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId "
                 + "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId "
                 + "WHERE a.tenantId = ? AND a.groupId = ? AND a.artifactId = ?";
@@ -503,6 +503,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO properties (tenantId, globalId, pkey, pvalue) VALUES (?, ?, ?, ?)";
     }
 
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersions()
      */
@@ -580,7 +581,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content FROM content c "
+        return "SELECT c.content, c.artifactreferences FROM content c "
                 + "WHERE c.tenantId = ? AND c.contentId = ?";
     }
 
@@ -589,7 +590,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content FROM content c "
+        return "SELECT c.content, c.artifactreferences FROM content c "
                 + "WHERE c.tenantId = ? AND c.contentHash = ?";
     }
 
@@ -703,7 +704,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportArtifactVersions() {
-        return "SELECT v.*, a.type, a.latest FROM versions v JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId WHERE v.tenantId = ?";
+        return "SELECT v.*, a.type, a.latest " +
+                "FROM versions v " +
+                "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId " +
+                "WHERE v.tenantId = ?";
     }
 
     /**
@@ -753,7 +757,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -963,5 +967,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectTenantIdsByConfigModifiedOn() {
         return "SELECT DISTINCT c.tenantId FROM config c WHERE c.modifiedOn >= ?";
+    }
+
+    @Override
+    public String deleteAllReferences() {
+        return "DELETE FROM artifactreferences ar WHERE ar.tenantId = ?";
+    }
+
+    @Override
+    public String deleteOrphanedReferences() {
+        return "DELETE FROM artifactreferences ar WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = ar.contentId AND v.tenantId = ar.tenantId)";
     }
 }

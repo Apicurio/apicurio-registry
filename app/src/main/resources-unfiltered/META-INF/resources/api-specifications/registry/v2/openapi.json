@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.2.1.Final",
+        "version": "2.2.2-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -56,6 +56,14 @@
                     "Artifacts"
                 ],
                 "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -1105,6 +1113,14 @@
                     "Versions"
                 ],
                 "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "404": {
@@ -1755,6 +1771,15 @@
                     "Artifacts"
                 ],
                 "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -2332,6 +2357,154 @@
                 "summary": "Get current user",
                 "description": "Returns information about the currently authenticated user."
             }
+        },
+        "/ids/contentHashes/{contentHash}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "contentHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content hash."
+                    }
+                },
+                "operationId": "referencesByContentHash",
+                "summary": "Returns a list with all the references for the artifact with the given hash",
+                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/ids/contentIds/{contentId}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "contentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content id."
+                    }
+                },
+                "operationId": "referencesByContentId",
+                "summary": "Returns a list with all the references for the artifact with the given content id.",
+                "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/ids/globalIds/{globalId}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "globalId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given global id."
+                    }
+                },
+                "operationId": "referencesByGlobalId",
+                "summary": "Returns a list with all the references for the artifact with the given global id.",
+                "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+            "summary": "Manage the references for a single version of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all the artifact references for this artifact."
+                    }
+                },
+                "operationId": "getArtifactVersionReferences",
+                "summary": "Get artifact version",
+                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         },
         "/admin/config/properties": {
             "summary": "Manage configuration properties.",
@@ -2990,6 +3163,13 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
+                    },
+                    "references": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
                     }
                 },
                 "example": {
@@ -3012,7 +3192,15 @@
                     "properties": {
                         "custom-1": "foo",
                         "custom-2": "bar"
-                    }
+                    },
+                    "references": [
+                        {
+                            "groupId": "mygroup",
+                            "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                            "version": 2,
+                            "name": "foo.bar.Open"
+                        }
+                    ]
                 }
             },
             "SearchedArtifact": {
@@ -3181,7 +3369,15 @@
                     "properties": {
                         "custom-1": "foo",
                         "custom-2": "bar"
-                    }
+                    },
+                    "references": [
+                        {
+                            "groupId": "mygroup",
+                            "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                            "version": 2,
+                            "name": "foo.bar.Open"
+                        }
+                    ]
                 }
             },
             "SearchedVersion": {
@@ -3193,7 +3389,8 @@
                     "state",
                     "globalId",
                     "version",
-                    "contentId"
+                    "contentId",
+                    "references"
                 ],
                 "type": "object",
                 "properties": {
@@ -3247,6 +3444,13 @@
                         "format": "int64",
                         "description": "",
                         "type": "integer"
+                    },
+                    "references": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
                     }
                 },
                 "example": {
@@ -3265,7 +3469,10 @@
                     "properties": {
 
                     },
-                    "contentId": 62
+                    "contentId": 62,
+                    "references": {
+
+                    }
                 }
             },
             "RuleViolationError": {
@@ -3307,6 +3514,58 @@
                     ]
                 },
                 "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+            },
+            "ArtifactReference": {
+                "title": "Root Type for ArtifactReference",
+                "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
+                "required": [
+                    "artifactId",
+                    "groupId",
+                    "name"
+                ],
+                "type": "object",
+                "properties": {
+                    "groupId": {
+                        "type": "string"
+                    },
+                    "artifactId": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "groupId": "mygroup",
+                    "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                    "version": "2",
+                    "name": "foo.bar.Open"
+                }
+            },
+            "ContentCreateRequest": {
+                "description": "",
+                "required": [
+                    "content",
+                    "references"
+                ],
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "description": "Raw content of the artifact.",
+                        "type": "string",
+                        "example": ""
+                    },
+                    "references": {
+                        "description": "Collection of references to other artifacts.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
+                    }
+                }
             },
             "ConfigurationProperty": {
                 "title": "Root Type for ConfigurationProperty",

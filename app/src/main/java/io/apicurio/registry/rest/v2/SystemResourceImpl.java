@@ -18,17 +18,18 @@ package io.apicurio.registry.rest.v2;
 
 import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.auth.Authorized;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.rest.v2.beans.Limits;
 import io.apicurio.registry.rest.v2.beans.SystemInfo;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
-
-import io.apicurio.registry.auth.Authorized;
-import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedStyle;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -40,6 +41,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     System system;
+
+    @Inject
+    TenantContext tctx;
 
     /**
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
@@ -55,4 +59,24 @@ public class SystemResourceImpl implements SystemResource {
         return info;
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v2.SystemResource#getResourceLimits()
+     */
+    @Override
+    public Limits getResourceLimits() {
+        var limitsConfig = tctx.limitsConfig();
+        var limits = new Limits();
+        limits.setMaxTotalSchemasCount(limitsConfig.getMaxTotalSchemasCount());
+        limits.setMaxArtifactsCount(limitsConfig.getMaxArtifactsCount());
+        limits.setMaxVersionsPerArtifactCount(limitsConfig.getMaxVersionsPerArtifactCount());
+        limits.setMaxArtifactPropertiesCount(limitsConfig.getMaxArtifactPropertiesCount());
+        limits.setMaxPropertyKeySizeBytes(limitsConfig.getMaxPropertyKeySizeBytes());
+        limits.setMaxPropertyValueSizeBytes(limitsConfig.getMaxPropertyValueSizeBytes());
+        limits.setMaxArtifactLabelsCount(limitsConfig.getMaxArtifactLabelsCount());
+        limits.setMaxLabelSizeBytes(limitsConfig.getMaxLabelSizeBytes());
+        limits.setMaxArtifactNameLengthChars(limitsConfig.getMaxArtifactNameLengthChars());
+        limits.setMaxArtifactDescriptionLengthChars(limitsConfig.getMaxArtifactDescriptionLengthChars());
+        limits.setMaxRequestsPerSecondCount(limitsConfig.getMaxRequestsPerSecondCount());
+        return limits;
+    }
 }

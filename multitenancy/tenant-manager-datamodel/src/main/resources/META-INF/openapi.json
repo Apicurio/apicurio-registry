@@ -479,7 +479,8 @@
                     "MAX_ARTIFACT_LABELS_COUNT",
                     "MAX_LABEL_SIZE_BYTES",
                     "MAX_ARTIFACT_NAME_LENGTH_CHARS",
-                    "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS"
+                    "MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS",
+                    "MAX_REQUESTS_PER_SECOND_COUNT"
                 ],
                 "type": "string",
                 "x-codegen-package": "io.apicurio.multitenant.api.datamodel"

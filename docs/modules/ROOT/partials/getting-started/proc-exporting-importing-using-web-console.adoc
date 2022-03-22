@@ -9,9 +9,9 @@ As an administrator, you can use the {registry} web console to export data from 
 
 This section shows an example of using the {registry} web console to export and import existing data in `.zip` format from one {registry} instance to another. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
-ifdef::rh-openshift-sr[]
-NOTE: You can import {registry} data that has been exported from another {product-long-registry} instance. You cannot currently import {registry} data from a {org-name} Integration {registry} instance.   
+NOTE: You can only import {registry} data that has been exported from another {registry} instance. 
 
+ifdef::rh-openshift-sr[]
 This example shows exporting and importing {registry} data from the *Artifacts* page for that instance. You can also export {registry} data when prompted before deleting an instance. 
 endif::[]
 
@@ -19,7 +19,7 @@ endif::[]
 
 * {registry} instances have been created: 
 ** The source instance that you want to export data from contains at least one schema or API artifact 
-** The target instance that you want to import data into can contain artifacts or be empty 
+** The target instance that you want to import data into is empty to preserve unique IDs 
 * You have administrator access to the {registry} web console 
 ifdef::apicurio-registry,rh-service-registry[]
 for each instance 
@@ -41,7 +41,7 @@ endif::[]
 . Next to the *Upload artifact* button, click the options icon (three vertical dots), and select *Download all artifacts (.zip file)* to export the registry data for this instance to a `.zip` download file. 
 
 ifdef::apicurio-registry,rh-service-registry[]
-. In the the web console for the target {registry} instance that you want to export data to, view the *Artifacts* page.  
+. In the the web console for the target {registry} instance that you want to import data into, view the *Artifacts* page.  
 endif::[] 
 
 ifdef::rh-openshift-sr[]

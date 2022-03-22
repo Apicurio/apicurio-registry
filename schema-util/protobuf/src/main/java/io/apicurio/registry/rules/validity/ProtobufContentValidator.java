@@ -16,15 +16,21 @@
 
 package io.apicurio.registry.rules.validity;
 
+import com.google.protobuf.Descriptors;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A content validator implementation for the Protobuf content type.
+ *
  * @author eric.wittmann@gmail.com
  */
 public class ProtobufContentValidator implements ContentValidator {
@@ -42,7 +48,22 @@ public class ProtobufContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                ProtobufFile.toProtoFileElement(artifactContent.content());
+                if (resolvedReferences == null  || resolvedReferences.isEmpty()) {
+                    ProtobufFile.toProtoFileElement(artifactContent.content());
+                } else {
+                    final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(artifactContent.content());
+                    final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    e -> ProtobufFile.toProtoFileElement(e.getValue().content())
+                            )));
+                    try {
+                        ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
+                    } catch (Descriptors.DescriptorValidationException e) {
+                        throw new IllegalArgumentException(e);
+                    }
+                }
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY, level.name(), e);
             }

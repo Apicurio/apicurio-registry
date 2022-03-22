@@ -33,6 +33,7 @@ public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override
     public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+        //FIXME this code is not dereferencing references, only validating that all that references are resolvable
         final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.content());
         final Map<String, ProtoFileElement> dependencies = Collections.unmodifiableMap(resolvedReferences.entrySet()
                 .stream()

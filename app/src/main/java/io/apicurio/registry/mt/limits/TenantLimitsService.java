@@ -16,17 +16,18 @@
 
 package io.apicurio.registry.mt.limits;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.metrics.StorageMetricsStore;
+import org.slf4j.Logger;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-
-import org.slf4j.Logger;
-import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 
 /**
  * Component that provides the logic to enforce the limits in the usage of the registry
@@ -38,10 +39,11 @@ public class TenantLimitsService {
 
     //FIXME improve error messages
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded";
+    private static final String MAX_SCHEMA_SIZE_EXCEEDED_MSG = "Maximum size of artifact version exceeded";
     private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded";
     private static final String MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG = "Maximum number of versions exceeded for this artifact";
-    private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name lenght exceeded";
-    private static final String MAX_DESC_LENGTH_EXCEEDED_MSG = "Maximum artifact description lenght exceeded";
+    private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name length exceeded";
+    private static final String MAX_DESC_LENGTH_EXCEEDED_MSG = "Maximum artifact description length exceeded";
     private static final String MAX_LABELS_EXCEEDED_MSG = "Maximum number of labels exceeded for this artifact";
     private static final String MAX_LABEL_SIZE_EXCEEDED_MSG = "Maximum label size exceeded";
     private static final String MAX_PROPERTIES_EXCEEDED_MSG = "Maximum number of properties exceeded for this artifact";
@@ -74,7 +76,7 @@ public class TenantLimitsService {
         }
     }
 
-    public LimitsCheckResult canCreateArtifact(EditableArtifactMetaDataDto meta) {
+    public LimitsCheckResult canCreateArtifact(EditableArtifactMetaDataDto meta, ContentHandle content) {
 
         LimitsCheckResult mr = checkMetaData(meta);
         if (!mr.isAllowed()) {
@@ -84,6 +86,11 @@ public class TenantLimitsService {
         LimitsCheckResult tsr = checkTotalSchemas();
         if (!tsr.isAllowed()) {
             return tsr;
+        }
+
+        LimitsCheckResult ssr = checkSchemaSize(content);
+        if (!ssr.isAllowed()) {
+            return ssr;
         }
 
         if (isLimitDisabled(TenantLimitsConfiguration::getMaxArtifactsCount)) {
@@ -101,7 +108,21 @@ public class TenantLimitsService {
         }
     }
 
-    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId, EditableArtifactMetaDataDto meta) {
+    private LimitsCheckResult checkSchemaSize(ContentHandle content) {
+        if (isLimitDisabled(TenantLimitsConfiguration::getMaxSchemaSizeBytes) || content == null) {
+            return LimitsCheckResult.ok();
+        }
+
+        var size = content.getSizeBytes();
+        if (size <= tenantContext.limitsConfig().getMaxSchemaSizeBytes()) {
+            return LimitsCheckResult.ok();
+        } else {
+            log.debug("Limit reached, schema size is {} , max schema size is {}", size, tenantContext.limitsConfig().getMaxSchemaSizeBytes());
+            return LimitsCheckResult.disallowed(MAX_SCHEMA_SIZE_EXCEEDED_MSG);
+        }
+    }
+
+    public LimitsCheckResult canCreateArtifactVersion(String groupId, String artifactId, EditableArtifactMetaDataDto meta, ContentHandle content) {
 
         LimitsCheckResult mr = checkMetaData(meta);
         if (!mr.isAllowed()) {
@@ -111,6 +132,11 @@ public class TenantLimitsService {
         LimitsCheckResult tsr = checkTotalSchemas();
         if (!tsr.isAllowed()) {
             return tsr;
+        }
+
+        LimitsCheckResult ssr = checkSchemaSize(content);
+        if (!ssr.isAllowed()) {
+            return ssr;
         }
 
         if (isLimitDisabled(TenantLimitsConfiguration::getMaxVersionsPerArtifactCount)) {

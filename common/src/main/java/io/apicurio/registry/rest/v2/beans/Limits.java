@@ -19,6 +19,7 @@ import javax.annotation.processing.Generated;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "maxTotalSchemasCount",
+    "maxSchemaSizeBytes",
     "maxArtifactsCount",
     "maxVersionsPerArtifactCount",
     "maxArtifactPropertiesCount",
@@ -37,6 +38,8 @@ public class Limits {
 
     @JsonProperty("maxTotalSchemasCount")
     private Long maxTotalSchemasCount;
+    @JsonProperty("maxSchemaSizeBytes")
+    private Long maxSchemaSizeBytes;
     @JsonProperty("maxArtifactsCount")
     private Long maxArtifactsCount;
     @JsonProperty("maxVersionsPerArtifactCount")
@@ -66,6 +69,16 @@ public class Limits {
     @JsonProperty("maxTotalSchemasCount")
     public void setMaxTotalSchemasCount(Long maxTotalSchemasCount) {
         this.maxTotalSchemasCount = maxTotalSchemasCount;
+    }
+
+    @JsonProperty("maxSchemaSizeBytes")
+    public Long getMaxSchemaSizeBytes() {
+        return maxSchemaSizeBytes;
+    }
+
+    @JsonProperty("maxSchemaSizeBytes")
+    public void setMaxSchemaSizeBytes(Long maxSchemaSizeBytes) {
+        this.maxSchemaSizeBytes = maxSchemaSizeBytes;
     }
 
     @JsonProperty("maxArtifactsCount")

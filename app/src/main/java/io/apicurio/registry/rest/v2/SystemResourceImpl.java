@@ -67,6 +67,7 @@ public class SystemResourceImpl implements SystemResource {
         var limitsConfig = tctx.limitsConfig();
         var limits = new Limits();
         limits.setMaxTotalSchemasCount(limitsConfig.getMaxTotalSchemasCount());
+        limits.setMaxSchemaSizeBytes(limitsConfig.getMaxSchemaSizeBytes());
         limits.setMaxArtifactsCount(limitsConfig.getMaxArtifactsCount());
         limits.setMaxVersionsPerArtifactCount(limitsConfig.getMaxVersionsPerArtifactCount());
         limits.setMaxArtifactPropertiesCount(limitsConfig.getMaxArtifactPropertiesCount());

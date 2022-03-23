@@ -1,14 +1,16 @@
 
 package io.apicurio.multitenant.api.datamodel;
 
-import java.util.HashMap;
-import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public enum ResourceType {
 
     MAX_TOTAL_SCHEMAS_COUNT("MAX_TOTAL_SCHEMAS_COUNT"),
+    MAX_SCHEMA_SIZE_BYTES("MAX_SCHEMA_SIZE_BYTES"),
     MAX_ARTIFACTS_COUNT("MAX_ARTIFACTS_COUNT"),
     MAX_VERSIONS_PER_ARTIFACT_COUNT("MAX_VERSIONS_PER_ARTIFACT_COUNT"),
     MAX_ARTIFACT_PROPERTIES_COUNT("MAX_ARTIFACT_PROPERTIES_COUNT"),

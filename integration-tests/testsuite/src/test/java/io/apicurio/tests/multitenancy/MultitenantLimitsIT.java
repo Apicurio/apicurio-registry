@@ -16,23 +16,6 @@
 
 package io.apicurio.tests.multitenancy;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
@@ -45,16 +28,47 @@ import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.apicurio.tests.common.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.common.RegistryFacade;
 import io.apicurio.tests.common.auth.CustomJWTAuth;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author Fabian Martinez
  */
 @Tag(Constants.MULTITENANCY)
 public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
+
+    private static final ByteArrayInputStream CONTENT = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+    private static final long CONTENT_SIZE = CONTENT.available();
+    private static final ByteArrayInputStream CONTENT_LARGER = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord111111111111\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+    private static final long CONTENT_LARGER_SIZE = CONTENT_LARGER.available();
+
+    private static ByteArrayInputStream useContent() {
+        CONTENT.reset();
+        return CONTENT;
+    }
+
+    private static ByteArrayInputStream useContentLarger() {
+        CONTENT_LARGER.reset();
+        return CONTENT_LARGER;
+    }
 
     private RegistryFacade registryFacade = RegistryFacade.getInstance();
 
@@ -79,13 +93,11 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
     }
 
     private void testTenantLimits(RegistryClient client) {
-        ByteArrayInputStream content = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+
 
         String artifactId = TestUtils.generateArtifactId();
-
-        client.createArtifact(null, artifactId, ArtifactType.JSON, content);
-        content.reset();
-        client.createArtifactVersion(null, artifactId, null, content);
+        client.createArtifact(null, artifactId, ArtifactType.JSON, useContent());
+        client.createArtifactVersion(null, artifactId, null, useContent());
 
         //valid metadata
         EditableMetaData meta = new EditableMetaData();
@@ -111,9 +123,19 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
             client.updateArtifactVersionMetaData(null, artifactId, "1", invalidmeta);
         });
 
-        //schema number 3 , exceeds the max number of schemas
+        //invalid content size
         Assertions.assertThrows(LimitExceededException.class, () -> {
-            client.createArtifact(null, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, useContentLarger());
+        });
+
+        //schema number 3, ok
+        Assertions.assertDoesNotThrow(() -> {
+            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, useContent());
+        });
+
+        //schema number 4 , exceeds the max number of schemas
+        Assertions.assertThrows(LimitExceededException.class, () -> {
+            client.createArtifact(null, TestUtils.generateArtifactId(), ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         });
     }
 
@@ -126,20 +148,16 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
         tenantReq.setTenantId(UUID.randomUUID().toString());
         tenantReq.setCreatedBy(username);
 
-//        props.put("registry.limits.config.max-total-schemas", "2");
-//        props.put("registry.limits.config.max-artifact-properties", "2");
-//        props.put("registry.limits.config.max-property-key-size", "4"); //use text test
-//        props.put("registry.limits.config.max-property-value-size", "4");
-//        props.put("registry.limits.config.max-artifact-lables", "2");
-//        props.put("registry.limits.config.max-label-size", "4");
-//        props.put("registry.limits.config.max-name-length", "512");
-//        props.put("registry.limits.config.max-description-length", "1024");
-
         List<TenantResource> resources = new ArrayList<>();
 
         TenantResource tr = new TenantResource();
-        tr.setLimit(2L);
+        tr.setLimit(3L);
         tr.setType(ResourceType.MAX_TOTAL_SCHEMAS_COUNT);
+        resources.add(tr);
+
+        tr = new TenantResource();
+        tr.setLimit(CONTENT_SIZE);
+        tr.setType(ResourceType.MAX_SCHEMA_SIZE_BYTES);
         resources.add(tr);
 
         tr = new TenantResource();

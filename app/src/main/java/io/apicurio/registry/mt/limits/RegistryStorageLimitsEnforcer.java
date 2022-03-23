@@ -16,17 +16,6 @@
 
 package io.apicurio.registry.mt.limits;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import org.eclipse.microprofile.context.ThreadContext;
-
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
@@ -35,9 +24,18 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RegistryException;
+import org.eclipse.microprofile.context.ThreadContext;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * Decorator of {@link RegistryStorage} that applies per-tenant limits enforcement, with this is possible to limit how many artifacts a tenant can create...
@@ -82,7 +80,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
                                               String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(null))
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(null, content))
                 .execute(() -> super.createArtifact(groupId, artifactId, version, artifactType, content, references));
         limitsService.artifactCreated();
         return dto;
@@ -97,7 +95,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactAlreadyExistsException, RegistryStorageException {
 
-        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(metaData))
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifact(metaData, content))
                 .execute(() -> super.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references));
         limitsService.artifactCreated();
         return dto;
@@ -111,7 +109,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             String version, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
-        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null))
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content))
                 .execute(() -> super.updateArtifact(groupId, artifactId, version, artifactType, content, references));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;
@@ -125,7 +123,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecorator {
             String version, ArtifactType artifactType, ContentHandle content,
             EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
 
-        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData))
+        ArtifactMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData, content))
                 .execute(() -> super.updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;

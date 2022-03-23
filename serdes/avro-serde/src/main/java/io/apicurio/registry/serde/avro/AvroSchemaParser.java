@@ -70,7 +70,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
-                .setReferenceName(schema.getName())
+                .setReferenceName(schema.getFullName())
                 .setSchemaReferences(resolvedReferences)
                 .setRawSchema(IoUtil.toBytes(schema.toString(resolvedReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toList()), false)));
     }

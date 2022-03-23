@@ -31,10 +31,10 @@ import lombok.ToString;
 public class TenantLimitsConfiguration {
 
     private Long maxTotalSchemasCount;
+    private Long maxSchemaSizeBytes;
+
     private Long maxArtifactsCount;
     private Long maxVersionsPerArtifactCount;
-
-    //TODO content size
 
     private Long maxArtifactPropertiesCount;
     private Long maxPropertyKeySizeBytes;

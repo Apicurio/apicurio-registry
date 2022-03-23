@@ -50,6 +50,11 @@ public class TenantLimitsConfigurationService {
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-total-schemas")
     Long defaultMaxTotalSchemas;
+
+    @Inject
+    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-schema-size-bytes")
+    Long defaultMaxSchemaSizeBytes;
+
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifacts")
     Long defaultMaxArtifacts;
@@ -102,6 +107,7 @@ public class TenantLimitsConfigurationService {
         if (!mtProperties.isMultitenancyEnabled()) {
 
             if (defaultMaxTotalSchemas < 0 &&
+                    defaultMaxSchemaSizeBytes < 0 &&
                     defaultMaxArtifacts < 0 &&
                     defaultMaxVersionsPerArtifact < 0 &&
 
@@ -129,6 +135,7 @@ public class TenantLimitsConfigurationService {
         TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
         c.setMaxTotalSchemasCount(defaultMaxTotalSchemas);
+        c.setMaxSchemaSizeBytes(defaultMaxSchemaSizeBytes);
         c.setMaxArtifactsCount(defaultMaxArtifacts);
         c.setMaxVersionsPerArtifactCount(defaultMaxVersionsPerArtifact);
 
@@ -179,6 +186,9 @@ public class TenantLimitsConfigurationService {
             switch (type) {
                 case MAX_TOTAL_SCHEMAS_COUNT:
                     c.setMaxTotalSchemasCount(limit == null ? defaultMaxTotalSchemas : limit);
+                    break;
+                case MAX_SCHEMA_SIZE_BYTES:
+                    c.setMaxSchemaSizeBytes(limit == null ? defaultMaxSchemaSizeBytes : limit);
                     break;
                 case MAX_ARTIFACTS_COUNT:
                     c.setMaxArtifactsCount(limit == null ? defaultMaxArtifacts : limit);

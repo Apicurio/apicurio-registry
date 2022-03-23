@@ -33,7 +33,7 @@ public class LimitsTestProfile implements QuarkusTestProfile {
         props.put("registry.limits.config.max-artifact-properties", "2");
         props.put("registry.limits.config.max-property-key-size", "4"); //use text test
         props.put("registry.limits.config.max-property-value-size", "4");
-        props.put("registry.limits.config.max-artifact-lables", "2");
+        props.put("registry.limits.config.max-artifact-labels", "2");
         props.put("registry.limits.config.max-label-size", "4");
         props.put("registry.limits.config.max-name-length", "512");
         props.put("registry.limits.config.max-description-length", "1024");

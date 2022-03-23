@@ -3681,6 +3681,10 @@
                         "format": "int64",
                         "type": "integer"
                     },
+                    "maxSchemaSizeBytes": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
                     "maxArtifactsCount": {
                         "format": "int64",
                         "type": "integer"
@@ -3724,6 +3728,7 @@
                 },
                 "example": {
                     "maxTotalSchemasCount": -1,
+                    "maxSchemaSizeBytes": -1,
                     "maxArtifactsCount": -1,
                     "maxVersionsPerArtifactCount": -1,
                     "maxArtifactPropertiesCount": -1,

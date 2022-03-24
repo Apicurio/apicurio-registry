@@ -1281,7 +1281,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(2, artifactId)
                         .bind(3, hash)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findLast();
+                        .findFirst();
                 return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {

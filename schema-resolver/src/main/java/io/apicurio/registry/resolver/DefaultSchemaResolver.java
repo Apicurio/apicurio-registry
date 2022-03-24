@@ -80,7 +80,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             parsedSchema = schemaParser.getSchemaFromData(data);
         }
 
-        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false);
+        final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
 
         if(schemaCache.containsByArtifactReference(artifactReference)) {
             return resolveSchemaByArtifactReferenceCached(artifactReference);
@@ -122,9 +122,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
 
             if (nestedReferences.isEmpty()) {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true)));
+                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName())));
             } else {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true), nestedReferences));
+                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()), nestedReferences));
             }
         }
         return referencesLookup;

@@ -17,12 +17,14 @@
 package io.apicurio.registry.rules.validity;
 
 import com.google.protobuf.Descriptors;
+import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.util.Collections;
 import java.util.Map;
@@ -48,7 +50,7 @@ public class ProtobufContentValidator implements ContentValidator {
     public void validate(ValidityLevel level, ContentHandle artifactContent, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                if (resolvedReferences == null  || resolvedReferences.isEmpty()) {
+                if (resolvedReferences == null || resolvedReferences.isEmpty()) {
                     ProtobufFile.toProtoFileElement(artifactContent.content());
                 } else {
                     final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(artifactContent.content());
@@ -58,10 +60,17 @@ public class ProtobufContentValidator implements ContentValidator {
                                     Map.Entry::getKey,
                                     e -> ProtobufFile.toProtoFileElement(e.getValue().content())
                             )));
-                    try {
-                        ContentHandle.create(FileDescriptorUtils.fileDescriptorWithDepsToProtoFile(FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement), dependencies).toString());
-                    } catch (Descriptors.DescriptorValidationException e) {
-                        throw new IllegalArgumentException(e);
+                    MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
+                    if (firstMessage != null) {
+                        try {
+                            final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), protoFileElement, dependencies);
+                            ContentHandle.create(fileDescriptor.toString());
+                        } catch (IllegalStateException ise) {
+                            //If we fail to init the dynamic schema, try to get the descriptor from the proto element
+                            ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString());
+                        }
+                    } else {
+                        ContentHandle.create(getFileDescriptorFromElement(protoFileElement).toString());
                     }
                 }
             } catch (Exception e) {
@@ -70,4 +79,8 @@ public class ProtobufContentValidator implements ContentValidator {
         }
     }
 
+    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem) throws Descriptors.DescriptorValidationException {
+        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
+        return new ProtobufSchema(fileDescriptor, fileElem);
+    }
 }

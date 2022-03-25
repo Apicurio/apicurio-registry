@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="exporting-importing-using-web-console_{context}"]
-= Exporting and importing registry content using {registry} web console
+= Exporting and importing registry content using the {registry} web console
 
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to export data from one {registry} instance and import it into another {registry} instance, so you can easily migrate data between different instances.

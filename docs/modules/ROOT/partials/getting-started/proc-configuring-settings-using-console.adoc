@@ -1,0 +1,59 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="configuring-settings-using-console_{context}"]
+= Configuring {registry} instance settings using the {registry} web console
+
+[role="_abstract"]
+As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime, so you can manage important options for security, downloads, API compatibility, and so on.
+
+//This section shows how to configure..
+
+ifdef::apicurio-registry,rh-service-registry[]
+NOTE: Security settings for authentication or authorization are only displayed in the web console if authentication has first been enabled. For more details, see 
+endif::[] 
+ifdef::apicurio-registry[]
+xref:../getting-started/assembly-configuring-the-registry.adoc[].
+ifdef::rh-service-registry[]
+the link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[] 
+
+.Prerequisites
+
+* At least one {registry} instance has been created 
+* You have administrator access to the {registry} web console available on:
++
+`{registry-url}`
+
+.Procedure
+
+ifdef::apicurio-registry,rh-service-registry[]
+. In the web console, click the *Settings* page.  
+endif::[] 
+
+ifdef::rh-openshift-sr[]
+. In the web console, click the {registry} instance that you want to configure, and click the *Settings* page.  
+endif::[] 
+
+. Select the settings that you want to configure for this {registry} instance: 
++
+.{registry} instance settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+| *Legacy ID mode (compatibility API)*
+| When enabled, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` for artifact identifiers. 
+ifdef::apicurio-registry,rh-service-registry[]
+For more details, see `MY-REGISTRY-URL/apis/ccompat/v6`
+endif::[] 
+| *Download link time to live*
+| The number of seconds that a generated link to a download `.zip` file remains active for security reasons (for example, when exporting {registry} data). Defaults to 30 seconds.
+| *UI read-only mode*
+| When enabled, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations.
+|===
+
+//. Click *Save* to confirm your settings.
+
+//[role="_additional-resources"]
+//.Additional resources

@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -155,11 +154,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param isReference
      * @return artifact reference
      */
-    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema, boolean isReference) {
+    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema, boolean isReference, String referenceArtifactId) {
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
                 .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
-                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference))
+                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference, referenceArtifactId))
                 .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
                 .build();
 
@@ -167,9 +166,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return artifactReference;
     }
 
-    protected String resolveArtifactId(String artifactId, boolean isReference) {
+    protected String resolveArtifactId(String artifactId, boolean isReference, String referenceArtifactId) {
         if (isReference) {
-            return UUID.randomUUID().toString(); //When a reference is being auto-registered, we create a new random id for it.
+            return referenceArtifactId;
         } else {
             return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
         }

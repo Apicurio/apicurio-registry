@@ -64,4 +64,12 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         Assertions.assertEquals("expected type: Number, found: Boolean", error.getCauses().iterator().next().getDescription());
         Assertions.assertEquals("#/items/properties/price/exclusiveMinimum", error.getCauses().iterator().next().getContext());
     }
+
+    @Test
+    public void testJsonSchemaWithReferences() throws Exception {
+        ContentHandle city = resourceToContentHandle("city.json");
+        ContentHandle citizen = resourceToContentHandle("citizen.json");
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+        validator.validate(ValidityLevel.FULL, citizen, Collections.singletonMap("city.json", city));
+    }
 }

@@ -16,12 +16,12 @@
 
 package io.apicurio.multitenant.metrics;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Singleton;
-
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+
+import javax.enterprise.inject.Produces;
+import javax.inject.Singleton;
 
 /**
  * @author Fabian Martinez
@@ -38,8 +38,8 @@ public class CustomMetricsConfiguration {
             public DistributionStatisticConfig configure(Meter.Id id, DistributionStatisticConfig config) {
                 if(id.getName().startsWith(MetricsConstants.REST_REQUESTS)) {
                     return DistributionStatisticConfig.builder()
-                        .percentiles(0.5, 0.95, 0.99)
-                        .serviceLevelObjectives(0.1 * factor, 1.0 * factor, 2.0 * factor, 5.0 * factor, 10.0 * factor, 30.0 * factor)
+                        .percentiles(0.5, 0.95, 0.99, 0.995)
+                        .serviceLevelObjectives(0.1 * factor, 0.25 * factor, 0.5 * factor, 1.0 * factor, 2.0 * factor, 5.0 * factor, 10.0 * factor)
                         .build()
                         .merge(config);
                 } else if (id.getName().startsWith(MetricsConstants.USAGE_DELETING_TENANTS)) {

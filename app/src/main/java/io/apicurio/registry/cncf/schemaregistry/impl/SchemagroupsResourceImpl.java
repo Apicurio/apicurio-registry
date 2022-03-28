@@ -25,7 +25,7 @@ import io.apicurio.registry.cncf.schemaregistry.SchemagroupsResource;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.cncf.schemaregistry.beans.SchemaId;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.RuleApplicationType;
@@ -59,6 +59,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -216,11 +217,11 @@ public class SchemagroupsResourceImpl implements SchemagroupsResource {
         ArtifactMetaDataDto res;
         try {
             if (!artifactExists(groupId, schemaId)) {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE);
-                res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata);
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap()); //FIXME:references handle artifact references
+                res = storage.createArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             } else {
-                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE);
-                res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata);
+                rulesService.applyRules(groupId, schemaId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap()); //FIXME:references handle artifact references
+                res = storage.updateArtifactWithMetadata(groupId, schemaId, null, artifactType, content, metadata, null);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

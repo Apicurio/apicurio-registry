@@ -56,6 +56,10 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
                           tooltip="Only syntactic validation"
                           id="SYNTAX_ONLY"
                           data-testid="rules-validity-config-syntaxOnly">Syntax Only</DropdownItem>,
+            <DropdownItem key="NONE"
+                          tooltip="No validation"
+                          id="NONE"
+                          data-testid="rules-validity-config-none">None</DropdownItem>,
         ];
         return (
             <Dropdown
@@ -95,6 +99,8 @@ export class ValidityDropdown extends PureComponent<ValidityDropdownProps, Valid
                 return "Full";
             case "SYNTAX_ONLY":
                 return "Syntax Only";
+            case "NONE":
+                return "None";
         }
         return this.props.value;
     }

@@ -25,8 +25,15 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * @author Fabian Martinez
+ * @author Carles Arnal
  */
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
@@ -48,8 +55,8 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public Schema parseSchema(byte[] rawSchema) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema));
+    public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
+        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), resolvedReferences.values().stream().map(parsedSchema -> IoUtil.toString(parsedSchema.getRawSchema())).collect(Collectors.toList()));
     }
 
     /**
@@ -58,9 +65,45 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
+
+        final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema.getFields());
+
         return new ParsedSchemaImpl<Schema>()
                 .setParsedSchema(schema)
-                .setRawSchema(IoUtil.toBytes(schema.toString()));
+                .setReferenceName(schema.getFullName())
+                .setSchemaReferences(resolvedReferences)
+                .setRawSchema(IoUtil.toBytes(schema.toString(resolvedReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toList()), false)));
+    }
+
+    private List<ParsedSchema<Schema>> handleReferences(List<Schema.Field> schemaFields) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema.Field field: schemaFields) {
+            if (field.schema().getType().equals(Schema.Type.RECORD)) {
+
+                final List<ParsedSchema<Schema>> parsedSchemas = handleReferences(field.schema().getFields());
+
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString(parsedSchemas.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toList()), false));
+
+                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
+                        .setParsedSchema(field.schema())
+                        .setReferenceName(field.schema().getFullName())
+                        .setSchemaReferences(parsedSchemas)
+                        .setRawSchema(rawSchema);
+
+                schemaReferences.add(referencedSchema);
+            } else if (field.schema().getType().equals(Schema.Type.ENUM)) {
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString());
+
+                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
+                        .setParsedSchema(field.schema())
+                        .setReferenceName(field.schema().getFullName())
+                        .setSchemaReferences(Collections.emptyList())
+                        .setRawSchema(rawSchema);
+
+                schemaReferences.add(referencedSchema);
+            }
+        }
+        return schemaReferences;
     }
 
 }

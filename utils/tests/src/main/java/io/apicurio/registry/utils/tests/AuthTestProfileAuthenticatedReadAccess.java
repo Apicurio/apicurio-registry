@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,12 +29,12 @@ public class AuthTestProfileAuthenticatedReadAccess implements QuarkusTestProfil
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("registry.auth.authenticated-read-access.enabled", "true");
+        return Map.of("registry.auth.authenticated-read-access.enabled", "true", "smallrye.jwt.sign.key.location", "privateKey.jwk");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         return Collections.singletonList(
-                new TestResourceEntry(KeycloakTestResource.class));
+                new TestResourceEntry(JWKSMockServer.class));
     }
 }

@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.Map;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -131,6 +133,8 @@ public interface RegistryClient extends Closeable {
 
     ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data);
 
+    ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences);
+
     default ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, InputStream data) {
         return createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, null, data);
     };
@@ -157,6 +161,8 @@ public interface RegistryClient extends Closeable {
     InputStream getContentById(long contentId);
 
     InputStream getContentByGlobalId(long globalId);
+
+    InputStream getContentByGlobalId(long globalId, Boolean canonical, Boolean dereference);
 
     InputStream getContentByHash(String contentHash, Boolean canonical);
 
@@ -233,4 +239,21 @@ public interface RegistryClient extends Closeable {
     void setNextRequestHeaders(Map<String, String> requestHeaders);
 
     Map<String, String> getHeaders();
+
+    List<ConfigurationProperty> listConfigProperties();
+
+    void setConfigProperty(String propertyName, String propertyValue);
+
+    ConfigurationProperty getConfigProperty(String propertyName);
+
+    void deleteConfigProperty(String propertyName);
+
+
+    List<ArtifactReference> getArtifactReferencesByGlobalId(long globalId);
+
+    List<ArtifactReference> getArtifactReferencesByContentId(long contentId);
+
+    List<ArtifactReference> getArtifactReferencesByContentHash(String contentHash);
+
+    List<ArtifactReference> getArtifactReferencesByCoordinates(String groupId, String artifactId, String version);
 }

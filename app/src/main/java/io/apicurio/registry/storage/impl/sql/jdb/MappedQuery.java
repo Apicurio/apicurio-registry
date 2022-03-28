@@ -33,6 +33,8 @@ public interface MappedQuery<R> {
 
     public Optional<R> findFirst();
 
+    public Optional<R> findLast();
+
     public List<R> list();
 
     public Stream<R> stream();

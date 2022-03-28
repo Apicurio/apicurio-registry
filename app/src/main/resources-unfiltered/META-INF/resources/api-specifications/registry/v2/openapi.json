@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.2.0.Final",
+        "version": "2.2.2-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -54,6 +54,16 @@
             "get": {
                 "tags": [
                     "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -532,6 +542,24 @@
                             "type": "string"
                         },
                         "in": "query"
+                    },
+                    {
+                        "name": "globalId",
+                        "description": "Filter by globalId.",
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "contentId",
+                        "description": "Filter by contentId.",
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        },
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -657,6 +685,16 @@
                 "tags": [
                     "Admin"
                 ],
+                "parameters": [
+                    {
+                        "name": "forBrowser",
+                        "description": "Indicates if the operation is done for a browser.  If true, the response will be a JSON payload with a property called `href`.  This `href` will be a single-use, naked download link suitable for use by a web browser to download the content.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -693,6 +731,25 @@
                 },
                 "tags": [
                     "Admin"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Registry-Preserve-GlobalId",
+                        "description": "If this header is set to false, global ids of imported data will be ignored and replaced by next id in global id sequence. This allows to import any data even thought the global ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Preserve-ContentId",
+                        "description": "If this header is set to false, content ids of imported data will be ignored and replaced by next id in content id sequence. The mapping between content and artifacts will be preserved. This allows to import any data even thought the content ids would cause a conflict.",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "header",
+                        "required": false
+                    }
                 ],
                 "responses": {
                     "201": {
@@ -1054,6 +1111,16 @@
             "get": {
                 "tags": [
                     "Versions"
+                ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "404": {
@@ -1703,6 +1770,17 @@
                 "tags": [
                     "Artifacts"
                 ],
+                "parameters": [
+                    {
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "required": false
+                    }
+                ],
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
@@ -2280,6 +2358,271 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
+        "/ids/contentHashes/{contentHash}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "contentHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content hash."
+                    }
+                },
+                "operationId": "referencesByContentHash",
+                "summary": "Returns a list with all the references for the artifact with the given hash",
+                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/ids/contentIds/{contentId}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "contentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content id."
+                    }
+                },
+                "operationId": "referencesByContentId",
+                "summary": "Returns a list with all the references for the artifact with the given content id.",
+                "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/ids/globalIds/{globalId}/references": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "globalId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given global id."
+                    }
+                },
+                "operationId": "referencesByGlobalId",
+                "summary": "Returns a list with all the references for the artifact with the given global id.",
+                "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+            "summary": "Manage the references for a single version of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all the artifact references for this artifact."
+                    }
+                },
+                "operationId": "getArtifactVersionReferences",
+                "summary": "Get artifact version",
+                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/admin/config/properties": {
+            "summary": "Manage configuration properties.",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ConfigurationProperty"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a list of configuration properties."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listConfigProperties",
+                "summary": "List all configuration properties",
+                "description": "Returns a list of all configuration properties that have been set.  The list is not paged.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/admin/config/properties/{propertyName}": {
+            "summary": "Manage a single configuration property (by name).",
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfigurationProperty"
+                                }
+                            }
+                        },
+                        "description": "The configuration property value."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "getConfigProperty",
+                "summary": "Get the value of a configuration property",
+                "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConfigurationProperty"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was updated."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "operationId": "updateConfigProperty",
+                "summary": "Update a configuration property",
+                "description": "Updates the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The configuration property was deleted."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "resetConfigProperty",
+                "summary": "Reset a configuration property",
+                "description": "Resets the value of a single configuration property.  This will return the property to\nits default value (see external documentation for supported properties and their default\nvalues).\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "propertyName",
+                    "description": "The name of a configuration property.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
     "components": {
@@ -2313,95 +2656,6 @@
                     "labels": [
                         "regional",
                         "global"
-                    ],
-                    "properties": {
-                        "custom-1": "foo",
-                        "custom-2": "bar"
-                    }
-                }
-            },
-            "VersionMetaData": {
-                "title": "Root Type for ArtifactVersionMetaData",
-                "description": "",
-                "required": [
-                    "createdOn",
-                    "createdBy",
-                    "version",
-                    "type",
-                    "globalId",
-                    "id",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "my-artifact-id",
-                    "version": 1221432,
-                    "type": "PROTOBUF",
-                    "name": "Artifact Name",
-                    "description": "The description of the artifact",
-                    "createdBy": "user1",
-                    "createdOn": "2019-05-17T12:00:00Z",
-                    "globalId": 183282932983,
-                    "contentId": 12347,
-                    "labels": [
-                        "label-1",
-                        "label-2"
                     ],
                     "properties": {
                         "custom-1": "foo",
@@ -2561,128 +2815,6 @@
                     }
                 }
             },
-            "SearchedVersion": {
-                "description": "Models a single artifact from the result set returned when searching for artifacts.",
-                "required": [
-                    "createdBy",
-                    "createdOn",
-                    "type",
-                    "state",
-                    "globalId",
-                    "version",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "description": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "version": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "name": "Artifact Version Name",
-                    "description": "Description of the artifact version",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
-                    "type": "AVRO",
-                    "state": "ENABLED",
-                    "createdOn": "2018-02-10T09:30Z",
-                    "createdBy": "some text",
-                    "globalId": 37,
-                    "version": 85,
-                    "properties": {
-
-                    },
-                    "contentId": 62
-                }
-            },
-            "RuleViolationError": {
-                "title": "Root Type for Error",
-                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
-                "type": "object",
-                "allOf": [
-                    {
-                        "required": [
-                            "causes"
-                        ],
-                        "type": "object",
-                        "properties": {
-                            "causes": {
-                                "description": "List of rule violation causes.",
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/components/schemas/RuleViolationCause"
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "$ref": "#/components/schemas/Error"
-                    }
-                ],
-                "example": {
-                    "error_code": 409,
-                    "message": "Artifact failed validation",
-                    "causes": [
-                        {
-                            "description": "API is missing a title",
-                            "context": "/info[title]"
-                        },
-                        {
-                            "description": "Operation IDs must be unique",
-                            "context": "/paths[/invoices]/put[operationId]"
-                        }
-                    ]
-                }
-            },
             "RuleViolationCause": {
                 "title": "Root Type for RuleViolationCause",
                 "description": "",
@@ -2714,186 +2846,6 @@
                 "description": "A single version of an artifact.  Can be provided by the client when creating a new version,\nor it can be server-generated.  The value can be any string unique to the artifact, but it is\nrecommended to use a simple integer or a semver value.",
                 "type": "string",
                 "example": "\"3.1.6\""
-            },
-            "SearchedArtifact": {
-                "description": "Models a single artifact from the result set returned when searching for artifacts.",
-                "required": [
-                    "createdBy",
-                    "createdOn",
-                    "id",
-                    "type",
-                    "state",
-                    "group"
-                ],
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "name": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "description": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "modifiedOn": {
-                        "format": "date-time",
-                        "description": "",
-                        "type": "string"
-                    },
-                    "modifiedBy": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "Procurement-Invoice",
-                    "name": "Artifact Name",
-                    "description": "Description of the artifact",
-                    "labels": [
-                        "current",
-                        "internal"
-                    ],
-                    "type": "AVRO",
-                    "state": "ENABLED",
-                    "createdBy": "user1",
-                    "createdOn": "2019-03-22T12:51:19Z"
-                }
-            },
-            "ArtifactMetaData": {
-                "title": "Root Type for ArtifactMetaData",
-                "description": "",
-                "required": [
-                    "id",
-                    "createdBy",
-                    "createdOn",
-                    "modifiedBy",
-                    "modifiedOn",
-                    "version",
-                    "type",
-                    "globalId",
-                    "state",
-                    "group",
-                    "contentId"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "createdBy": {
-                        "type": "string"
-                    },
-                    "createdOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "modifiedBy": {
-                        "type": "string"
-                    },
-                    "modifiedOn": {
-                        "format": "date-time",
-                        "type": "string"
-                    },
-                    "id": {
-                        "$ref": "#/components/schemas/ArtifactId",
-                        "description": ""
-                    },
-                    "version": {
-                        "description": "",
-                        "type": "string"
-                    },
-                    "type": {
-                        "$ref": "#/components/schemas/ArtifactType",
-                        "description": ""
-                    },
-                    "globalId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    },
-                    "state": {
-                        "$ref": "#/components/schemas/ArtifactState",
-                        "description": ""
-                    },
-                    "labels": {
-                        "description": "",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "properties": {
-                        "$ref": "#/components/schemas/Properties",
-                        "description": ""
-                    },
-                    "groupId": {
-                        "$ref": "#/components/schemas/GroupId",
-                        "description": ""
-                    },
-                    "contentId": {
-                        "format": "int64",
-                        "description": "",
-                        "type": "integer"
-                    }
-                },
-                "example": {
-                    "groupId": "My-Group",
-                    "id": "Procurement-Invoice",
-                    "name": "Artifact Name",
-                    "description": "Description of the artifact",
-                    "type": "AVRO",
-                    "version": 18,
-                    "createdBy": "user1",
-                    "createdOn": "2019-03-22T12:51:19Z",
-                    "modifiedBy": "user2",
-                    "modifiedOn": "2019-07-19T15:09:00Z",
-                    "globalId": 12984719247,
-                    "contentId": 82736,
-                    "labels": [
-                        "label-1",
-                        "label-2"
-                    ],
-                    "properties": {
-                        "custom-1": "foo",
-                        "custom-2": "bar"
-                    }
-                }
             },
             "LogConfiguration": {
                 "description": "",
@@ -3110,6 +3062,565 @@
                 "type": "string",
                 "example": "\"Artifact description\"",
                 "x-codegen-inline": true
+            },
+            "DownloadRef": {
+                "title": "Root Type for Download",
+                "description": "Models a download \"link\".  Useful for browser use-cases.",
+                "required": [
+                    "downloadId"
+                ],
+                "type": "object",
+                "properties": {
+                    "downloadId": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "downloadId": "247-4987490-297845",
+                    "href": "https://54321.registry.examples.org/apis/registry/v2/downloads/247-4987490-297845"
+                }
+            },
+            "ArtifactMetaData": {
+                "title": "Root Type for ArtifactMetaData",
+                "description": "",
+                "required": [
+                    "id",
+                    "createdBy",
+                    "createdOn",
+                    "modifiedBy",
+                    "modifiedOn",
+                    "version",
+                    "type",
+                    "globalId",
+                    "state",
+                    "group",
+                    "contentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "modifiedBy": {
+                        "type": "string"
+                    },
+                    "modifiedOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "version": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "references": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "Procurement-Invoice",
+                    "name": "Artifact Name",
+                    "description": "Description of the artifact",
+                    "type": "AVRO",
+                    "version": 18,
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z",
+                    "modifiedBy": "user2",
+                    "modifiedOn": "2019-07-19T15:09:00Z",
+                    "globalId": 12984719247,
+                    "contentId": 82736,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ],
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    },
+                    "references": [
+                        {
+                            "groupId": "mygroup",
+                            "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                            "version": 2,
+                            "name": "foo.bar.Open"
+                        }
+                    ]
+                }
+            },
+            "SearchedArtifact": {
+                "description": "Models a single artifact from the result set returned when searching for artifacts.",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "id",
+                    "type",
+                    "state",
+                    "group"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "modifiedOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "modifiedBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "Procurement-Invoice",
+                    "name": "Artifact Name",
+                    "description": "Description of the artifact",
+                    "labels": [
+                        "current",
+                        "internal"
+                    ],
+                    "type": "AVRO",
+                    "state": "ENABLED",
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z"
+                }
+            },
+            "VersionMetaData": {
+                "title": "Root Type for ArtifactVersionMetaData",
+                "description": "",
+                "required": [
+                    "createdOn",
+                    "createdBy",
+                    "version",
+                    "type",
+                    "globalId",
+                    "id",
+                    "contentId"
+                ],
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "id": {
+                        "$ref": "#/components/schemas/ArtifactId",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "groupId": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "groupId": "My-Group",
+                    "id": "my-artifact-id",
+                    "version": 1221432,
+                    "type": "PROTOBUF",
+                    "name": "Artifact Name",
+                    "description": "The description of the artifact",
+                    "createdBy": "user1",
+                    "createdOn": "2019-05-17T12:00:00Z",
+                    "globalId": 183282932983,
+                    "contentId": 12347,
+                    "labels": [
+                        "label-1",
+                        "label-2"
+                    ],
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    },
+                    "references": [
+                        {
+                            "groupId": "mygroup",
+                            "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                            "version": 2,
+                            "name": "foo.bar.Open"
+                        }
+                    ]
+                }
+            },
+            "SearchedVersion": {
+                "description": "Models a single artifact from the result set returned when searching for artifacts.",
+                "required": [
+                    "createdBy",
+                    "createdOn",
+                    "type",
+                    "state",
+                    "globalId",
+                    "version",
+                    "contentId",
+                    "references"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "description": "",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "createdBy": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "labels": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/ArtifactState",
+                        "description": ""
+                    },
+                    "globalId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "version": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "contentId": {
+                        "format": "int64",
+                        "description": "",
+                        "type": "integer"
+                    },
+                    "references": {
+                        "description": "",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
+                    }
+                },
+                "example": {
+                    "name": "Artifact Version Name",
+                    "description": "Description of the artifact version",
+                    "labels": [
+                        "current",
+                        "internal"
+                    ],
+                    "type": "AVRO",
+                    "state": "ENABLED",
+                    "createdOn": "2018-02-10T09:30Z",
+                    "createdBy": "some text",
+                    "globalId": 37,
+                    "version": 85,
+                    "properties": {
+
+                    },
+                    "contentId": 62,
+                    "references": {
+
+                    }
+                }
+            },
+            "RuleViolationError": {
+                "title": "Root Type for Error",
+                "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+                "type": "object",
+                "allOf": [
+                    {
+                        "required": [
+                            "causes"
+                        ],
+                        "type": "object",
+                        "properties": {
+                            "causes": {
+                                "description": "List of rule violation causes.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RuleViolationCause"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/Error"
+                    }
+                ],
+                "example": {
+                    "error_code": 409,
+                    "message": "Artifact failed validation",
+                    "causes": [
+                        {
+                            "description": "API is missing a title",
+                            "context": "/info[title]"
+                        },
+                        {
+                            "description": "Operation IDs must be unique",
+                            "context": "/paths[/invoices]/put[operationId]"
+                        }
+                    ]
+                },
+                "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+            },
+            "ArtifactReference": {
+                "title": "Root Type for ArtifactReference",
+                "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
+                "required": [
+                    "artifactId",
+                    "groupId",
+                    "name"
+                ],
+                "type": "object",
+                "properties": {
+                    "groupId": {
+                        "type": "string"
+                    },
+                    "artifactId": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "groupId": "mygroup",
+                    "artifactId": "13842090-2ce3-11ec-8d3d-0242ac130003",
+                    "version": "2",
+                    "name": "foo.bar.Open"
+                }
+            },
+            "ContentCreateRequest": {
+                "description": "",
+                "required": [
+                    "content",
+                    "references"
+                ],
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "description": "Raw content of the artifact.",
+                        "type": "string",
+                        "example": ""
+                    },
+                    "references": {
+                        "description": "Collection of references to other artifacts.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ArtifactReference"
+                        }
+                    }
+                }
+            },
+            "ConfigurationProperty": {
+                "title": "Root Type for ConfigurationProperty",
+                "description": "",
+                "required": [
+                    "name",
+                    "value",
+                    "type",
+                    "label",
+                    "description"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "label": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "registry.auth.owner-only-authorization",
+                    "value": "true",
+                    "type": "boolean",
+                    "label": "Owner Only Authorization",
+                    "description": "When enabled, the registry will allow only the artifact owner (creator) to modify an artifact."
+                }
+            },
+            "UpdateConfigurationProperty": {
+                "title": "Root Type for UpdateConfigurationProperty",
+                "description": "",
+                "required": [
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "value": "true"
+                }
             }
         },
         "responses": {
@@ -3269,7 +3780,11 @@
     ],
     "x-codegen": {
         "bean-annotations": [
-            "io.quarkus.runtime.annotations.RegisterForReflection"
+            "io.quarkus.runtime.annotations.RegisterForReflection",
+            {
+                "annotation": "lombok.ToString",
+                "excludeEnums": true
+            }
         ]
     }
 }

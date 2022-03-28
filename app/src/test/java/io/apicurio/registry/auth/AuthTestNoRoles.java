@@ -20,13 +20,13 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.AdminClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.apicurio.registry.utils.tests.AuthTestProfileWithoutRoles;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.OidcAuth;
@@ -47,22 +47,16 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
-@TestProfile(AuthTestProfileWithoutRoles.class)
+@TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.DOCKER)
 public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
 
-    String noRoleClientId = "registry-api-no-role";
-
     final String groupId = "authTestGroupId";
 
     ApicurioHttpClient httpClient;
-
-    private RegistryClient createClient(Auth auth) {
-        return RegistryClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
-    }
 
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
@@ -70,13 +64,20 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1");
         return this.createClient(auth);
+    }
+
+    @Override
+    protected AdminClient createAdminClientV2() {
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        return this.createAdminClient(auth);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test55");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
         RegistryClient client = createClient(auth);
         Assertions.assertThrows(NotAuthorizedException.class, () -> {
             client.listArtifactsInGroup(groupId);
@@ -86,7 +87,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        Auth auth = new OidcAuth(httpClient, noRoleClientId, "test1");
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient client = createClient(auth);
         AdminClient adminClient = AdminClientFactory.create(registryV2ApiUrl, Collections.emptyMap(), auth);
         String artifactId = TestUtils.generateArtifactId();

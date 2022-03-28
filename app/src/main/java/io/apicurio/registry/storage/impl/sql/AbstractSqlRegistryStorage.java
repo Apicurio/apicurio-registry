@@ -21,6 +21,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -48,7 +50,8 @@ import org.slf4j.Logger;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.apicurio.registry.System;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.core.System;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -70,8 +73,10 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.StorageException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -96,6 +101,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -122,6 +128,10 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+
 
 /**
  * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
@@ -338,10 +348,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @see RegistryStorage#getArtifactByContentId(long)
      */
     @Override
-    public ContentHandle getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentById();
-            Optional<ContentHandle> res = handle.createQuery(sql)
+            Optional<ContentWrapperDto> res = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
                     .bind(1, contentId)
                     .map(ContentMapper.instance)
@@ -354,10 +364,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @see RegistryStorage#getArtifactByContentHash(java.lang.String)
      */
     @Override
-    public ContentHandle getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentByContentHash();
-            Optional<ContentHandle> res = handle.createQuery(sql)
+            Optional<ContentWrapperDto> res = handle.createQuery(sql)
                     .bind(0, tenantContext.tenantId())
                     .bind(1, contentHash)
                     .map(ContentMapper.instance)
@@ -442,17 +452,18 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#createArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#createArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
-    @Override @Transactional
+    @Override
+    @Transactional
     public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifact(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+        return createArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
     protected ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content, GlobalIdGenerator globalIdGenerator) throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return this.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, globalIdGenerator);
+            ContentHandle content, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+        return this.createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
 
     /**
@@ -581,13 +592,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
-    protected Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content) {
+    protected Long createOrUpdateContent(Handle handle, ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
-        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash);
+        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references);
     }
 
     /**
@@ -599,15 +610,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param contentHash
      * @param canonicalContentHash
      */
-    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash) {
+    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
+        String referencesSerialized = SqlUtil.serializeReferences(references);
 
         // Upsert a row in the "content" table.  This will insert a row for the content
-        // iff a row doesn't already exist.  We use the canonical hash to determine whether
+        // if a row doesn't already exist.  We use the canonical hash to determine whether
         // a row for this content already exists.  If we find a row we return its globalId.
         // If we don't find a row, we insert one and then return its globalId.
         String sql;
         Long contentId;
+        boolean insertReferences = true;
         if ("postgresql".equals(sqlStatements.dbType())) {
             sql = sqlStatements.upsertContent();
             handle.createUpdate(sql)
@@ -616,6 +629,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, canonicalContentHash)
                     .bind(3, contentHash)
                     .bind(4, contentBytes)
+                    .bind(5, referencesSerialized)
                     .execute();
             sql = sqlStatements.selectContentIdByHash();
             contentId = handle.createQuery(sql)
@@ -632,6 +646,8 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .findOne();
             if (contentIdOptional.isPresent()) {
                 contentId = contentIdOptional.get();
+                //If the content is already present there's no need to create the references.
+                insertReferences = false;
             } else {
                 sql = sqlStatements.upsertContent();
                 handle.createUpdate(sql)
@@ -640,6 +656,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, canonicalContentHash)
                     .bind(3, contentHash)
                     .bind(4, contentBytes)
+                    .bind(5, referencesSerialized)
                     .execute();
                 sql = sqlStatements.selectContentIdByHash();
                 contentId = handle.createQuery(sql)
@@ -651,29 +668,51 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } else {
             throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
         }
+
+        if (insertReferences) {
+            //Finally, insert references into the "artifactreferences" table if the content wasn't present yet.
+            insertReferences(handle, contentId, references);
+        }
         return contentId;
     }
 
+    protected void insertReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
+        if (references != null && !references.isEmpty()) {
+            references.forEach(reference -> {
+                String sqli = sqlStatements.upsertReference();
+                handle.createUpdate(sqli)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, contentId)
+                        .bind(2, reference.getGroupId())
+                        .bind(3, reference.getArtifactId())
+                        .bind(4, reference.getVersion())
+                        .bind(5, reference.getName())
+                        .execute();
+            });
+        }
+    }
+
     /**
-     * @see RegistryStorage#createArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
-    @Override @Transactional
+    @Override
+    @Transactional
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, null);
+                                                          ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
+            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, GlobalIdGenerator globalIdGenerator)
-            throws ArtifactAlreadyExistsException, RegistryStorageException {
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator)
+            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
         long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content);
+            return createOrUpdateContent(handle, artifactType, content, references);
         });
 
         // If the metaData provided is null, try to figure it out from the content.
@@ -884,31 +923,31 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#updateArtifact(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
+     * @see RegistryStorage#updateArtifact (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifact(groupId, artifactId, version, artifactType, content, null);
+            ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifact(groupId, artifactId, version, artifactType, content, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, ArtifactType artifactType,
-            ContentHandle content, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, globalIdGenerator);
+            ContentHandle content, List<ArtifactReferenceDto> references, GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references, globalIdGenerator);
     }
 
     /**
-     * @see RegistryStorage#updateArtifactWithMetadata(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see RegistryStorage#updateArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override @Transactional
     public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData)
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, null);
+        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
     }
 
     protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
+            ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
             GlobalIdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
 
         String createdBy = securityIdentity.getPrincipal().getName();
@@ -916,7 +955,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         // Put the content in the DB and get the unique content ID back.
         long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content);
+            return createOrUpdateContent(handle, artifactType, content, references);
         });
 
         // Extract meta-data from the content if no metadata is provided
@@ -1114,13 +1153,13 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     case globalId:
                         where.append("(v.globalId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     case contentId:
                         where.append("(v.contentId = ?)");
                         binders.add((query, idx) -> {
-                            query.bind(idx, filter.getIntegerValue());
+                            query.bind(idx, filter.getNumberValue().longValue());
                         });
                         break;
                     default :
@@ -1221,8 +1260,10 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         String hash;
         if (canonical) {
-            ArtifactType type = this.getArtifactMetaData(groupId, artifactId).getType();
-            ContentHandle canonicalContent = this.canonicalizeContent(type, content);
+            final ArtifactMetaDataDto artifactMetaData = this.getArtifactMetaData(groupId, artifactId);
+            final ContentWrapperDto contentWrapperDto = getArtifactByContentId(artifactMetaData.getContentId());
+            ArtifactType type = artifactMetaData.getType();
+            ContentHandle canonicalContent = this.canonicalizeContent(type, content, contentWrapperDto.getReferences());
             hash = DigestUtils.sha256Hex(canonicalContent.bytes());
         } else {
             hash = DigestUtils.sha256Hex(content.bytes());
@@ -1240,7 +1281,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         .bind(2, artifactId)
                         .bind(3, hash)
                         .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findOne();
+                        .findFirst();
                 return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
             });
         } catch (ArtifactNotFoundException e) {
@@ -2008,6 +2049,114 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
+     */
+    @Override
+    public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
+        log.debug("Getting all config properties.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectConfigProperties();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .map(DynamicConfigPropertyDtoMapper.instance)
+                    .list()
+                    .stream()
+                    // Filter out possible null values.
+                    .filter(item -> item != null)
+                    .collect(Collectors.toList());
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
+        return this.getRawConfigProperty(propertyName);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
+     */
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        log.debug("Selecting a single config property: {}", propertyName);
+        try {
+            return this.handles.withHandle( handle -> {
+                String sql = sqlStatements.selectConfigPropertyByName();
+                Optional<DynamicConfigPropertyDto> res = handle.createQuery(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, propertyName)
+                        .map(DynamicConfigPropertyDtoMapper.instance)
+                        .findOne();
+                return res.orElse(null);
+            });
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
+     */
+    @Override @Transactional
+    public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
+        log.debug("Setting a config property with name: {}  and value: {}", propertyDto.getName(), propertyDto.getValue());
+        this.handles.withHandleNoException( handle -> {
+            String propertyName = propertyDto.getName();
+            String propertyValue = propertyDto.getValue();
+
+            // First delete the property row from the table
+            String sql = sqlStatements.deleteConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .execute();
+
+            // Then create the row again with the new value
+            sql = sqlStatements.insertConfigProperty();
+            handle.createUpdate(sql)
+                  .bind(0, tenantContext.tenantId())
+                  .bind(1, propertyName)
+                  .bind(2, propertyValue)
+                  .bind(3, java.lang.System.currentTimeMillis())
+                  .execute();
+
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#deleteConfigProperty(java.lang.String)
+     */
+    @Override @Transactional
+    public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
+        handles.withHandle(handle -> {
+            String sql = sqlStatements.deleteConfigProperty();
+            handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, propertyName)
+                    .execute();
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     */
+    @Override
+    public List<String> getTenantsWithStaleConfigProperties(Instant lastRefresh) throws RegistryStorageException {
+        log.debug("Getting all tenant IDs with stale config properties.");
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements.selectTenantIdsByConfigModifiedOn();
+            return handle.createQuery(sql)
+                    .bind(0, lastRefresh.toEpochMilli())
+                    .mapTo(String.class)
+                    .list();
+        });
+    }
+
+    /**
      * @see RegistryStorage#getLogConfiguration(java.lang.String)
      */
     @Override
@@ -2330,12 +2479,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                         // It makes sure there won't be any conflicts
                         long newContentId = -1;
                         if (contentEntity.artifactType != null) {
-                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
                         } else {
                             if(contentEntity.canonicalHash == null) {
                                 throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
                             }
-                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash);
+                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash, Collections.emptyList());
                         }
                         contentIdMapping.put(contentEntity.contentId, newContentId);
                         continue;
@@ -2343,7 +2492,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
                     // We do not need canonicalHash if we have artifactType
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
@@ -2664,7 +2813,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         handles.withHandleNoException( handle -> {
             // Delete all artifacts and related data
 
-            String sql = sqlStatements.deleteAllLabels();
+            String sql = sqlStatements.deleteAllReferences();
+            handle.createUpdate(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .execute();
+
+            sql = sqlStatements.deleteAllLabels();
             handle.createUpdate(sql)
                 .bind(0, tenantContext.tenantId())
                 .bind(1, tenantContext.tenantId())
@@ -2712,17 +2866,64 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 .bind(0, tenantContext.tenantId())
                 .execute();
 
+            // Delete all config properties
+
+            sql = sqlStatements.deleteAllConfigProperties();
+            handle.createUpdate(sql)
+                .bind(0, tenantContext.tenantId())
+                .execute();
             return null;
         });
 
+    }
+
+    /**
+     * @see RegistryStorage#resolveReferences(java.util.List)
+     */
+    @Override
+    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return Collections.emptyMap();
+        } else {
+            Map<String, ContentHandle> result = new LinkedHashMap<>();
+            resolveReferences(result, references);
+            return result;
+        }
+    }
+
+    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
+        if (references != null && !references.isEmpty()) {
+            for (ArtifactReferenceDto reference : references) {
+                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                    throw new IllegalStateException("Invalid reference: " + reference);
+                } else {
+                    if (!resolvedReferences.containsKey(reference.getName())) {
+                        //TODO improve exception handling
+                        final ArtifactVersionMetaDataDto referencedArtifactMetaData = this.lookupForReference(reference);
+                        final ContentWrapperDto referencedContent = getArtifactByContentId(referencedArtifactMetaData.getContentId());
+                        resolveReferences(resolvedReferences, referencedContent.getReferences());
+                        resolvedReferences.put(reference.getName(), referencedContent.getContent());
+                    }
+                }
+            }
+        }
+    }
+
+    private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
+        return getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     protected void deleteAllOrphanedContent() {
         log.debug("Deleting all orphaned content");
         handles.withHandleNoException( handle -> {
 
+            // Delete orphaned references
+            String sql = sqlStatements.deleteOrphanedReferences();
+            handle.createUpdate(sql)
+                    .execute();
+
             // Delete orphaned content
-            String sql = sqlStatements.deleteAllOrphanedContent();
+            sql = sqlStatements.deleteAllOrphanedContent();
             handle.createUpdate(sql)
                 .execute();
 
@@ -2931,6 +3132,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, entity.canonicalHash)
                     .bind(3, entity.contentHash)
                     .bind(4, entity.contentBytes)
+                    .bind(5, "") //References are not supported when importing
                     .execute();
                 log.info("Content entity imported successfully.");
             } else {
@@ -3036,11 +3238,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
      * @param artifactType
      * @param content
      */
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, resolveReferences(references));
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

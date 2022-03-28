@@ -19,7 +19,7 @@ package io.apicurio.registry.rules.validity;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import io.apicurio.registry.logging.Logged;
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -44,7 +44,7 @@ public class ValidityRuleExecutor implements RuleExecutor {
         ValidityLevel level = ValidityLevel.valueOf(context.getConfiguration());
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
         ContentValidator validator = provider.getContentValidator();
-        validator.validate(level, context.getUpdatedContent());
+        validator.validate(level, context.getUpdatedContent(), context.getResolvedReferences());
     }
 
 }

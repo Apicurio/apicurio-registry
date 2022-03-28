@@ -19,6 +19,7 @@ export * from "./404";
 export * from "./artifact";
 export * from "./artifacts";
 export * from "./artifactVersion";
+export * from "./settings";
 export * from "./roles";
 export * from "./root";
 export * from "./rules";

@@ -27,4 +27,8 @@ public class TenantNotFoundException extends RegistryException {
     public TenantNotFoundException(String message) {
         super(message);
     }
+
+    public TenantNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

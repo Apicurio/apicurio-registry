@@ -95,9 +95,6 @@ updates:
       - dependency-name: com.fasterxml.jackson.datatype:jackson-datatype-json-org
         versions:
           - 2.12.2
-      - dependency-name: com.github.dasniko:testcontainers-keycloak
-        versions:
-          - 1.6.0
       - dependency-name: io.grpc:grpc-netty-shaded
         versions:
           - 1.36.0

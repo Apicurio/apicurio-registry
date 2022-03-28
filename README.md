@@ -25,8 +25,9 @@ Additionally, there are 2 main configuration profiles:
 ### Getting started
 
  ```
- ./mvnw clean package -DskipTests
- ./mvnw quarkus:dev
+ ./mvnw clean install -DskipTests
+ cd app/
+ ../mvnw quarkus:dev
  ```
  
 This should result in Quarkus and the in-memory registry starting up, with the ui and APIs available on localhost port 8080. Here are some links you can point your browser to once registry is started:

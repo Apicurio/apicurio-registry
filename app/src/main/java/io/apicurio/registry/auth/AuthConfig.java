@@ -16,12 +16,16 @@
 
 package io.apicurio.registry.auth;
 
+import java.util.function.Supplier;
+
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import io.apicurio.common.apps.config.Dynamic;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -38,17 +42,24 @@ public class AuthConfig {
     @ConfigProperty(name = "registry.auth.role-based-authorization", defaultValue = "false")
     boolean roleBasedAuthorizationEnabled;
 
+    @Dynamic(label = "Artifact owner-only authorization", description = "When enabled, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.owner-only-authorization", defaultValue = "false")
-    boolean ownerOnlyAuthorizationEnabled;
+    Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
+    @Dynamic(label = "Artifact group owner-only authorization", description = "When enabled, Service Registry allows only the artifact group owner (creator) to access an artifact group.", requires = {
+            "registry.auth.enabled=true",
+            "registry.auth.owner-only-authorization=true"
+    })
     @ConfigProperty(name = "registry.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
-    boolean ownerOnlyAuthorizationLimitGroupAccess;
+    Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
 
+    @Dynamic(label = "Anonymous read access", description = "When enabled, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.anonymous-read-access.enabled", defaultValue = "false")
-    boolean anonymousReadAccessEnabled;
+    Supplier<Boolean> anonymousReadAccessEnabled;
 
+    @Dynamic(label = "Authenticated read access", description = "When enabled, requests from any authenticated user are granted at least read-only access.", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
-    boolean authenticatedReadAccessEnabled;
+    Supplier<Boolean> authenticatedReadAccessEnabled;
 
     @ConfigProperty(name = "registry.auth.roles.readonly", defaultValue = "sr-readonly")
     String readOnlyRole;
@@ -116,7 +127,7 @@ public class AuthConfig {
     }
 
     public boolean isObacEnabled() {
-        return this.ownerOnlyAuthorizationEnabled;
+        return this.ownerOnlyAuthorizationEnabled.get();
     }
 
     public boolean isTenantOwnerAdminEnabled() {

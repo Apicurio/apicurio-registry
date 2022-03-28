@@ -50,6 +50,7 @@ module.exports = (mode) => {
           "./FederatedArtifactVersionPage": "./src/app/pages/artifactVersion/artifactVersion.federated",
           "./FederatedRulesPage": "./src/app/pages/rules/rules.federated",
           "./FederatedRolesPage": "./src/app/pages/roles/roles.federated",
+          "./FederatedSettingsPage": "./src/app/pages/settings/settings.federated",
           "./FederatedSchemaMapping": "./src/app/components/schemaMapping/schemaMapping.federated",
           "./FederatedDownloadArtifacts":"./src/app/components/downloadArtifacts/downloadArtifacts.federated"
         },

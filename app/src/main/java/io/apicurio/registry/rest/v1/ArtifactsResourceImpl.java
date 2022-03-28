@@ -21,8 +21,8 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.Headers;
@@ -67,20 +67,21 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -215,7 +216,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
     }
 
     /**
@@ -246,9 +247,9 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
             }
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-            rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE);
+            rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.CREATE, Collections.emptyMap());
             final String finalArtifactId = artifactId;
-            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content);
+            ArtifactMetaDataDto amd = storage.createArtifact(null, artifactId, null, artifactType, content, null);
             return V1ApiUtil.dtoToMetaData(finalArtifactId, artifactType, amd);
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(xRegistryArtifactType, xRegistryArtifactId, ifExists, content, ct, fcanonical);
@@ -292,8 +293,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        ArtifactMetaDataDto dto = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToMetaData(artifactId, artifactType, dto);
     }
 
@@ -349,8 +350,8 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
         }
 
         ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
-        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE);
-        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content);
+        rulesService.applyRules(null, artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        ArtifactMetaDataDto amd = storage.updateArtifact(null, artifactId, null, artifactType, content, null);
         return V1ApiUtil.dtoToVersionMetaData(artifactId, artifactType, amd);
     }
 

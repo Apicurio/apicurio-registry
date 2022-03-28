@@ -18,6 +18,8 @@ package io.apicurio.registry.content.canon;
 
 import io.apicurio.registry.content.ContentHandle;
 
+import java.util.Map;
+
 /**
  * A canonicalizer that passes through the content unchanged.
  * @author eric.wittmann@gmail.com
@@ -25,10 +27,10 @@ import io.apicurio.registry.content.ContentHandle;
 public class NoOpContentCanonicalizer implements ContentCanonicalizer {
     
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle)
+     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content) {
+    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
         return content;
     }
 

@@ -18,6 +18,7 @@ package io.apicurio.registry.serde;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import io.apicurio.registry.resolver.data.Record;
@@ -36,7 +37,7 @@ import io.apicurio.registry.types.ArtifactType;
  * @author Fabian Martinez
  * @author Jakub Senko <jsenko@redhat.com>
  */
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "rawtypes", "unchecked" })
 @Deprecated
 public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resolver.SchemaResolver<SCHEMA, DATA>, Closeable {
 
@@ -106,7 +107,7 @@ public interface SchemaResolver<SCHEMA, DATA> extends io.apicurio.registry.resol
              */
             @Override
             public Object parseSchema(byte[] rawSchema) {
-                return schemaMapper.parseSchema(rawSchema);
+                return schemaMapper.parseSchema(rawSchema, Collections.emptyMap());
             }
 
         });

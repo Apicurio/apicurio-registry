@@ -5,7 +5,7 @@
 = Configuring {registry} instance settings using the {registry} web console
 
 [role="_abstract"]
-As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime, so you can manage important options for security, downloads, API compatibility, and so on.
+As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime. For example, you can use this feature to manage configuration options for security, API compatibility, and so on.
 
 //This section shows how to configure..
 
@@ -21,7 +21,7 @@ endif::[]
 .Prerequisites
 
 * At least one {registry} instance has been created 
-* You have administrator access to the {registry} web console available on:
+* You are logged into the {registry} web console with administrator access:
 +
 `{registry-url}`
 
@@ -42,15 +42,23 @@ endif::[]
 |===
 |Setting
 |Description
+| *Authenticated read access*
+| When enabled, requests from any authenticated user are granted at least read-only access. This setting is not enabled by default. 
 | *Legacy ID mode (compatibility API)*
-| When enabled, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` for artifact identifiers. 
+| When enabled, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` for artifact identifiers. This setting is not enabled by default. 
 ifdef::apicurio-registry,rh-service-registry[]
-For more details, see `MY-REGISTRY-URL/apis/ccompat/v6`
-endif::[] 
-| *Download link time to live*
+For more details, see `MY-REGISTRY-URL/apis/ccompat/v6`.
+endif::[]
+ifdef::rh-openshift-sr[]
+For more details, see .
+endif::[]
+ifdef::apicurio-registry,rh-service-registry[]
+|
+*Download link time to live*
 | The number of seconds that a generated link to a download `.zip` file remains active for security reasons (for example, when exporting {registry} data). Defaults to 30 seconds.
 | *UI read-only mode*
-| When enabled, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations.
+| When enabled, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations. This setting is not enabled by default. 
+endif::[]
 |===
 
 //. Click *Save* to confirm your settings.

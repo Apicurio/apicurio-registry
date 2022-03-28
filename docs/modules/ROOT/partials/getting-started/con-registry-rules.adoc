@@ -25,7 +25,15 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied, if any.
+[id="registry-rules-precedence-{context}"]
+=== Rule precedence
+You can configure the content rules at a global level or at an artifact level. Configured artifact rules override any configured global rules.
+
+NOTE: If no rules are configured for an artifact, the currently configured global rules are applied, if any.
+
+If you want to disable a rule for all artifacts, you must disable the rule at both the artifact level and at the global level. {registry} applies an enabled global rule to any artifacts that have the rule disabled at the artifact level.
+
+If you want to "disable" a rule for an individual artifact only, you can override the enabled global rule by setting the rule value to `NONE` at the artifact level. In this case, the artifact rule `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
 
 [id="registry-rules-work_{context}"]
 == How rules work
@@ -33,11 +41,9 @@ Each rule has a name and configuration information. The registry maintains the l
 
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
-ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]
 .Additional resources
 For more details, see {registry-reference}.
-endif::[]
 
 ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]
@@ -102,5 +108,6 @@ a| `NONE`
 
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
 
 endif::[]

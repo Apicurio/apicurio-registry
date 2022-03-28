@@ -7,14 +7,6 @@
 [role="_abstract"]
 When you add or update an artifact, {registry} applies rules to check the validity and compatibility of the artifact content. Configured artifact rules override the equivalent configured global rules, as shown in the following table.
 
-[NOTE]
-====
-.Disabling rules
-If you want to disable a rule for all artifacts, you must disable the rule at both the artifact level and at the global level. Otherwise, {registry} applies the enabled global rule to any artifacts that have the rule disabled at the artifact level.
-
-If you want to "disable" a rule for an individual artifact only, you can override the enabled global rule by setting the rule value to `NONE` at the artifact level. In this case, the artifact rule `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
-====
-
 .{registry} content rule precedence
 [%header,cols=4*]
 |===

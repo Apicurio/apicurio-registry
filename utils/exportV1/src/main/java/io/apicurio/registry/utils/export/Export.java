@@ -21,15 +21,19 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.security.GeneralSecurityException;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
+import io.apicurio.registry.client.request.HeadersInterceptor;
+import okhttp3.Credentials;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import io.apicurio.registry.client.RegistryRestClient;
@@ -54,6 +58,11 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
+import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_HEADERS_PREFIX;
+
 /**
  * @author Fabian Martinez
  */
@@ -70,20 +79,18 @@ public class Export implements QuarkusApplication {
     @Override
     public int run(String... args) throws Exception {
 
-        if (args.length == 0) {
+        OptionsParser optionsParser = new OptionsParser(args);
+        if (optionsParser.getUrl() == null) {
             System.out.println("Missing required argument, registry url");
             return 1;
         }
 
-        String url = args[0];
+        String url = optionsParser.getUrl();
+        boolean insecure = optionsParser.isInSecure();
+        matchContentId = optionsParser.isMatchContentId();
+        Map<String, Object> conf = optionsParser.getClientProps();
 
-        String[] remainingArgs = Arrays.copyOfRange(args, 1, args.length);
-
-        remainingArgs = parseMatchContentId(remainingArgs);
-
-        Map<String, Object> conf = parseClientProps(remainingArgs);
-
-        RegistryRestClient client = RegistryRestClientFactory.create(url, conf);
+        RegistryRestClient client = buildRegistryClient(url, conf, insecure);
 
         File output = new File("registry-export.zip");
         try (FileOutputStream fos = new FileOutputStream(output)) {
@@ -207,28 +214,6 @@ public class Export implements QuarkusApplication {
         return 0;
     }
 
-    private Map<String, Object> parseClientProps(String[] remainingArgs) {
-        Map<String, Object> conf = new HashMap<>();
-        if (remainingArgs.length > 2 && remainingArgs[0].equals("--client-props")) {
-            String[] clientconf = Arrays.copyOfRange(remainingArgs, 1, remainingArgs.length);
-            conf = Arrays.asList(clientconf)
-                .stream()
-                .map(keyvalue -> keyvalue.split("="))
-                .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
-            System.out.println("Parsed client properties " + conf);
-        }
-        return conf;
-    }
-
-    private String[] parseMatchContentId(String[] remainingArgs) {
-        if (remainingArgs.length > 1 && remainingArgs[0].equals("--match-content-id")) {
-            remainingArgs = Arrays.copyOfRange(remainingArgs, 1, remainingArgs.length);
-            this.matchContentId = true;
-            System.out.println("Going to match globalId and contentId");
-        }
-        return remainingArgs;
-    }
-
     protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
@@ -238,6 +223,58 @@ public class Export implements QuarkusApplication {
         } catch (Exception e) {
             e.printStackTrace();
             return content;
+        }
+    }
+
+    private RegistryRestClient buildRegistryClient(String baseUrl, Map<String, Object> configs, boolean insecure) {
+        if (!insecure) {
+            return RegistryRestClientFactory.create(baseUrl, configs);
+        } else {
+            return RegistryRestClientFactory.create(baseUrl, buildSSLInsecureHttpClient(baseUrl, configs));
+        }
+    }
+
+    private OkHttpClient buildSSLInsecureHttpClient(String baseUrl, Map<String, Object> configs) {
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs);
+
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            X509TrustManager[] trustManagers = new X509TrustManager[]{new FakeTrustManager()};
+            sc.init(null, trustManagers, new java.security.SecureRandom());
+            okHttpClientBuilder.sslSocketFactory(sc.getSocketFactory(), trustManagers[0]);
+            okHttpClientBuilder.hostnameVerifier(new FakeHostnameVerifier());
+        } catch (GeneralSecurityException e) {
+            // Ignore
+        }
+
+        return okHttpClientBuilder.build();
+    }
+
+    // The following method is a copy of a private method from apicurio-registry-rest-client 1.3.2-Final
+    private static OkHttpClient.Builder addHeaders(OkHttpClient.Builder okHttpClientBuilder, String baseUrl, Map<String, Object> configs) {
+        Map<String, String> requestHeaders = configs.entrySet().stream()
+                .filter(map -> map.getKey().startsWith(REGISTRY_REQUEST_HEADERS_PREFIX))
+                .collect(Collectors.toMap(map -> map.getKey()
+                        .replace(REGISTRY_REQUEST_HEADERS_PREFIX, ""), map -> map.getValue().toString()));
+
+        if (!requestHeaders.containsKey("Authorization")) {
+            // Check if url includes user/password
+            // and add auth header if it does
+            HttpUrl url = HttpUrl.parse(baseUrl);
+            String user = url.encodedUsername();
+            String pwd = url.encodedPassword();
+            if (user != null && !user.isEmpty()) {
+                String credentials = Credentials.basic(user, pwd);
+                requestHeaders.put("Authorization", credentials);
+            }
+        }
+
+        if (!requestHeaders.isEmpty()) {
+            final Interceptor headersInterceptor = new HeadersInterceptor(requestHeaders);
+            return okHttpClientBuilder.addInterceptor(headersInterceptor);
+        } else {
+            return okHttpClientBuilder;
         }
     }
 

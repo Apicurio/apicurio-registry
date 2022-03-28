@@ -46,4 +46,12 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         });
     }
 
+    @Test
+    public void testValidateProtobufWithImports() throws Exception {
+        ContentHandle mode = resourceToContentHandle("mode.proto");
+        ContentHandle tableInfo = resourceToContentHandle("table_info.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, tableInfo, Collections.singletonMap("mode.proto", mode));
+    }
+
 }

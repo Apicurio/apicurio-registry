@@ -127,7 +127,10 @@ export abstract class PageComponent<P extends PageProps, S extends PageState> ex
 
     protected getPathParam(paramName: string): string {
         // @ts-ignore
-        return decodeURIComponent(this.props.match.params[paramName]);
+        const paramValue: string = this.props.match.params[paramName];
+        const paramValueDecoded: string = decodeURIComponent(paramValue);
+        Services.getLoggerService().debug(`[PageComponent] Path param "${paramName}" has value "${paramValue}" decoded as "${paramValueDecoded}".`);
+        return decodeURIComponent(paramValueDecoded);
     }
 
     protected isLoading(): boolean {

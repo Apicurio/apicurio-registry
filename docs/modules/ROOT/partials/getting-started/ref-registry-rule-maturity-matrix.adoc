@@ -18,7 +18,7 @@ a| Full
 a| Full
 |*Protobuf*
 a| Full
-a| None
+a| Full
 |*JSON Schema*
 a| Full
 a| Full

@@ -56,7 +56,7 @@ public class JsonSchemaContentValidator implements ContentValidator {
             }
         } else if (level == ValidityLevel.FULL) {
             try {
-                JsonUtil.readSchema(artifactContent.content());
+                JsonUtil.readSchema(artifactContent.content(), resolvedReferences);
             } catch (SchemaException e) {
                 String context = e.getSchemaLocation();
                 String description = e.getMessage();

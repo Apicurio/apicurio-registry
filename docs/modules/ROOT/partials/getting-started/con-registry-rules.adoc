@@ -25,7 +25,17 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-NOTE: If no rules are configured for an artifact, the set of currently configured global rules are applied, if any.
+[id="registry-rules-precedence_{context}"]
+== Rule precedence
+You can configure {registry} content rules at a global level and at an artifact level. The order of precedence is as follows:
+
+* If you enable an artifact rule and the equivalent global rule, the artifact rule overrides the global rule.
+
+* If you disable an artifact rule, and enable the equivalent global rule, the global rule applies.
+
+* If you disable a rule at the artifact level and at the global level, you disable the rule for all artifacts.
+
+* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
 
 [id="registry-rules-work_{context}"]
 == How rules work
@@ -33,11 +43,9 @@ Each rule has a name and configuration information. The registry maintains the l
 
 A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, the registry reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
-ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]
 .Additional resources
 For more details, see {registry-reference}.
-endif::[]
 
 ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]
@@ -76,6 +84,4 @@ configured.
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
 
-.Additional resources
-For more details on content rules, see {registry-reference}.
 endif::[]

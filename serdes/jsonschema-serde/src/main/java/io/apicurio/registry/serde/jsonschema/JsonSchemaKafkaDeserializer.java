@@ -43,8 +43,7 @@ import java.util.Map;
  */
 public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T> implements Deserializer<T> {
 
-    protected static ObjectMapper mapper = new ObjectMapper();
-
+    private ObjectMapper mapper;
     private Boolean validationEnabled;
     private JsonSchemaParser<T> parser = new JsonSchemaParser<>();
 
@@ -93,10 +92,17 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
 
         this.serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 
+        if (null == mapper) {
+            mapper = new ObjectMapper();
+        }
     }
 
     public boolean isValidationEnabled() {
         return validationEnabled != null && validationEnabled;
+    }
+
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        this.mapper = objectMapper;
     }
 
     /**

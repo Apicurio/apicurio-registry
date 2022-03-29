@@ -1,0 +1,37 @@
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-precedence_{context}"]
+= {registry} content rule precedence
+
+[role="_abstract"]
+When you add or update an artifact, {registry} applies rules to check the validity and compatibility of the artifact content. Configured artifact rules override the equivalent configured global rules, as shown in the following table.
+
+.{registry} content rule precedence
+[%header,cols=4*]
+|===
+|Artifact rule
+|Global rule
+|Rule applied to this artifact
+|Global rule available for other artifacts?
+|Enabled
+|Enabled
+|Artifact
+|Yes
+|Disabled
+|Enabled
+|Global
+|Yes
+|Disabled
+|Disabled
+|None
+|No
+|Enabled, set to None
+|Enabled
+|None
+|Yes
+|Disabled
+|Enabled, set to None
+|None
+|No
+|===

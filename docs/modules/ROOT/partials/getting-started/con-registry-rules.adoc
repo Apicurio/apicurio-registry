@@ -25,15 +25,17 @@ Rules are applied only when content is added to the registry. This includes the 
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
-[id="registry-rules-precedence-{context}"]
-=== Rule precedence
-You can configure the content rules at a global level or at an artifact level. Configured artifact rules override any configured global rules.
+[id="registry-rules-precedence_{context}"]
+== Rule precedence
+You can configure {registry} content rules at a global level and at an artifact level. The order of precedence is as follows:
 
-NOTE: If no rules are configured for an artifact, the currently configured global rules are applied, if any.
+* If you enable an artifact rule and the equivalent global rule, the artifact rule overrides the global rule.
 
-If you want to disable a rule for all artifacts, you must disable the rule at both the artifact level and at the global level. {registry} applies an enabled global rule to any artifacts that have the rule disabled at the artifact level.
+* If you disable an artifact rule, and enable the equivalent global rule, the global rule applies.
 
-If you want to "disable" a rule for an individual artifact only, you can override the enabled global rule by setting the rule value to `NONE` at the artifact level. In this case, the artifact rule `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
+* If you disable a rule at the artifact level and at the global level, you disable the rule for all artifacts.
+
+* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
 
 [id="registry-rules-work_{context}"]
 == How rules work

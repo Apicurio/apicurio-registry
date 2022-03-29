@@ -2,7 +2,7 @@
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="configuring-settings-using-console_{context}"]
-= Configuring {registry} instance settings using the {registry} web console
+= Configuring {registry} instance settings using the web console
 
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime. For example, you can use this feature to manage configuration options for security, API compatibility, and so on.
@@ -71,26 +71,21 @@ ifdef::apicurio-registry,rh-service-registry[]
 Displayed only when authentication is already enabled. 
 endif::[]
 When selected, {registry} allows only the artifact owner (creator) to modify an artifact. Not selected by default. 
-| *Artifact group owner-only authorization*
-|
 ifdef::apicurio-registry,rh-service-registry[]
-Displayed only when authentication is already enabled and *Artifact owner-only authorization* is already selected.
-endif::[]
+| *Artifact group owner-only authorization*
+|Displayed only when authentication is already enabled and *Artifact owner-only authorization* is already selected.
 When selected, {registry} allows only the artifact group owner (creator) to access an artifact group. Not selected by default. 
 | *Anonymous read access*
-|
-ifdef::apicurio-registry,rh-service-registry[]
-Displayed only when authentication is already enabled. 
-endif::[]
+|Displayed only when authentication is already enabled. 
 When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use the {registry} instance to publish schemas externally. Not selected by default.
+endif::[]
 | *Legacy ID mode (compatibility API)*
 | When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. This is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
 ifdef::apicurio-registry,rh-service-registry[]
-|
-*Download link time to live*
+|*Download link time to live*
 | The number of seconds that a generated link to a download `.zip` file remains active for security reasons, for example, when exporting registry data from the instance. Defaults to 30 seconds.
 | *UI read-only mode*
-| When enabled, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations. This setting is not enabled by default. 
+| When enabled, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. This setting is not enabled by default. 
 endif::[]
 |===
 

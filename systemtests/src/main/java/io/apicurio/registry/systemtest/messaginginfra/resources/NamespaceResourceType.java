@@ -27,11 +27,19 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
 
     @Override
     public boolean isReady(Namespace resource) {
-        return false;
+        Namespace namespace = get(null, resource.getMetadata().getName());
+
+        if (namespace == null) {
+            return false;
+        }
+
+        return namespace.getStatus().getPhase().equals("Active");
     }
 
     @Override
     public void refreshResource(Namespace existing, Namespace newResource) {
-
+        existing.setMetadata(newResource.getMetadata());
+        existing.setSpec(newResource.getSpec());
+        existing.setStatus(newResource.getStatus());
     }
 }

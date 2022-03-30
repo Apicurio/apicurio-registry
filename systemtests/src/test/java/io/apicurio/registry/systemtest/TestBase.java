@@ -1,0 +1,13 @@
+package io.apicurio.registry.systemtest;
+
+import io.apicurio.registry.systemtest.framework.ITestSeparator;
+import io.apicurio.registry.systemtest.framework.LoggerUtils;
+import io.apicurio.registry.systemtest.messaginginfra.ResourceManager;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.slf4j.Logger;
+
+@DisplayNameGeneration(TestNameGenerator.class)
+public abstract class TestBase implements ITestSeparator {
+    protected final ResourceManager resourceManager = ResourceManager.getInstance();
+    protected static final Logger testLogger = LoggerUtils.getLogger();
+}

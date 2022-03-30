@@ -10,7 +10,7 @@ As an administrator, you can use the {registry} web console to configure dynamic
 //This section shows how to configure..
 
 ifdef::apicurio-registry,rh-service-registry[]
-NOTE: Security settings for authentication or authorization are only displayed in the web console if authentication is already enabled. For more details, see 
+NOTE: Authentication and authorization settings are only displayed in the web console if authentication was already enabled when the {registry} instance was deployed. For more details, see 
 endif::[] 
 ifdef::apicurio-registry[]
 xref:../getting-started/assembly-configuring-the-registry.adoc[].
@@ -48,11 +48,11 @@ endif::[]
 ifdef::apicurio-registry,rh-service-registry[]
 Displayed only when authentication is already enabled. 
 endif::[]
-When selected, requests from any authenticated user 
+When selected, requests from any authenticated user
 ifdef::rh-openshift-sr[]
 in the same organization
 endif::[]
-are granted at least read-only access. Not selected by default. 
+(regardless of their user role) are granted at least read-only access. Not selected by default. 
 |*HTTP basic authentication*
 |
 ifdef::apicurio-registry,rh-service-registry[]
@@ -77,15 +77,15 @@ ifdef::apicurio-registry,rh-service-registry[]
 When selected, {registry} allows only the artifact group owner (creator) to access an artifact group. Not selected by default. 
 | *Anonymous read access*
 |Displayed only when authentication is already enabled. 
-When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use the {registry} instance to publish schemas externally. Not selected by default.
+When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use this instance to publish schemas or APIs externally. Not selected by default.
 endif::[]
 | *Legacy ID mode (compatibility API)*
-| When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. This is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
+| When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. For example, this is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
 ifdef::apicurio-registry,rh-service-registry[]
 |*Download link time to live*
 | The number of seconds that a generated link to a download `.zip` file remains active for security reasons, for example, when exporting registry data from the instance. Defaults to 30 seconds.
 | *UI read-only mode*
-| When enabled, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. This setting is not enabled by default. 
+| When enabled, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Not selected by default. 
 endif::[]
 |===
 

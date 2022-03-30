@@ -74,7 +74,7 @@ When selected, {registry} allows only the artifact owner (creator) to modify an 
 ifdef::apicurio-registry,rh-service-registry[]
 | *Artifact group owner-only authorization*
 |Displayed only when authentication is already enabled and *Artifact owner-only authorization* is already selected.
-When selected, {registry} allows only the artifact group owner (creator) to access an artifact group. Not selected by default. 
+When selected, {registry} allows only the artifact group owner (creator) to have write access to an artifact group, for example, add or remove artifacts in the group. Not selected by default. 
 | *Anonymous read access*
 |Displayed only when authentication is already enabled. 
 When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use this instance to publish schemas or APIs externally. Not selected by default.
@@ -83,9 +83,9 @@ endif::[]
 | When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. For example, this is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
 ifdef::apicurio-registry,rh-service-registry[]
 |*Download link time to live*
-| The number of seconds that a generated link to a download `.zip` file remains active for security reasons, for example, when exporting registry data from the instance. Defaults to 30 seconds.
+| The number of seconds that a generated link to a download `.zip` file remains active for security reasons when exporting registry data from the instance. Defaults to 30 seconds.
 | *UI read-only mode*
-| When enabled, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Not selected by default. 
+| When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
 endif::[]
 |===
 

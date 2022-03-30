@@ -348,7 +348,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         try {
             storage.getArtifactRule(null, artifactId, type);
             return true;
-        } catch (RuleNotFoundException ignored) {
+        } catch (RuleNotFoundException | ArtifactNotFoundException ignored) {
             return false;
         }
     }

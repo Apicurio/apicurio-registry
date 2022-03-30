@@ -403,6 +403,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     public void createArtifactRule(String artifactId, Rule data) {
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
+        storage.getArtifactMetaData(null, artifactId); //If the artifact does not exist, this will throw the proper exception
         storage.createArtifactRule(null, artifactId, data.getType(), config);
     }
 

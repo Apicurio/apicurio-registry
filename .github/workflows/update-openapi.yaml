@@ -1,0 +1,54 @@
+name: Update OpenAPI Workflow
+on:
+  push:
+    paths:
+      - 'common/src/main/resources/META-INF/openapi.json'
+    branches: [master]
+
+jobs:
+  update-openapi:
+    name: Update OpenAPI
+    runs-on: ubuntu-18.04
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Apicurio Registry Checkout
+        run: |
+          mkdir registry
+          cd registry
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git fetch
+          git checkout master
+          git branch --set-upstream-to=origin/master
+          git pull
+
+      - name: Set up JDK 11
+        uses: AdoptOpenJDK/install-jdk@v1
+        with:
+          version: '11'
+          architecture: x64
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: '3.6.3'
+
+      - name: Copy openapi.json
+        run: |
+          cd registry
+          cp ./common/src/main/resources/META-INF/openapi.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+
+      - name: Make copy with Auth info
+        run: |
+          cd registry/utils/tools
+          mvn exec:java -Dexec.mainClass="io.apicurio.registry.utils.tools.AddOpenApiAuth" -Dexec.args="../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json ../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-auth.json"
+
+      - name: Commit Release Version Change
+        run: |
+          cd registry
+          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
+          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-auth.json
+          git commit -m "Automatically updated the core v2 API OpenAPI definition."
+          git push

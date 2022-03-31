@@ -64,6 +64,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void configure(Map<String, ?> configs, io.apicurio.registry.resolver.SchemaParser<S, T> schemaMapper) {
         this.schemaParser = schemaMapper;

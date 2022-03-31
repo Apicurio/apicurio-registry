@@ -9,6 +9,8 @@ public interface ResourceType<T extends HasMetadata> {
 
     void create(T resource);
 
+    void createOrReplace(T resource);
+
     void delete(T resource) throws Exception;
 
     /**

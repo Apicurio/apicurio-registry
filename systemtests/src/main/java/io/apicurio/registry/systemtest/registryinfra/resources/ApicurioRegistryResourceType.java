@@ -115,6 +115,11 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     @Override
+    public void createOrReplace(ApicurioRegistry resource) {
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+    }
+
+    @Override
     public void delete(ApicurioRegistry resource) throws Exception {
         getOperation().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
     }

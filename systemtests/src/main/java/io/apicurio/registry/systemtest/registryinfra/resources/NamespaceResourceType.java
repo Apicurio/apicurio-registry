@@ -21,6 +21,11 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
     }
 
     @Override
+    public void createOrReplace(Namespace resource) {
+        Kubernetes.getClient().namespaces().createOrReplace(resource);
+    }
+
+    @Override
     public void delete(Namespace resource) throws Exception {
         Kubernetes.getClient().namespaces().delete(resource);
     }

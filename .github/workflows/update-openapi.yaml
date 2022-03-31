@@ -1,4 +1,4 @@
-name: Update OpenAPI Workflow
+name: Update OpenAPI
 on:
   push:
     paths:
@@ -43,6 +43,7 @@ jobs:
       - name: Make copy with Auth info
         run: |
           cd registry/utils/tools
+          mvn clean package
           mvn exec:java -Dexec.mainClass="io.apicurio.registry.utils.tools.AddOpenApiAuth" -Dexec.args="../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json ../../app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi-auth.json"
 
       - name: Commit Release Version Change

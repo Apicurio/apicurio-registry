@@ -686,4 +686,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @return The artifact references resolved as a map containing the reference name as key and the referenced artifact content.
      */
     public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references);
+
+    /**
+     *
+     * @param groupId
+     * @param artifactId
+     * @return true if an artifact exists with the coordinates passed as parameters
+     * @throws RegistryStorageException
+     */
+    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException;
 }

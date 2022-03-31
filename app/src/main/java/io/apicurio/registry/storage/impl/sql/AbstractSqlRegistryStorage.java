@@ -2891,6 +2891,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    /**
+     * @see RegistryStorage#isArtifactExists(String, String)
+     */
+    @Override
+    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectArtifactCountById();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
@@ -3173,18 +3189,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         } catch (Exception e) {
             log.warn("Failed to import group entity (likely it already exists).", e);
         }
-    }
-
-    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
-        return handles.withHandleNoException( handle -> {
-            String sql = sqlStatements().selectArtifactCountById();
-            return handle.createQuery(sql)
-                    .bind(0, tenantContext().tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
     }
 
     public boolean isContentExists(long contentId) throws RegistryStorageException {

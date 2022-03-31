@@ -44,7 +44,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                     .withNewSql()
                     .withNewDataSource()
                     .withUrl("jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/postgresdb")
-                    .withUsername("postgresuser")
+                    .withUserName("postgresuser")
                     .withPassword("postgrespassword")
                     .endDataSource()
                     .endSql()

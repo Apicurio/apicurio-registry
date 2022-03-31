@@ -946,4 +946,12 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
         return delegate.resolveReferences(references);
     }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactExists(String, String)
+     */
+    @Override
+    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
+        return delegate.isArtifactExists(groupId, artifactId);
+    }
 }

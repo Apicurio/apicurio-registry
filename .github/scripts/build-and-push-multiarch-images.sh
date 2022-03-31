@@ -32,7 +32,7 @@ fi
 if [[ $RELEASE_VERSION != "foo" ]]
 then
     echo "Building Images With '${RELEASE_VERSION}' Tag."
-    make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${RELEASE_VERSION} build-all-images
+    make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${RELEASE_VERSION} multiarch-registry-images
 fi
 
 
@@ -50,11 +50,11 @@ case $BRANCH_NAME in
 
   "master")
        # if master branch, build images with tag "latest-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} build-all-images
+       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} multiarch-registry-images
        ;;
 
    *)
        # if other than master, build images with tag "${BRANCH_NAME}-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} build-all-images
+       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} multiarch-registry-images
        ;; 
 esac

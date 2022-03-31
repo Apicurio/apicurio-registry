@@ -1,7 +1,7 @@
 package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
-import io.apicurio.registry.systemtest.messaginginfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

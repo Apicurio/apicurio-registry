@@ -1,12 +1,12 @@
-package io.apicurio.registry.systemtest.messaginginfra;
+package io.apicurio.registry.systemtest.registryinfra;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.messaginginfra.resources.ApicurioRegistryResourceType;
-import io.apicurio.registry.systemtest.messaginginfra.resources.NamespaceResourceType;
-import io.apicurio.registry.systemtest.messaginginfra.resources.ResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;

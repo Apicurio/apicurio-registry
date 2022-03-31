@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtest.messaginginfra.resources;
+package io.apicurio.registry.systemtest.registryinfra.resources;
 
 public interface PersistenceKind {
     String MEM = "mem";

@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtest.messaginginfra.resources;
+package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
@@ -43,9 +43,9 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                     .withPersistence("sql")
                     .withNewSql()
                     .withNewDataSource()
-                    .withUrl("jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>")
-                    .withUsername("postgres")
-                    .withPassword("<password>")
+                    .withUrl("jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/postgresdb")
+                    .withUsername("postgresuser")
+                    .withPassword("postgrespassword")
                     .endDataSource()
                     .endSql()
                     .endConfiguration()

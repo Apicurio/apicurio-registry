@@ -2,7 +2,7 @@ package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.systemtest.framework.ITestSeparator;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.messaginginfra.ResourceManager;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.slf4j.Logger;
 

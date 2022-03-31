@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtest.messaginginfra.resources;
+package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 

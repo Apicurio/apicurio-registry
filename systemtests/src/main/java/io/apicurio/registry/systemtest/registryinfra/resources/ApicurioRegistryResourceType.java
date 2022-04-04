@@ -23,47 +23,47 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
         if (PersistenceKind.MEM.equals(kind)) {
             return new ApicurioRegistryBuilder()
                     .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
+                        .withName(name)
+                        .withNamespace(namespace)
                     .endMetadata()
                     .withNewSpec()
-                    .withNewConfiguration()
-                    .withPersistence("mem")
-                    .endConfiguration()
+                        .withNewConfiguration()
+                            .withPersistence("mem")
+                        .endConfiguration()
                     .endSpec()
                     .build();
         } else if (PersistenceKind.SQL.equals(kind)) {
             return new ApicurioRegistryBuilder()
                     .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
+                        .withName(name)
+                        .withNamespace(namespace)
                     .endMetadata()
                     .withNewSpec()
-                    .withNewConfiguration()
-                    .withPersistence("sql")
-                    .withNewSql()
-                    .withNewDataSource()
-                    .withUrl("jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/postgresdb")
-                    .withUserName("postgresuser")
-                    .withPassword("postgrespassword")
-                    .endDataSource()
-                    .endSql()
-                    .endConfiguration()
+                        .withNewConfiguration()
+                            .withPersistence("sql")
+                            .withNewSql()
+                                .withNewDataSource()
+                                    .withUrl("jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/postgresdb")
+                                    .withUserName("postgresuser")
+                                    .withPassword("postgrespassword")
+                                .endDataSource()
+                            .endSql()
+                        .endConfiguration()
                     .endSpec()
                     .build();
         } else if (PersistenceKind.KAFKA_SQL.equals(kind)) {
             return new ApicurioRegistryBuilder()
                     .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
+                        .withName(name)
+                        .withNamespace(namespace)
                     .endMetadata()
                     .withNewSpec()
-                    .withNewConfiguration()
-                    .withPersistence("kafkasql")
-                    .withNewKafkasql()
-                    .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
-                    .endKafkasql()
-                    .endConfiguration()
+                        .withNewConfiguration()
+                        .withPersistence("kafkasql")
+                        .withNewKafkasql()
+                        .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
+                        .endKafkasql()
+                        .endConfiguration()
                     .endSpec()
                     .build();
         }
@@ -128,7 +128,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     public boolean isReady(ApicurioRegistry resource) {
         ApicurioRegistry apicurioRegistry = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
-        if (apicurioRegistry == null) {
+        if (apicurioRegistry == null || apicurioRegistry.getStatus() == null) {
             return false;
         }
 

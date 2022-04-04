@@ -7,7 +7,7 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
 
     @Override
     public String getKind() {
-        return "Namespace";
+        return ResourceKind.NAMESPACE;
     }
 
     @Override
@@ -27,7 +27,7 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
 
     @Override
     public void delete(Namespace resource) throws Exception {
-        Kubernetes.getClient().namespaces().delete(resource);
+        Kubernetes.getClient().namespaces().withName(resource.getMetadata().getName()).delete();
     }
 
     @Override

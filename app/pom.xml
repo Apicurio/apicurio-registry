@@ -354,6 +354,46 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
+                <version>${apicurio-common-app-components.version}</version>
+                <executions>
+                    <execution>
+                        <id>merge-properties</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.outputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/application-prod.properties</param>
+                                <param>${project.build.outputDirectory}/application-dev.properties</param>
+                                <param>${project.build.outputDirectory}/application-test.properties</param>
+                            </inputs>
+                            <deleteInputs>true</deleteInputs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>merge-test-properties</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <output>${project.build.testOutputDirectory}/application.properties</output>
+                            <inputs>
+                                <param>${project.build.outputDirectory}/application.properties</param>
+                                <param>${project.build.outputDirectory}/application-prod.properties</param>
+                                <param>${project.build.outputDirectory}/application-dev.properties</param>
+                                <param>${project.build.outputDirectory}/application-test.properties</param>
+                            </inputs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>

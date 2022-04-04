@@ -6,6 +6,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
+      - '.github/workflows/**'
     branches: [master]
   pull_request:
     paths-ignore:
@@ -13,6 +14,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
+      - '.github/workflows/**'
     branches: [master]
 
 jobs:

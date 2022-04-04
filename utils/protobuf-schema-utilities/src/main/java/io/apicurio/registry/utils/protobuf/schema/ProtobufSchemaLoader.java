@@ -25,6 +25,7 @@ import java.util.Set;
 public class ProtobufSchemaLoader {
 
     private static final String GOOGLE_API_PATH = "google/type/";
+    private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
     //Adding pre-built support for commonly used Google API Protos,
     //https://github.com/googleapis/googleapis
     //These files need to be manually loaded into the FileSystem
@@ -47,6 +48,18 @@ public class ProtobufSchemaLoader {
             .add("expr.proto")
             .add("quaternion.proto")
             .build();
+    //Adding support for Protobuf well-known types under package google.protobuf that are not covered by Square
+    //https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
+    //These files need to be manually loaded into the FileSystem
+    //as Square doesn't support them by default.
+    private final static Set<String> GOOGLE_WELLKNOWN_PROTOS =
+        ImmutableSet.<String>builder()
+            .add("api.proto")
+            .add("field_mask.proto")
+            .add("source_context.proto")
+            .add("struct.proto")
+            .add("type.proto")
+            .build();
 
     private static FileSystem getFileSystem() throws IOException {
         final FileSystem inMemoryFileSystem =
@@ -58,17 +71,27 @@ public class ProtobufSchemaLoader {
                     .setSupportedFeatures(Feature.SYMBOLIC_LINKS)
                     .build());
 
-        createDirectory(GOOGLE_API_PATH.split("/"), inMemoryFileSystem);
-
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
-        for (String googleApiProto : GOOGLE_API_PROTOS) {
-            //Loads the proto file resource files.
-            final InputStream inputStream = classLoader.getResourceAsStream(GOOGLE_API_PATH + googleApiProto);
-            final String fileContents = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-            final Path googleApiProtoPath = inMemoryFileSystem.getPath("/", GOOGLE_API_PATH, googleApiProto);
-            Files.write(googleApiProtoPath, fileContents.getBytes());
-        }
+
+        createDirectory(GOOGLE_API_PATH.split("/"), inMemoryFileSystem);
+        loadProtoFiles(inMemoryFileSystem, classLoader, GOOGLE_API_PROTOS, GOOGLE_API_PATH);
+
+        createDirectory(GOOGLE_WELLKNOWN_PATH.split("/"), inMemoryFileSystem);
+        loadProtoFiles(inMemoryFileSystem, classLoader, GOOGLE_WELLKNOWN_PROTOS, GOOGLE_WELLKNOWN_PATH);
+
         return inMemoryFileSystem;
+    }
+
+    private static void loadProtoFiles(FileSystem inMemoryFileSystem, ClassLoader classLoader, Set<String> protos,
+                                       String protoPath)
+            throws IOException {
+        for (String proto : protos) {
+            //Loads the proto file resource files.
+            final InputStream inputStream = classLoader.getResourceAsStream(protoPath + proto);
+            final String fileContents = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+            final Path path = inMemoryFileSystem.getPath("/", protoPath, proto);
+            Files.write(path, fileContents.getBytes());
+        }
     }
 
     private static String createDirectory(String[] dirs, FileSystem fileSystem) throws IOException {
@@ -76,7 +99,9 @@ public class ProtobufSchemaLoader {
         for (String dir: dirs) {
             dirPath = dirPath + "/" + dir;
             Path path = fileSystem.getPath(dirPath);
-            Files.createDirectory(path);
+            if (Files.notExists(path)) {
+                Files.createDirectory(path);
+            }
         }
 
         return dirPath;

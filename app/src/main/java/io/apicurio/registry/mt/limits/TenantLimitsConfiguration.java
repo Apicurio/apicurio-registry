@@ -16,145 +16,35 @@
 
 package io.apicurio.registry.mt.limits;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
+ * NOTE: Follow the naming conventions from {@link io.apicurio.registry.rest.v2.beans.Limits}
+ *
  * @author Fabian Martinez
  */
+@Getter
+@Setter
+@ToString
 public class TenantLimitsConfiguration {
 
-    private Long maxTotalSchemas;
-    private Long maxArtifacts;
-    private Long maxVersionsPerArtifact;
+    private Long maxTotalSchemasCount;
+    private Long maxSchemaSizeBytes;
 
-    //TODO content size
+    private Long maxArtifactsCount;
+    private Long maxVersionsPerArtifactCount;
 
-    private Long maxArtifactProperties;
-    private Long maxPropertyKeyBytesSize;
-    private Long maxPropertyValueBytesSize;
+    private Long maxArtifactPropertiesCount;
+    private Long maxPropertyKeySizeBytes;
+    private Long maxPropertyValueSizeBytes;
 
-    private Long maxArtifactLabels;
-    private Long maxLabelBytesSize;
+    private Long maxArtifactLabelsCount;
+    private Long maxLabelSizeBytes;
 
-    private Long maxNameLength;
-    private Long maxDescriptionLength;
-    /**
-     * @return the maxTotalSchemas
-     */
-    public Long getMaxTotalSchemas() {
-        return maxTotalSchemas;
-    }
-    /**
-     * @param maxTotalSchemas the maxTotalSchemas to set
-     */
-    public void setMaxTotalSchemas(Long maxTotalSchemas) {
-        this.maxTotalSchemas = maxTotalSchemas;
-    }
-    /**
-     * @return the maxArtifacts
-     */
-    public Long getMaxArtifacts() {
-        return maxArtifacts;
-    }
-    /**
-     * @param maxArtifacts the maxArtifacts to set
-     */
-    public void setMaxArtifacts(Long maxArtifacts) {
-        this.maxArtifacts = maxArtifacts;
-    }
-    /**
-     * @return the maxVersionsPerArtifact
-     */
-    public Long getMaxVersionsPerArtifact() {
-        return maxVersionsPerArtifact;
-    }
-    /**
-     * @param maxVersionsPerArtifact the maxVersionsPerArtifact to set
-     */
-    public void setMaxVersionsPerArtifact(Long maxVersionsPerArtifact) {
-        this.maxVersionsPerArtifact = maxVersionsPerArtifact;
-    }
-    /**
-     * @return the maxArtifactProperties
-     */
-    public Long getMaxArtifactProperties() {
-        return maxArtifactProperties;
-    }
-    /**
-     * @param maxArtifactProperties the maxArtifactProperties to set
-     */
-    public void setMaxArtifactProperties(Long maxArtifactProperties) {
-        this.maxArtifactProperties = maxArtifactProperties;
-    }
-    /**
-     * @return the maxPropertyKeyBytesSize
-     */
-    public Long getMaxPropertyKeyBytesSize() {
-        return maxPropertyKeyBytesSize;
-    }
-    /**
-     * @param maxPropertyKeyBytesSize the maxPropertyKeyBytesSize to set
-     */
-    public void setMaxPropertyKeyBytesSize(Long maxPropertyKeyBytesSize) {
-        this.maxPropertyKeyBytesSize = maxPropertyKeyBytesSize;
-    }
-    /**
-     * @return the maxPropertyValueBytesSize
-     */
-    public Long getMaxPropertyValueBytesSize() {
-        return maxPropertyValueBytesSize;
-    }
-    /**
-     * @param maxPropertyValueBytesSize the maxPropertyValueBytesSize to set
-     */
-    public void setMaxPropertyValueBytesSize(Long maxPropertyValueBytesSize) {
-        this.maxPropertyValueBytesSize = maxPropertyValueBytesSize;
-    }
-    /**
-     * @return the maxArtifactLabels
-     */
-    public Long getMaxArtifactLabels() {
-        return maxArtifactLabels;
-    }
-    /**
-     * @param maxArtifactLabels the maxArtifactLabels to set
-     */
-    public void setMaxArtifactLabels(Long maxArtifactLabels) {
-        this.maxArtifactLabels = maxArtifactLabels;
-    }
-    /**
-     * @return the maxLabelBytesSize
-     */
-    public Long getMaxLabelBytesSize() {
-        return maxLabelBytesSize;
-    }
-    /**
-     * @param maxLabelBytesSize the maxLabelBytesSize to set
-     */
-    public void setMaxLabelBytesSize(Long maxLabelBytesSize) {
-        this.maxLabelBytesSize = maxLabelBytesSize;
-    }
-    /**
-     * @return the maxNameLength
-     */
-    public Long getMaxNameLength() {
-        return maxNameLength;
-    }
-    /**
-     * @param maxNameLength the maxNameLength to set
-     */
-    public void setMaxNameLength(Long maxNameLength) {
-        this.maxNameLength = maxNameLength;
-    }
-    /**
-     * @return the maxDescriptionLength
-     */
-    public Long getMaxDescriptionLength() {
-        return maxDescriptionLength;
-    }
-    /**
-     * @param maxDescriptionLength the maxDescriptionLength to set
-     */
-    public void setMaxDescriptionLength(Long maxDescriptionLength) {
-        this.maxDescriptionLength = maxDescriptionLength;
-    }
+    private Long maxArtifactNameLengthChars;
+    private Long maxArtifactDescriptionLengthChars;
 
+    private Long maxRequestsPerSecondCount;
 }

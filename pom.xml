@@ -158,7 +158,7 @@
         <yarn.version>1.22.4</yarn.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>2.2.3.Final</quarkus.version>
+        <quarkus.version>2.2.5.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
@@ -186,13 +186,13 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.25</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>18.0</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 

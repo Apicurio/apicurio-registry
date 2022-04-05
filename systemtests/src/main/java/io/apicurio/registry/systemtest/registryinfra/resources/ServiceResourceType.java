@@ -16,30 +16,6 @@ public class ServiceResourceType implements ResourceType<Service> {
         return Kubernetes.getClient().services().inNamespace(namespace).withName(name).get();
     }
 
-    public static Service getDefaultPostgresql() {
-        return new ServiceBuilder()
-                .withNewMetadata()
-                    .withLabels(new HashMap<String, String>() {{
-                        put("app", "postgresql");
-                    }})
-                    .withName("postgresql")
-                    .withNamespace("postgresql")
-                .endMetadata()
-                .withNewSpec()
-                    .withPorts(new ServicePort() {{
-                        setName("postgresql");
-                        setPort(5432);
-                        setProtocol("TCP");
-                        setTargetPort(new IntOrString(5432));
-                    }})
-                    .withSelector(new HashMap<String, String>() {{
-                        put("app", "postgresql");
-                    }})
-                    .withType("ClusterIP")
-                .endSpec()
-                .build();
-    }
-
     @Override
     public void create(Service resource) {
         Kubernetes.getClient().services().inNamespace(resource.getMetadata().getNamespace()).create(resource);
@@ -75,5 +51,35 @@ public class ServiceResourceType implements ResourceType<Service> {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());
         existing.setStatus(newResource.getStatus());
+    }
+
+    /** Get default instances **/
+
+    public static Service getDefaultPostgresql(String name, String namespace) {
+        return new ServiceBuilder()
+                .withNewMetadata()
+                    .withLabels(new HashMap<String, String>() {{
+                        put("app", name);
+                    }})
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withPorts(new ServicePort() {{
+                        setName("postgresql");
+                        setPort(5432);
+                        setProtocol("TCP");
+                        setTargetPort(new IntOrString(5432));
+                    }})
+                    .withSelector(new HashMap<String, String>() {{
+                        put("app", name);
+                    }})
+                    .withType("ClusterIP")
+                .endSpec()
+                .build();
+    }
+
+    public static Service getDefaultPostgresql() {
+        return getDefaultPostgresql("postgresql", "postgresql");
     }
 }

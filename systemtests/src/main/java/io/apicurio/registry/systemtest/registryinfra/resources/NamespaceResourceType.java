@@ -4,7 +4,6 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.Namespace;
 
 public class NamespaceResourceType implements ResourceType<Namespace> {
-
     @Override
     public String getKind() {
         return ResourceKind.NAMESPACE;

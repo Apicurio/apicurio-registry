@@ -1,11 +1,10 @@
 
 package io.apicurio.registry.rest.v2.beans;
 
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
-import javax.annotation.processing.Generated;
 
 
 /**
@@ -27,8 +26,8 @@ import javax.annotation.processing.Generated;
     "maxPropertyValueSizeBytes",
     "maxArtifactLabelsCount",
     "maxLabelSizeBytes",
-    "maxArtifactNameLengthChars",
-    "maxArtifactDescriptionLengthChars",
+    "maxNameLengthChars",
+    "maxDescriptionLengthChars",
     "maxRequestsPerSecondCount"
 })
 @Generated("jsonschema2pojo")
@@ -54,10 +53,10 @@ public class Limits {
     private Long maxArtifactLabelsCount;
     @JsonProperty("maxLabelSizeBytes")
     private Long maxLabelSizeBytes;
-    @JsonProperty("maxArtifactNameLengthChars")
-    private Long maxArtifactNameLengthChars;
-    @JsonProperty("maxArtifactDescriptionLengthChars")
-    private Long maxArtifactDescriptionLengthChars;
+    @JsonProperty("maxNameLengthChars")
+    private Long maxNameLengthChars;
+    @JsonProperty("maxDescriptionLengthChars")
+    private Long maxDescriptionLengthChars;
     @JsonProperty("maxRequestsPerSecondCount")
     private Long maxRequestsPerSecondCount;
 
@@ -151,24 +150,24 @@ public class Limits {
         this.maxLabelSizeBytes = maxLabelSizeBytes;
     }
 
-    @JsonProperty("maxArtifactNameLengthChars")
-    public Long getMaxArtifactNameLengthChars() {
-        return maxArtifactNameLengthChars;
+    @JsonProperty("maxNameLengthChars")
+    public Long getMaxNameLengthChars() {
+        return maxNameLengthChars;
     }
 
-    @JsonProperty("maxArtifactNameLengthChars")
-    public void setMaxArtifactNameLengthChars(Long maxArtifactNameLengthChars) {
-        this.maxArtifactNameLengthChars = maxArtifactNameLengthChars;
+    @JsonProperty("maxNameLengthChars")
+    public void setMaxNameLengthChars(Long maxNameLengthChars) {
+        this.maxNameLengthChars = maxNameLengthChars;
     }
 
-    @JsonProperty("maxArtifactDescriptionLengthChars")
-    public Long getMaxArtifactDescriptionLengthChars() {
-        return maxArtifactDescriptionLengthChars;
+    @JsonProperty("maxDescriptionLengthChars")
+    public Long getMaxDescriptionLengthChars() {
+        return maxDescriptionLengthChars;
     }
 
-    @JsonProperty("maxArtifactDescriptionLengthChars")
-    public void setMaxArtifactDescriptionLengthChars(Long maxArtifactDescriptionLengthChars) {
-        this.maxArtifactDescriptionLengthChars = maxArtifactDescriptionLengthChars;
+    @JsonProperty("maxDescriptionLengthChars")
+    public void setMaxDescriptionLengthChars(Long maxDescriptionLengthChars) {
+        this.maxDescriptionLengthChars = maxDescriptionLengthChars;
     }
 
     @JsonProperty("maxRequestsPerSecondCount")

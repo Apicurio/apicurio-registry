@@ -45,20 +45,11 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
-        ApicurioRegistry ar = ApicurioRegistryResourceType.getDefaultSql("rkubis-test-sql-instance", "postgres");
-        Service s = ServiceResourceType.getDefaultPostgresql();
+        ApicurioRegistry ar = ApicurioRegistryResourceType.getDefaultSql();
 
         try {
             resourceManager.createResource(testContext, true, ar);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        try {
-            String yaml = SerializationUtils.dumpAsYaml(s);
-
-            testLogger.info(yaml);
-        } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
 

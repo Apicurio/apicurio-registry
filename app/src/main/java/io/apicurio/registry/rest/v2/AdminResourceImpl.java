@@ -121,7 +121,7 @@ public class AdminResourceImpl implements AdminResource {
     @Context
     HttpServletRequest request;
 
-    @Dynamic(label = "Download link time to live", description = "The number of seconds that a generated link to a download .zip file remains active.")
+    @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
     Supplier<Long> downloadHrefTtl;
 

@@ -82,7 +82,7 @@ function is404(e: any) {
 }
 
 /**
- * The artifacts page.
+ * The artifact version page.
  */
 export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps, ArtifactVersionPageState> {
 

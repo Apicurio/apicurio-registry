@@ -157,7 +157,7 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>2.2.3.Final</quarkus.version>
+        <quarkus.version>2.2.5.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
@@ -185,13 +185,13 @@
         <quarkus.profile>dev</quarkus.profile>
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-        <apicurio-data-models.version>1.1.24</apicurio-data-models.version>
+        <apicurio-data-models.version>1.1.25</apicurio-data-models.version>
 
         <!-- GraphQL -->
         <graphql.version>18.0</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <org.everit.json.schema.version>1.14.0</org.everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
@@ -202,7 +202,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.1.8.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.1.9.Final</apicurio-common-app-components.version>
+        <apicurio-common-app-components.version>0.1.10.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.10.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
@@ -230,7 +230,7 @@
         <version.dependency.plugin>3.3.0</version.dependency.plugin>
         <version.assembly.plugin>3.3.0</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
-        <version.clean.plugin>3.1.0</version.clean.plugin>
+        <version.clean.plugin>3.2.0</version.clean.plugin>
         <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>
 
         <!-- Plugin Deps -->

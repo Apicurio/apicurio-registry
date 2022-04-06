@@ -3857,8 +3857,20 @@
                 },
                 "description": "The content of one version of one artifact."
             }
+        },
+        "securitySchemes": {
+            "basicAuth": {
+                "scheme": "basic",
+                "type": "http"
+            }
         }
     },
+    "security": [
+        {
+            "basicAuth": [
+            ]
+        }
+    ],
     "tags": [
         {
             "name": "Artifacts",

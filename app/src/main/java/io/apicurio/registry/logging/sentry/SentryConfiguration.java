@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.content;
+package io.apicurio.registry.logging.sentry;
 
-import java.io.InputStream;
+import io.apicurio.common.apps.core.System;
+import io.apicurio.common.apps.logging.sentry.AbstractSentryConfiguration;
 
-/**
- * @author Ales Justin
- */
-public interface ContentHandle {
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
-    static ContentHandle create(InputStream stream) {
-        return new StreamContentHandle(stream);
+@ApplicationScoped
+public class SentryConfiguration extends AbstractSentryConfiguration {
+
+    @Inject
+    System system;
+
+    @Override
+    protected String getReleaseVersion() {
+        return system.getVersion();
     }
-
-    static ContentHandle create(byte[] bytes) {
-        return new BytesContentHandle(bytes);
-    }
-
-    static ContentHandle create(String content) {
-        return new StringContentHandle(content);
-    }
-
-    InputStream stream();
-
-    byte[] bytes();
-
-    String content();
-
-    int getSizeBytes();
 }

@@ -6,6 +6,7 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
+      - '.github/workflows/**'
     branches: [master]
   pull_request:
     paths-ignore:

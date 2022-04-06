@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.2.2.Final",
+        "version": "2.2.3-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -1629,6 +1629,11 @@
                                     }
                                 }
                             }
+                        },
+                        "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
                         }
                     },
                     "required": true
@@ -1859,6 +1864,11 @@
                                     }
                                 }
                             }
+                        },
+                        "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
+                            }
                         }
                     },
                     "required": true
@@ -1931,7 +1941,7 @@
                 },
                 "operationId": "updateArtifact",
                 "summary": "Update artifact",
-                "description": "Updates an artifact by uploading new content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\nThe type of the content should be compatible with the artifact's type (it would be\nan error to update an `AVRO` artifact with new `OPENAPI` content, for example).\n\nThe update could fail for a number of reasons including:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact."
+                "description": "Updates an artifact by uploading new content.  The body of the request can\nbe the raw content of the artifact or a JSON object containing both the raw content and\na set of references to other artifacts..  This is typically in JSON format for *most*\nof the supported types, but may be in another format for a few (for example, `PROTOBUF`).\nThe type of the content should be compatible with the artifact's type (it would be\nan error to update an `AVRO` artifact with new `OPENAPI` content, for example).\n\nThe update could fail for a number of reasons including:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nWhen successful, this creates a new version of the artifact, making it the most recent\n(and therefore official) version of the artifact."
             },
             "delete": {
                 "tags": [
@@ -2033,7 +2043,7 @@
             },
             "post": {
                 "requestBody": {
-                    "description": "The content of the artifact version being created. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
+                    "description": "The content of the artifact version being created or the content and a set of references to other artifacts. This is often, but not always, JSON data\nrepresenting one of the supported artifact types:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n",
                     "content": {
                         "*/*": {
                             "schema": {
@@ -2093,6 +2103,11 @@
                                         }
                                     }
                                 }
+                            }
+                        },
+                        "application/create.extended+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContentCreateRequest"
                             }
                         }
                     },
@@ -2166,7 +2181,7 @@
                 },
                 "operationId": "createArtifactVersion",
                 "summary": "Create artifact version",
-                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request should be the raw content of the new artifact version, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request can be the raw content of the new artifact version, or the raw content \nand a set of references pointing to other artifacts, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -2360,6 +2375,9 @@
         },
         "/ids/contentHashes/{contentHash}/references": {
             "get": {
+                "tags": [
+                    "Artifacts"
+                ],
                 "parameters": [
                     {
                         "name": "contentHash",
@@ -2389,6 +2407,9 @@
         },
         "/ids/contentIds/{contentId}/references": {
             "get": {
+                "tags": [
+                    "Artifacts"
+                ],
                 "parameters": [
                     {
                         "name": "contentId",
@@ -2418,6 +2439,9 @@
         },
         "/ids/globalIds/{globalId}/references": {
             "get": {
+                "tags": [
+                    "Artifacts"
+                ],
                 "parameters": [
                     {
                         "name": "globalId",
@@ -2622,6 +2646,32 @@
                     "required": true
                 }
             ]
+        },
+        "/system/limits": {
+            "summary": "Retrieve resource limits information",
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Limits"
+                                }
+                            }
+                        },
+                        "description": "On success, returns resource limits"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getResourceLimits",
+                "summary": "Get resource limits information",
+                "description": "This operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry."
+            }
         },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
@@ -3620,6 +3670,75 @@
                 },
                 "example": {
                     "value": "true"
+                }
+            },
+            "Limits": {
+                "title": "Root Type for Limits",
+                "description": "List of limitations on used resources, that are applied on the current instance of Registry.\nKeys represent the resource type and are suffixed by the corresponding unit.\nValues are integers. Only non-negative values are allowed, with the exception of -1, which means that the limit is not applied.",
+                "type": "object",
+                "properties": {
+                    "maxTotalSchemasCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxSchemaSizeBytes": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxArtifactsCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxVersionsPerArtifactCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxArtifactPropertiesCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxPropertyKeySizeBytes": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxPropertyValueSizeBytes": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxArtifactLabelsCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxLabelSizeBytes": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxArtifactNameLengthChars": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxArtifactDescriptionLengthChars": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "maxRequestsPerSecondCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    }
+                },
+                "example": {
+                    "maxTotalSchemasCount": -1,
+                    "maxSchemaSizeBytes": -1,
+                    "maxArtifactsCount": -1,
+                    "maxVersionsPerArtifactCount": -1,
+                    "maxArtifactPropertiesCount": -1,
+                    "maxPropertyKeySizeBytes": -1,
+                    "maxPropertyValueSizeBytes": -1,
+                    "maxArtifactLabelsCount": -1,
+                    "maxLabelSizeBytes": -1,
+                    "maxArtifactNameLengthChars": -1,
+                    "maxArtifactDescriptionLengthChars": -1,
+                    "maxRequestsPerSecondCount": -1
                 }
             }
         },

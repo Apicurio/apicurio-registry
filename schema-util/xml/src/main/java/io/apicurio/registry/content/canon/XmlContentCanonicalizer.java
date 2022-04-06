@@ -55,7 +55,7 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
             Map<String, ContentHandle> resolvedReferences) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
-            var out = new ByteArrayOutputStream(content.sizeHint());
+            var out = new ByteArrayOutputStream(content.getSizeBytes());
             canon.canonicalize(content.bytes(), out, false); // TODO secureValidation?
             var canonicalized = out.toString(Canonicalizer.ENCODING);
             return ContentHandle.create(canonicalized);

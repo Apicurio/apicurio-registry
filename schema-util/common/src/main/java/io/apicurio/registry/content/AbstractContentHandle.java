@@ -47,7 +47,7 @@ abstract class AbstractContentHandle implements ContentHandle {
     }
 
     @Override
-    public int sizeHint() {
+    public int getSizeBytes() {
         return bytes().length;
     }
 }

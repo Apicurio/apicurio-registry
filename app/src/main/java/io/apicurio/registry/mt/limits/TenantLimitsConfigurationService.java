@@ -16,23 +16,21 @@
 
 package io.apicurio.registry.mt.limits;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.ResourceType;
 import io.apicurio.multitenant.api.datamodel.TenantResource;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
 /**
  * @author Fabian Martinez
@@ -52,6 +50,11 @@ public class TenantLimitsConfigurationService {
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-total-schemas")
     Long defaultMaxTotalSchemas;
+
+    @Inject
+    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-schema-size-bytes")
+    Long defaultMaxSchemaSizeBytes;
+
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifacts")
     Long defaultMaxArtifacts;
@@ -71,7 +74,7 @@ public class TenantLimitsConfigurationService {
     Long defaultMaxPropertyValueBytesSize;
 
     @Inject
-    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-lables")
+    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-artifact-labels")
     Long defaultMaxArtifactLabels;
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-label-size")
@@ -85,6 +88,10 @@ public class TenantLimitsConfigurationService {
     Long defaultMaxDescriptionLength;
 
     @Inject
+    @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-requests-per-second")
+    Long defaultMaxRequestsPerSecond;
+
+    @Inject
     TenantContext tenantContext;
 
     @Inject
@@ -95,11 +102,12 @@ public class TenantLimitsConfigurationService {
 
     public void onStart(@Observes StartupEvent ev) {
 
-        //when multitenancy is enabled the limits service is
+        //when multi-tenancy is enabled the limits service is
         //always enabled/configured because configuration is loaded dynamically at tenant's first request
         if (!mtProperties.isMultitenancyEnabled()) {
 
             if (defaultMaxTotalSchemas < 0 &&
+                    defaultMaxSchemaSizeBytes < 0 &&
                     defaultMaxArtifacts < 0 &&
                     defaultMaxVersionsPerArtifact < 0 &&
 
@@ -111,9 +119,12 @@ public class TenantLimitsConfigurationService {
                     defaultMaxLabelBytesSize < 0 &&
 
                     defaultMaxNameLength < 0 &&
-                    defaultMaxDescriptionLength < 0) {
+                    defaultMaxDescriptionLength < 0 &&
 
-                //all limits are disabled and multitenancy is not enabled
+                    defaultMaxRequestsPerSecond < 0
+                ) {
+
+                //all limits are disabled and multi-tenancy is not enabled
                 //limits will not be applied
                 isConfigured = false;
 
@@ -123,19 +134,22 @@ public class TenantLimitsConfigurationService {
 
         TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
-        c.setMaxTotalSchemas(defaultMaxTotalSchemas);
-        c.setMaxArtifacts(defaultMaxArtifacts);
-        c.setMaxVersionsPerArtifact(defaultMaxVersionsPerArtifact);
+        c.setMaxTotalSchemasCount(defaultMaxTotalSchemas);
+        c.setMaxSchemaSizeBytes(defaultMaxSchemaSizeBytes);
+        c.setMaxArtifactsCount(defaultMaxArtifacts);
+        c.setMaxVersionsPerArtifactCount(defaultMaxVersionsPerArtifact);
 
-        c.setMaxArtifactProperties(defaultMaxArtifactProperties);
-        c.setMaxPropertyKeyBytesSize(defaultMaxPropertyKeyBytesSize);
-        c.setMaxPropertyValueBytesSize(defaultMaxPropertyValueBytesSize);
+        c.setMaxArtifactPropertiesCount(defaultMaxArtifactProperties);
+        c.setMaxPropertyKeySizeBytes(defaultMaxPropertyKeyBytesSize);
+        c.setMaxPropertyValueSizeBytes(defaultMaxPropertyValueBytesSize);
 
-        c.setMaxArtifactLabels(defaultMaxArtifactLabels);
-        c.setMaxLabelBytesSize(defaultMaxLabelBytesSize);
+        c.setMaxArtifactLabelsCount(defaultMaxArtifactLabels);
+        c.setMaxLabelSizeBytes(defaultMaxLabelBytesSize);
 
-        c.setMaxNameLength(defaultMaxNameLength);
-        c.setMaxDescriptionLength(defaultMaxDescriptionLength);
+        c.setMaxArtifactNameLengthChars(defaultMaxNameLength);
+        c.setMaxArtifactDescriptionLengthChars(defaultMaxDescriptionLength);
+
+        c.setMaxRequestsPerSecondCount(defaultMaxRequestsPerSecond);
 
         defaultLimitsConfiguration = c;
     }
@@ -171,37 +185,43 @@ public class TenantLimitsConfigurationService {
 
             switch (type) {
                 case MAX_TOTAL_SCHEMAS_COUNT:
-                    c.setMaxTotalSchemas(limit == null ? defaultMaxTotalSchemas : limit);
+                    c.setMaxTotalSchemasCount(limit == null ? defaultMaxTotalSchemas : limit);
+                    break;
+                case MAX_SCHEMA_SIZE_BYTES:
+                    c.setMaxSchemaSizeBytes(limit == null ? defaultMaxSchemaSizeBytes : limit);
                     break;
                 case MAX_ARTIFACTS_COUNT:
-                    c.setMaxArtifacts(limit == null ? defaultMaxArtifacts : limit);
+                    c.setMaxArtifactsCount(limit == null ? defaultMaxArtifacts : limit);
                     break;
                 case MAX_VERSIONS_PER_ARTIFACT_COUNT:
-                    c.setMaxVersionsPerArtifact(limit == null ? defaultMaxVersionsPerArtifact : limit);
+                    c.setMaxVersionsPerArtifactCount(limit == null ? defaultMaxVersionsPerArtifact : limit);
                     break;
 
                 case MAX_ARTIFACT_PROPERTIES_COUNT:
-                    c.setMaxArtifactProperties(limit == null ? defaultMaxArtifactProperties : limit);
+                    c.setMaxArtifactPropertiesCount(limit == null ? defaultMaxArtifactProperties : limit);
                     break;
                 case MAX_PROPERTY_KEY_SIZE_BYTES:
-                    c.setMaxPropertyKeyBytesSize(limit == null ? defaultMaxPropertyKeyBytesSize : limit);
+                    c.setMaxPropertyKeySizeBytes(limit == null ? defaultMaxPropertyKeyBytesSize : limit);
                     break;
                 case MAX_PROPERTY_VALUE_SIZE_BYTES:
-                    c.setMaxPropertyValueBytesSize(limit == null ? defaultMaxPropertyValueBytesSize : limit);
+                    c.setMaxPropertyValueSizeBytes(limit == null ? defaultMaxPropertyValueBytesSize : limit);
                     break;
 
                 case MAX_ARTIFACT_LABELS_COUNT:
-                    c.setMaxArtifactLabels(limit == null ? defaultMaxArtifactLabels : limit);
+                    c.setMaxArtifactLabelsCount(limit == null ? defaultMaxArtifactLabels : limit);
                     break;
                 case MAX_LABEL_SIZE_BYTES:
-                    c.setMaxLabelBytesSize(limit == null ? defaultMaxLabelBytesSize : limit);
+                    c.setMaxLabelSizeBytes(limit == null ? defaultMaxLabelBytesSize : limit);
                     break;
 
                 case MAX_ARTIFACT_NAME_LENGTH_CHARS:
-                    c.setMaxNameLength(limit == null ? defaultMaxNameLength : limit);
+                    c.setMaxArtifactNameLengthChars(limit == null ? defaultMaxNameLength : limit);
                     break;
                 case MAX_ARTIFACT_DESCRIPTION_LENGTH_CHARS:
-                    c.setMaxDescriptionLength(limit == null ? defaultMaxDescriptionLength : limit);
+                    c.setMaxArtifactDescriptionLengthChars(limit == null ? defaultMaxDescriptionLength : limit);
+                    break;
+                case MAX_REQUESTS_PER_SECOND_COUNT:
+                    c.setMaxRequestsPerSecondCount(limit == null ? defaultMaxRequestsPerSecond : limit);
                     break;
 
                 default:

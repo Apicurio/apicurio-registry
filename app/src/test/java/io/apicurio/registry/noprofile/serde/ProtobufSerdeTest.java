@@ -149,6 +149,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
         }
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProtobufSchemaWithReferences() {
 

@@ -122,6 +122,7 @@ public class AvroSchemaUtils {
         } else if (object instanceof Map) {
             // This case is unusual -- the schema isn't available directly anywhere, instead we have to
             // take get the value schema out of one of the entries and then construct the full schema.
+            @SuppressWarnings("rawtypes")
             Map mapValue = ((Map) object);
             if (mapValue.isEmpty()) {
                 // In this case the value schema doesn't matter since there is no content anyway. This

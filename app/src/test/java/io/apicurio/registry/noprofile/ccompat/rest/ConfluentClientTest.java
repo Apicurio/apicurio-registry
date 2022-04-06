@@ -380,6 +380,26 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
 
+        ParsedSchema schema1 = new AvroSchema("\"string\"");
+        int id1 = client.register(subject, schema1);
+
+        // Reset the client cache so that the next line actually does what we want.
+        client.reset();
+
+        TestUtils.retry(() -> client.getSchemaById(id1));
+
+        ParsedSchema schema2 = new AvroSchema("{\"type\":\"string\"}");
+        int id2 = client.register(subject, schema2);
+
+        TestUtils.retry(() -> client.getSchemaById(id2));
+    }
+
+    @Test
+    public void testCreateRuleBeforeSchema() throws Exception {
+        SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        client.updateCompatibility(subject, "FULL");
 
         ParsedSchema schema1 = new AvroSchema("\"string\"");
         int id1 = client.register(subject, schema1);

@@ -327,6 +327,11 @@ public class GroupsResourceImpl implements GroupsResource {
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
+
+        if (!storage.isArtifactExists(gidOrNull(groupId), artifactId)) {
+            throw new ArtifactNotFoundException(groupId, artifactId);
+        }
+
         storage.createArtifactRule(gidOrNull(groupId), artifactId, data.getType(), config);
     }
 

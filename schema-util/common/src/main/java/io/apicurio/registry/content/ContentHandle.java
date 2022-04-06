@@ -41,5 +41,5 @@ public interface ContentHandle {
 
     String content();
 
-    int sizeHint();
+    int getSizeBytes();
 }

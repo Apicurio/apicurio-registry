@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.rest.v2.beans.Limits;
 import io.apicurio.registry.rest.v2.beans.SystemInfo;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -18,4 +19,12 @@ public interface SystemResource {
   @GET
   @Produces("application/json")
   SystemInfo getSystemInfo();
+
+  /**
+   * This operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry.
+   */
+  @Path("/limits")
+  @GET
+  @Produces("application/json")
+  Limits getResourceLimits();
 }

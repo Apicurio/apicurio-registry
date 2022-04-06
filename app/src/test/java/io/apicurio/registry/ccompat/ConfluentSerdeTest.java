@@ -30,6 +30,7 @@ import java.util.Properties;
 @QuarkusTest
 public class ConfluentSerdeTest extends AbstractResourceTestBase {
 
+    @SuppressWarnings({ "rawtypes", "unchecked", "resource" })
     @Test
     public void testProtobufSchemaWithReferences() {
         Properties properties = new Properties();

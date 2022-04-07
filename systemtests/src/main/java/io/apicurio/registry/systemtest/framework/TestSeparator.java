@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import java.util.Map;
 
 @ExtendWith(ExtensionContextParameterResolver.class)
-public interface ITestSeparator {
+public interface TestSeparator {
     Logger testSeparatorLogger = LoggerUtils.getLogger();
 
     static void printThreadDump() {

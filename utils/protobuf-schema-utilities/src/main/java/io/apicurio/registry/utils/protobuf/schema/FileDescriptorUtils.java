@@ -131,6 +131,11 @@ public class FileDescriptorUtils {
         //Support all the Protobuf WellKnownTypes
         //and the protos from Google API, https://github.com/googleapis/googleapis
         return new FileDescriptor[] {
+            ApiProto.getDescriptor().getFile(),
+            FieldMaskProto.getDescriptor().getFile(),
+            SourceContextProto.getDescriptor().getFile(),
+            StructProto.getDescriptor().getFile(),
+            TypeProto.getDescriptor().getFile(),
             TimestampProto.getDescriptor().getFile(),
             WrappersProto.getDescriptor().getFile(),
             AnyProto.getDescriptor().getFile(),

@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.2.3-SNAPSHOT",
+        "version": "2.2.4-SNAPSHOT",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -25,11 +25,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentById",
@@ -69,11 +69,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByGlobalId",
@@ -103,11 +103,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByHash",
@@ -356,7 +356,7 @@
                 },
                 "operationId": "getLogConfiguration",
                 "summary": "Get a single logger configuration",
-                "description": "Returns the configured logger configuration for the provided logger name, if no logger configuration is persisted it will return the current default log configuration in the system."
+                "description": "Returns the configured logger configuration for the provided logger name. If no logger configuration is persisted, this returns the current default log configuration in the system."
             },
             "put": {
                 "requestBody": {
@@ -587,7 +587,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+                                "$ref": "#/components/schemas/File"
                             }
                         }
                     },
@@ -700,7 +700,7 @@
                         "content": {
                             "application/zip": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/FileContent"
+                                    "$ref": "#/components/schemas/File"
                                 }
                             }
                         },
@@ -712,18 +712,18 @@
                 },
                 "operationId": "exportData",
                 "summary": "Export registry data",
-                "description": "Exports registry data as a ZIP archive."
+                "description": "Exports registry data as a `.zip` archive."
             }
         },
         "/admin/import": {
             "summary": "Provides a way to import data into the registry.",
             "post": {
                 "requestBody": {
-                    "description": "The ZIP file representing the previously exported registry data.",
+                    "description": "The `.zip` file representing the previously exported registry data.",
                     "content": {
                         "application/zip": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+                                "$ref": "#/components/schemas/File"
                             }
                         }
                     },
@@ -735,7 +735,7 @@
                 "parameters": [
                     {
                         "name": "X-Registry-Preserve-GlobalId",
-                        "description": "If this header is set to false, global ids of imported data will be ignored and replaced by next id in global id sequence. This allows to import any data even thought the global ids would cause a conflict.",
+                        "description": "If this header is set to false, global IDs of imported data are ignored and replaced by the next ID in the global ID sequence. This allows importing any data even though the global IDs would cause a conflict.",
                         "schema": {
                             "type": "boolean"
                         },
@@ -743,7 +743,7 @@
                     },
                     {
                         "name": "X-Registry-Preserve-ContentId",
-                        "description": "If this header is set to false, content ids of imported data will be ignored and replaced by next id in content id sequence. The mapping between content and artifacts will be preserved. This allows to import any data even thought the content ids would cause a conflict.",
+                        "description": "If this header is set to false, content IDs of imported data are ignored and replaced by the next ID in the content ID sequence. The mapping between content and artifacts is preserved. This allows importing any data even though the content IDs would cause a conflict.",
                         "schema": {
                             "type": "boolean"
                         },
@@ -883,7 +883,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+
                             },
                             "examples": {
                                 "OpenAPI": {
@@ -1123,14 +1123,14 @@
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
-                    },
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
                     }
                 },
                 "operationId": "getArtifactVersion",
@@ -1459,7 +1459,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+
                             }
                         }
                     },
@@ -1572,7 +1572,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -1739,7 +1739,7 @@
                 },
                 "operationId": "createArtifact",
                 "summary": "Create artifact",
-                "description": "Creates a new artifact by posting the artifact content.  The body of the request should\nbe the raw content of the artifact.  This is typically in JSON format for *most* of the \nsupported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nAn artifact is created using the content provided in the body of the request.  This\ncontent is created under a unique artifact ID that can be provided in the request\nusing the `X-Registry-ArtifactId` request header.  If not provided in the request,\nthe server generates a unique ID for the artifact.  It is typically recommended\nthat callers provide the ID, because this is typically a meaningful identifier, \nand for most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n* `RETURN_OR_UPDATE` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Creates a new artifact by posting the artifact content.  The body of the request can\nbe the raw content of the artifact or a JSON object containing both the raw content and\na set of references to other artifacts.  The raw content is typically in JSON format for *most* of the \nsupported types, but may be in another format for a few (for example, `PROTOBUF`).\n\nThe registry attempts to figure out what kind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAlternatively, you can specify the artifact type using the `X-Registry-ArtifactType` \nHTTP request header, or include a hint in the request's `Content-Type`.  For example:\n\n```\nContent-Type: application/json; artifactType=AVRO\n```\n\nAn artifact is created using the content provided in the body of the request.  This\ncontent is created under a unique artifact ID that can be provided in the request\nusing the `X-Registry-ArtifactId` request header.  If not provided in the request,\nthe server generates a unique ID for the artifact.  It is typically recommended\nthat callers provide the ID, because this is typically a meaningful identifier, \nand for most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `UPDATE` - server updates the existing artifact and returns the new metadata\n* `RETURN` - server does not create or add content to the server, but instead \nreturns the metadata for the existing artifact\n* `RETURN_OR_UPDATE` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "delete": {
                 "tags": [
@@ -1807,7 +1807,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2047,7 +2047,7 @@
                     "content": {
                         "*/*": {
                             "schema": {
-                                "$ref": "#/components/schemas/FileContent"
+
                             },
                             "examples": {
                                 "OpenAPI Example": {
@@ -2230,7 +2230,7 @@
                 },
                 "operationId": "getRoleMapping",
                 "summary": "Return a single role mapping",
-                "description": "Gets the details of a single role mapping (by principalId).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the principalId exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Gets the details of a single role mapping (by `principalId`).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the principalId exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
                 "requestBody": {
@@ -2373,163 +2373,6 @@
                 "description": "Returns information about the currently authenticated user."
             }
         },
-        "/ids/contentHashes/{contentHash}/references": {
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "contentHash",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactReference"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "A list containing all the references for the artifact with the given content hash."
-                    }
-                },
-                "operationId": "referencesByContentHash",
-                "summary": "Returns a list with all the references for the artifact with the given hash",
-                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
-        },
-        "/ids/contentIds/{contentId}/references": {
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "contentId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactReference"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "A list containing all the references for the artifact with the given content id."
-                    }
-                },
-                "operationId": "referencesByContentId",
-                "summary": "Returns a list with all the references for the artifact with the given content id.",
-                "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
-            }
-        },
-        "/ids/globalIds/{globalId}/references": {
-            "get": {
-                "tags": [
-                    "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "globalId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactReference"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "A list containing all the references for the artifact with the given global id."
-                    }
-                },
-                "operationId": "referencesByGlobalId",
-                "summary": "Returns a list with all the references for the artifact with the given global id.",
-                "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
-            }
-        },
-        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
-            "summary": "Manage the references for a single version of an artifact in the registry.",
-            "get": {
-                "tags": [
-                    "Versions"
-                ],
-                "responses": {
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ArtifactReference"
-                                    }
-                                }
-                            }
-                        },
-                        "description": "List of all the artifact references for this artifact."
-                    }
-                },
-                "operationId": "getArtifactVersionReferences",
-                "summary": "Get artifact version",
-                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
-            },
-            "parameters": [
-                {
-                    "name": "groupId",
-                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
-                    "schema": {
-                        "$ref": "#/components/schemas/GroupId"
-                    },
-                    "in": "path",
-                    "required": true
-                },
-                {
-                    "name": "artifactId",
-                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
-                    "schema": {
-                        "$ref": "#/components/schemas/ArtifactId"
-                    },
-                    "in": "path",
-                    "required": true
-                },
-                {
-                    "name": "version",
-                    "description": "The unique identifier of a specific version of the artifact content.",
-                    "schema": {
-                        "$ref": "#/components/schemas/Version"
-                    },
-                    "in": "path",
-                    "required": true
-                }
-            ]
-        },
         "/admin/config/properties": {
             "summary": "Manage configuration properties.",
             "get": {
@@ -2576,11 +2419,11 @@
                         },
                         "description": "The configuration property value."
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getConfigProperty",
@@ -2605,11 +2448,11 @@
                     "204": {
                         "description": "The configuration property was updated."
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "updateConfigProperty",
@@ -2641,6 +2484,173 @@
                     "description": "The name of a configuration property.",
                     "schema": {
                         "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/ids/contentHashes/{contentHash}/references": {
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "contentHash",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content hash."
+                    }
+                },
+                "operationId": "referencesByContentHash",
+                "summary": "List artifact references with given hash",
+                "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+            }
+        },
+        "/ids/contentIds/{contentId}/references": {
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "contentId",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given content id."
+                    }
+                },
+                "operationId": "referencesByContentId",
+                "summary": "List artifact references with given content ID",
+                "description": "Returns a list containing all the artifact references using the artifact content ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/ids/globalIds/{globalId}/references": {
+            "get": {
+                "tags": [
+                    "Artifacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "globalId",
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        },
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "A list containing all the references for the artifact with the given global id."
+                    }
+                },
+                "operationId": "referencesByGlobalId",
+                "summary": "List artifact references with given global ID",
+                "description": "Returns a list containing all the artifact references using the artifact global ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+            }
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
+            "summary": "Manage the references for a single version of an artifact in the registry.",
+            "get": {
+                "tags": [
+                    "Versions"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArtifactReference"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "List of all the artifact references for this artifact."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactVersionReferences",
+                "summary": "Get artifact version",
+                "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "version",
+                    "description": "The unique identifier of a specific version of the artifact content.",
+                    "schema": {
+                        "$ref": "#/components/schemas/Version"
                     },
                     "in": "path",
                     "required": true
@@ -3001,11 +3011,6 @@
                     "version": "2.0.0.Final",
                     "builtOn": "2021-03-19T12:55:00Z"
                 }
-            },
-            "FileContent": {
-                "format": "binary",
-                "type": "string",
-                "x-codegen-inline": true
             },
             "RoleMapping": {
                 "description": "The mapping between a user/principal and their role.",
@@ -3713,15 +3718,15 @@
                         "format": "int64",
                         "type": "integer"
                     },
+                    "maxRequestsPerSecondCount": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
                     "maxArtifactNameLengthChars": {
                         "format": "int64",
                         "type": "integer"
                     },
                     "maxArtifactDescriptionLengthChars": {
-                        "format": "int64",
-                        "type": "integer"
-                    },
-                    "maxRequestsPerSecondCount": {
                         "format": "int64",
                         "type": "integer"
                     }
@@ -3736,10 +3741,15 @@
                     "maxPropertyValueSizeBytes": -1,
                     "maxArtifactLabelsCount": -1,
                     "maxLabelSizeBytes": -1,
-                    "maxArtifactNameLengthChars": -1,
-                    "maxArtifactDescriptionLengthChars": -1,
+                    "maxNameLengthChars": -1,
+                    "maxDescriptionLengthChars": -1,
                     "maxRequestsPerSecondCount": -1
                 }
+            },
+            "File": {
+                "format": "binary",
+                "type": "string",
+                "x-codegen-inline": true
             }
         },
         "responses": {
@@ -3839,7 +3849,7 @@
                 "content": {
                     "*/*": {
                         "schema": {
-                            "$ref": "#/components/schemas/FileContent"
+
                         },
                         "examples": {
                             "OpenAPI": {

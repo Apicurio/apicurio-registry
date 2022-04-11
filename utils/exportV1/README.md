@@ -13,7 +13,7 @@ mvn package -Pprod
 
 Then you can execute it like this:
 ```
-java -jar target/apicurio-registry-utils-exportV1-2.2.12SNAPSHOT-runner.jar http://localhost:8080/api
+java -jar target/apicurio-registry-utils-exportV1-2.2.3-SNAPSHOT-runner.jar http://localhost:8080/api
 ```
 It will create a `registry-export.zip` in the current directory.
 
@@ -26,13 +26,13 @@ This tool provides flags for specific features:
 + `--match-content-id` This flag will make the globalId and contentId of all artifacts to match. Useful for confluent compatibility.
 i.e:
 ```
-java -jar target/apicurio-registry-utils-exportV1-2.2.2-SNAPSHOT-runner.jar http://localhost:8080/api --match-content-id
+java -jar target/apicurio-registry-utils-exportV1-2.2.3-SNAPSHOT-runner.jar http://localhost:8080/api --match-content-id
 ```
 
 + `--client-props <config-key>=<config-value>` This flag allows to pass config values to the underlying rest client.
 i.e: You can configure the client used to connect to the registry API like this:
 ```
-java -jar target/apicurio-registry-utils-exportV1-2.2.2-SNAPSHOT-runner.jar http://localhost:8080/api --client-props apicurio.registry.request.headers.x-custom-header=testvalue
+java -jar target/apicurio-registry-utils-exportV1-2.2.3-SNAPSHOT-runner.jar http://localhost:8080/api --client-props apicurio.registry.request.headers.x-custom-header=testvalue
 ```
 
 + `--insecure` This flag will make the client to trust all SSL certificates.

@@ -1,11 +1,10 @@
 
 package io.apicurio.registry.rest.v2.beans;
 
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
-import javax.annotation.processing.Generated;
 
 
 /**
@@ -27,9 +26,9 @@ import javax.annotation.processing.Generated;
     "maxPropertyValueSizeBytes",
     "maxArtifactLabelsCount",
     "maxLabelSizeBytes",
+    "maxRequestsPerSecondCount",
     "maxArtifactNameLengthChars",
-    "maxArtifactDescriptionLengthChars",
-    "maxRequestsPerSecondCount"
+    "maxArtifactDescriptionLengthChars"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -54,12 +53,12 @@ public class Limits {
     private Long maxArtifactLabelsCount;
     @JsonProperty("maxLabelSizeBytes")
     private Long maxLabelSizeBytes;
+    @JsonProperty("maxRequestsPerSecondCount")
+    private Long maxRequestsPerSecondCount;
     @JsonProperty("maxArtifactNameLengthChars")
     private Long maxArtifactNameLengthChars;
     @JsonProperty("maxArtifactDescriptionLengthChars")
     private Long maxArtifactDescriptionLengthChars;
-    @JsonProperty("maxRequestsPerSecondCount")
-    private Long maxRequestsPerSecondCount;
 
     @JsonProperty("maxTotalSchemasCount")
     public Long getMaxTotalSchemasCount() {
@@ -151,6 +150,16 @@ public class Limits {
         this.maxLabelSizeBytes = maxLabelSizeBytes;
     }
 
+    @JsonProperty("maxRequestsPerSecondCount")
+    public Long getMaxRequestsPerSecondCount() {
+        return maxRequestsPerSecondCount;
+    }
+
+    @JsonProperty("maxRequestsPerSecondCount")
+    public void setMaxRequestsPerSecondCount(Long maxRequestsPerSecondCount) {
+        this.maxRequestsPerSecondCount = maxRequestsPerSecondCount;
+    }
+
     @JsonProperty("maxArtifactNameLengthChars")
     public Long getMaxArtifactNameLengthChars() {
         return maxArtifactNameLengthChars;
@@ -169,16 +178,6 @@ public class Limits {
     @JsonProperty("maxArtifactDescriptionLengthChars")
     public void setMaxArtifactDescriptionLengthChars(Long maxArtifactDescriptionLengthChars) {
         this.maxArtifactDescriptionLengthChars = maxArtifactDescriptionLengthChars;
-    }
-
-    @JsonProperty("maxRequestsPerSecondCount")
-    public Long getMaxRequestsPerSecondCount() {
-        return maxRequestsPerSecondCount;
-    }
-
-    @JsonProperty("maxRequestsPerSecondCount")
-    public void setMaxRequestsPerSecondCount(Long maxRequestsPerSecondCount) {
-        this.maxRequestsPerSecondCount = maxRequestsPerSecondCount;
     }
 
 }

@@ -4,6 +4,8 @@ This is a command line utility application to help on the migrate process from C
 
 This command line application connects to the API of Confluent Schema Registry and exports a zip file compatible with the import admin API available in Apicurio Registry.
 
+## Get Started
+
 To use this tool you first need to build it. We will build a jar file. Execute:
 ```
 mvn package -Pprod
@@ -11,14 +13,20 @@ mvn package -Pprod
 
 Then you can execute it like this:
 ```
-java -jar target/apicurio-registry-utils-exportConfluent-2.2.1-SNAPSHOT-runner.jar http://localhost:8081/
+java -jar target/apicurio-registry-utils-exportConfluent-2.2.2-SNAPSHOT-runner.jar http://localhost:8081/
 ```
 It will create a `confluent-schema-registry-export.zip` in the current directory.
 
+## Configuration
+
 You can configure the client used to connect to the registry API like this:
 ```
-java -jar target/apicurio-registry-utils-exportConfluent-2.2.1-SNAPSHOT-runner.jar http://localhost:8081/ --client-props bearer.auth.credentials.source=BEARER_TOKEN
+java -jar target/apicurio-registry-utils-exportConfluent-2.2.2-SNAPSHOT-runner.jar http://localhost:8081/ --client-props bearer.auth.credentials.source=BEARER_TOKEN
 ```
+
+To allow insecure https certificates, you can use `--insecure` parameter.
+
+## Import data into Registry
 
 You can import your data into Apicurio Registry using curl:
 ```

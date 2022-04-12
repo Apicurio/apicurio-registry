@@ -92,6 +92,8 @@ public class ResourceManager {
 
             T updated = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
             type.refreshResource(resource, updated);
+        } else {
+            resourceManagerLogger.info("Do not wait for resource {} with name {} to be ready in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
         }
     }
 
@@ -153,6 +155,8 @@ public class ResourceManager {
 
         if(type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
             resourceManagerLogger.info("Resource {} with name {} deleted in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+        } else {
+            resourceManagerLogger.info("Resource {} with name {} is not deleted in namespace {} yet.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
         }
     }
 

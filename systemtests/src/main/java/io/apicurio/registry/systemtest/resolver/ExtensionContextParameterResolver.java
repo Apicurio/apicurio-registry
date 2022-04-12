@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtest.resolvers;
+package io.apicurio.registry.systemtest.resolver;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;

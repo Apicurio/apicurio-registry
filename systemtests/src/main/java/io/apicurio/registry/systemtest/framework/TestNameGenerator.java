@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtest;
+package io.apicurio.registry.systemtest.framework;
 
 import org.junit.jupiter.api.DisplayNameGenerator;
 

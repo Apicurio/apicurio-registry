@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.framework;
 
-import io.apicurio.registry.systemtest.resolvers.ExtensionContextParameterResolver;
+import io.apicurio.registry.systemtest.resolver.ExtensionContextParameterResolver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;

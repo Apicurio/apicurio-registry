@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtest.operator;
 
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
+import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.operator.types.OperatorType;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import org.slf4j.Logger;
@@ -23,18 +24,40 @@ public class OperatorManager {
     }
 
     public void installOperator(OperatorType operatorType, boolean waitForReady) {
+        operatorManagerLogger.info("Installing operator {} with name {} in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+
         operatorType.install();
 
+        operatorManagerLogger.info("Operator {} with name {} installed in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+
         if(waitForReady) {
-            assertTrue(waitOperatorReady(operatorType), String.format("Not ready: {}", operatorType.getDeployment().getMetadata().getName()));
+            operatorManagerLogger.info("Waiting for operator {} with name {} to be ready in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+
+            assertTrue(waitOperatorReady(operatorType), String.format("Timed out waiting for operator {} with name {} to be ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace()));
+
+            if(operatorType.isReady()) {
+                operatorManagerLogger.info("Operator {} with name {} is ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+            }
+        } else {
+            operatorManagerLogger.info("Do not wait for operator {} with name {} to be ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
         }
     }
 
     public void uninstallOperator(OperatorType operatorType, boolean waitForRemoved) {
+        operatorManagerLogger.info("Uninstalling operator {} with name {} in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+
         operatorType.uninstall();
 
         if(waitForRemoved) {
-            assertTrue(waitOperatorRemoved(operatorType), String.format("Not removed: {}", operatorType.getDeployment().getMetadata().getName()));
+            operatorManagerLogger.info("Waiting for operator {} with name {} to be uninstalled in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+
+            assertTrue(waitOperatorRemoved(operatorType), String.format("Timed out waiting for operator {} with name {} to be uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace()));
+
+            if(operatorType.doesNotExist()) {
+                operatorManagerLogger.info("Operator {} with name {} uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
+            }
+        }  else {
+            operatorManagerLogger.info("Do not wait for operator {} with name {} to be uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace());
         }
     }
 
@@ -60,7 +83,7 @@ public class OperatorManager {
         boolean pass = operatorType.isReady();
 
         if (!pass) {
-            operatorManagerLogger.info("Operator failed condition check"); // : {}", resourceToString(res));
+            operatorManagerLogger.info(String.format("Operator {} with name {} in namespace {} failed readiness check.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace()));
         }
 
         return pass;
@@ -88,7 +111,7 @@ public class OperatorManager {
         boolean pass = operatorType.doesNotExist();
 
         if (!pass) {
-            operatorManagerLogger.info("Operator failed condition check"); // : {}", resourceToString(res));
+            operatorManagerLogger.info(String.format("Operator {} with name {} in namespace {} failed removal check.", operatorType.getKind(), operatorType.getDeploymentName(), OperatorUtils.getOperatorNamespace()));
         }
 
         return pass;

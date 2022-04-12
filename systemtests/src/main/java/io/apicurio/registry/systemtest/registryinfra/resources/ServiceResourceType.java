@@ -27,7 +27,7 @@ public class ServiceResourceType implements ResourceType<Service> {
     }
 
     @Override
-    public void delete(Service resource) throws Exception {
+    public void delete(Service resource) {
         Kubernetes.getClient().services().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
     }
 

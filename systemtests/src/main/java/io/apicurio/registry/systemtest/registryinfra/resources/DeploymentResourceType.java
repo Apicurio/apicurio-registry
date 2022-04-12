@@ -32,7 +32,7 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
     }
 
     @Override
-    public void delete(Deployment resource) throws Exception {
+    public void delete(Deployment resource) {
         Kubernetes.getClient().apps().deployments().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
     }
 

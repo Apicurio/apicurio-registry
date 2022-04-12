@@ -25,7 +25,7 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
     }
 
     @Override
-    public void delete(Namespace resource) throws Exception {
+    public void delete(Namespace resource) {
         Kubernetes.getClient().namespaces().withName(resource.getMetadata().getName()).delete();
     }
 

@@ -33,7 +33,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     @Override
-    public void delete(ApicurioRegistry resource) throws Exception {
+    public void delete(ApicurioRegistry resource) {
         getOperation().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
     }
 

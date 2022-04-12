@@ -29,7 +29,7 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
     }
 
     @Override
-    public void delete(PersistentVolumeClaim resource) throws Exception {
+    public void delete(PersistentVolumeClaim resource) {
         Kubernetes.getClient().persistentVolumeClaims().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
     }
 

@@ -56,7 +56,7 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
     public static PersistentVolumeClaim getDefaultPostgresql(String name, String namespace, String quantity) {
         return new PersistentVolumeClaimBuilder()
                 .withNewMetadata()
-                .withLabels(new HashMap<String, String>() {{
+                .withLabels(new HashMap<>() {{
                     put("app", name);
                 }})
                 .withName(name)

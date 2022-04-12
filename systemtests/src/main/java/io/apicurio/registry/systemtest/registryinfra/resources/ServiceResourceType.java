@@ -58,7 +58,7 @@ public class ServiceResourceType implements ResourceType<Service> {
     public static Service getDefaultPostgresql(String name, String namespace) {
         return new ServiceBuilder()
                 .withNewMetadata()
-                    .withLabels(new HashMap<String, String>() {{
+                    .withLabels(new HashMap<>() {{
                         put("app", name);
                     }})
                     .withName(name)
@@ -71,7 +71,7 @@ public class ServiceResourceType implements ResourceType<Service> {
                         setProtocol("TCP");
                         setTargetPort(new IntOrString(5432));
                     }})
-                    .withSelector(new HashMap<String, String>() {{
+                    .withSelector(new HashMap<>() {{
                         put("app", name);
                     }})
                     .withType("ClusterIP")

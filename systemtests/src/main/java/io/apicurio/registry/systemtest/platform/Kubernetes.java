@@ -8,12 +8,11 @@ import io.fabric8.openshift.client.OpenShiftConfig;
 public class Kubernetes {
     private static Kubernetes instance;
 
-    private static Config config;
-
     private static KubernetesClient client;
 
     private Kubernetes() {
-        config = Config.autoConfigure(System.getenv().getOrDefault("TEST_CLUSTER_CONTEXT", null));
+        Config config = Config.autoConfigure(System.getenv().getOrDefault("TEST_CLUSTER_CONTEXT", null));
+
         client = new DefaultOpenShiftClient(new OpenShiftConfig(config));
     }
 

@@ -17,6 +17,7 @@ import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -84,7 +85,7 @@ public class ResourceManager {
             resourceManagerLogger.info("Waiting for resource {} with name {} to be ready in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
 
             assertTrue(waitResourceCondition(resource, type::isReady),
-                    String.format("Timed out waiting for resource {} with name {} to be ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
+                    MessageFormat.format("Timed out waiting for resource {} with name {} to be ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
 
             if(type.isReady(resource)) {
                 resourceManagerLogger.info("Resource {} with name {} is ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());

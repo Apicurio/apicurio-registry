@@ -55,7 +55,7 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
             return false;
         }
 
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas() && deploymentSpec.getReplicas().intValue() <= deploymentStatus.getAvailableReplicas();
+        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas() && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
     }
 
     @Override

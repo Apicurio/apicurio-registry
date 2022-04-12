@@ -59,7 +59,7 @@ public class ResourceManager {
         return null;
     }
 
-    public final <T extends HasMetadata> void createResource(ExtensionContext testContext, boolean waitReady, T resource) throws Exception {
+    public final <T extends HasMetadata> void createResource(ExtensionContext testContext, boolean waitReady, T resource) {
         resourceManagerLogger.info("Creating resource {} with name {} in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
 
         ResourceType<T> type = findResourceType(resource);
@@ -86,7 +86,9 @@ public class ResourceManager {
             assertTrue(waitResourceCondition(resource, type::isReady),
                     String.format("Timed out waiting for resource {} with name {} to be ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
 
-            resourceManagerLogger.info("Resource {} with name {} is ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            if(type.isReady(resource)) {
+                resourceManagerLogger.info("Resource {} with name {} is ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            }
 
             T updated = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
             type.refreshResource(resource, updated);
@@ -149,7 +151,9 @@ public class ResourceManager {
             e.printStackTrace();
         }
 
-        resourceManagerLogger.info("Resource {} with name {} deleted in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+        if(type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
+            resourceManagerLogger.info("Resource {} with name {} deleted in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+        }
     }
 
     public void deleteResources(ExtensionContext testContext) {

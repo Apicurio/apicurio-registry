@@ -28,11 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ResourceManager {
-    private static Logger resourceManagerLogger = LoggerUtils.getLogger();
+    private static final Logger resourceManagerLogger = LoggerUtils.getLogger();
 
     private static ResourceManager instance;
 
-    private static Map<String, Stack<Runnable>> storedResources = new LinkedHashMap<>();
+    private static final Map<String, Stack<Runnable>> storedResources = new LinkedHashMap<>();
 
     public static synchronized ResourceManager getInstance() {
         if (instance == null) {

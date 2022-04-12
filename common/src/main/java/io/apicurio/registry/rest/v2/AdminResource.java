@@ -124,7 +124,7 @@ public interface AdminResource {
   List<NamedLogConfiguration> listLogConfigurations();
 
   /**
-   * Returns the configured logger configuration for the provided logger name, if no logger configuration is persisted it will return the current default log configuration in the system.
+   * Returns the configured logger configuration for the provided logger name. If no logger configuration is persisted, this returns the current default log configuration in the system.
    */
   @Path("/loggers/{logger}")
   @GET
@@ -150,7 +150,7 @@ public interface AdminResource {
   NamedLogConfiguration removeLogConfiguration(@PathParam("logger") String logger);
 
   /**
-   * Exports registry data as a ZIP archive.
+   * Exports registry data as a `.zip` archive.
    */
   @Path("/export")
   @GET
@@ -168,7 +168,7 @@ public interface AdminResource {
       InputStream data);
 
   /**
-   * Gets the details of a single role mapping (by principalId).
+   * Gets the details of a single role mapping (by `principalId`).
    *
    * This operation can fail for the following reasons:
    *

@@ -42,25 +42,25 @@ public class ConfigurationProperty {
     @JsonProperty("value")
     private String value;
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private String type;
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("label")
     @JsonPropertyDescription("")
     private String label;
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("description")
     @JsonPropertyDescription("")
@@ -107,9 +107,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("type")
     public String getType() {
@@ -117,9 +117,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("type")
     public void setType(String type) {
@@ -127,9 +127,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("label")
     public String getLabel() {
@@ -137,9 +137,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("label")
     public void setLabel(String label) {
@@ -147,9 +147,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("description")
     public String getDescription() {
@@ -157,9 +157,9 @@ public class ConfigurationProperty {
     }
 
     /**
-     *
+     * 
      * (Required)
-     *
+     * 
      */
     @JsonProperty("description")
     public void setDescription(String description) {

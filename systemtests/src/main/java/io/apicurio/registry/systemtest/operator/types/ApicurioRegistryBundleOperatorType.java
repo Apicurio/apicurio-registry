@@ -23,13 +23,13 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
             OperatorUtils.downloadFile(path, tmpPath);
 
-            operatorLogger.info("Using file " + tmpPath + "...");
+            operatorLogger.info("Using file " + tmpPath + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
 
             operatorLogger.info("Operator resources loaded from file " + tmpPath + ".");
         } else if(path.endsWith(".yaml") || path.endsWith(".yml")) {
-            operatorLogger.info("Using file " + path + "...");
+            operatorLogger.info("Using file " + path + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(path)).get();
 
@@ -62,6 +62,17 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     @Override
     public String getKind() {
         return OperatorKind.APICURIO_REGISTRY_BUNDLE_OPERATOR;
+    }
+
+    @Override
+    public String getDeploymentName() {
+        Deployment deployment = OperatorUtils.findDeployment(operatorResources);
+
+        if(deployment == null) {
+            return null;
+        }
+
+        return deployment.getMetadata().getName();
     }
 
     @Override

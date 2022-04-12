@@ -17,6 +17,11 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     @Override
+    public String getDeploymentName() {
+        return null;
+    }
+
+    @Override
     public Deployment getDeployment() {
         return null;
     }

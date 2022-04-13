@@ -244,15 +244,18 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<String, FieldElement> beforeKV : entry.getValue().entrySet()) {
                     FieldElement afterFE = afterMap.get(beforeKV.getKey());
 
-                    String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
-                    String afterType = normalizeType(fileAfter, afterFE.getType());
+                    if (afterFE != null) {
 
-                    if (afterFE != null && !beforeType.equals(afterType)) {
-                        issues.add(ProtobufDifference.from(String.format("Field type changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getType(), afterFE.getType())));
-                    }
+                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
+                        String afterType = normalizeType(fileAfter, afterFE.getType());
 
-                    if (afterFE != null && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
-                        issues.add(ProtobufDifference.from(String.format("Field label changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                        if (afterFE != null && !beforeType.equals(afterType)) {
+                            issues.add(ProtobufDifference.from(String.format("Field type changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getType(), afterFE.getType())));
+                        }
+
+                        if (afterFE != null && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
+                            issues.add(ProtobufDifference.from(String.format("Field label changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                        }
                     }
                 }
             }

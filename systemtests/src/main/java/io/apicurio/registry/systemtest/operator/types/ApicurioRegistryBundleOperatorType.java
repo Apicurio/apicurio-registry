@@ -11,6 +11,8 @@ import java.io.FileInputStream;
 import java.util.List;
 
 public class ApicurioRegistryBundleOperatorType extends Operator implements OperatorType {
+    private final String operatorNamespace;
+
     private List<HasMetadata> operatorResources;
 
     public void loadOperatorResourcesFromFile() throws Exception {
@@ -42,6 +44,8 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public ApicurioRegistryBundleOperatorType() {
         super();
 
+        operatorNamespace = OperatorUtils.getOperatorNamespace();
+
         try {
             loadOperatorResourcesFromFile();
         } catch (Exception e) {
@@ -51,6 +55,8 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
     public ApicurioRegistryBundleOperatorType(String path) {
         super(path);
+
+        operatorNamespace = OperatorUtils.getOperatorNamespace();
 
         try {
             loadOperatorResourcesFromFile();
@@ -62,6 +68,11 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     @Override
     public String getKind() {
         return OperatorKind.APICURIO_REGISTRY_BUNDLE_OPERATOR;
+    }
+
+    @Override
+    public String getNamespaceName() {
+        return this.operatorNamespace;
     }
 
     @Override

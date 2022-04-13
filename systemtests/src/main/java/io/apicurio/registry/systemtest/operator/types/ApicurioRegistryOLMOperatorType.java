@@ -17,6 +17,11 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     @Override
+    public String getNamespaceName() {
+        return null;
+    }
+
+    @Override
     public String getDeploymentName() {
         return null;
     }

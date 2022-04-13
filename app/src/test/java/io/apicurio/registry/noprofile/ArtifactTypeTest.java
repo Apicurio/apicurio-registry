@@ -171,4 +171,37 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
         Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
     }
+
+    @Test
+    public void testProtobufV2() {
+        String data = "syntax = \"proto2\";\n" +
+                "\n" +
+                "message ProtoSchema {\n" +
+                "  required string message = 1;\n" +
+                "  required int64 time = 2;\n" +
+                "}";
+
+        ArtifactType protobuf = ArtifactType.PROTOBUF;
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        CompatibilityChecker checker = provider.getCompatibilityChecker();
+
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(), data);
+        Assertions.assertTrue(compatibilityExecutionResult.isCompatible());
+        Assertions.assertTrue(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
+
+        String data2 = "syntax = \"proto2\";\n" +
+                "\n" +
+                "message ProtoSchema {\n" +
+                "  required string message = 1;\n" +
+                "  required int64 time = 2;\n" +
+                "  required string code = 3;\n" +
+                "}";
+
+        compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(data), data2);
+        Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
+        Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
+        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getDescription());
+        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
+    }
+
 }

@@ -20,6 +20,7 @@ import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
 import com.google.common.io.Files;
+import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.EnumElement;
@@ -165,6 +166,10 @@ public class ProtobufFile {
      */
     public Map<String, Map<String, String>> getServiceRPCSignatures() {
         return serviceRPCSignatures;
+    }
+
+    public Syntax getSyntax() {
+        return element.getSyntax();
     }
 
     private void buildIndexes() {

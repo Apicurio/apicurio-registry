@@ -65,12 +65,12 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
-        operatorManager.installOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"), true);
+        operatorManager.installOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"));
     }
 
     @Test
     public void testUninstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
-        operatorManager.uninstallOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"), true);
+        operatorManager.uninstallOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"));
     }
 
     /*

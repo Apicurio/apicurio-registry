@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +25,10 @@ public class OperatorManager {
         return instance;
     }
 
+    public void installOperator(OperatorType operatorType) {
+        installOperator(operatorType, true);
+    }
+
     public void installOperator(OperatorType operatorType, boolean waitForReady) {
         if(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null) {
             operatorManagerLogger.info("Creating new namespace {} for operator {} with name {}...", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
@@ -37,9 +40,9 @@ public class OperatorManager {
                     .build()
             );
 
-            Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).waitUntilReady(1, TimeUnit.MINUTES);
-
-            operatorManagerLogger.info("New namespace {} for operator {} with name {} created.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+            if(waitNamespaceReady(operatorType)) {
+                operatorManagerLogger.info("New namespace {} for operator {} with name {} is created and ready.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+            }
         } else {
             operatorManagerLogger.info("Namespace {} for operator {} with name {} already exists.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
         }
@@ -53,7 +56,7 @@ public class OperatorManager {
         if(waitForReady) {
             operatorManagerLogger.info("Waiting for operator {} with name {} to be ready in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
 
-            assertTrue(waitOperatorReady(operatorType), MessageFormat.format("Timed out waiting for operator {} with name {} to be ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(waitOperatorReady(operatorType), MessageFormat.format("Timed out waiting for operator {1} with name {2} to be ready in namespace {3}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
 
             if(operatorType.isReady()) {
                 operatorManagerLogger.info("Operator {} with name {} is ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
@@ -61,6 +64,10 @@ public class OperatorManager {
         } else {
             operatorManagerLogger.info("Do not wait for operator {} with name {} to be ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
         }
+    }
+
+    public void uninstallOperator(OperatorType operatorType) {
+        uninstallOperator(operatorType, true);
     }
 
     public void uninstallOperator(OperatorType operatorType, boolean waitForRemoved) {
@@ -71,7 +78,7 @@ public class OperatorManager {
         if(waitForRemoved) {
             operatorManagerLogger.info("Waiting for operator {} with name {} to be uninstalled in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
 
-            assertTrue(waitOperatorRemoved(operatorType), MessageFormat.format("Timed out waiting for operator {} with name {} to be uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(waitOperatorRemoved(operatorType), MessageFormat.format("Timed out waiting for operator {1} with name {2} to be uninstalled in namespace {3}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
 
             if(operatorType.doesNotExist()) {
                 operatorManagerLogger.info("Operator {} with name {} uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
@@ -91,6 +98,34 @@ public class OperatorManager {
                 operatorManagerLogger.info("Namespace {} for operator {} with name {} removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
             }
         }
+    }
+
+    public boolean waitNamespaceReady(OperatorType operatorType) {
+        return waitNamespaceReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
+    }
+
+    public  boolean waitNamespaceReady(OperatorType operatorType, TimeoutBudget timeoutBudget) {
+        while (!timeoutBudget.timeoutExpired()) {
+            if (Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get().getStatus().getPhase().equals("Active")) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        boolean pass = Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get().getStatus().getPhase().equals("Active");
+
+        if (!pass) {
+            operatorManagerLogger.info("Namespace {} for operator {} with name {} failed readiness check.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+        }
+
+        return pass;
     }
 
     public boolean waitNamespaceRemoved(OperatorType operatorType) {

@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-artifacts_{context}"]
-= Schema and API artifacts and groups in {registry} 
+= Schema and API artifacts in {registry} 
 
 [role="_abstract"]
 The items stored in {registry}, such as event schemas and API designs, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
@@ -31,15 +31,15 @@ When a schema or API design is added as an artifact in the registry, client appl
 
 
 [discrete]
-== Schema and API groups
+== Groups of schemas and APIs
 
 An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization. 
 
 You can create optional artifact groups when adding your schemas and API designs to organize them in {registry}. For example, you could create groups to match your `development` and `production` application environments, or your `sales` and `engineering` organizations. 
 
-Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, and AsyncAPI schema and API artifacts all in the same group.    
+Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, or AsyncAPI artifacts all in the same group.    
 
-You can create schema and API artifacts and optional groups using the {registry} web console, core REST API, command line, Maven plug-in, or Java client application. The following simple example shows using the registry core REST API: 
+You can create schema and API artifacts and groups using the {registry} web console, core REST API, command line, Maven plug-in, or Java client application. The following simple example shows using the registry core REST API: 
 
 [source,bash]
 ----
@@ -52,10 +52,77 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
 
 This example creates an artifact group named `my-group` and adds an Avro schema with an artifact ID of `share-price`.
 
-NOTE: Specifying a group is optional when using the {registry} web console, where a `default` group is automatically created. When using the REST API or Maven plug-in, you can specify the `default` group in the API path if you do not want to create a unique group.   
+NOTE: Specifying a group is optional when using the {registry} web console, where a `default` group is automatically created. When using the REST API or Maven plug-in, specify the `default` group in the API path if you do not want to create a unique group.   
 
 [role="_additional-resources"]
 .Additional resources
 
 * For more details on schemas and groups, see the link:https://github.com/cloudevents/spec/blob/main/schemaregistry/spec.md[Cloud Native Computing Foundation (CNCF) Schema Registry API]
 * For details on the {registry} core REST API, see the {registry-rest-api}
+
+
+[discrete]
+== References to other schemas and APIs
+
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify an artifact reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google protobuf using an `import` statement, or in Apache Avro using a nested namespace. 
+
+The following example shows a simple Avro schema named `TradeKey` that includes a reference to another schema named `Exchange` using a nested namespace:
+
+.Contents of Tradekey.avsc file
+[source,json]
+----
+{
+ "namespace": "com.kubetrade.schema.trade",
+ "type": "record",
+ "name": "TradeKey",
+ "fields": [
+   {
+     "name": "exchange",
+     "type": "com.kubetrade.schema.common.Exchange"
+   },
+   {
+     "name": "key",
+     "type": "string"
+   }
+ ]
+}
+----
+
+.Contents of Exchange.avsc file
+[source,json]
+----
+{
+ "namespace": "com.kubetrade.schema.common",
+ "type": "enum",
+ "name": "Exchange",
+ "symbols" : ["GEMINI"]
+}
+----
+
+An artifact reference is stored in {registry} as a collection of artifact metadata that maps from an artifact type-specific reference to an internal {registry} reference. Each artifact reference in {registry} is composed of the following:
+
+* Group ID 
+* Artifact ID
+* Artifact version
+* Artifact reference name
+
+You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserialers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
+
+[discrete]
+=== Supported artifact types
+{registry} currently supports artifact references for the following artifact types only:
+
+* Avro
+* Protobuf
+* JSON Schema
+
+[role="_additional-resources"]
+.Additional resources
+
+ifdef::apicurio-registry,rh-service-registry[]
+* For details on managing artifact references using the {registry} core REST API, see {managing-registry-artifacts-api}.
+endif::[]
+ifdef::rh-openshift-sr[]
+* For details on managing artifact references using the {registry} core REST API, see {manage-api-url-registry}.
+endif::[]
+* For a Java code example, see https://github.com/Apicurio/apicurio-registry-examples/tree/master/serdes-with-references[Apicurio Registry SerDes with references] 

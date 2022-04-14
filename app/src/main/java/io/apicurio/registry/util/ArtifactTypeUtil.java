@@ -119,6 +119,7 @@ public final class ArtifactTypeUtil {
      * @param contentType
      * @param resolvedReferences
      */
+    @SuppressWarnings("deprecation")
     private static ArtifactType discoverType(ContentHandle content, String contentType, Map<String, ContentHandle> resolvedReferences) throws InvalidArtifactTypeException {
         boolean triedProto = false;
 

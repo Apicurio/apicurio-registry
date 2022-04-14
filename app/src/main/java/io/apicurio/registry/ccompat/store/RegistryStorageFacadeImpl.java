@@ -367,7 +367,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         if (references != null) {
             return references.stream()
                     .map(schemaReference -> {
-                        final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()));
+                        // Try to get the artifact version.  This will fail if not found with ArtifactNotFound or VersionNotFound
+                        storage.getArtifactVersionMetaData(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()));
                         return new ArtifactReferenceDto(null, schemaReference.getSubject(), String.valueOf(schemaReference.getVersion()), schemaReference.getName());
                     }).collect(Collectors.toList());
         } else {

@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@apicurio/data-models@^1.1.26":
+  version "1.1.26"
+  resolved "https://registry.yarnpkg.com/@apicurio/data-models/-/data-models-1.1.26.tgz#b6ed0d17c0563b50ab76c9f763f37f41ebc7341d"
+  integrity sha512-/HDzu8NTzKGpZg5ULiuPhKRC5DuSplFtbSNonxP7tdwsowQRM+IL7xp2CX1+HSh6iO4momfIwcFmvbahOM3/Rg==
+  dependencies:
+    core-js "3.21.1"
+
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.14.5":
   version "7.14.5"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.14.5.tgz#23b08d740e83f49c5e59945fbf1b43e80bbf4edb"
@@ -1131,13 +1138,6 @@ anymatch@^3.0.0, anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
-apicurio-data-models@1.1.11:
-  version "1.1.11"
-  resolved "https://registry.yarnpkg.com/apicurio-data-models/-/apicurio-data-models-1.1.11.tgz#5a14ed3130a615cfc7c4953e6c243ef764b64a99"
-  integrity sha512-rl6JUAYgOXB1yjYEbpdgRc8hYXnHpWvvFWKt9qEUS82el6mzfKPWSUGm74PwESMcngKSJUQcpWhhJK/rUfq0lg==
-  dependencies:
-    core-js "3.12.1"
-
 argparse@^1.0.7:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/argparse/-/argparse-1.0.10.tgz#bcd6791ea5ae09725e17e5ad988134cd40b3d911"
@@ -2154,10 +2154,10 @@ copy-webpack-plugin@^8.1.1:
     schema-utils "^3.0.0"
     serialize-javascript "^5.0.1"
 
-core-js@3.12.1:
-  version "3.12.1"
-  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.12.1.tgz#6b5af4ff55616c08a44d386f1f510917ff204112"
-  integrity sha512-Ne9DKPHTObRuB09Dru5AjwKjY4cJHVGu+y5f7coGn1E9Grkc3p2iBwE9AI/nJzsE29mQF7oq+mhYYRqOMFN1Bw==
+core-js@3.21.1:
+  version "3.21.1"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.21.1.tgz#f2e0ddc1fc43da6f904706e8e955bc19d06a0d94"
+  integrity sha512-FRq5b/VMrWlrmCzwRrpDYNxyHP9BcAZC+xHJaqTgIE5091ZV1NTmyh0sGOg5XqpnHvR0svdy0sv1gWA1zmhxig==
 
 core-js@^2.5.0:
   version "2.6.12"

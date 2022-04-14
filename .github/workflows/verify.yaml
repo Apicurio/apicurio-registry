@@ -21,7 +21,7 @@ jobs:
   build-verify:
     name: Verify Build
     runs-on: ubuntu-18.04
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     strategy:
       matrix:
         jdk-version: [11, 17]
@@ -37,14 +37,17 @@ jobs:
 
       # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
       - name: Set up QEMU
+        if: github.event_name == 'push'
         uses: docker/setup-qemu-action@v1
         
       # Docker CLI plugin for extended build capabilities with BuildKit
       - name: Set up Docker Buildx
+        if: github.event_name == 'push'
         id: buildx
         uses: docker/setup-buildx-action@v1
         
       - name: Inspect builder
+        if: github.event_name == 'push'
         run: |
           echo "Name:      ${{ steps.buildx.outputs.name }}"
           echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
@@ -89,7 +92,7 @@ jobs:
   build-native-images:
     name: Build native images
     runs-on: ubuntu-18.04
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v2
@@ -172,7 +175,7 @@ jobs:
         run: docker images
 
   notify-sdk:
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -198,7 +201,7 @@ jobs:
            client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
 
   trigger-examples-build:
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     runs-on: ubuntu-latest
     needs: [build-verify]
     steps:

@@ -32,7 +32,7 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \ 
+$ curl -X POST -H "Content-Type: application/json; artifactType=AVRO" \ 
   -H "X-Registry-ArtifactId: share-price" \ 
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   --data '{"type":"record","name":"price","namespace":"com.example", \ 

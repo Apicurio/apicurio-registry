@@ -15,6 +15,7 @@ ifdef::rh-openshift-sr[]
 endif::[]
 * xref:managing-artifacts-using-rest-api_{context}[]
 * xref:managing-artifact-versions-using-rest-api_{context}[]
+* xref:managing-artifact-references-using-rest-api_{context}[]
 * xref:exporting-importing-using-rest-api_{context}[]
 
 .Prerequisites
@@ -30,4 +31,5 @@ include::{mod-loc}getting-started/proc-creating-access-token-rest-api.adoc[level
 endif::[]
 include::{mod-loc}getting-started/proc-managing-artifacts-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-managing-artifact-versions-using-rest-api.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/proc-managing-artifact-references-using-rest-api.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-exporting-importing-using-rest-api.adoc[leveloffset=+1]

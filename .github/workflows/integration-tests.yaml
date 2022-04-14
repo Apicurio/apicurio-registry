@@ -20,7 +20,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-18.04
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}

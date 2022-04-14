@@ -123,7 +123,6 @@ public class SqlUtil {
      * Deserialize the references from their string form to a List<ArtifactReferenceDto> form.
      * @param references
      */
-    @SuppressWarnings("unchecked")
     public static List<ArtifactReferenceDto> deserializeReferences(String references) {
         try {
             if (StringUtil.isEmpty(references)) {

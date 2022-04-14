@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.squareup.wire.Syntax;
+import com.squareup.wire.schema.Field;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
 import com.squareup.wire.schema.internal.parser.FieldElement;
 
@@ -63,6 +65,9 @@ public class ProtobufCompatibilityCheckerLibrary {
         totalIssues.addAll(checkNoChangingFieldNames());
         totalIssues.addAll(checkNoRemovingServiceRPCs());
         totalIssues.addAll(checkNoChangingRPCSignature());
+        if (fileBefore.getSyntax().equals(Syntax.PROTO_2)) {
+            totalIssues.addAll(checkRequiredFields());
+        }
         return totalIssues;
     }
 
@@ -239,15 +244,18 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<String, FieldElement> beforeKV : entry.getValue().entrySet()) {
                     FieldElement afterFE = afterMap.get(beforeKV.getKey());
 
-                    String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
-                    String afterType = normalizeType(fileAfter, afterFE.getType());
+                    if (afterFE != null) {
 
-                    if (afterFE != null && !beforeType.equals(afterType)) {
-                        issues.add(ProtobufDifference.from(String.format("Field type changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getType(), afterFE.getType())));
-                    }
+                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
+                        String afterType = normalizeType(fileAfter, afterFE.getType());
 
-                    if (afterFE != null && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
-                        issues.add(ProtobufDifference.from(String.format("Field label changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                        if (afterFE != null && !beforeType.equals(afterType)) {
+                            issues.add(ProtobufDifference.from(String.format("Field type changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getType(), afterFE.getType())));
+                        }
+
+                        if (afterFE != null && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
+                            issues.add(ProtobufDifference.from(String.format("Field label changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                        }
                     }
                 }
             }
@@ -351,6 +359,34 @@ public class ProtobufCompatibilityCheckerLibrary {
                     if (!beforeKV.getValue().equals(afterSig)) {
                         issues.add(ProtobufDifference.from(String.format("rpc service signature changed, message %s , before %s , after %s", entry.getKey(), beforeKV.getValue(), afterSig)));
 
+                    }
+                }
+            }
+        }
+
+        return issues;
+    }
+
+    /**
+     * Determine if any required field has been added in the new version.
+     *
+     * @return differences list
+     */
+    public List<ProtobufDifference> checkRequiredFields() {
+
+        List<ProtobufDifference> issues = new ArrayList<>();
+
+        Map<String, Map<String, FieldElement>> before = fileBefore.getFieldMap();
+        Map<String, Map<String, FieldElement>> after = fileAfter.getFieldMap();
+
+        for (Map.Entry<String, Map<String, FieldElement>> entry : after.entrySet()) {
+            Map<String, FieldElement> beforeMap = before.get(entry.getKey());
+
+            if (beforeMap != null) {
+                for (Map.Entry<String, FieldElement> afterKV : entry.getValue().entrySet()) {
+                    FieldElement afterSig = beforeMap.get(afterKV.getKey());
+                    if (afterSig == null && afterKV.getValue().getLabel() != null && afterKV.getValue().getLabel().equals(Field.Label.REQUIRED)) {
+                        issues.add(ProtobufDifference.from(String.format("required field added in new version, message %s, after %s", entry.getKey(), afterKV.getValue())));
                     }
                 }
             }

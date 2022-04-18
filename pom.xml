@@ -102,7 +102,6 @@
     <modules>
         <module>common</module>
         <module>app</module>
-        <module>cli</module>
         <module>ui</module>
         <module>utils/converter</module>
         <module>utils/kafka</module>
@@ -581,18 +580,6 @@
                 <groupId>io.sentry</groupId>
                 <artifactId>sentry</artifactId>
                 <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
-            </dependency>
-
-            <!-- Picocli -->
-            <dependency>
-                <groupId>info.picocli</groupId>
-                <artifactId>picocli</artifactId>
-                <version>${picocli.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>info.picocli</groupId>
-                <artifactId>picocli-shell-jline2</artifactId>
-                <version>${picocli.version}</version>
             </dependency>
 
             <!-- GraphQL -->

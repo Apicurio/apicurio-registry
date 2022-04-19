@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
+import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -103,7 +104,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withNewConfiguration()
                             .withPersistence("kafkasql")
                             .withNewKafkasql()
-                                .withBootstrapServers("my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092")
+                                .withBootstrapServers("apicurio-registry-kafkasql-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9092")
                             .endKafkasql()
                         .endConfiguration()
                     .endSpec()

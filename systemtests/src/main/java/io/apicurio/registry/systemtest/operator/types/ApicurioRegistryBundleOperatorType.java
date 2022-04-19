@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 
 import java.io.FileInputStream;
+import java.time.Instant;
 import java.util.List;
 
 public class ApicurioRegistryBundleOperatorType extends Operator implements OperatorType {
@@ -19,7 +20,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         operatorLogger.info("Loading operator resources from file " + path + "...");
 
         if(path.startsWith("http://") || path.startsWith("https://")) {
-            String tmpPath = "/tmp/install-" + this.hashCode() + ".yaml";
+            String tmpPath = "/tmp/install-" + Instant.now().getEpochSecond() + ".yaml";
 
             operatorLogger.info("Downloading file " + path + " to " + tmpPath + "...");
 

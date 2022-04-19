@@ -3,21 +3,19 @@ package io.apicurio.registry.systemtest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
+import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
-import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
-import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
+import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.List;
 
 public class SimpleTestsIT extends TestBase {
 
@@ -33,7 +31,11 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem();
+        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem("apicurio-registry-test-mem", apicurioRegistryBundleOperatorType.getNamespaceName());
 
         try {
             resourceManager.createResource(testContext, true, apicurioRegistry);
@@ -42,13 +44,19 @@ public class SimpleTestsIT extends TestBase {
         }
 
         resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
     }
 
     @Test
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
+        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("rkubis-test", "rkubis-namespace");
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", apicurioRegistryBundleOperatorType.getNamespaceName());
 
         try {
             resourceManager.createResource(testContext, true, apicurioRegistry);
@@ -57,42 +65,119 @@ public class SimpleTestsIT extends TestBase {
         }
 
         resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
     }
 
-    /*
-    Operator test from file
-     */
+    @Test
+    public void testApicurioRegistryWithKafkasqlPersistenceBecomeReady(ExtensionContext testContext) {
+        StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+        operatorManager.installOperator(strimziClusterBundleOperatorType);
+
+        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+
+        Kafka kafka = KafkaResourceType.getDefault();
+
+        try {
+            resourceManager.createResource(testContext, true, kafka);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-test-kafkasql", apicurioRegistryBundleOperatorType.getNamespaceName());
+
+        try {
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
+
+        operatorManager.uninstallOperator(strimziClusterBundleOperatorType);
+
+    }
 
     @Test
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
-        operatorManager.installOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"));
-    }
+        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
 
-    @Test
-    public void testUninstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
-        operatorManager.uninstallOperator(new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml"));
-    }
+        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
 
-    /*
-    Operator test from URL
-     */
+        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
+    }
 
     @Test
     public void testInstallApicurioRegistryBundleOperatorUrl(ExtensionContext testContext) {
-        operatorManager.installOperator(new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/install.yaml"), true);
+        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/install.yaml");
+
+        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+
+        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
     }
 
     @Test
-    public void testUninstallApicurioRegistryBundleOperatorUrl(ExtensionContext testContext) {
-        operatorManager.uninstallOperator(new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/install.yaml"), true);
+    public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
+        StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+        operatorManager.installOperator(strimziClusterBundleOperatorType);
+
+        operatorManager.uninstallOperator(strimziClusterBundleOperatorType);
+    }
+
+    @Test
+    public void testInstallServiceRegistry(ExtensionContext testContext) {
+        ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/redhat_install.yaml");
+
+        operatorManager.installOperator(testOperator);
+
+        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("service-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+
+        try {
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(testOperator);
+    }
+
+    @Test
+    public void testInstallApicurioRegistry(ExtensionContext testContext) {
+        ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
+
+        operatorManager.installOperator(testOperator);
+
+        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+
+        try {
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(testOperator);
     }
 
     @Test
     public void testYamlOutput(ExtensionContext testContext) {
-        Deployment deployment = DeploymentResourceType.getDefaultPostgresql();
+        Kafka kafka = KafkaResourceType.getDefault("rkubis", "rkubis");
 
         try {
-            String yaml = SerializationUtils.dumpAsYaml(deployment);
+            String yaml = SerializationUtils.dumpAsYaml(kafka);
 
             testLogger.info(yaml);
         } catch (JsonProcessingException e) {
@@ -107,13 +192,15 @@ public class SimpleTestsIT extends TestBase {
         // testLogger.info(System.getenv("TEST"));
 
         // Load Yaml into Kubernetes resources
-        List<HasMetadata> result = Kubernetes.getClient().load(new FileInputStream("/Users/rkubis/codes/apicurio/install/install.yaml")).get();
+        // List<HasMetadata> result = Kubernetes.getClient().load(new FileInputStream("/Users/rkubis/codes/apicurio/install/install.yaml")).get();
         // Apply Kubernetes Resources
         // Kubernetes.getClient().resourceList(result).inNamespace("rkubis-namespace").createOrReplace();
-
+        // System.out.println(System.getProperty("user.dir"));
+        /*
         for (HasMetadata r : result) {
             testLogger.info(r.getKind());
         }
+         */
 
     }
 }

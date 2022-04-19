@@ -7,6 +7,7 @@ import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.PersistentVolumeClaimResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
@@ -48,7 +49,8 @@ public class ResourceManager {
             new NamespaceResourceType(),
             new ServiceResourceType(),
             new DeploymentResourceType(),
-            new PersistentVolumeClaimResourceType()
+            new PersistentVolumeClaimResourceType(),
+            new KafkaResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
@@ -99,7 +101,7 @@ public class ResourceManager {
     }
 
     public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition) {
-        return waitResourceCondition(resource, condition, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
+        return waitResourceCondition(resource, condition, TimeoutBudget.ofDuration(Duration.ofMinutes(11)));
     }
 
     public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition, TimeoutBudget timeout) {

@@ -9,10 +9,6 @@ public abstract class Operator {
 
     protected String path;
 
-    public Operator() {
-        this.path = System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OPERATOR_SOURCE_PATH_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OPERATOR_SOURCE_PATH_DEFAULT_VALUE);
-    }
-
     public Operator(String path) {
         this.path = path;
     }

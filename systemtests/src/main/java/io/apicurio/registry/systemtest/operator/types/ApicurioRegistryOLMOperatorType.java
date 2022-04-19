@@ -3,12 +3,12 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 
 public class ApicurioRegistryOLMOperatorType extends Operator implements OperatorType {
-    public ApicurioRegistryOLMOperatorType(String source) {
-        super(source);
+    public ApicurioRegistryOLMOperatorType() {
+        super("/tmp/install.yaml");
     }
 
-    public ApicurioRegistryOLMOperatorType() {
-        super();
+    public ApicurioRegistryOLMOperatorType(String source) {
+        super(source);
     }
 
     @Override

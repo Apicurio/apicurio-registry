@@ -12,8 +12,12 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class OperatorUtils {
-    public static String getOperatorNamespace() {
+    public static String getApicurioRegistryOperatorNamespace() {
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OPERATOR_NAMESPACE_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OPERATOR_NAMESPACE_DEFAULT_VALUE);
+    }
+
+    public static String getStrimziOperatorNamespace() {
+        return System.getenv().getOrDefault(Constants.STRIMZI_CLUSTER_OPERATOR_NAMESPACE_ENV_VARIABLE, Constants.STRIMZI_CLUSTER_OPERATOR_NAMESPACE_DEFAULT_VALUE);
     }
 
     public static Deployment findDeployment(List<HasMetadata> resourceList) {

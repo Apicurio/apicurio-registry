@@ -3,10 +3,12 @@
 
 [id='registry-serdes-types-protobuf_{context}']
 
-= Configure Protobuf SerDe with {registry}
+= Configure Protobuf SerDes with {registry}
 
 [role="_abstract"]
-{registry} provides the following Kafka client serializer and deserializer classes for Google Protobuf:
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf.
+
+{registry} provides the following Kafka client SerDes classes for Protobuf:
 
 * `io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer`
 * `io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer`
@@ -50,6 +52,58 @@ The ID location is determined by checking for the magic byte at the start of the
 NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation,
 but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
 
+.Protobuf SerDes and artifact references
+When a complex Protobuf message with an `import` statement is used, the imported Protobuf messages are stored in {registry} as separate artifacts. Then when {registry} gets the main schema to check a Protobuf message, the referenced schemes are also retrieved so the full message schema can be checked and serialized. 
+
+For example, the following `table_info.proto` schema file includes the imported `mode.proto` schema file:
+
+.table_info.proto file with imported .mode.proto file
+[source,bash]
+---- 
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+import "sample/mode.proto";
+
+message TableInfo {
+
+ int32 winIndex = 1;
+ Mode mode = 2;
+ int32 min = 3;
+ int32 max = 4;
+ string id = 5;
+ string dataAdapter = 6;
+ string schema = 7;
+ string selector = 8;
+ string subscription_id = 9;
+}
+----
+
+.mode.proto file
+[source,bash]
+---- 
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+enum Mode {
+
+MODE_UNKNOWN = 0;
+RAW = 1; 
+MERGE = 2; 
+DISTINCT = 3; 
+COMMAND = 4; 
+}
+----
+
+In this example, two Protobuf artifacts are stored in {registry}, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also as an artifact referenced by `TableInfo`.
+
+
 [role="_additional-resources"]
 .Additional resources
-* For example applications, see the link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples] 
+* For example applications, see: 
+** link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples]
+** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example] 

@@ -10,7 +10,7 @@
 This section shows a simple example of using the {registry} Maven plug-in to register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
 
 .Exchange schema
-[source,bash]
+[source,json]
 ---- 
 {
   "namespace": "com.kubetrade.schema.common",
@@ -23,7 +23,7 @@ This section shows a simple example of using the {registry} Maven plug-in to reg
 This example then creates a `TradeKey` schema artifact, which includes an artifact reference to the nested `Exchange` schema artifact:
 
 .TradeKey schema with nested Exchange schema
-[source,bash]
+[source,json]
 ---- 
 {
   "namespace": "com.kubetrade.schema.trade",

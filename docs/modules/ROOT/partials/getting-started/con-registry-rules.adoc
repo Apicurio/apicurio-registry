@@ -79,37 +79,9 @@ The following rule names are currently supported:
 * `validity`
 
 The value of the application property must be a valid configuration option that is specific to the rule being
-configured. The following table shows the valid values for each rule:
-
-.{registry} content rules
-[%header,cols=2*]
-|===
-|Rule
-|Value
-|*Validity*
-a| `FULL`
-|
-a| `SYNTAX_ONLY`
-|
-a| `NONE`
-|*Compatibility*
-a| `BACKWARD`
-|
-a| `BACKWARD_TRANSITIVE`
-|
-a| `FORWARD`
-|
-a| `FORWARD_TRANSITIVE`
-|
-a| `FULL`
-|
-a| `FULL_TRANSITIVE`
-|
-a| `NONE`
-|===
+configured. 
 
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
-
 
 endif::[]

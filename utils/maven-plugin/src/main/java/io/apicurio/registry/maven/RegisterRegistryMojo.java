@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.types.ContentTypes;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -120,7 +121,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         Boolean canonicalize = artifact.getCanonicalize();
         String contentType = contentType(artifact);
         InputStream data = new FileInputStream(artifact.getFile());
-        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, contentType, data, references);
+        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, data, references);
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
         return amd;

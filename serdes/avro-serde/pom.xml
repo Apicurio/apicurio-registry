@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>2.2.3-29</version>
+        <version>2.2.4-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -26,5 +26,5 @@
             <artifactId>avro</artifactId>
         </dependency>
     </dependencies>
-
+    
 </project>

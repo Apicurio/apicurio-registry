@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.2.3-SNAPSHOT",
+        "version": "2.2.3.Final",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -25,11 +25,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentById",
@@ -69,11 +69,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByGlobalId",
@@ -103,11 +103,11 @@
                     "200": {
                         "$ref": "#/components/responses/ArtifactContent"
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getContentByHash",
@@ -559,7 +559,8 @@
                             "format": "int64",
                             "type": "integer"
                         },
-                        "in": "query"
+                        "in": "query",
+                        "required": false
                     }
                 ],
                 "responses": {
@@ -1123,14 +1124,14 @@
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/ArtifactContent"
+                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
-                    },
-                    "200": {
-                        "$ref": "#/components/responses/ArtifactContent"
                     }
                 },
                 "operationId": "getArtifactVersion",
@@ -2378,13 +2379,6 @@
                 "tags": [
                     "Artifacts"
                 ],
-                "parameters": [
-                    {
-                        "name": "contentHash",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -2403,19 +2397,23 @@
                 "operationId": "referencesByContentHash",
                 "summary": "Returns a list with all the references for the artifact with the given hash",
                 "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
-            }
+            },
+            "parameters": [
+                {
+                    "name": "contentHash",
+                    "description": "SHA-256 content hash for a single artifact content.",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         },
         "/ids/contentIds/{contentId}/references": {
             "get": {
                 "tags": [
                     "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "contentId",
-                        "in": "path",
-                        "required": true
-                    }
                 ],
                 "responses": {
                     "200": {
@@ -2435,19 +2433,24 @@
                 "operationId": "referencesByContentId",
                 "summary": "Returns a list with all the references for the artifact with the given content id.",
                 "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
-            }
+            },
+            "parameters": [
+                {
+                    "name": "contentId",
+                    "description": "Global identifier for a single artifact content.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         },
         "/ids/globalIds/{globalId}/references": {
             "get": {
                 "tags": [
                     "Artifacts"
-                ],
-                "parameters": [
-                    {
-                        "name": "globalId",
-                        "in": "path",
-                        "required": true
-                    }
                 ],
                 "responses": {
                     "200": {
@@ -2467,7 +2470,19 @@
                 "operationId": "referencesByGlobalId",
                 "summary": "Returns a list with all the references for the artifact with the given global id.",
                 "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
-            }
+            },
+            "parameters": [
+                {
+                    "name": "globalId",
+                    "description": "Global identifier for an artifact version.",
+                    "schema": {
+                        "format": "int64",
+                        "type": "integer"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
         },
         "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references": {
             "summary": "Manage the references for a single version of an artifact in the registry.",
@@ -2476,12 +2491,6 @@
                     "Versions"
                 ],
                 "responses": {
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "200": {
                         "content": {
                             "application/json": {
@@ -2494,6 +2503,12 @@
                             }
                         },
                         "description": "List of all the artifact references for this artifact."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getArtifactVersionReferences",
@@ -2576,11 +2591,11 @@
                         },
                         "description": "The configuration property value."
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "getConfigProperty",
@@ -2605,11 +2620,11 @@
                     "204": {
                         "description": "The configuration property was updated."
                     },
-                    "500": {
-                        "$ref": "#/components/responses/ServerError"
-                    },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
                     }
                 },
                 "operationId": "updateConfigProperty",

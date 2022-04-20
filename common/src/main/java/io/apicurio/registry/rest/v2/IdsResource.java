@@ -28,7 +28,7 @@ public interface IdsResource {
   @Path("/contentIds/{contentId}/")
   @GET
   @Produces("*/*")
-  Response getContentById(@PathParam("contentId") int contentId);
+  Response getContentById(@PathParam("contentId") long contentId);
 
   /**
    * Gets the content for an artifact version in the registry using its globally unique
@@ -43,11 +43,11 @@ public interface IdsResource {
   @Path("/globalIds/{globalId}")
   @GET
   @Produces("*/*")
-  Response getContentByGlobalId(@PathParam("globalId") int globalId,
+  Response getContentByGlobalId(@PathParam("globalId") long globalId,
       @QueryParam("dereference") Boolean dereference);
 
   /**
-   * Gets the content for an artifact version in the registry using the
+   * Gets the content for an artifact version in the registry using the 
    * SHA-256 hash of the content.  This content hash may be shared by multiple artifact
    * versions in the case where the artifact versions have identical content.
    *
@@ -85,7 +85,7 @@ public interface IdsResource {
   @Path("/contentIds/{contentId}/references")
   @GET
   @Produces("application/json")
-  List<ArtifactReference> referencesByContentId(@PathParam("contentId") Long contentId);
+  List<ArtifactReference> referencesByContentId(@PathParam("contentId") long contentId);
 
   /**
    * Returns a list containing all the artifact references using the artifact global id.
@@ -97,5 +97,5 @@ public interface IdsResource {
   @Path("/globalIds/{globalId}/references")
   @GET
   @Produces("application/json")
-  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") Long globalId);
+  List<ArtifactReference> referencesByGlobalId(@PathParam("globalId") long globalId);
 }

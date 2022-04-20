@@ -6,10 +6,10 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-storage</artifactId>
-        <version>2.2.3-29</version>
+        <version>2.2.4-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-
+    
     <artifactId>apicurio-registry-storage-sql</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-registry-storage-sql</name>
@@ -65,7 +65,7 @@
         </dependency>
 
     </dependencies>
-
+    
     <build>
         <resources>
             <resource>
@@ -214,7 +214,7 @@
             </plugin>
         </plugins>
     </build>
-
+    
     <profiles>
         <profile>
             <id>no-docker</id>

@@ -6,9 +6,18 @@ import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
+import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
+import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
+import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSourceBuilder;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
+import io.fabric8.openshift.client.OpenShiftClient;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -170,6 +179,75 @@ public class SimpleTestsIT extends TestBase {
         resourceManager.deleteResources(testContext);
 
         operatorManager.uninstallOperator(testOperator);
+    }
+
+    @Test
+    public void testInstallApicurioRegistryOLMOperator(ExtensionContext testContext) {
+        // Create operator namespace
+        Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("apicurio-registry-operator-namespace").endMetadata().build());
+
+        // Create catalog source namespace
+        Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("apicurio-registry-catalog-source-namespace").endMetadata().build());
+
+        // Create catalog source
+        CatalogSource catalogSource = new CatalogSourceBuilder()
+                .withNewMetadata()
+                    .withName("apicurio-registry-catalog-source")
+                    .withNamespace("apicurio-registry-catalog-source-namespace")
+                .endMetadata()
+                .withNewSpec()
+                    .withDisplayName("Apicurio Registry Operator Catalog Source")
+                    .withImage("<image>")
+                    .withPublisher("apicurio-registry-qe")
+                    .withSourceType("grpc")
+                .endSpec()
+                .build();
+        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace("apicurio-registry-catalog-source-namespace").create(catalogSource);
+
+        // Wait for catalog source to be ready
+
+        // Wait for catalog source pod
+
+        // Delete catalog source pod???
+
+        // Wait for catalog source pod to be ready
+
+        // Create operator group
+        OperatorGroup operatorGroup = new OperatorGroupBuilder()
+                .withNewMetadata()
+                    .withName("apicurio-registry-operator-group")
+                    .withNamespace("apicurio-registry-operator-namespace")
+                .endMetadata()
+                .withNewSpec()
+                    .withTargetNamespaces("apicurio-registry-operator-namespace")
+                .endSpec()
+                .build();
+        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace("apicurio-registry-operator-namespace").create(operatorGroup);
+
+        // Wait for package manifest to be available???
+
+        // Create subscription
+        Subscription subscription = new SubscriptionBuilder()
+                .withNewMetadata()
+                    .withName("apicurio-registry-sub")
+                    .withNamespace("apicurio-registry-operator-namespace")
+                .endMetadata()
+                .withNewSpec()
+                    .withName("apicurio-registry-operator")
+                    .withSource("apicurio-registry-catalog-source")
+                    .withSourceNamespace("apicurio-registry-catalog-source-namespace")
+                    .withStartingCSV("<csv>")
+                    .withChannel("<channel>")
+                    .withInstallPlanApproval("Automatic")
+                .endSpec()
+                .build();
+        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace("apicurio-registry-operator-namespace").create(subscription);
+
+        // Wait for operator deployment to be ready
+
+        // ...
+
+        // Delete everything
     }
 
     @Test

@@ -20,7 +20,7 @@ This section shows a simple example of using the {registry} Maven plug-in to reg
 } 
 ----
 
-This example then creates a `TradeKey` schema artifact, which includes an artifact reference to the nested `Exchange` schema artifact:
+This example then creates a `TradeKey` schema artifact, which includes a reference to the nested `Exchange` schema artifact:
 
 .TradeKey schema with nested Exchange schema
 [source,json]
@@ -52,7 +52,7 @@ endif::[]
 * The `Exchange` schema artifact is already created in {registry}
 
 .Procedure
-* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested artifact reference to the `Exchange` schema as follows:
+* Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested reference to the `Exchange` schema as follows:
 +
 [source,xml]
 ----

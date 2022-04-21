@@ -64,7 +64,7 @@ NOTE: Specifying a group is optional when using the {registry} web console, wher
 [discrete]
 == References to other schemas and APIs
 
-Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify an artifact reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google protobuf using an `import` statement, or in Apache Avro using a nested namespace. 
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google protobuf using an `import` statement, or in Apache Avro using a nested namespace. 
 
 The following example shows a simple Avro schema named `TradeKey` that includes a reference to another schema named `Exchange` using a nested namespace:
 

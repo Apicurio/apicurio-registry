@@ -10,6 +10,8 @@
 This section shows a simple curl-based example of using the {registry} core REST API to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}. 
 
 This example first creates a schema artifact named `ItemId`:
+
+.ItemId schema
 [source,json]
 ---- 
 {
@@ -27,6 +29,7 @@ This example first creates a schema artifact named `ItemId`:
 
 This example then creates a schema artifact named `Item`, which includes a reference to the nested `ItemId` artifact.
 
+.Item schema with nested ItemId schema
 [source,json]
 ---- 
 {

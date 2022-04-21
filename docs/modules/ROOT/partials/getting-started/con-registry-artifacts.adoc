@@ -6,6 +6,7 @@
 [role="_abstract"]
 The items stored in {registry}, such as event schemas and API designs, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
 
+.Example Avro schema
 [source,json]
 ----
 {
@@ -68,7 +69,7 @@ Some {registry} artifact types can include _artifact references_ from one artifa
 
 The following example shows a simple Avro schema named `TradeKey` that includes a reference to another schema named `Exchange` using a nested namespace:
 
-.Contents of Tradekey.avsc file
+.Tradekey schema with nested Exchange schema
 [source,json]
 ----
 {
@@ -88,7 +89,7 @@ The following example shows a simple Avro schema named `TradeKey` that includes 
 }
 ----
 
-.Contents of Exchange.avsc file
+.Exchange schema
 [source,json]
 ----
 {
@@ -106,7 +107,7 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 * Artifact version
 * Artifact reference name
 
-You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserialers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
+You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
 [discrete]
 === Supported artifact types
@@ -119,10 +120,13 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 [role="_additional-resources"]
 .Additional resources
 
+* For details on managing artifact references, see: 
 ifdef::apicurio-registry,rh-service-registry[]
-* For details on managing artifact references using the {registry} core REST API, see {managing-registry-artifacts-api}.
+** {managing-registry-artifacts-api}
+// ** {managing-registry-artifacts-maven}
 endif::[]
 ifdef::rh-openshift-sr[]
-* For details on managing artifact references using the {registry} core REST API, see {manage-api-url-registry}.
+** {base-url}{manage-api-url-registry}
+** {base-url}{manage-maven-plugin-url-registry}
 endif::[]
 * For a Java code example, see https://github.com/Apicurio/apicurio-registry-examples/tree/master/serdes-with-references[Apicurio Registry SerDes with references] 

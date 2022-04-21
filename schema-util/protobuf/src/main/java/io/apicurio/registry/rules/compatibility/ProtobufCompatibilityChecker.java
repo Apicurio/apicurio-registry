@@ -90,7 +90,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
                     return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not fully compatible.");
                 }
             }
-            case FULL_TRANSITIVE:
+            case FULL_TRANSITIVE: {
                 for (String existing : existingSchemas) {
                     fileBefore = new ProtobufFile(existing);
                     ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
@@ -99,7 +99,8 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
                         return CompatibilityExecutionResult.incompatible("The new version of the protobuf artifact is not fully compatible.");
                     }
                 }
-                throw new IllegalStateException("Compatibility level " + compatibilityLevel + " not supported for Protobuf schemas");
+                return CompatibilityExecutionResult.compatible();
+            }
             default:
                 return CompatibilityExecutionResult.compatible();
         }

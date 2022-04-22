@@ -7,6 +7,20 @@ public final class Constants {
     public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_DEFAULT_VALUE = "apicurio-registry-operator-namespace";
     public static final String APICURIO_REGISTRY_OPERATOR_DEPLOYMENT_NAME = "apicurio-registry-operator";
     public static final String APICURIO_REGISTRY_OPERATOR_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_DEFAULT_VALUE = "apicurio-registry-operator-group";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_DEFAULT_VALUE = "openshift-marketplace";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_DEFAULT_VALUE = "apicurio-registry-catalog-source";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_PACKAGE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_PACKAGE";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE = "Automatic";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME";
+    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE = "apicurio-registry-subscription";
 
 
     public static final String STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH_ENV_VARIABLE = "STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH";
@@ -20,4 +34,12 @@ public final class Constants {
     // PostgreSQL password
     // PostgreSQL admin password
     // PostgreSQL database name
+    // PostgreSQL image
+    // PostgreSQL volume size
+    // Default KafkaSQL values
+    // Path for temporary files
+    // Catalog source display name
+    // Catalog source publisher
+    // Catalog source source type
+    // Catalog source pod label
 }

@@ -23,19 +23,6 @@ import java.time.Duration;
 
 public class ApicurioRegistryOLMOperatorType extends Operator implements OperatorType {
 
-    /*******************************************************************************************************************
-        Static values for now.
-    *******************************************************************************************************************/
-    private String catalogSourceNamespaceName = "openshift-marketplace";
-    private String catalogSourceName = "apicurio-registry-catalog-source-e2e-test";
-    private String operatorGroupName = "apicurio-registry-operator-group-e2e-test";
-    private String subscriptionName = "apicurio-registry-subscription";
-    private String packageName = "<package>";
-    private String startingCSV = "<csv>";
-    private String channel = "<channel>";
-    private String installPlanApproval = "Automatic";
-    /******************************************************************************************************************/
-
     private String operatorNamespace = null;
     private boolean isClusterWide = false;
     private Subscription subscription = null;
@@ -86,7 +73,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 }
             }
         } else {
-            operatorLogger.info("Catalog source namespace {} will not be removed, it existed before.", catalogSourceNamespaceName);
+            operatorLogger.info("Catalog source namespace {} will not be removed, it existed before.", OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
         }
     }
 
@@ -247,7 +234,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             }
 
             try {
-                Thread.sleep(10000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -313,6 +300,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
     }
 
+    // Get some arguments from already existent sources?
+    // catalogSourceName, catalogSourceNamespaceName from catalogSource
     private void createSubscription(String subscriptionName, String packageName, String catalogSourceName, String catalogSourceNamespaceName, String startingCSV, String channel, String installPlanApproval) {
         operatorLogger.info("Creating subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={}...",
                 subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
@@ -347,10 +336,10 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         if(subscription != null) {
             if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getMetadata().getName()).get() == null) {
                 operatorLogger.info("Subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={} already removed.",
-                        subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
+                        subscription.getMetadata().getName(), operatorNamespace,  subscription.getSpec().getName(), subscription.getSpec().getSource(), subscription.getSpec().getSourceNamespace(), subscription.getSpec().getStartingCSV(), subscription.getSpec().getChannel(), subscription.getSpec().getInstallPlanApproval());
             } else {
                 operatorLogger.info("Removing subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={}...",
-                        subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
+                        subscription.getMetadata().getName(), operatorNamespace, subscription.getSpec().getName(), subscription.getSpec().getSource(), subscription.getSpec().getSourceNamespace(), subscription.getSpec().getStartingCSV(), subscription.getSpec().getChannel(), subscription.getSpec().getInstallPlanApproval());
 
                 ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getMetadata().getName()).delete();
 
@@ -399,17 +388,25 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             operatorLogger.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         }
 
-        createCatalogSourceNamespace(catalogSourceNamespaceName);
+        createCatalogSourceNamespace(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
 
-        createCatalogSource(catalogSourceName, catalogSourceNamespaceName);
+        createCatalogSource(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(), OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
 
         if(!isClusterWide) {
-            createOperatorGroup(operatorGroupName);
+            createOperatorGroup(OperatorUtils.getApicurioRegistryOLMOperatorGroupName());
         }
 
         operatorLogger.info("TODO: Wait for package manifest to be available here?");
 
-        createSubscription(subscriptionName, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
+        createSubscription(
+                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionName(),
+                OperatorUtils.getApicurioRegistryOLMOperatorPackage(),
+                OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(),
+                OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace(),
+                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionStartingCSV(),
+                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionChannel(),
+                OperatorUtils.getApicurioRegistryOLMOperatorInstallPlanApproval()
+        );
 
         /**
          * Waiting for operator deployment readiness is implemented in OperatorManager.

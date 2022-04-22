@@ -147,14 +147,13 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
-        String operatorNamespace = "apicurio-registry-operator-namespace-test";
-        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType("<image>", operatorNamespace,false);
+        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
 
         operatorManager.installOperator(testOperator);
 
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", operatorNamespace);
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
 
         try {
             // Try to create registry in operator namespace,
@@ -184,7 +183,7 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
-        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType("<image>", null,true);
+        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
 
         operatorManager.installOperator(testOperator);
 
@@ -227,7 +226,7 @@ public class SimpleTestsIT extends TestBase {
                     .withNamespace("apicurio-registry-operator-namespace")
                 .endMetadata()
                 .withNewSpec()
-                    .withName("<package>")
+                    .withName(OperatorUtils.getApicurioRegistryOLMOperatorPackage())
                     .withSource("apicurio-registry-catalog-source")
                     .withSourceNamespace("apicurio-registry-catalog-source-namespace")
                     .withStartingCSV("<csv>")

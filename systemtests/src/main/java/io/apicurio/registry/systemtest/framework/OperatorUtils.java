@@ -18,10 +18,52 @@ import java.util.List;
 public class OperatorUtils {
     private static final Logger operatorUtilsLogger = LoggerUtils.getLogger();
     public static String getApicurioRegistryOperatorNamespace() {
+        // Do not use default value?
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OPERATOR_NAMESPACE_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OPERATOR_NAMESPACE_DEFAULT_VALUE);
     }
 
+    public static String getApicurioRegistryOLMOperatorGroupName() {
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_DEFAULT_VALUE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorCatalogSourceImage() {
+        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE_ENV_VARIABLE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorCatalogSourceName() {
+        // Do not use default value?
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_DEFAULT_VALUE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorCatalogSourceNamespace() {
+        // Do not use default value?
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_DEFAULT_VALUE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorPackage() {
+        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_PACKAGE_ENV_VARIABLE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorInstallPlanApproval() {
+        // Do not use default value here?
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorSubscriptionChannel() {
+        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL_ENV_VARIABLE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorSubscriptionStartingCSV() {
+        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV_ENV_VARIABLE);
+    }
+
+    public static String getApicurioRegistryOLMOperatorSubscriptionName() {
+        // Do not use default value?
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE);
+    }
+
     public static String getStrimziOperatorNamespace() {
+        // Do not use default value here?
         return System.getenv().getOrDefault(Constants.STRIMZI_CLUSTER_OPERATOR_NAMESPACE_ENV_VARIABLE, Constants.STRIMZI_CLUSTER_OPERATOR_NAMESPACE_DEFAULT_VALUE);
     }
 

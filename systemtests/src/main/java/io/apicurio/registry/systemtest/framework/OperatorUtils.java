@@ -23,7 +23,7 @@ public class OperatorUtils {
     }
 
     public static String getApicurioRegistryOLMOperatorGroupName() {
-        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_GROUP_NAME_DEFAULT_VALUE);
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE);
     }
 
     public static String getApicurioRegistryOLMOperatorCatalogSourceImage() {
@@ -41,12 +41,12 @@ public class OperatorUtils {
     }
 
     public static String getApicurioRegistryOLMOperatorPackage() {
-        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_PACKAGE_ENV_VARIABLE);
+        return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_ENV_VARIABLE);
     }
 
     public static String getApicurioRegistryOLMOperatorInstallPlanApproval() {
         // Do not use default value here?
-        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE);
+        return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE);
     }
 
     public static String getApicurioRegistryOLMOperatorSubscriptionChannel() {

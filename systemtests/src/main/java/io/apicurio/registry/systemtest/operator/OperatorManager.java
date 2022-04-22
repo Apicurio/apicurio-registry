@@ -61,7 +61,7 @@ public class OperatorManager {
         if(waitForReady) {
             operatorManagerLogger.info("Waiting for operator {} with name {} to be ready in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
 
-            assertTrue(waitOperatorReady(operatorType), MessageFormat.format("Timed out waiting for operator {1} with name {2} to be ready in namespace {3}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(waitOperatorReady(operatorType), MessageFormat.format("Timed out waiting for operator {0} with name {1} to be ready in namespace {2}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
 
             if(operatorType.isReady()) {
                 operatorManagerLogger.info("Operator {} with name {} is ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
@@ -83,7 +83,7 @@ public class OperatorManager {
         if(waitForRemoved) {
             operatorManagerLogger.info("Waiting for operator {} with name {} to be uninstalled in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
 
-            assertTrue(waitOperatorRemoved(operatorType), MessageFormat.format("Timed out waiting for operator {1} with name {2} to be uninstalled in namespace {3}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(waitOperatorRemoved(operatorType), MessageFormat.format("Timed out waiting for operator {0} with name {1} to be uninstalled in namespace {2}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
 
             if(operatorType.doesNotExist()) {
                 operatorManagerLogger.info("Operator {} with name {} uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
@@ -111,7 +111,7 @@ public class OperatorManager {
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {
-        return waitOperatorReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
+        return waitOperatorReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(7)));
     }
 
     public boolean waitOperatorReady(OperatorType operatorType, TimeoutBudget timeoutBudget) {

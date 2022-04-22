@@ -14,9 +14,15 @@ import io.strimzi.api.kafka.model.listener.arraylistener.GenericKafkaListener;
 import io.strimzi.api.kafka.model.listener.arraylistener.KafkaListenerType;
 import io.strimzi.api.kafka.model.storage.PersistentClaimStorage;
 
+import java.time.Duration;
 import java.util.HashMap;
 
 public class KafkaResourceType implements ResourceType<Kafka> {
+    @Override
+    public Duration getTimeout() {
+        return Duration.ofMinutes(13);
+    }
+
     @Override
     public String getKind() {
         return ResourceKind.KAFKA;

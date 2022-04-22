@@ -10,7 +10,14 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 
+import java.time.Duration;
+
 public class DeploymentResourceType implements ResourceType<Deployment> {
+    @Override
+    public Duration getTimeout() {
+        return Duration.ofMinutes(3);
+    }
+
     @Override
     public String getKind() {
         return ResourceKind.DEPLOYMENT;

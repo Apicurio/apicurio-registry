@@ -3,7 +3,14 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.Namespace;
 
+import java.time.Duration;
+
 public class NamespaceResourceType implements ResourceType<Namespace> {
+    @Override
+    public Duration getTimeout() {
+        return Duration.ofMinutes(1);
+    }
+
     @Override
     public String getKind() {
         return ResourceKind.NAMESPACE;

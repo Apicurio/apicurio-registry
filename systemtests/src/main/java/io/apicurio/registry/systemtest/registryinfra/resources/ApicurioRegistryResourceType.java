@@ -8,7 +8,14 @@ import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 
+import java.time.Duration;
+
 public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegistry> {
+    @Override
+    public Duration getTimeout() {
+        return Duration.ofMinutes(3);
+    }
+
     @Override
     public String getKind() {
         return ResourceKind.APICURIO_REGISTRY;

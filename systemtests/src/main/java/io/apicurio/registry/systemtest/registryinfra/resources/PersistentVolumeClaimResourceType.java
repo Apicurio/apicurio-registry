@@ -5,9 +5,15 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 
+import java.time.Duration;
 import java.util.HashMap;
 
 public class PersistentVolumeClaimResourceType implements ResourceType<PersistentVolumeClaim> {
+    @Override
+    public Duration getTimeout() {
+        return Duration.ofMinutes(1);
+    }
+
     @Override
     public String getKind() {
         return ResourceKind.PERSISTENT_VOLUME_CLAIM;

@@ -18,28 +18,28 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     private List<HasMetadata> operatorResources;
 
     public void loadOperatorResourcesFromFile() throws Exception {
-        operatorLogger.info("Loading operator resources from file " + path + "...");
+        operatorLogger.info("Loading operator resources from file " + source + "...");
 
-        if(path.startsWith("http://") || path.startsWith("https://")) {
+        if(source.startsWith("http://") || source.startsWith("https://")) {
             String tmpPath = "/tmp/apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml";
 
-            operatorLogger.info("Downloading file " + path + " to " + tmpPath + "...");
+            operatorLogger.info("Downloading file " + source + " to " + tmpPath + "...");
 
-            OperatorUtils.downloadFile(path, tmpPath);
+            OperatorUtils.downloadFile(source, tmpPath);
 
             operatorLogger.info("Using file " + tmpPath + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
 
             operatorLogger.info("Operator resources loaded from file " + tmpPath + ".");
-        } else if(path.endsWith(".yaml") || path.endsWith(".yml")) {
-            operatorLogger.info("Using file " + path + " to load operator resources...");
+        } else if(source.endsWith(".yaml") || source.endsWith(".yml")) {
+            operatorLogger.info("Using file " + source + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(path)).get();
+            operatorResources = Kubernetes.getClient().load(new FileInputStream(source)).get();
 
-            operatorLogger.info("Operator resources loaded from file " + path + ".");
+            operatorLogger.info("Operator resources loaded from file " + source + ".");
         } else {
-            throw new Exception("Unable to identify file by filepath " + path + ".");
+            throw new Exception("Unable to identify file by source " + source + ".");
         }
     }
 
@@ -55,8 +55,8 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         }
     }
 
-    public ApicurioRegistryBundleOperatorType(String path) {
-        super(path);
+    public ApicurioRegistryBundleOperatorType(String source) {
+        super(source);
 
         operatorNamespace = OperatorUtils.getApicurioRegistryOperatorNamespace();
 

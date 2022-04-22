@@ -86,7 +86,7 @@ public class ResourceManager {
             resourceManagerLogger.info("Waiting for resource {} with name {} to be ready in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
 
             assertTrue(waitResourceCondition(resource, type::isReady),
-                    MessageFormat.format("Timed out waiting for resource {1} with name {2} to be ready in namespace {3}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
+                    MessageFormat.format("Timed out waiting for resource {0} with name {1} to be ready in namespace {2}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
 
             if(type.isReady(resource)) {
                 resourceManagerLogger.info("Resource {} with name {} is ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());

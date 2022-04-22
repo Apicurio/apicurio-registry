@@ -8,7 +8,7 @@ public abstract class Operator {
     protected boolean namespaceCreated = false;
 
     /*
-        Contains path to bundle operator file or OLM operator image.
+        Contains path to bundle operator file or OLM operator catalog source image.
      */
     protected String source;
 

@@ -18,8 +18,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.FileNotFoundException;
+import java.text.MessageFormat;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SimpleTestsIT extends TestBase {
 
@@ -34,7 +39,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
@@ -54,7 +58,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
@@ -76,7 +79,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testApicurioRegistryWithKafkasqlPersistenceBecomeReady(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
@@ -111,7 +113,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
 
@@ -121,7 +122,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
@@ -131,7 +131,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testInstallApicurioRegistry(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
 
@@ -153,7 +152,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
 
@@ -179,7 +177,12 @@ public class SimpleTestsIT extends TestBase {
         try {
             // Try to create registry in another namespace than operator namespace,
             // this should fail
-            resourceManager.createResource(testContext, true, apicurioRegistryNamespace);
+            AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> resourceManager.createResource(testContext, true, apicurioRegistryNamespace));
+
+            assertEquals(
+                    MessageFormat.format("Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. ==> expected: <true> but was: <false>", apicurioRegistryNamespace.getKind(), apicurioRegistryNamespace.getMetadata().getName(), apicurioRegistryNamespace.getMetadata().getNamespace()),
+                    assertionFailedError.getMessage()
+            );
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -190,7 +193,6 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    @Disabled
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
 

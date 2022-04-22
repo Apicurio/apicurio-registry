@@ -15,6 +15,7 @@ import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -206,7 +207,10 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testCreateApicurioRegistryInMyNamespace(ExtensionContext testContext) {
+        // There needs to be Apicurio Registry operator installed
+
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
         ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", "apicurio-registry-operator-namespace-e2e-test");
@@ -219,7 +223,10 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testYamlOutput(ExtensionContext testContext) {
+        // Just for checking YAML output of resources
+
         Subscription subscription = new SubscriptionBuilder()
                 .withNewMetadata()
                     .withName("apicurio-registry-sub")
@@ -244,7 +251,10 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testCode(ExtensionContext testContext) throws FileNotFoundException {
+        // Just for trying Java code
+
         // System.getenv()
         // testLogger.info(Kubernetes.getClient().pods().inNamespace("postgresql").withLabels(new HashMap<String, String>() {{ put("app", "postgresql"); }}).list().getItems().toString());
         // testLogger.info(System.getenv("TEST"));

@@ -34,6 +34,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
@@ -53,6 +54,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
@@ -74,6 +76,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testApicurioRegistryWithKafkasqlPersistenceBecomeReady(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
@@ -108,6 +111,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
 
@@ -117,6 +121,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
@@ -126,6 +131,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testInstallApicurioRegistry(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
 
@@ -147,6 +153,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
 
@@ -183,6 +190,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
 

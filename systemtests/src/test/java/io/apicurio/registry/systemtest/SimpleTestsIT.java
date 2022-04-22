@@ -5,19 +5,13 @@ import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
+import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
-import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSourceBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
-import io.fabric8.openshift.client.OpenShiftClient;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -122,42 +116,12 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    public void testInstallApicurioRegistryBundleOperatorUrl(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/install.yaml");
-
-        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
-
-        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
-    }
-
-    @Test
     public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
         operatorManager.installOperator(strimziClusterBundleOperatorType);
 
         operatorManager.uninstallOperator(strimziClusterBundleOperatorType);
-    }
-
-    @Test
-    public void testInstallServiceRegistry(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/redhat_install.yaml");
-
-        operatorManager.installOperator(testOperator);
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("service-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
-
-        try {
-            resourceManager.createResource(testContext, true, apicurioRegistry);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperator(testOperator);
     }
 
     @Test
@@ -182,58 +146,88 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    public void testInstallApicurioRegistryOLMOperator(ExtensionContext testContext) {
-        // Create operator namespace
-        Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("apicurio-registry-operator-namespace").endMetadata().build());
+    public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
+        String operatorNamespace = "apicurio-registry-operator-namespace-test";
+        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType("<image>", operatorNamespace,false);
 
-        // Create catalog source namespace
-        Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("apicurio-registry-catalog-source-namespace").endMetadata().build());
+        operatorManager.installOperator(testOperator);
 
-        // Create catalog source
-        CatalogSource catalogSource = new CatalogSourceBuilder()
-                .withNewMetadata()
-                    .withName("apicurio-registry-catalog-source")
-                    .withNamespace("apicurio-registry-catalog-source-namespace")
-                .endMetadata()
-                .withNewSpec()
-                    .withDisplayName("Apicurio Registry Operator Catalog Source")
-                    .withImage("<image>")
-                    .withPublisher("apicurio-registry-qe")
-                    .withSourceType("grpc")
-                .endSpec()
-                .build();
-        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace("apicurio-registry-catalog-source-namespace").create(catalogSource);
+        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-        // Wait for catalog source to be ready
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", operatorNamespace);
 
-        // Wait for catalog source pod
+        try {
+            // Try to create registry in operator namespace,
+            // it should be OK
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        // Delete catalog source pod???
+        // Apicurio Registry should be ready here
+        testLogger.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
 
-        // Wait for catalog source pod to be ready
+        ApicurioRegistry apicurioRegistryNamespace = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance-fail", "some-namespace");
 
-        // Create operator group
-        OperatorGroup operatorGroup = new OperatorGroupBuilder()
-                .withNewMetadata()
-                    .withName("apicurio-registry-operator-group")
-                    .withNamespace("apicurio-registry-operator-namespace")
-                .endMetadata()
-                .withNewSpec()
-                    .withTargetNamespaces("apicurio-registry-operator-namespace")
-                .endSpec()
-                .build();
-        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace("apicurio-registry-operator-namespace").create(operatorGroup);
+        try {
+            // Try to create registry in another namespace than operator namespace,
+            // this should fail
+            resourceManager.createResource(testContext, true, apicurioRegistryNamespace);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
 
-        // Wait for package manifest to be available???
+            operatorManager.uninstallOperator(testOperator);
+        }
+    }
 
-        // Create subscription
+    @Test
+    public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
+        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType("<image>", null,true);
+
+        operatorManager.installOperator(testOperator);
+
+        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-cluster-wide-test-instance", "my-apicurio-registry-test-namespace");
+
+        try {
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Apicurio Registry should be ready here
+        testLogger.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+
+        resourceManager.deleteResources(testContext);
+
+        operatorManager.uninstallOperator(testOperator);
+    }
+
+    @Test
+    public void testCreateApicurioRegistryInMyNamespace(ExtensionContext testContext) {
+        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", "apicurio-registry-operator-namespace-e2e-test");
+
+        try {
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testYamlOutput(ExtensionContext testContext) {
         Subscription subscription = new SubscriptionBuilder()
                 .withNewMetadata()
                     .withName("apicurio-registry-sub")
                     .withNamespace("apicurio-registry-operator-namespace")
                 .endMetadata()
                 .withNewSpec()
-                    .withName("apicurio-registry-operator")
+                    .withName("<package>")
                     .withSource("apicurio-registry-catalog-source")
                     .withSourceNamespace("apicurio-registry-catalog-source-namespace")
                     .withStartingCSV("<csv>")
@@ -241,21 +235,8 @@ public class SimpleTestsIT extends TestBase {
                     .withInstallPlanApproval("Automatic")
                 .endSpec()
                 .build();
-        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace("apicurio-registry-operator-namespace").create(subscription);
-
-        // Wait for operator deployment to be ready
-
-        // ...
-
-        // Delete everything
-    }
-
-    @Test
-    public void testYamlOutput(ExtensionContext testContext) {
-        Kafka kafka = KafkaResourceType.getDefault("rkubis", "rkubis");
-
         try {
-            String yaml = SerializationUtils.dumpAsYaml(kafka);
+            String yaml = SerializationUtils.dumpAsYaml(subscription);
 
             testLogger.info(yaml);
         } catch (JsonProcessingException e) {
@@ -279,6 +260,6 @@ public class SimpleTestsIT extends TestBase {
             testLogger.info(r.getKind());
         }
          */
-
+        //Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("openshift-marketplace").endMetadata().build());
     }
 }

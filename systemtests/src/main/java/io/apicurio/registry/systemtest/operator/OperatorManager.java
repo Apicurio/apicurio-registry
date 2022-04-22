@@ -1,6 +1,8 @@
 package io.apicurio.registry.systemtest.operator;
 
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
+import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.operator.types.Operator;
 import io.apicurio.registry.systemtest.operator.types.OperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
@@ -40,8 +42,11 @@ public class OperatorManager {
                     .build()
             );
 
-            if(waitNamespaceReady(operatorType)) {
+            if(OperatorUtils.waitNamespaceReady(operatorType.getNamespaceName())) {
                 operatorManagerLogger.info("New namespace {} for operator {} with name {} is created and ready.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+
+                // Set flag that namespace for operator was created and did not exist before
+                ((Operator) operatorType).setNamespaceCreated(true);
             }
         } else {
             operatorManagerLogger.info("Namespace {} for operator {} with name {} already exists.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
@@ -87,73 +92,22 @@ public class OperatorManager {
             operatorManagerLogger.info("Do not wait for operator {} with name {} to be uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
         }
 
-        if(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null) {
-            operatorManagerLogger.info("Namespace {} for operator {} with name {} already removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-        } else {
-            operatorManagerLogger.info("Removing namespace {} for operator {} with name {}...", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+        // Check flag if operator namespace was created and did not exist before
+        if(((Operator) operatorType).getNamespaceCreated()) {
+            // Delete operator namespace when created by test
 
-            Kubernetes.getClient().namespaces().delete(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get());
-
-            if(waitNamespaceRemoved(operatorType)) {
-                operatorManagerLogger.info("Namespace {} for operator {} with name {} removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-            }
-        }
-    }
-
-    public boolean waitNamespaceReady(OperatorType operatorType) {
-        return waitNamespaceReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
-    }
-
-    public  boolean waitNamespaceReady(OperatorType operatorType, TimeoutBudget timeoutBudget) {
-        while (!timeoutBudget.timeoutExpired()) {
-            if (Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get().getStatus().getPhase().equals("Active")) {
-                return true;
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-
-                return false;
-            }
-        }
-
-        boolean pass = Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get().getStatus().getPhase().equals("Active");
-
-        if (!pass) {
-            operatorManagerLogger.info("Namespace {} for operator {} with name {} failed readiness check.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-        }
-
-        return pass;
-    }
-
-    public boolean waitNamespaceRemoved(OperatorType operatorType) {
-        return waitNamespaceRemoved(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
-    }
-
-    public  boolean waitNamespaceRemoved(OperatorType operatorType, TimeoutBudget timeoutBudget) {
-        while (!timeoutBudget.timeoutExpired()) {
             if (Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null) {
-                return true;
-            }
+                operatorManagerLogger.info("Namespace {} for operator {} with name {} already removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+            } else {
+                operatorManagerLogger.info("Removing namespace {} for operator {} with name {}...", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                Kubernetes.getClient().namespaces().delete(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get());
 
-                return false;
+                if (OperatorUtils.waitNamespaceRemoved(operatorType.getNamespaceName())) {
+                    operatorManagerLogger.info("Namespace {} for operator {} with name {} removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+                }
             }
         }
-
-        boolean pass = Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null;
-
-        if (!pass) {
-            operatorManagerLogger.info("Namespace {} for operator {} with name {} failed removal check.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-        }
-
-        return pass;
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {

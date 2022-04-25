@@ -12,11 +12,9 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSourceBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 import java.time.Duration;

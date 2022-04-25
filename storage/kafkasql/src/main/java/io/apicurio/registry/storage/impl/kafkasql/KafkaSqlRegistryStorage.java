@@ -95,6 +95,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -108,6 +109,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -361,8 +363,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return contentHash;
     }
 
-    private long ensureContentAndGetContentId(ContentHandle content, ArtifactType artifactType) {
-        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content);
+    private long ensureContentAndGetContentId(ContentHandle content, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
+        Map<String, ContentHandle> resolvedReferences = this.resolveReferences(references);
+
+        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, resolvedReferences);
         byte[] canonicalContentBytes = canonicalContent.bytes();
         String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
         return ensureContentAndGetContentId(content, canonicalContentHash);
@@ -989,12 +993,17 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             while ((entity = entities.nextEntity()) != null) {
                 if (entity.getEntityType() == EntityType.Content) {
                     ContentEntity contentEntity = (ContentEntity) entity;
+
+                    List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
+                            .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                            .collect(Collectors.toList());
+
                     if (!preserveContentId) {
                         // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
                         // It makes sure there won't be any conflicts
                         long newContentId;
                         if (contentEntity.artifactType != null) {
-                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes),  contentEntity.artifactType);
+                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.artifactType, references);
                         } else {
                             if (contentEntity.canonicalHash == null) {
                                 throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
@@ -1007,7 +1016,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
                     // We do not need canonicalHash if we have artifactType
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes));
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), this.resolveReferences(references));
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
@@ -1284,7 +1293,13 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), ""); //FIXME:references handle references when importing an artifact
+        List<ArtifactReferenceDto> references = Arrays.stream(entity.references)
+                .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                .collect(Collectors.toList());
+
+        String referencesSerialized = SqlUtil.serializeReferences(references);
+
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), referencesSerialized);
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);

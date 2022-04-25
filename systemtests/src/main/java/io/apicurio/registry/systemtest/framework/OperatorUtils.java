@@ -31,6 +31,10 @@ public class OperatorUtils {
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE);
     }
 
+    public static String getKeycloakOLMOperatorGroupName() {
+        return System.getenv().getOrDefault(Constants.KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE, Constants.KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE);
+    }
+
     public static String getApicurioRegistryOLMOperatorCatalogSourceImage() {
         return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE_ENV_VARIABLE);
     }
@@ -45,13 +49,27 @@ public class OperatorUtils {
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_DEFAULT_VALUE);
     }
 
+    public static String getKeycloakOLMOperatorCatalogSourceName() {
+        // Do not use default value?
+        return System.getenv().getOrDefault(Constants.KEYCLOAK_OLM_OPERATOR_CATALOG_SOURCE_NAME_ENV_VARIABLE, Constants.KEYCLOAK_OLM_OPERATOR_CATALOG_SOURCE_NAME_DEFAULT_VALUE);
+    }
+
     public static String getApicurioRegistryOLMOperatorPackage() {
         return System.getenv().get(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_ENV_VARIABLE);
+    }
+
+    public static String getKeycloakOLMOperatorPackage() {
+        return System.getenv().getOrDefault(Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_NAME_ENV_VARIABLE, Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_NAME_DEFAULT_VALUE);
     }
 
     public static String getApicurioRegistryOLMOperatorInstallPlanApproval() {
         // Do not use default value here?
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE);
+    }
+
+    public static String getKeycloakOLMOperatorInstallPlanApproval() {
+        // Do not use default value here?
+        return System.getenv().getOrDefault(Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE, Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE);
     }
 
     public static String getApicurioRegistryOLMOperatorSubscriptionChannel() {
@@ -65,6 +83,11 @@ public class OperatorUtils {
     public static String getApicurioRegistryOLMOperatorSubscriptionName() {
         // Do not use default value?
         return System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE, Constants.APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE);
+    }
+
+    public static String getKeycloakOLMOperatorSubscriptionName() {
+        // Do not use default value?
+        return System.getenv().getOrDefault(Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE, Constants.KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE);
     }
 
     public static String getStrimziOperatorNamespace() {

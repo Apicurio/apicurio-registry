@@ -6,6 +6,8 @@ public final class Constants {
     public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_ENV_VARIABLE = "APICURIO_REGISTRY_OPERATOR_NAMESPACE";
     public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_DEFAULT_VALUE = "apicurio-registry-operator-namespace";
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_DEPLOYMENT_NAME = "apicurio-registry-operator";
+    public static final String KEYCLOAK_OLM_OPERATOR_DEPLOYMENT_NAME = "keycloak-operator";
+
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME";
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE = "apicurio-registry-operator-group";

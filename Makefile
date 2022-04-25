@@ -1,12 +1,11 @@
 # used for mem, sql & kafkasql. Hardcoded for tenant manager api, since the build workspace is different
 # 'override' keyword prevents the variable from being overrideen
-override DISTRO_DOCKER_WORKSPACE := ./distro/docker/target/docker
-
-DOCKER_BUILD_WORKSPACE ?= $(DISTRO_DOCKER_WORKSPACE)
+override DOCKERFILE_LOCATION := ./distro/docker/target/docker
 
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm
 KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
+DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
 # Special variable that sets the default target
 .DEFAULT_GOAL := help
@@ -14,22 +13,37 @@ KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
 # You can override these variables from the command line.
 IMAGE_REPO ?= docker.io
 IMAGE_TAG ?= latest
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 SKIP_TESTS ?= false
 INTEGRATION_TESTS_PROFILE ?= ci
 BUILD_FLAGS ?=
 
 
+# Colour Codes for help message
+override RED := \033[0;31m
+override BLUE := \033[36m
+override NC := \033[0m
+override BGreen := \033[1;32m
+
 # run 'make' or 'make help' to get a list of available targets and their description
 .PHONY: help
 help:
 	@echo ""
-	@echo "Please use \`make <target>' where <target> is one of:-"
+	@echo "================================================================="
+	@printf "$(BGreen)Please use 'make <target>', where target is one of:-$(NC)\n"
+	@echo "================================================================="
 	@grep -E '^\.PHONY: [a-zA-Z_-]+ .*?## .*$$' $(MAKEFILE_LIST)  | awk 'BEGIN {FS = "(: |##)"}; {printf "\033[36m%-42s\033[0m %s\n", $$2, $$3}'
 	@echo ""
-	@echo "=> SKIP_TESTS: You can skip the tests for the builds by overriding the value of this variable to true. The Default value is 'false'"
-	@echo "=> BUILD_FLAGS: You can pass additional build flags by overriding the value of this variable. By Default, it doesn't pass any additional flags."
-	@echo "=> IMAGE_REPO: Default repository for image is 'docker.io'. You can change it by overriding the values of this variable."
-	@echo "=> IMAGE_TAG: Default tag for image is 'latest'. You can change it by overriding the values of this variable."
+	@echo "================================================================="
+	@printf "$(BGreen)Variables available for override:-$(NC)\n"		
+	@echo "================================================================="
+	@printf "$(BLUE)SKIP_TESTS$(NC)             Skips Tests. The Default value is '$(SKIP_TESTS)'\n"
+	@printf "$(BLUE)BUILD_FLAGS$(NC)            Additional maven build flags. By Default, it doesn't pass any additional flags.\n"
+	@printf "$(BLUE)IMAGE_REPO$(NC)             Image Repository of the image. Default is '$(IMAGE_REPO)'\n"
+	@printf "$(BLUE)IMAGE_TAG$(NC)              Image tag. Default is '$(IMAGE_TAG)'\n"
+	@printf "$(BLUE)IMAGE_PLATFORMS$(NC)        Supported Platforms for Multi-arch Images. Default platforms are '$(IMAGE_PLATFORMS)'\n"
+	@printf "$(BLUE)DOCKERFILE_LOCATION$(NC)    Path to the dockerfile. Default is '$(DOCKERFILE_LOCATION)'\n"
+	@printf "$(BLUE)DOCKER_BUILD_WORKSPACE$(NC) Image build workspace. Default is '$(DOCKER_BUILD_WORKSPACE)'\n"
 	@echo ""
 
 
@@ -71,7 +85,7 @@ build-mem-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DISTRO_DOCKER_WORKSPACE)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
 .PHONY: push-mem-image ## Pushes docker image for 'in-memory' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -92,7 +106,7 @@ build-sql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DISTRO_DOCKER_WORKSPACE)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 .PHONY: push-sql-image ## Pushes docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-sql-image:
@@ -110,7 +124,7 @@ build-sql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DISTRO_DOCKER_WORKSPACE)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
 
 .PHONY: push-sql-native-image ## Pushes native docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-sql-native-image:
@@ -128,7 +142,7 @@ build-kafkasql-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DISTRO_DOCKER_WORKSPACE)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
+	docker build -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
 .PHONY: push-kafkasql-image ## Pushes docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -147,7 +161,7 @@ build-kafkasql-native-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f $(DISTRO_DOCKER_WORKSPACE)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
+	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
 
 
 .PHONY: push-kafkasql-native-image ## Pushes native docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -205,6 +219,56 @@ build-all-images: build-mem-image build-sql-image build-kafkasql-image build-ten
 
 .PHONY: push-all-images ## Pushes all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-all-images: push-mem-image push-sql-image push-kafkasql-image push-tenant-manager-image
+
+
+.PHONY: mem-multiarch-images ## Builds and pushes multi-arch images for 'in-memory' storage variant. Variables available for override [MEM_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+mem-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For In-Memory Storage Variant"
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mem:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
+
+.PHONY: sql-multiarch-images ## Builds and pushes multi-arch images for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+sql-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For SQL Storage Variant "
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-sql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
+
+.PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
+kafkasql-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For Kafkasql Storage Variant "
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+
+
+.PHONY: tenant-manager-multiarch-images ## Builds and pushes multi-arch images for tenant manager. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+tenant-manager-multiarch-images:
+	@echo "------------------------------------------------------------------------"
+	@echo " Building Multi-arch Images For Tenant Manager API"
+	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
+	@echo " Repository: $(IMAGE_REPO)"
+	@echo " Tag: $(IMAGE_TAG)"
+	@echo "------------------------------------------------------------------------"
+	docker buildx build --push -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) ./multitenancy/tenant-manager-api/
+
+
+.PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]
+multiarch-registry-images: mem-multiarch-images sql-multiarch-images kafkasql-multiarch-images tenant-manager-multiarch-images
+
+
 
 
 

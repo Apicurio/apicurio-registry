@@ -66,22 +66,22 @@ public class IdsResourceImpl implements IdsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(int)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(long)
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public Response getContentById(int contentId) {
+    public Response getContentById(long contentId) {
         ContentHandle content = storage.getArtifactByContentId(contentId).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(int, java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v2.IdsResource#getContentByGlobalId(long, java.lang.Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public Response getContentByGlobalId(int globalId, Boolean dereference) {
+    public Response getContentByGlobalId(long globalId, Boolean dereference) {
         ArtifactMetaDataDto metaData = storage.getArtifactMetaData(globalId);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
@@ -136,7 +136,7 @@ public class IdsResourceImpl implements IdsResource {
     }
 
     @Override
-    public List<ArtifactReference> referencesByContentId(Long contentId) {
+    public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getArtifactByContentId(contentId);
         return artifact.getReferences().stream()
                 .map(V2ApiUtil::referenceDtoToReference)
@@ -144,7 +144,7 @@ public class IdsResourceImpl implements IdsResource {
     }
 
     @Override
-    public List<ArtifactReference> referencesByGlobalId(Long globalId) {
+    public List<ArtifactReference> referencesByGlobalId(long globalId) {
         StoredArtifactDto artifact = storage.getArtifactVersion(globalId);
         return artifact.getReferences().stream()
                 .map(V2ApiUtil::referenceDtoToReference)

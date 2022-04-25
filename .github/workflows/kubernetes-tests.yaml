@@ -20,7 +20,7 @@ jobs:
   kubernetes-tests-basic:
     name: Kubernetes Tests Basic
     runs-on: ubuntu-18.04
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -71,7 +71,7 @@ jobs:
   kubernetes-tests-clustered:
     name: Kubernetes Tests Clustered
     runs-on: ubuntu-18.04
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2

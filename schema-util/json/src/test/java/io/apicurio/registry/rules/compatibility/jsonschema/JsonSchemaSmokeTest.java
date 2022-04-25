@@ -94,6 +94,17 @@ public class JsonSchemaSmokeTest {
                             caseId, backwardCompatible, backward.getDiff(), forwardCompatible, forward.getDiff());
                     }
                     break;
+                case "forward":
+                    if (!backwardCompatible && forwardCompatible) {
+                        // ok
+                        log.debug("OK caseId: {}", caseId);
+                    } else {
+                        // bad
+                        failed.add(caseId);
+                        log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n",
+                                caseId, backwardCompatible, backward.getDiff(), forwardCompatible, forward.getDiff());
+                    }
+                    break;
 
                 case "both":
                     if (backwardCompatible && forwardCompatible) {

@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -2474,17 +2475,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             while ((entity = entities.nextEntity()) != null) {
                 if (entity.getEntityType() == EntityType.Content) {
                     ContentEntity contentEntity = (ContentEntity) entity;
+
+                    List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
+                            .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                            .collect(Collectors.toList());
+
                     if (!preserveContentId) {
                         // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
                         // It makes sure there won't be any conflicts
                         long newContentId = -1;
                         if (contentEntity.artifactType != null) {
-                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
+                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), references);
                         } else {
                             if(contentEntity.canonicalHash == null) {
                                 throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
                             }
-                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash, Collections.emptyList());
+                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash, references);
                         }
                         contentIdMapping.put(contentEntity.contentId, newContentId);
                         continue;
@@ -2492,7 +2498,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
                     // We do not need canonicalHash if we have artifactType
                     if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), Collections.emptyList());
+                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), references);
                         contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
                     }
                 } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
@@ -3140,6 +3146,12 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
     protected void importContent(Handle handle, ContentEntity entity) {
         try {
+            List<ArtifactReferenceDto> references = Arrays.stream(entity.references)
+                    .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                    .collect(Collectors.toList());
+
+            String referencesSerialized = SqlUtil.serializeReferences(references);
+
             if (!isContentExists(entity.contentId)) {
                 String sql = sqlStatements.importContent();
                 handle.createUpdate(sql)
@@ -3148,8 +3160,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, entity.canonicalHash)
                     .bind(3, entity.contentHash)
                     .bind(4, entity.contentBytes)
-                    .bind(5, "") //References are not supported when importing
+                    .bind(5, referencesSerialized)
                     .execute();
+
+                insertReferences(handle, entity.contentId, references);
+
                 log.info("Content entity imported successfully.");
             } else {
                 log.info("Duplicate content entity already exists, skipped.");

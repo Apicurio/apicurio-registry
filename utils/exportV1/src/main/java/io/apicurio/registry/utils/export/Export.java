@@ -58,7 +58,9 @@ import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+import org.jboss.logging.Logger;
 
+import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
@@ -69,6 +71,9 @@ import static io.apicurio.registry.client.request.Config.REGISTRY_REQUEST_HEADER
  */
 @QuarkusMain(name = "RegistryExport")
 public class Export implements QuarkusApplication {
+
+    @Inject
+    Logger log;
 
     ArtifactTypeUtilProviderFactory factory = new ArtifactTypeUtilProviderImpl();
 
@@ -82,7 +87,7 @@ public class Export implements QuarkusApplication {
 
         OptionsParser optionsParser = new OptionsParser(args);
         if (optionsParser.getUrl() == null) {
-            System.out.println("Missing required argument, registry url");
+            log.error("Missing required argument, registry url");
             return 1;
         }
 
@@ -96,6 +101,7 @@ public class Export implements QuarkusApplication {
         File output = new File("registry-export.zip");
         try (FileOutputStream fos = new FileOutputStream(output)) {
 
+            log.info("Exporting registry data to " + output.getName());
             System.out.println("Exporting registry data to " + output.getName());
 
             ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
@@ -151,7 +157,7 @@ public class Export implements QuarkusApplication {
                     }
 
                     if (contentBytes == null) {
-                        System.out.println("[WARNING] An error ocurred getting the content for the artifact " + id + " version " + version);
+                        log.warn("An error occurred getting the content for the artifact " + id + " version " + version);
                     }
 
                     String contentHash = DigestUtils.sha256Hex(contentBytes);
@@ -212,6 +218,9 @@ public class Export implements QuarkusApplication {
             zip.close();
         }
 
+        log.info("Export successfully done.");
+        System.out.println("Export successfully done.");
+
         return 0;
     }
 
@@ -222,7 +231,7 @@ public class Export implements QuarkusApplication {
             ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Couldn't get canonical content", e);
             return content;
         }
     }

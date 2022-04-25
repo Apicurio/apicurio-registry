@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.jboss.logging.Logger;
 import java.util.zip.ZipOutputStream;
 
 import io.apicurio.registry.types.ArtifactState;
@@ -51,6 +52,7 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
+import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -62,6 +64,9 @@ import javax.net.ssl.TrustManager;
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
 
+    @Inject
+    Logger log;
+
     /**
      * @see QuarkusApplication#run(String[])
      */
@@ -70,7 +75,7 @@ public class Export implements QuarkusApplication {
 
         OptionsParser optionsParser = new OptionsParser(args);
         if (optionsParser.getUrl() == null) {
-            System.out.println("Missing required argument, confluent schema registry url");
+            log.error("Missing required argument, confluent schema registry url");
             return 1;
         }
 
@@ -89,6 +94,7 @@ public class Export implements QuarkusApplication {
         File output = new File("confluent-schema-registry-export.zip");
         try (FileOutputStream fos = new FileOutputStream(output)) {
 
+            log.info("Exporting confluent schema registry data to " + output.getName());
             System.out.println("Exporting confluent schema registry data to " + output.getName());
 
             ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
@@ -195,11 +201,12 @@ public class Export implements QuarkusApplication {
             zip.flush();
             zip.close();
         } catch (Exception ex) {
-            System.out.println("Export was not successful.");
-            ex.printStackTrace();
+            log.error("Export was not successful", ex);
+            return 1;
         }
 
-        System.out.println("Export done.");
+        log.info("Export successfully done.");
+        System.out.println("Export successfully done.");
 
         return 0;
     }
@@ -210,7 +217,7 @@ public class Export implements QuarkusApplication {
             sslContext.init(null, new TrustManager[]{new FakeTrustManager()}, new SecureRandom());
             return sslContext.getSocketFactory();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Could not create Insecure SSL Socket Factory", ex);
         }
         return null;
     }

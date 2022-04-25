@@ -21,6 +21,7 @@ import io.fabric8.openshift.client.OpenShiftClient;
 
 import java.time.Duration;
 
+
 public class ApicurioRegistryOLMOperatorType extends Operator implements OperatorType {
 
     private String operatorNamespace = null;
@@ -264,98 +265,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
     }
 
-    private void createOperatorGroup(String operatorGroupName) {
-        operatorLogger.info("Creating operator group {} in namespace {} targeting namespace {}...", operatorGroupName, operatorNamespace, operatorNamespace);
-
-        operatorGroup = new OperatorGroupBuilder()
-                .withNewMetadata()
-                    .withName(operatorGroupName)
-                    .withNamespace(operatorNamespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withTargetNamespaces(operatorNamespace)
-                .endSpec()
-                .build();
-
-        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorNamespace).create(operatorGroup);
-
-        if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorNamespace).withName(operatorGroupName).get() == null) {
-            operatorLogger.info("Operator group {} in namespace {} targeting namespace {} is not created.", operatorGroupName, operatorNamespace, operatorNamespace);
-        } else {
-            operatorLogger.info("Operator group {} in namespace {} targeting namespace {} created.", operatorGroupName, operatorNamespace, operatorNamespace);
-        }
-    }
-
-    private void deleteOperatorGroup() {
-        if(operatorGroup != null) {
-            if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorGroup.getMetadata().getNamespace()).withName(operatorGroup.getMetadata().getName()).get() == null) {
-                operatorLogger.info("Operator group {} in namespace {} targeting namespace {} already removed.", operatorGroup.getMetadata().getName(), operatorGroup.getMetadata().getNamespace(), operatorGroup.getSpec().getTargetNamespaces());
-            } else {
-                operatorLogger.info("Removing operator group {} in namespace {} targeting namespace {}...", operatorGroup.getMetadata().getName(), operatorGroup.getMetadata().getNamespace(), operatorGroup.getSpec().getTargetNamespaces());
-
-                ((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorGroup.getMetadata().getNamespace()).withName(operatorGroup.getMetadata().getName()).delete();
-
-                // Wait for removal?
-            }
-        }
-    }
-
-    // Get some arguments from already existent sources?
-    // catalogSourceName, catalogSourceNamespaceName from catalogSource
-    private void createSubscription(String subscriptionName, String packageName, String catalogSourceName, String catalogSourceNamespaceName, String startingCSV, String channel, String installPlanApproval) {
-        operatorLogger.info("Creating subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={}...",
-                subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
-
-        subscription = new SubscriptionBuilder()
-                .withNewMetadata()
-                    .withName(subscriptionName)
-                    .withNamespace(operatorNamespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withName(packageName)
-                    .withSource(catalogSourceName)
-                    .withSourceNamespace(catalogSourceNamespaceName)
-                    .withStartingCSV(startingCSV)
-                    .withChannel(channel)
-                    .withInstallPlanApproval(installPlanApproval)
-                .endSpec()
-                .build();
-
-        ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(operatorNamespace).create(subscription);
-
-        if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(operatorNamespace).withName(subscriptionName).get() == null) {
-            operatorLogger.info("Subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={} is not created.",
-                    subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
-        } else {
-            operatorLogger.info("Subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={} created.",
-                    subscriptionName, operatorNamespace, packageName, catalogSourceName, catalogSourceNamespaceName, startingCSV, channel, installPlanApproval);
-        }
-    }
-
-    private void deleteSubscription() {
-        if(subscription != null) {
-            if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getMetadata().getName()).get() == null) {
-                operatorLogger.info("Subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={} already removed.",
-                        subscription.getMetadata().getName(), operatorNamespace,  subscription.getSpec().getName(), subscription.getSpec().getSource(), subscription.getSpec().getSourceNamespace(), subscription.getSpec().getStartingCSV(), subscription.getSpec().getChannel(), subscription.getSpec().getInstallPlanApproval());
-            } else {
-                operatorLogger.info("Removing subscription {} in namespace {}: packageName={}, catalogSourceName={}, catalogSourceNamespaceName={}, startingCSV={}, channel={}, installPlanApproval={}...",
-                        subscription.getMetadata().getName(), operatorNamespace, subscription.getSpec().getName(), subscription.getSpec().getSource(), subscription.getSpec().getSourceNamespace(), subscription.getSpec().getStartingCSV(), subscription.getSpec().getChannel(), subscription.getSpec().getInstallPlanApproval());
-
-                ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getMetadata().getName()).delete();
-
-                if(subscription.getSpec().getStartingCSV() != "") {
-                    operatorLogger.info("Removing startingCSV {} in namespace {}...", subscription.getSpec().getStartingCSV(), subscription.getMetadata().getNamespace());
-
-                    ((OpenShiftClient) Kubernetes.getClient()).operatorHub().clusterServiceVersions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getSpec().getStartingCSV()).delete();
-
-                    if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().clusterServiceVersions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getSpec().getStartingCSV()).get() == null) {
-                        operatorLogger.info("StartingCSV {} in namespace {} removed.", subscription.getSpec().getStartingCSV(), subscription.getMetadata().getNamespace());
-                    }
-                }
-            }
-        }
-    }
-
     @Override
     public String getKind() {
         return OperatorKind.APICURIO_REGISTRY_OLM_OPERATOR;
@@ -393,13 +302,14 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         createCatalogSource(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(), OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
 
         if(!isClusterWide) {
-            createOperatorGroup(OperatorUtils.getApicurioRegistryOLMOperatorGroupName());
+            operatorGroup = OperatorUtils.createOperatorGroup(OperatorUtils.getApicurioRegistryOLMOperatorGroupName(), operatorNamespace);
         }
 
         operatorLogger.info("TODO: Wait for package manifest to be available here?");
 
-        createSubscription(
+        subscription = OperatorUtils.createSubscription(
                 OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionName(),
+                operatorNamespace,
                 OperatorUtils.getApicurioRegistryOLMOperatorPackage(),
                 OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(),
                 OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace(),
@@ -415,13 +325,17 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public void uninstall() {
-        deleteSubscription();
+        OperatorUtils.deleteSubscription(subscription);
 
-        deleteOperatorGroup();
+        OperatorUtils.deleteOperatorGroup(operatorGroup);
 
         deleteCatalogSource();
 
         deleteCatalogSourceNamespace();
+
+        /**
+         * Waiting for operator deployment removal is implemented in OperatorManager.
+         */
     }
 
     @Override

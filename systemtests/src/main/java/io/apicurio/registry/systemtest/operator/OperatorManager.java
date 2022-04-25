@@ -7,10 +7,14 @@ import io.apicurio.registry.systemtest.operator.types.OperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Stack;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +22,8 @@ public class OperatorManager {
     private static final Logger operatorManagerLogger = LoggerUtils.getLogger();
 
     private static OperatorManager instance;
+
+    private static final Map<String, Stack<Runnable>> storedOperators = new LinkedHashMap<>();
 
     public static synchronized OperatorManager getInstance() {
         if (instance == null) {
@@ -27,8 +33,13 @@ public class OperatorManager {
         return instance;
     }
 
-    public void installOperator(OperatorType operatorType) {
+    public void installOperator(ExtensionContext testContext, OperatorType operatorType) {
         installOperator(operatorType, true);
+
+        synchronized (this) {
+            storedOperators.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
+            storedOperators.get(testContext.getDisplayName()).push(() -> uninstallOperator(operatorType));
+        }
     }
 
     public void installOperator(OperatorType operatorType, boolean waitForReady) {
@@ -108,6 +119,22 @@ public class OperatorManager {
                 }
             }
         }
+    }
+
+    public void uninstallOperators(ExtensionContext testContext) {
+        operatorManagerLogger.info("----------------------------------------------");
+        operatorManagerLogger.info("Going to uninstall all operators.");
+        operatorManagerLogger.info("----------------------------------------------");
+        operatorManagerLogger.info("Operators key: {}", testContext.getDisplayName());
+        if (!storedOperators.containsKey(testContext.getDisplayName()) || storedOperators.get(testContext.getDisplayName()).isEmpty()) {
+            operatorManagerLogger.info("Nothing to uninstall.");
+        }
+        while (!storedOperators.get(testContext.getDisplayName()).isEmpty()) {
+            storedOperators.get(testContext.getDisplayName()).pop().run();
+        }
+        operatorManagerLogger.info("----------------------------------------------");
+        operatorManagerLogger.info("");
+        storedOperators.remove(testContext.getDisplayName());
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {

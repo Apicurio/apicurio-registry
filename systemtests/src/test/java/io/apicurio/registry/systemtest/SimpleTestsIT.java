@@ -42,7 +42,7 @@ public class SimpleTestsIT extends TestBase {
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
 
         ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem("apicurio-registry-test-mem", apicurioRegistryBundleOperatorType.getNamespaceName());
 
@@ -54,14 +54,14 @@ public class SimpleTestsIT extends TestBase {
 
         resourceManager.deleteResources(testContext);
 
-        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
 
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
@@ -75,18 +75,18 @@ public class SimpleTestsIT extends TestBase {
 
         resourceManager.deleteResources(testContext);
 
-        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testApicurioRegistryWithKafkasqlPersistenceBecomeReady(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
-        operatorManager.installOperator(strimziClusterBundleOperatorType);
+        operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
 
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
 
         Kafka kafka = KafkaResourceType.getDefault();
 
@@ -106,9 +106,7 @@ public class SimpleTestsIT extends TestBase {
 
         resourceManager.deleteResources(testContext);
 
-        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
-
-        operatorManager.uninstallOperator(strimziClusterBundleOperatorType);
+        operatorManager.uninstallOperators(testContext);
 
     }
 
@@ -116,25 +114,25 @@ public class SimpleTestsIT extends TestBase {
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
 
-        operatorManager.installOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
 
-        operatorManager.uninstallOperator(apicurioRegistryBundleOperatorType);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
         StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
-        operatorManager.installOperator(strimziClusterBundleOperatorType);
+        operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
 
-        operatorManager.uninstallOperator(strimziClusterBundleOperatorType);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testInstallApicurioRegistry(ExtensionContext testContext) {
         ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
 
-        operatorManager.installOperator(testOperator);
+        operatorManager.installOperator(testContext, testOperator);
 
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
@@ -148,14 +146,14 @@ public class SimpleTestsIT extends TestBase {
 
         resourceManager.deleteResources(testContext);
 
-        operatorManager.uninstallOperator(testOperator);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
 
-        operatorManager.installOperator(testOperator);
+        operatorManager.installOperator(testContext, testOperator);
 
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
@@ -188,7 +186,7 @@ public class SimpleTestsIT extends TestBase {
         } finally {
             resourceManager.deleteResources(testContext);
 
-            operatorManager.uninstallOperator(testOperator);
+            operatorManager.uninstallOperators(testContext);
         }
     }
 
@@ -196,7 +194,7 @@ public class SimpleTestsIT extends TestBase {
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
 
-        operatorManager.installOperator(testOperator);
+        operatorManager.installOperator(testContext, testOperator);
 
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
@@ -213,7 +211,7 @@ public class SimpleTestsIT extends TestBase {
 
         resourceManager.deleteResources(testContext);
 
-        operatorManager.uninstallOperator(testOperator);
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test

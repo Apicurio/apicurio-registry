@@ -51,57 +51,6 @@ public interface GroupsResource {
       @PathParam("artifactId") String artifactId, UpdateState data);
 
   /**
-   * Gets the metadata for an artifact in the registry.  The returned metadata includes
-   * both generated (read-only) and editable metadata (such as name and description).
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{groupId}/artifacts/{artifactId}/meta")
-  @GET
-  @Produces("application/json")
-  ArtifactMetaData getArtifactMetaData(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId);
-
-  /**
-   * Updates the editable parts of the artifact's metadata.  Not all metadata fields can
-   * be updated.  For example, `createdOn` and `createdBy` are both read-only properties.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{groupId}/artifacts/{artifactId}/meta")
-  @PUT
-  @Consumes("application/json")
-  void updateArtifactMetaData(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, EditableMetaData data);
-
-  /**
-   * Gets the metadata for an artifact that matches the raw content.  Searches the registry
-   * for a version of the given artifact matching the content provided in the body of the
-   * POST.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * Provided content (request body) was empty (HTTP error `400`)
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * No artifact version matching the provided content exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{groupId}/artifacts/{artifactId}/meta")
-  @POST
-  @Produces("application/json")
-  @Consumes("*/*")
-  VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @QueryParam("canonical") Boolean canonical,
-      InputStream data);
-
-  /**
    * Retrieves the metadata for a single version of the artifact.  The version metadata is 
    * a subset of the artifact metadata and only includes the metadata that is specific to
    * the version (for example, this doesn't include `modifiedOn`).
@@ -295,32 +244,114 @@ public interface GroupsResource {
       @PathParam("artifactId") String artifactId, @PathParam("rule") RuleType rule);
 
   /**
-   * Tests whether an update to the artifact's content *would* succeed for the provided content.
-   * Ultimately, this applies any rules configured for the artifact against the given content
-   * to determine whether the rules would pass or fail, but without actually updating the artifact
-   * content.
+   * Retrieves a single version of the artifact content.  Both the `artifactId` and the
+   * unique `version` number must be provided.  The `Content-Type` of the response depends 
+   * on the artifact type.  In most cases, this is `application/json`, but for some types 
+   * it may be different (for example, `PROTOBUF`).
    *
-   * The body of the request should be the raw content of the artifact.  This is typically in 
-   * JSON format for *most* of the supported types, but may be in another format for a few 
-   * (for example, `PROTOBUF`).
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * No version with this `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/versions/{version}/references")
+  @GET
+  @Produces("application/json")
+  List<ArtifactReference> getArtifactVersionReferences(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, @PathParam("version") String version);
+
+  /**
+   * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
+   * response depends on the artifact type.  In most cases, this is `application/json`, but 
+   * for some types it may be different (for example, `PROTOBUF`).
+   *
+   * This operation may fail for one of the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   */
+  @Path("/{groupId}/artifacts/{artifactId}")
+  @GET
+  @Produces("*/*")
+  Response getLatestArtifact(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
+
+  /**
+   * Updates an artifact by uploading new content.  The body of the request can
+   * be the raw content of the artifact or a JSON object containing both the raw content and
+   * a set of references to other artifacts..  This is typically in JSON format for *most*
+   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
+   * The type of the content should be compatible with the artifact's type (it would be
+   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
    *
    * The update could fail for a number of reasons including:
    *
    * * Provided content (request body) was empty (HTTP error `400`)
    * * No artifact with the `artifactId` exists (HTTP error `404`)
    * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * The provided artifact type is not recognized (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
-   * When successful, this operation simply returns a *No Content* response.  This response
-   * indicates that the content is valid against the configured content rules for the 
-   * artifact (or the global rules if no artifact rules are enabled).
+   * When successful, this creates a new version of the artifact, making it the most recent
+   * (and therefore official) version of the artifact.
    */
-  @Path("/{groupId}/artifacts/{artifactId}/test")
+  @Path("/{groupId}/artifacts/{artifactId}")
   @PUT
+  @Produces("application/json")
+  @Consumes("application/create.extended+json")
+  ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      ContentCreateRequest data);
+
+  /**
+   * Updates an artifact by uploading new content.  The body of the request can
+   * be the raw content of the artifact or a JSON object containing both the raw content and
+   * a set of references to other artifacts..  This is typically in JSON format for *most*
+   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
+   * The type of the content should be compatible with the artifact's type (it would be
+   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
+   *
+   * The update could fail for a number of reasons including:
+   *
+   * * Provided content (request body) was empty (HTTP error `400`)
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * A server error occurred (HTTP error `500`)
+   *
+   * When successful, this creates a new version of the artifact, making it the most recent
+   * (and therefore official) version of the artifact.
+   */
+  @Path("/{groupId}/artifacts/{artifactId}")
+  @PUT
+  @Produces("application/json")
   @Consumes("*/*")
-  void testUpdateArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, InputStream data);
+  ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId,
+      @HeaderParam("X-Registry-Version") String xRegistryVersion,
+      @HeaderParam("X-Registry-Name") String xRegistryName,
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Description") String xRegistryDescription,
+      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
+      InputStream data);
+
+  /**
+   * Deletes an artifact completely, resulting in all versions of the artifact also being
+   * deleted.  This may fail for one of the following reasons:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}/artifacts/{artifactId}")
+  @DELETE
+  void deleteArtifact(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId);
 
   /**
    * Returns a list of all artifacts in the group.  This list is paged.
@@ -477,95 +508,32 @@ public interface GroupsResource {
   void deleteArtifactsInGroup(@PathParam("groupId") String groupId);
 
   /**
-   * Returns the latest version of the artifact in its raw form.  The `Content-Type` of the
-   * response depends on the artifact type.  In most cases, this is `application/json`, but 
-   * for some types it may be different (for example, `PROTOBUF`).
+   * Tests whether an update to the artifact's content *would* succeed for the provided content.
+   * Ultimately, this applies any rules configured for the artifact against the given content
+   * to determine whether the rules would pass or fail, but without actually updating the artifact
+   * content.
    *
-   * This operation may fail for one of the following reasons:
-   *
-   * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   */
-  @Path("/{groupId}/artifacts/{artifactId}")
-  @GET
-  @Produces("*/*")
-  Response getLatestArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @QueryParam("dereference") Boolean dereference);
-
-  /**
-   * Updates an artifact by uploading new content.  The body of the request can
-   * be the raw content of the artifact or a JSON object containing both the raw content and
-   * a set of references to other artifacts..  This is typically in JSON format for *most*
-   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
-   * The type of the content should be compatible with the artifact's type (it would be
-   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
+   * The body of the request should be the raw content of the artifact.  This is typically in 
+   * JSON format for *most* of the supported types, but may be in another format for a few 
+   * (for example, `PROTOBUF`).
    *
    * The update could fail for a number of reasons including:
    *
    * * Provided content (request body) was empty (HTTP error `400`)
    * * No artifact with the `artifactId` exists (HTTP error `404`)
    * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
+   * * The provided artifact type is not recognized (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
-   * When successful, this creates a new version of the artifact, making it the most recent
-   * (and therefore official) version of the artifact.
+   * When successful, this operation simply returns a *No Content* response.  This response
+   * indicates that the content is valid against the configured content rules for the 
+   * artifact (or the global rules if no artifact rules are enabled).
    */
-  @Path("/{groupId}/artifacts/{artifactId}")
+  @Path("/{groupId}/artifacts/{artifactId}/test")
   @PUT
-  @Produces("application/json")
-  @Consumes("application/create.extended+json")
-  ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      @HeaderParam("X-Registry-Description") String xRegistryDescription,
-      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
-      ContentCreateRequest data);
-
-  /**
-   * Updates an artifact by uploading new content.  The body of the request can
-   * be the raw content of the artifact or a JSON object containing both the raw content and
-   * a set of references to other artifacts..  This is typically in JSON format for *most*
-   * of the supported types, but may be in another format for a few (for example, `PROTOBUF`).
-   * The type of the content should be compatible with the artifact's type (it would be
-   * an error to update an `AVRO` artifact with new `OPENAPI` content, for example).
-   *
-   * The update could fail for a number of reasons including:
-   *
-   * * Provided content (request body) was empty (HTTP error `400`)
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * The new content violates one of the rules configured for the artifact (HTTP error `409`)
-   * * A server error occurred (HTTP error `500`)
-   *
-   * When successful, this creates a new version of the artifact, making it the most recent
-   * (and therefore official) version of the artifact.
-   */
-  @Path("/{groupId}/artifacts/{artifactId}")
-  @PUT
-  @Produces("application/json")
   @Consumes("*/*")
-  ArtifactMetaData updateArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId,
-      @HeaderParam("X-Registry-Version") String xRegistryVersion,
-      @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      @HeaderParam("X-Registry-Description") String xRegistryDescription,
-      @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
-      InputStream data);
-
-  /**
-   * Deletes an artifact completely, resulting in all versions of the artifact also being
-   * deleted.  This may fail for one of the following reasons:
-   *
-   * * No artifact with the `artifactId` exists (HTTP error `404`)
-   * * A server error occurred (HTTP error `500`)
-   */
-  @Path("/{groupId}/artifacts/{artifactId}")
-  @DELETE
-  void deleteArtifact(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId);
+  void testUpdateArtifact(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, InputStream data);
 
   /**
    * Returns a list of all versions of the artifact.  The result set is paged.
@@ -645,21 +613,53 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
 
   /**
-   * Retrieves a single version of the artifact content.  Both the `artifactId` and the
-   * unique `version` number must be provided.  The `Content-Type` of the response depends 
-   * on the artifact type.  In most cases, this is `application/json`, but for some types 
-   * it may be different (for example, `PROTOBUF`).
+   * Gets the metadata for an artifact in the registry.  The returned metadata includes
+   * both generated (read-only) and editable metadata (such as name and description).
    *
    * This operation can fail for the following reasons:
    *
    * * No artifact with this `artifactId` exists (HTTP error `404`)
-   * * No version with this `version` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/meta")
+  @GET
+  @Produces("application/json")
+  ArtifactMetaData getArtifactMetaData(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId);
+
+  /**
+   * Updates the editable parts of the artifact's metadata.  Not all metadata fields can
+   * be updated.  For example, `createdOn` and `createdBy` are both read-only properties.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/meta")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactMetaData(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, EditableMetaData data);
+
+  /**
+   * Gets the metadata for an artifact that matches the raw content.  Searches the registry
+   * for a version of the given artifact matching the content provided in the body of the
+   * POST.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * Provided content (request body) was empty (HTTP error `400`)
+   * * No artifact with the `artifactId` exists (HTTP error `404`)
+   * * No artifact version matching the provided content exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
-  @Path("/{groupId}/artifacts/{artifactId}/versions/{version}/references")
-  @GET
+  @Path("/{groupId}/artifacts/{artifactId}/meta")
+  @POST
   @Produces("application/json")
-  List<ArtifactReference> getArtifactVersionReferences(@PathParam("groupId") String groupId,
-      @PathParam("artifactId") String artifactId, @PathParam("version") String version);
+  @Consumes("*/*")
+  VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, @QueryParam("canonical") Boolean canonical,
+      InputStream data);
 }

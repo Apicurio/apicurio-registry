@@ -6,7 +6,9 @@ import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
+import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
+import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
@@ -228,6 +230,18 @@ public class SimpleTestsIT extends TestBase {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void testInstallKeycloakOLMOperator(ExtensionContext testContext) {
+        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null, "keycloak-namespace");
+
+        operatorManager.installOperator(testContext, keycloakOLMOperatorType);
+
+        // Operator should be ready here
+        testLogger.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
+
+        operatorManager.uninstallOperators(testContext);
     }
 
     @Test

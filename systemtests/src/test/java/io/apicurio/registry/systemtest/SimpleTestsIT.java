@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.Utils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
@@ -234,12 +235,20 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallKeycloakOLMOperator(ExtensionContext testContext) {
-        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null, "keycloak-namespace");
+        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null, "apicurio-registry-keycloak-namespace");
 
         operatorManager.installOperator(testContext, keycloakOLMOperatorType);
 
         // Operator should be ready here
         testLogger.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
+
+        Utils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
+
+        // Keycloak should be deployed here
+
+        Utils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+
+        resourceManager.deleteResources(testContext);
 
         operatorManager.uninstallOperators(testContext);
     }

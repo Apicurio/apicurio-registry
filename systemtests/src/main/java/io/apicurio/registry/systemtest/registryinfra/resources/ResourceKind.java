@@ -7,4 +7,5 @@ public interface ResourceKind {
     String DEPLOYMENT = "Deployment";
     String PERSISTENT_VOLUME_CLAIM = "PersistentVolumeClaim";
     String KAFKA = "Kafka";
+    String ROUTE = "Route";
 }

@@ -65,8 +65,8 @@ endif::[]
 ifdef::rh-openshift-sr[]
 . Specify your service account ID and secret and the OpenShift Application Services authentication server: `\https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token`
 endif::[]
-. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
-. You can upload multiple artifacts using the specified group ID, artifact ID, and location.
+. Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+. You can register multiple artifacts using the specified group ID, artifact ID, and location.
 
 ////
 // old demo needs to be updated for v2

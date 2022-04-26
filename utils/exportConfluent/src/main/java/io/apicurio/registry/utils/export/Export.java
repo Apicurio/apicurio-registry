@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
+import org.jboss.logging.Logger;
 import java.util.zip.ZipOutputStream;
 
 import io.apicurio.registry.types.ArtifactState;
@@ -52,6 +52,11 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
+import javax.inject.Inject;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+
 /**
  * @author Fabian Martinez
  * @author Miroslav Safar
@@ -59,35 +64,37 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
 
+    @Inject
+    Logger log;
+
     /**
      * @see QuarkusApplication#run(String[])
      */
     @Override
     public int run(String... args) throws Exception {
 
-        if (args.length == 0) {
-            System.out.println("Missing required argument, confluent schema registry url");
+        OptionsParser optionsParser = new OptionsParser(args);
+        if (optionsParser.getUrl() == null) {
+            log.error("Missing required argument, confluent schema registry url");
             return 1;
         }
 
-        String url = args[0];
-
-        Map<String, Object> conf = new HashMap<>();
-
-        if (args.length > 2 && args[1].equals("--client-props")) {
-            String[] clientconf = Arrays.copyOfRange(args, 2, args.length);
-            conf = Arrays.stream(clientconf)
-                    .map(keyvalue -> keyvalue.split("="))
-                    .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
-            System.out.println("Parsed client properties " + conf);
-        }
+        String url = optionsParser.getUrl();
+        Map<String, Object> conf = optionsParser.getClientProps();
 
         RestService restService = new RestService(url);
+
+        if (optionsParser.isInSecure()) {
+            restService.setSslSocketFactory(getInsecureSSLSocketFactory());
+            restService.setHostnameVerifier(new FakeHostnameVerifier());
+        }
+
         SchemaRegistryClient client = new CachedSchemaRegistryClient(restService, 64, conf);
 
         File output = new File("confluent-schema-registry-export.zip");
         try (FileOutputStream fos = new FileOutputStream(output)) {
 
+            log.info("Exporting confluent schema registry data to " + output.getName());
             System.out.println("Exporting confluent schema registry data to " + output.getName());
 
             ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
@@ -193,11 +200,26 @@ public class Export implements QuarkusApplication {
 
             zip.flush();
             zip.close();
+        } catch (Exception ex) {
+            log.error("Export was not successful", ex);
+            return 1;
         }
 
-        System.out.println("Export done.");
+        log.info("Export successfully done.");
+        System.out.println("Export successfully done.");
 
         return 0;
+    }
+
+    public SSLSocketFactory getInsecureSSLSocketFactory() {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, new TrustManager[]{new FakeTrustManager()}, new SecureRandom());
+            return sslContext.getSocketFactory();
+        } catch (Exception ex) {
+            log.error("Could not create Insecure SSL Socket Factory", ex);
+        }
+        return null;
     }
 
 }

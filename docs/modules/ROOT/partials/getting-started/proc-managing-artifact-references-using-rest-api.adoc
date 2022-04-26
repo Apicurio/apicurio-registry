@@ -120,11 +120,11 @@ $ curl -X POST http://MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts
 +
 * For artifact references, you must specify the custom content type of `application/create.extended+json`, which extends the `application/json` content type. 
 
-. Verify that the response includes the expected JSON body to confirm that the artifact was created. For example:
+. Verify that the response includes the expected JSON body to confirm that the artifact was created with the reference. For example:
 +
 [source,bash]
 ----
-{"name":"Item","createdBy":"","createdOn":"2022-04-14T11:52:15+0000","modifiedBy":"","modifiedOn":"2022-04-14T11:52:15+0000","id":"Item","version":"1","type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"references":[]}
+{"name":"Item","createdBy":"","createdOn":"2022-04-14T11:52:15+0000","modifiedBy":"","modifiedOn":"2022-04-14T11:52:15+0000","id":"Item","version":"1","type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"references":[1]}
 ----
 
 . Retrieve the artifact reference from {registry} by specifying the global ID of the artifact that includes the reference. In this example, the specified global ID is `2`:

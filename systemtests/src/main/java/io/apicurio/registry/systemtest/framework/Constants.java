@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtest.framework;
 
 public final class Constants {
+    public static final String TESTSUITE_DIRECTORY_ENV_VARIABLE = "TESTSUITE_DIRECTORY";
     public static final String APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_ENV_VARIABLE = "APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH";
     public static final String APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_DEFAULT_VALUE = "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
     public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_ENV_VARIABLE = "APICURIO_REGISTRY_OPERATOR_NAMESPACE";
@@ -16,6 +17,7 @@ public final class Constants {
     public static final String KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE = "keycloak-operator-group";
     public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL";
     public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE = "Automatic";
+    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
 
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
     public static final String APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME";

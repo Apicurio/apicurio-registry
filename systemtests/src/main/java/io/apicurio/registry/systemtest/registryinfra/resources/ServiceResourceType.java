@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.*;
 
@@ -87,5 +88,26 @@ public class ServiceResourceType implements ResourceType<Service> {
 
     public static Service getDefaultPostgresql() {
         return getDefaultPostgresql("postgresql", "postgresql");
+    }
+
+    public static Service getDefaultKeycloakHttp(String namespace) {
+        return new ServiceBuilder()
+                .withNewMetadata()
+                    .withName(Constants.KEYCLOAK_HTTP_SERVICE_NAME)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withPorts(new ServicePort() {{
+                        setPort(8080);
+                        setProtocol("TCP");
+                        setTargetPort(new IntOrString(8080));
+                    }})
+                    .withSelector(new HashMap<>() {{
+                        put("app", "keycloak");
+                        put("component", "keycloak");
+                    }})
+                    .withType("ClusterIP")
+                .endSpec()
+                .build();
     }
 }

@@ -81,6 +81,11 @@
             <artifactId>api</artifactId>
             <version>0.28.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-admin-client</artifactId>
+            <version>18.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

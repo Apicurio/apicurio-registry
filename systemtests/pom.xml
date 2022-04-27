@@ -19,6 +19,7 @@
         <version.fabric8>5.12.1</version.fabric8>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>1.7.36</version.slf4.simple>
+        <version.strimzi.api>0.28.0</version.strimzi.api>
     </properties>
 
     <dependencies>
@@ -79,7 +80,7 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>api</artifactId>
-            <version>0.28.0</version>
+            <version>${version.strimzi.api}</version>
         </dependency>
     </dependencies>
 

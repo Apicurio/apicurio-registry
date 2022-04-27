@@ -12,7 +12,7 @@ import java.util.Map;
 
 @ExtendWith(ExtensionContextParameterResolver.class)
 public interface TestSeparator {
-    Logger testSeparatorLogger = LoggerUtils.getLogger();
+    Logger LOGGER = LoggerUtils.getLogger();
 
     static void printThreadDump() {
         Map<Thread, StackTraceElement[]> allThreads = Thread.getAllStackTraces();
@@ -23,16 +23,16 @@ public interface TestSeparator {
             for (StackTraceElement aTrace : trace) {
                 sb.append(" ").append(aTrace).append("\r\n");
             }
-            testSeparatorLogger.error(sb.toString());
+            LOGGER.error(sb.toString());
         }
     }
 
     @BeforeEach
     default void beforeEachTest(TestInfo testInfo) {
         LoggerUtils.logDelimiter("#");
-        testSeparatorLogger.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
-        testSeparatorLogger.info("");
+        LOGGER.info("");
     }
 
     @AfterEach
@@ -40,15 +40,15 @@ public interface TestSeparator {
         if (context.getExecutionException().isPresent()) { // on failed
             Throwable ex = context.getExecutionException().get();
             if (ex instanceof OutOfMemoryError) {
-                testSeparatorLogger.error("Got OOM, dumping thread info");
+                LOGGER.error("Got OOM, dumping thread info");
                 printThreadDump();
             } else {
-                testSeparatorLogger.error("Caught exception", ex);
+                LOGGER.error("Caught exception", ex);
             }
         }
-        testSeparatorLogger.info("");
+        LOGGER.info("");
         LoggerUtils.logDelimiter("#");
-        testSeparatorLogger.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
     }
 }

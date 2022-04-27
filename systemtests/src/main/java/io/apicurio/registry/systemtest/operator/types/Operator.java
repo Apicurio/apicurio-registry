@@ -4,7 +4,7 @@ import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import org.slf4j.Logger;
 
 public abstract class Operator {
-    protected static final Logger operatorLogger = LoggerUtils.getLogger();
+    protected static final Logger LOGGER = LoggerUtils.getLogger();
     protected boolean namespaceCreated = false;
 
     /*

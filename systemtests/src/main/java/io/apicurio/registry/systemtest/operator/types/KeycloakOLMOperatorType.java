@@ -49,7 +49,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         // Add ability to install operator from source?
 
         if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorNamespace).list().getItems().size() != 0) {
-            operatorLogger.info("Operator group already present in namespace {}.", operatorNamespace);
+            LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
         } else {
             operatorGroup = OperatorUtils.createOperatorGroup(OperatorUtils.getKeycloakOLMOperatorGroupName(), operatorNamespace);
         }

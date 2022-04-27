@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
+import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.Utils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.opentest4j.AssertionFailedError;
+import org.slf4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.text.MessageFormat;
@@ -30,15 +32,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SimpleTestsIT extends TestBase {
+    protected static final Logger TEST_LOGGER = LoggerUtils.getLogger();
 
     @BeforeAll
     public static void prepareInfra() {
-        testLogger.info("Prepare infra before all tests.");
+        TEST_LOGGER.info("Prepare infra before all tests.");
     }
 
     @AfterAll
     public static void destroyInfra() {
-        testLogger.info("Destroy infra after all tests.");
+        TEST_LOGGER.info("Destroy infra after all tests.");
     }
 
     @Test
@@ -171,7 +174,7 @@ public class SimpleTestsIT extends TestBase {
         }
 
         // Apicurio Registry should be ready here
-        testLogger.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+        TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
 
         ApicurioRegistry apicurioRegistryNamespace = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance-fail", "some-namespace");
 
@@ -210,7 +213,7 @@ public class SimpleTestsIT extends TestBase {
         }
 
         // Apicurio Registry should be ready here
-        testLogger.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+        TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
 
         resourceManager.deleteResources(testContext);
 
@@ -240,7 +243,7 @@ public class SimpleTestsIT extends TestBase {
         operatorManager.installOperator(testContext, keycloakOLMOperatorType);
 
         // Operator should be ready here
-        testLogger.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
+        TEST_LOGGER.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
 
         Utils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
 
@@ -275,7 +278,7 @@ public class SimpleTestsIT extends TestBase {
         try {
             String yaml = SerializationUtils.dumpAsYaml(subscription);
 
-            testLogger.info(yaml);
+            TEST_LOGGER.info(yaml);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

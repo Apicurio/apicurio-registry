@@ -18,26 +18,26 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     private List<HasMetadata> operatorResources;
 
     public void loadOperatorResourcesFromFile() throws Exception {
-        operatorLogger.info("Loading operator resources from file " + source + "...");
+        LOGGER.info("Loading operator resources from file " + source + "...");
 
         if(source.startsWith("http://") || source.startsWith("https://")) {
             String tmpPath = "/tmp/strimzi-cluster-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml";
 
-            operatorLogger.info("Downloading file " + source + " to " + tmpPath + "...");
+            LOGGER.info("Downloading file " + source + " to " + tmpPath + "...");
 
             OperatorUtils.downloadFile(source, tmpPath);
 
-            operatorLogger.info("Using file " + tmpPath + " to load operator resources...");
+            LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
 
-            operatorLogger.info("Operator resources loaded from file " + tmpPath + ".");
+            LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
         } else if(source.endsWith(".yaml") || source.endsWith(".yml")) {
-            operatorLogger.info("Using file " + source + " to load operator resources...");
+            LOGGER.info("Using file " + source + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(source)).get();
 
-            operatorLogger.info("Operator resources loaded from file " + source + ".");
+            LOGGER.info("Operator resources loaded from file " + source + ".");
         } else {
             throw new Exception("Unable to identify file by source " + source + ".");
         }

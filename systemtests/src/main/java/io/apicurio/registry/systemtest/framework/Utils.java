@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 
 public class Utils {
-    private static final Logger utilsLogger = LoggerUtils.getLogger();
+    private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static String getTestsuiteDirectory() {
         return System.getenv().get(Constants.TESTSUITE_DIRECTORY_ENV_VARIABLE);
@@ -54,7 +54,7 @@ public class Utils {
         }
 
         if (!pass) {
-            utilsLogger.info("StatefulSet with name {} in namespace {} failed readiness check.", name, namespace);
+            LOGGER.info("StatefulSet with name {} in namespace {} failed readiness check.", name, namespace);
         }
 
         return pass;
@@ -74,7 +74,7 @@ public class Utils {
         ResourceManager.getInstance().createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
 
         // Log Keycloak URL
-        utilsLogger.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
+        LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
 
         // Create Keycloak Realm
         Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", Paths.get(Utils.getTestsuiteDirectory(), "kubefiles", "keycloak", "keycloak-realm.yaml").toString());

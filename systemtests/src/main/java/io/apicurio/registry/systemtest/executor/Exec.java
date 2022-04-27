@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  * Class provide execution of external command
  */
 public class Exec {
-    private static final Logger log = LoggerUtils.getLogger();
+    private static final Logger LOGGER = LoggerUtils.getLogger();
     private Process process;
     private String stdOut;
     private String stdErr;
@@ -137,7 +137,7 @@ public class Exec {
      * @throws ExecutionException
      */
     public int exec(String input, List<String> commands, int timeout) throws IOException, InterruptedException, ExecutionException {
-        log.debug("Running command - " + String.join(" ", commands.toArray(new String[0])));
+        LOGGER.debug("Running command - " + String.join(" ", commands.toArray(new String[0])));
         ProcessBuilder builder = new ProcessBuilder();
         builder.command(commands);
         builder.directory(new File(System.getProperty("user.dir")));
@@ -196,7 +196,7 @@ public class Exec {
      */
     public void stop() throws InterruptedException {
         if (!process.destroyForcibly().waitFor(10, TimeUnit.SECONDS)) {
-            log.warn("Process stop timeout elapsed");
+            LOGGER.warn("Process stop timeout elapsed");
         }
         stdOut = stdOutReader.getData();
         stdErr = stdErrReader.getData();
@@ -235,7 +235,7 @@ public class Exec {
                 Files.write(Paths.get(logPath.toString(), "stdOutput.log"), stdOut.getBytes());
                 Files.write(Paths.get(logPath.toString(), "stdError.log"), stdErr.getBytes());
             } catch (Exception ex) {
-                log.warn("Cannot save output of execution", ex);
+                LOGGER.warn("Cannot save output of execution", ex);
             }
         }
     }
@@ -312,17 +312,17 @@ public class Exec {
             int ret = executor.exec(input, command, timeout);
             synchronized (lock) {
                 if (logToOutput) {
-                    log.info("Command - " + String.join(" ", command.toArray(new String[0])));
-                    log.info("Return code: {}", ret);
+                    LOGGER.info("Command - " + String.join(" ", command.toArray(new String[0])));
+                    LOGGER.info("Return code: {}", ret);
                     if (!executor.getStdOut().isEmpty()) {
-                        log.info("======STDOUT START=======");
-                        log.info("\n{}", executor.getStdOut());
-                        log.info("======STDOUT END======");
+                        LOGGER.info("======STDOUT START=======");
+                        LOGGER.info("\n{}", executor.getStdOut());
+                        LOGGER.info("======STDOUT END======");
                     }
                     if (!executor.getStdErr().isEmpty()) {
-                        log.info("======STDERR START=======");
-                        log.info("\n{}", executor.getStdErr());
-                        log.info("======STDERR END======");
+                        LOGGER.info("======STDERR START=======");
+                        LOGGER.info("\n{}", executor.getStdErr());
+                        LOGGER.info("======STDERR END======");
                     }
                 }
             }
@@ -366,7 +366,7 @@ public class Exec {
         public Future<String> read() {
             return CompletableFuture.supplyAsync(() -> {
                 try (Scanner scanner = new Scanner(is)) {
-                    log.trace("Reading stream {}", is);
+                    LOGGER.trace("Reading stream {}", is);
                     while (scanner.hasNextLine()) {
                         String line = scanner.nextLine();
                         data.append(line);

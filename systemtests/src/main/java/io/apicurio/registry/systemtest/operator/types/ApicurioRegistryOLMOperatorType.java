@@ -44,35 +44,35 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     private void createCatalogSourceNamespace(String catalogSourceNamespaceName) {
         if(Kubernetes.getClient().namespaces().withName(catalogSourceNamespaceName).get() == null) {
-            operatorLogger.info("Creating catalog source namespace {}...", catalogSourceNamespaceName);
+            LOGGER.info("Creating catalog source namespace {}...", catalogSourceNamespaceName);
 
             catalogSourceNamespace = new NamespaceBuilder().withNewMetadata().withName(catalogSourceNamespaceName).endMetadata().build();
 
             Kubernetes.getClient().namespaces().create(catalogSourceNamespace);
 
             if(OperatorUtils.waitNamespaceReady(catalogSourceNamespaceName)) {
-                operatorLogger.info("Catalog source namespace {} is created and ready.", catalogSourceNamespaceName);
+                LOGGER.info("Catalog source namespace {} is created and ready.", catalogSourceNamespaceName);
             }
         } else {
-            operatorLogger.info("Catalog source namespace {} already exists.", catalogSourceNamespaceName);
+            LOGGER.info("Catalog source namespace {} already exists.", catalogSourceNamespaceName);
         }
     }
 
     private void deleteCatalogSourceNamespace() {
         if(catalogSourceNamespace != null) {
             if (Kubernetes.getClient().namespaces().withName(catalogSourceNamespace.getMetadata().getName()).get() == null) {
-                operatorLogger.info("Catalog source namespace {} already removed.", catalogSourceNamespace.getMetadata().getName());
+                LOGGER.info("Catalog source namespace {} already removed.", catalogSourceNamespace.getMetadata().getName());
             } else {
-                operatorLogger.info("Removing catalog source namespace {}...", catalogSourceNamespace.getMetadata().getName());
+                LOGGER.info("Removing catalog source namespace {}...", catalogSourceNamespace.getMetadata().getName());
 
                 Kubernetes.getClient().namespaces().withName(catalogSourceNamespace.getMetadata().getName()).delete();
 
                 if (OperatorUtils.waitNamespaceRemoved(catalogSourceNamespace.getMetadata().getName())) {
-                    operatorLogger.info("Catalog source namespace {} removed.", catalogSourceNamespace.getMetadata().getName());
+                    LOGGER.info("Catalog source namespace {} removed.", catalogSourceNamespace.getMetadata().getName());
                 }
             }
         } else {
-            operatorLogger.info("Catalog source namespace {} will not be removed, it existed before.", OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
+            LOGGER.info("Catalog source namespace {} will not be removed, it existed before.", OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
         }
     }
 
@@ -81,7 +81,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             Create catalog source and wait for its creation.
         */
 
-        operatorLogger.info("Creating catalog source {} in namespace {} with image {}...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Creating catalog source {} in namespace {} with image {}...", catalogSourceName, catalogSourceNamespace, source);
 
         catalogSource = new CatalogSourceBuilder()
                 .withNewMetadata()
@@ -102,7 +102,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         CatalogSource catalogSourceToBeCreated;
 
-        operatorLogger.info("Waiting for catalog source {} in namespace {} with image {} to be created...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Waiting for catalog source {} in namespace {} with image {} to be created...", catalogSourceName, catalogSourceNamespace, source);
 
         while (!timeoutBudgetCatalogSourceCreated.timeoutExpired()) {
             catalogSourceToBeCreated = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace(catalogSourceNamespace).withName(catalogSourceName).get();
@@ -122,16 +122,16 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         catalogSourceToBeCreated = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace(catalogSourceNamespace).withName(catalogSourceName).get();
 
         if(catalogSourceToBeCreated == null) {
-            operatorLogger.info("Catalog source {} in namespace {} with image {} is not created.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Catalog source {} in namespace {} with image {} is not created.", catalogSourceName, catalogSourceNamespace, source);
         } else {
-            operatorLogger.info("Catalog source {} in namespace {} with image {} created.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Catalog source {} in namespace {} with image {} created.", catalogSourceName, catalogSourceNamespace, source);
         }
 
         /*
             Wait for catalog source pod(s) to be created.
         */
 
-        operatorLogger.info("Waiting for pod(s) of catalog source {} in namespace {} with image {} to be created...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Waiting for pod(s) of catalog source {} in namespace {} with image {} to be created...", catalogSourceName, catalogSourceNamespace, source);
         TimeoutBudget timeoutBudgetCatalogSourcePod = TimeoutBudget.ofDuration(Duration.ofMinutes(3));
         PodList podList;
 
@@ -153,30 +153,30 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         podList = Kubernetes.getClient().pods().inNamespace(catalogSourceNamespace).withLabel("olm.catalogSource", catalogSourceName).list();
 
         if(podList.getItems().size() == 0) {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} is/are not created.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} is/are not created.", catalogSourceName, catalogSourceNamespace, source);
         } else {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} created.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} created.", catalogSourceName, catalogSourceNamespace, source);
         }
 
         /*
             Delete catalog source pod(s).
          */
 
-        operatorLogger.info("Deleting pod(s) of catalog source {} in namespace {} with image {}...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Deleting pod(s) of catalog source {} in namespace {} with image {}...", catalogSourceName, catalogSourceNamespace, source);
 
         Kubernetes.getClient().pods().inNamespace(catalogSourceNamespace).withLabel("olm.catalogSource", catalogSourceName).delete();
 
         if(Kubernetes.getClient().pods().inNamespace(catalogSourceNamespace).withLabel("olm.catalogSource", catalogSourceName).list().getItems().size() == 0) {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} deleted.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} deleted.", catalogSourceName, catalogSourceNamespace, source);
         } else {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} is/are not deleted.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} is/are not deleted.", catalogSourceName, catalogSourceNamespace, source);
         }
 
         /*
             Wait for catalog source pod(s) to be ready.
          */
 
-        operatorLogger.info("Waiting for pod(s) of catalog source {} in namespace {} with image {} to be ready...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Waiting for pod(s) of catalog source {} in namespace {} with image {} to be ready...", catalogSourceName, catalogSourceNamespace, source);
         TimeoutBudget timeoutBudgetCatalogSourcePodReady = TimeoutBudget.ofDuration(Duration.ofMinutes(3));
         boolean allPodsReady = true;
 
@@ -212,16 +212,16 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
 
         if(!allPodsReady) {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} are not ready.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} are not ready.", catalogSourceName, catalogSourceNamespace, source);
         } else {
-            operatorLogger.info("Pod(s) of catalog source {} in namespace {} with image {} ready.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Pod(s) of catalog source {} in namespace {} with image {} ready.", catalogSourceName, catalogSourceNamespace, source);
         }
 
         /*
             Wait for catalog source to be ready.
          */
 
-        operatorLogger.info("Waiting for catalog source {} in namespace {} with image {} to be ready...", catalogSourceName, catalogSourceNamespace, source);
+        LOGGER.info("Waiting for catalog source {} in namespace {} with image {} to be ready...", catalogSourceName, catalogSourceNamespace, source);
         TimeoutBudget timeoutBudgetCatalogSourceReady = TimeoutBudget.ofDuration(Duration.ofMinutes(5));
         CatalogSource catalogSourceToBeReady;
 
@@ -243,18 +243,18 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         catalogSourceToBeReady = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace(catalogSourceNamespace).withName(catalogSourceName).get();
 
         if(catalogSourceToBeReady == null || !catalogSourceToBeReady.getStatus().getConnectionState().getLastObservedState().equals("READY")) {
-            operatorLogger.info("Catalog source {} in namespace {} with image {} is not ready.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Catalog source {} in namespace {} with image {} is not ready.", catalogSourceName, catalogSourceNamespace, source);
         } else {
-            operatorLogger.info("Catalog source {} in namespace {} with image {} ready.", catalogSourceName, catalogSourceNamespace, source);
+            LOGGER.info("Catalog source {} in namespace {} with image {} ready.", catalogSourceName, catalogSourceNamespace, source);
         }
     }
 
     private void deleteCatalogSource() {
         if(catalogSource != null) {
             if (((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace(catalogSource.getMetadata().getNamespace()).withName(catalogSource.getMetadata().getName()).get() == null) {
-                operatorLogger.info("Catalog source {} in namespace {} already removed.", catalogSource.getMetadata().getName(), catalogSource.getMetadata().getNamespace());
+                LOGGER.info("Catalog source {} in namespace {} already removed.", catalogSource.getMetadata().getName(), catalogSource.getMetadata().getNamespace());
             } else {
-                operatorLogger.info("Removing catalog source {} in namespace {}...", catalogSource.getMetadata().getName(), catalogSource.getMetadata().getNamespace());
+                LOGGER.info("Removing catalog source {} in namespace {}...", catalogSource.getMetadata().getName(), catalogSource.getMetadata().getNamespace());
 
                 ((OpenShiftClient) Kubernetes.getClient()).operatorHub().catalogSources().inNamespace(catalogSource.getMetadata().getNamespace()).withName(catalogSource.getMetadata().getName()).delete();
 
@@ -290,9 +290,9 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
          */
 
         if(isClusterWide) {
-            operatorLogger.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
+            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         } else {
-            operatorLogger.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
+            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         }
 
         createCatalogSourceNamespace(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
@@ -303,7 +303,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             operatorGroup = OperatorUtils.createOperatorGroup(OperatorUtils.getApicurioRegistryOLMOperatorGroupName(), operatorNamespace);
         }
 
-        operatorLogger.info("TODO: Wait for package manifest to be available here?");
+        LOGGER.info("TODO: Wait for package manifest to be available here?");
 
         subscription = OperatorUtils.createSubscription(
                 OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionName(),

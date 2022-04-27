@@ -12,6 +12,7 @@ Necessary environment variables for run of system tests. Other environment varia
 |`APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_PACKAGE`|Package name for Subscription of Apicurio Registry OLM operator|
 |`APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL`|Channel for Subscription of Apicurio Registry OLM operator|
 |`APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV`|StartingCSV for Subscription of Apicurio Registry OLM operator|
+|`TESTSUITE_DIRECTORY`|Path to `systemtests` directory of this test suite|
 
 ## Known issue
 

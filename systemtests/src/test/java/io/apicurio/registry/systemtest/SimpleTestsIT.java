@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
@@ -14,9 +13,6 @@ import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
-import io.fabric8.kubernetes.client.internal.SerializationUtils;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 
-import java.io.FileNotFoundException;
 import java.text.MessageFormat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -302,48 +297,20 @@ public class SimpleTestsIT extends TestBase {
     public void testYamlOutput(ExtensionContext testContext) {
         // Just for checking YAML output of resources
 
-        Subscription subscription = new SubscriptionBuilder()
-                .withNewMetadata()
-                    .withName("apicurio-registry-sub")
-                    .withNamespace("apicurio-registry-operator-namespace")
-                .endMetadata()
-                .withNewSpec()
-                    .withName(OperatorUtils.getApicurioRegistryOLMOperatorPackage())
-                    .withSource("apicurio-registry-catalog-source")
-                    .withSourceNamespace("apicurio-registry-catalog-source-namespace")
-                    .withStartingCSV("<csv>")
-                    .withChannel("<channel>")
-                    .withInstallPlanApproval("Automatic")
-                .endSpec()
-                .build();
+        /*
         try {
-            String yaml = SerializationUtils.dumpAsYaml(subscription);
+            String yaml = SerializationUtils.dumpAsYaml(object);
 
             TEST_LOGGER.info(yaml);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
+         */
     }
 
     @Test
     @Disabled
-    public void testCode(ExtensionContext testContext) throws FileNotFoundException {
+    public void testCode(ExtensionContext testContext) {
         // Just for trying Java code
-
-        // System.getenv()
-        // testLogger.info(Kubernetes.getClient().pods().inNamespace("postgresql").withLabels(new HashMap<String, String>() {{ put("app", "postgresql"); }}).list().getItems().toString());
-        // testLogger.info(System.getenv("TEST"));
-
-        // Load Yaml into Kubernetes resources
-        // List<HasMetadata> result = Kubernetes.getClient().load(new FileInputStream("/Users/rkubis/codes/apicurio/install/install.yaml")).get();
-        // Apply Kubernetes Resources
-        // Kubernetes.getClient().resourceList(result).inNamespace("rkubis-namespace").createOrReplace();
-        // System.out.println(System.getProperty("user.dir"));
-        /*
-        for (HasMetadata r : result) {
-            testLogger.info(r.getKind());
-        }
-         */
-        //Kubernetes.getClient().namespaces().create(new NamespaceBuilder().withNewMetadata().withName("openshift-marketplace").endMetadata().build());
     }
 }

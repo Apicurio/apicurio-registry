@@ -2,7 +2,10 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
-import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.IntOrString;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.api.model.ServicePort;
 
 import java.time.Duration;
 import java.util.HashMap;

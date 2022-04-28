@@ -36,10 +36,6 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
 
-        if (existingArtifacts.contains(null)) {
-            throw new IllegalStateException("existingArtifacts contains null element(s)");
-        }
-
         if (existingArtifacts.isEmpty()) {
             return CompatibilityExecutionResult.compatible();
         }

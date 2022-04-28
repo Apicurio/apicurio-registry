@@ -20,14 +20,15 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
-public class LazyContentList extends ArrayList<ContentHandle> {
+public class LazyContentList implements List<ContentHandle> {
 
     private final RegistryStorage storage;
     private final List<Long> contentIds;
@@ -48,15 +49,115 @@ public class LazyContentList extends ArrayList<ContentHandle> {
     }
 
     @Override
+    public boolean contains(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ContentHandle get(int index) {
         //Not the best solution, works for now...
         return storage.getArtifactByContentId(contentIds.get(index)).getContent();
+    }
+
+    @Override
+    public ContentHandle set(int index, ContentHandle element) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void add(int index, ContentHandle element) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ContentHandle remove(int index) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int indexOf(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int lastIndexOf(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    @NotNull
+    @Override
+    public ListIterator<ContentHandle> listIterator() {
+        throw new UnsupportedOperationException();
+    }
+
+    @NotNull
+    @Override
+    public ListIterator<ContentHandle> listIterator(int index) {
+        throw new UnsupportedOperationException();
+    }
+
+    @NotNull
+    @Override
+    public List<ContentHandle> subList(int fromIndex, int toIndex) {
+        throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
     public Iterator<ContentHandle> iterator() {
         return new LazyContentListIterator(this, contentIds.iterator());
+    }
+
+    @NotNull
+    @Override
+    public Object[] toArray() {
+        throw new UnsupportedOperationException();
+    }
+
+    @NotNull
+    @Override
+    public <T> T[] toArray(@NotNull T[] a) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean add(ContentHandle contentHandle) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean containsAll(@NotNull Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean addAll(@NotNull Collection<? extends ContentHandle> c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean addAll(int index, @NotNull Collection<? extends ContentHandle> c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeAll(@NotNull Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean retainAll(@NotNull Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

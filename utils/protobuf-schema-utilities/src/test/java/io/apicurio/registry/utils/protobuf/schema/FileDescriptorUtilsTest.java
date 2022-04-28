@@ -7,6 +7,7 @@ import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestOrderingSyntax2;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestSyntax2JavaPackage;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.TestSyntax2OneOfs;
+import io.apicurio.registry.utils.protobuf.schema.syntax2.customoptions.TestSyntax2CustomOptions;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.jsonname.TestSyntax2JsonName;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.options.example.TestOrderingSyntax2OptionsExampleName;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.references.TestOrderingSyntax2References;
@@ -17,6 +18,7 @@ import io.apicurio.registry.utils.protobuf.schema.syntax3.TestSyntax3OneOfs;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.TestSyntax3Optional;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.WellKnownTypesTestSyntax3;
 import io.apicurio.registry.utils.protobuf.schema.syntax2.WellKnownTypesTestSyntax2;
+import io.apicurio.registry.utils.protobuf.schema.syntax3.customoptions.TestSyntax3CustomOptions;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.jsonname.TestSyntax3JsonName;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.options.TestOrderingSyntax3Options;
 import io.apicurio.registry.utils.protobuf.schema.syntax3.references.TestOrderingSyntax3References;
@@ -50,7 +52,9 @@ public class FileDescriptorUtilsTest {
             TestSyntax2OneOfs.getDescriptor(),
             TestSyntax3OneOfs.getDescriptor(),
             TestSyntax2JavaPackage.getDescriptor(),
-            TestSyntax3JavaPackage.getDescriptor()
+            TestSyntax3JavaPackage.getDescriptor(),
+            TestSyntax2CustomOptions.getDescriptor(),
+            TestSyntax3CustomOptions.getDescriptor()
         )
         .map(Descriptors.FileDescriptor::getFile)
         .map(Arguments::of);

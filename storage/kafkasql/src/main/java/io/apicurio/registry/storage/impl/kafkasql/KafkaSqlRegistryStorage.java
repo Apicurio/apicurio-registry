@@ -963,6 +963,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.getArtifactVersionsByContentId(contentId);
     }
 
+    @Override
+    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
+        return sqlStore.getArtifactContentIds(groupId, artifactId);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#exportData(Function)
      */

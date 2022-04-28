@@ -2,7 +2,9 @@ package io.apicurio.registry.systemtest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
+import io.apicurio.registry.systemtest.framework.KafkaUtils;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.Utils;
@@ -12,7 +14,6 @@ import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
-import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
@@ -94,13 +95,7 @@ public class SimpleTestsIT extends TestBase {
 
         operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
 
-        Kafka kafka = KafkaResourceType.getDefault();
-
-        try {
-            resourceManager.createResource(testContext, true, kafka);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
         ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-test-kafkasql", apicurioRegistryBundleOperatorType.getNamespaceName());
 
@@ -254,6 +249,52 @@ public class SimpleTestsIT extends TestBase {
         resourceManager.deleteResources(testContext);
 
         operatorManager.uninstallOperators(testContext);
+    }
+
+    @Test
+    public void testApicurioRegistryKafkasqlTLS(ExtensionContext testContext) {
+        try {
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+
+            Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTLS(testContext);
+
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+
+            operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
+
+            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafkasqlTls);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext) {
+        try {
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+
+            Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaSCRAM(testContext);
+
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+
+            operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
+
+            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafkasqlScram);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
     }
 
     @Test

@@ -14,6 +14,7 @@ import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResource
 import io.apicurio.registry.systemtest.registryinfra.resources.PersistentVolumeClaimResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.RouteResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.SecretResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ServiceResourceType;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -55,7 +56,8 @@ public class ResourceManager {
             new KafkaResourceType(),
             new KafkaTopicResourceType(),
             new KafkaUserResourceType(),
-            new RouteResourceType()
+            new RouteResourceType(),
+            new SecretResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {

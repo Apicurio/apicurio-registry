@@ -8,6 +8,8 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaTopicResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaUserResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.PersistentVolumeClaimResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
@@ -51,6 +53,8 @@ public class ResourceManager {
             new DeploymentResourceType(),
             new PersistentVolumeClaimResourceType(),
             new KafkaResourceType(),
+            new KafkaTopicResourceType(),
+            new KafkaUserResourceType(),
             new RouteResourceType()
     };
 

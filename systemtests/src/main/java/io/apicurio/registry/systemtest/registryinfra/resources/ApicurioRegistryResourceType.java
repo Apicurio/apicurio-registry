@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
+import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -153,5 +154,30 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     public static ApicurioRegistry getDefaultKafkasql() {
         return getDefaultKafkasql("apicurio-registry-test-instance-kafkasql");
+    }
+
+    public static void updateWithDefaultTLS(ApicurioRegistry apicurioRegistry) {
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setSecurity(new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                .withNewTls()
+                    .withKeystoreSecretName("apicurio-registry-kafka-user-secured-tls-keystore")
+                    .withTruststoreSecretName("apicurio-registry-kafkasql-tls-cluster-ca-truststore")
+                .endTls()
+                .build()
+        );
+
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9093");
+    }
+
+    public static void updateWithDefaultSCRAM(ApicurioRegistry apicurioRegistry) {
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setSecurity(new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                .withNewScram()
+                    .withTrustedSecretName("apicurio-registry-kafkasql-scram-cluster-ca-truststore")
+                    .withPasswordSecretName("apicurio-registry-kafka-user-secured-scram")
+                    .withUser("apicurio-registry-kafka-user-secured-scram")
+                .endScram()
+                .build()
+        );
+
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9093");
     }
 }

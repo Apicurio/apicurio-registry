@@ -10,6 +10,8 @@ import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.strimzi.api.kafka.model.Kafka;
 import io.strimzi.api.kafka.model.KafkaBuilder;
+import io.strimzi.api.kafka.model.listener.KafkaListenerAuthenticationScramSha512;
+import io.strimzi.api.kafka.model.listener.KafkaListenerAuthenticationTls;
 import io.strimzi.api.kafka.model.listener.arraylistener.GenericKafkaListener;
 import io.strimzi.api.kafka.model.listener.arraylistener.KafkaListenerType;
 import io.strimzi.api.kafka.model.storage.PersistentClaimStorage;
@@ -83,50 +85,111 @@ public class KafkaResourceType implements ResourceType<Kafka> {
 
     /** Get default instances **/
 
-    public static Kafka getDefault(String name, String namespace) {
-        return new KafkaBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withNewKafka()
-                        .withVersion("3.1.0")
-                        .withReplicas(1)
-                        .withListeners(new GenericKafkaListener() {{
-                            setName("plain");
-                            setPort(9092);
-                            setType(KafkaListenerType.INTERNAL);
-                            setTls(false);
-                        }})
-                        .withConfig(new HashMap<>() {{
-                            put("offsets.topic.replication.factor", 1);
-                            put("transaction.state.log.replication.factor", 1);
-                            put("transaction.state.log.min.isr", 1);
-                        }})
-                        .withStorage(new PersistentClaimStorage() {{
-                            setSize("100Gi");
-                            setDeleteClaim(true);
-                        }})
-                    .endKafka()
-                    .withNewZookeeper()
-                        .withReplicas(1)
-                        .withStorage(new PersistentClaimStorage() {{
-                            setSize("100Gi");
-                            setDeleteClaim(true);
-                        }})
-                    .endZookeeper()
-                    .withNewEntityOperator()
-                        .withNewTopicOperator()
-                        .endTopicOperator()
-                        .withNewUserOperator()
-                        .endUserOperator()
-                    .endEntityOperator()
-                .endSpec()
-                .build();
+    public static Kafka getDefaultByKind(String name, String namespace, KafkaKind kafkaKind) {
+        if(KafkaKind.NO_AUTH.equals(kafkaKind)) {
+            return new KafkaBuilder()
+                    .withNewMetadata()
+                        .withName(name)
+                        .withNamespace(namespace)
+                    .endMetadata()
+                    .withNewSpec()
+                        .withNewKafka()
+                            .withVersion("3.1.0")
+                            .withReplicas(1)
+                            .withListeners(new GenericKafkaListener() {{
+                                setName("plain");
+                                setPort(9092);
+                                setType(KafkaListenerType.INTERNAL);
+                                setTls(false);
+                            }})
+                            .withConfig(new HashMap<>() {{
+                                put("offsets.topic.replication.factor", 1);
+                                put("transaction.state.log.replication.factor", 1);
+                                put("transaction.state.log.min.isr", 1);
+                            }})
+                            .withStorage(new PersistentClaimStorage() {{
+                                setSize("100Gi");
+                                setDeleteClaim(true);
+                            }})
+                        .endKafka()
+                        .withNewZookeeper()
+                            .withReplicas(1)
+                            .withStorage(new PersistentClaimStorage() {{
+                                setSize("100Gi");
+                                setDeleteClaim(true);
+                            }})
+                        .endZookeeper()
+                        .withNewEntityOperator()
+                            .withNewTopicOperator()
+                            .endTopicOperator()
+                            .withNewUserOperator()
+                            .endUserOperator()
+                        .endEntityOperator()
+                    .endSpec()
+                    .build();
+        } else if(KafkaKind.TLS.equals(kafkaKind) || KafkaKind.SCRAM.equals(kafkaKind)) {
+            return new KafkaBuilder()
+                    .withNewMetadata()
+                        .withName(name)
+                        .withNamespace(namespace)
+                    .endMetadata()
+                    .withNewSpec()
+                        .withNewKafka()
+                            .withVersion("3.1.0")
+                            .withReplicas(1)
+                            .withListeners(
+                                    new GenericKafkaListener() {{
+                                        setName("plain");
+                                        setPort(9092);
+                                        setType(KafkaListenerType.INTERNAL);
+                                        setTls(false);
+                                    }},
+                                    new GenericKafkaListener() {{
+                                        setName("tls");
+                                        setPort(9093);
+                                        setType(KafkaListenerType.INTERNAL);
+                                        setTls(true);
+                                        setAuth(KafkaKind.TLS.equals(kafkaKind) ? new KafkaListenerAuthenticationTls() : new KafkaListenerAuthenticationScramSha512());
+                                    }}
+                            )
+                            .withConfig(new HashMap<>() {{
+                                put("offsets.topic.replication.factor", 1);
+                                put("transaction.state.log.replication.factor", 1);
+                                put("transaction.state.log.min.isr", 1);
+                            }})
+                            .withStorage(new PersistentClaimStorage() {{
+                                setSize("100Gi");
+                                setDeleteClaim(true);
+                            }})
+                        .endKafka()
+                        .withNewZookeeper()
+                            .withReplicas(1)
+                            .withStorage(new PersistentClaimStorage() {{
+                                setSize("100Gi");
+                                setDeleteClaim(true);
+                            }})
+                        .endZookeeper()
+                        .withNewEntityOperator()
+                            .withNewTopicOperator()
+                            .endTopicOperator()
+                            .withNewUserOperator()
+                            .endUserOperator()
+                        .endEntityOperator()
+                    .endSpec()
+                    .build();
+        }
+        throw new IllegalStateException("Unexpected value: " + kafkaKind);
     }
 
-    public static Kafka getDefault() {
-        return getDefault("apicurio-registry-kafkasql", OperatorUtils.getStrimziOperatorNamespace());
+    public static Kafka getDefaultNoAuth() {
+        return getDefaultByKind("apicurio-registry-kafkasql-no-auth", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.NO_AUTH);
+    }
+
+    public static Kafka getDefaultTLS() {
+        return getDefaultByKind("apicurio-registry-kafkasql-tls", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.TLS);
+    }
+
+    public static Kafka getDefaultSCRAM() {
+        return getDefaultByKind("apicurio-registry-kafkasql-scram", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.SCRAM);
     }
 }

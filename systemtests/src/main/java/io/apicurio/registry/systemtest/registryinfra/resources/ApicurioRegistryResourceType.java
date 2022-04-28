@@ -112,7 +112,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withNewConfiguration()
                             .withPersistence("kafkasql")
                             .withNewKafkasql()
-                                .withBootstrapServers("apicurio-registry-kafkasql-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9092")
+                                .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9092")
                             .endKafkasql()
                         .endConfiguration()
                     .endSpec()

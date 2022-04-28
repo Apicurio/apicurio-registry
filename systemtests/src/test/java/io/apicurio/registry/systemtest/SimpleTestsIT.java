@@ -42,139 +42,145 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
-
-        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem("apicurio-registry-test-mem", apicurioRegistryBundleOperatorType.getNamespaceName());
-
         try {
+            ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+            operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem("apicurio-registry-test-mem", apicurioRegistryBundleOperatorType.getNamespaceName());
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
         }
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testApicurioRegistryWithSqlPersistenceBecomeReady(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
-
-        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", apicurioRegistryBundleOperatorType.getNamespaceName());
-
         try {
+            ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+            operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", apicurioRegistryBundleOperatorType.getNamespaceName());
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
         }
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testApicurioRegistryWithKafkasqlPersistenceBecomeReady(ExtensionContext testContext) {
-        StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
-
-        operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
-
-        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
-
-        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
-
-        KafkaUtils.deployDefaultKafkaNoAuth(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-test-kafkasql", apicurioRegistryBundleOperatorType.getNamespaceName());
-
         try {
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+
+            ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType();
+
+            operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
+
+            KafkaUtils.deployDefaultKafkaNoAuth(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-test-kafkasql", apicurioRegistryBundleOperatorType.getNamespaceName());
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
         }
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
-
     }
 
     @Test
     public void testInstallApicurioRegistryBundleOperatorFile(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
+        try {
+            ApicurioRegistryBundleOperatorType apicurioRegistryBundleOperatorType = new ApicurioRegistryBundleOperatorType("/Users/rkubis/codes/apicurio/install/install.yaml");
 
-        operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
-
-        operatorManager.uninstallOperators(testContext);
+            operatorManager.installOperator(testContext, apicurioRegistryBundleOperatorType);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            operatorManager.uninstallOperators(testContext);
+        }
     }
 
     @Test
     public void testInstallStrimziClusterBundleOperatorUrl(ExtensionContext testContext) {
-        StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+        try {
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
 
-        operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
-
-        operatorManager.uninstallOperators(testContext);
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            operatorManager.uninstallOperators(testContext);
+        }
     }
 
     @Test
     public void testInstallApicurioRegistry(ExtensionContext testContext) {
-        ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
-
-        operatorManager.installOperator(testContext, testOperator);
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
-
         try {
+            ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
+
+            operatorManager.installOperator(testContext, testOperator);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
         }
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
-        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
-
-        operatorManager.installOperator(testContext, testOperator);
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
-
         try {
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
+
+            operatorManager.installOperator(testContext, testOperator);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+
             // Try to create registry in operator namespace,
             // it should be OK
             resourceManager.createResource(testContext, true, apicurioRegistry);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        // Apicurio Registry should be ready here
-        TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+            // Apicurio Registry should be ready here
+            TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
 
-        ApicurioRegistry apicurioRegistryNamespace = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance-fail", "some-namespace");
+            ApicurioRegistry apicurioRegistryNamespace = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance-fail", "some-namespace");
 
-        try {
             // Try to create registry in another namespace than operator namespace,
             // this should fail
             AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> resourceManager.createResource(testContext, true, apicurioRegistryNamespace));
 
             assertEquals(
-                    MessageFormat.format("Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. ==> expected: <true> but was: <false>", apicurioRegistryNamespace.getKind(), apicurioRegistryNamespace.getMetadata().getName(), apicurioRegistryNamespace.getMetadata().getNamespace()),
+                    MessageFormat.format(
+                            "Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. ==> expected: <true> but was: <false>",
+                            apicurioRegistryNamespace.getKind(), apicurioRegistryNamespace.getMetadata().getName(), apicurioRegistryNamespace.getMetadata().getNamespace()
+                    ),
                     assertionFailedError.getMessage()
             );
         } catch (Exception e) {
@@ -188,62 +194,68 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
-        ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
-
-        operatorManager.installOperator(testContext, testOperator);
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-cluster-wide-test-instance", "my-apicurio-registry-test-namespace");
-
         try {
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
+
+            operatorManager.installOperator(testContext, testOperator);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-cluster-wide-test-instance", "my-apicurio-registry-test-namespace");
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
+
+            // Apicurio Registry should be ready here
+            TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
         }
-
-        // Apicurio Registry should be ready here
-        TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
     }
 
     @Test
     @Disabled
     public void testCreateApicurioRegistryInMyNamespace(ExtensionContext testContext) {
-        // There needs to be Apicurio Registry operator installed
-
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", "apicurio-registry-operator-namespace-e2e-test");
-
         try {
+            // There needs to be Apicurio Registry operator installed
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-sql", "apicurio-registry-operator-namespace-e2e-test");
+
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
         }
     }
 
     @Test
     public void testInstallKeycloakOLMOperator(ExtensionContext testContext) {
-        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null, "apicurio-registry-keycloak-namespace");
+        try {
+            KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null, "apicurio-registry-keycloak-namespace");
 
-        operatorManager.installOperator(testContext, keycloakOLMOperatorType);
+            operatorManager.installOperator(testContext, keycloakOLMOperatorType);
 
-        // Operator should be ready here
-        TEST_LOGGER.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
+            // Operator should be ready here
+            TEST_LOGGER.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
 
-        Utils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
+            Utils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
 
-        // Keycloak should be deployed here
+            // Keycloak should be deployed here
 
-        Utils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+            Utils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
 
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
+            operatorManager.uninstallOperators(testContext);
+        }
     }
 
     @Test

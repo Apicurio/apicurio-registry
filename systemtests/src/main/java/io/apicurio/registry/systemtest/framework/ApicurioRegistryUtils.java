@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("rkubis-test-apicurio-registry-kafkasql-tls-instance", OperatorUtils.getStrimziOperatorNamespace());
+        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-tls-instance", OperatorUtils.getStrimziOperatorNamespace());
 
         // Update to have TLS configuration
         ApicurioRegistryResourceType.updateWithDefaultTLS(apicurioRegistryKafkasqlTLS);
@@ -31,7 +31,7 @@ public class ApicurioRegistryUtils {
 
     public static void deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql("rkubis-test-apicurio-registry-kafkasql-scram-instance", OperatorUtils.getStrimziOperatorNamespace());
+        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-scram-instance", OperatorUtils.getStrimziOperatorNamespace());
 
         // Update to have SCRAM configuration
         ApicurioRegistryResourceType.updateWithDefaultSCRAM(apicurioRegistryKafkasqlSCRAM);

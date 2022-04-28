@@ -182,6 +182,11 @@ public interface SqlStatements {
     public String selectArtifactVersionContent();
 
     /**
+     * A statement to select the content ids of an artifact for all versions.
+     */
+    public String selectArtifactContentIds();
+
+    /**
      * A statement to "upsert" a row in the "content" table.
      */
     public String upsertContent();

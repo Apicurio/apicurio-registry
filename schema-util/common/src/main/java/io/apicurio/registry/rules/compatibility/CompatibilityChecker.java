@@ -21,8 +21,6 @@ import io.apicurio.registry.content.ContentHandle;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * An interface that is used to determine whether a proposed artifact's content is compatible and return a set of
  * incompatible differences
@@ -38,18 +36,7 @@ public interface CompatibilityChecker {
      *                           (e.g. a global COMPATIBILITY rule with <code>io.apicurio.registry.rules.RuleApplicationType#CREATE</code>)
      * @param proposedArtifact   MUST NOT be null
      */
-    default CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
-        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
-        requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
-        requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
-        if (existingArtifacts.contains(null)) {
-            throw new IllegalStateException("existingArtifacts contains null element(s)");
-        }
-        return testCompatibility(compatibilityLevel,
-             existingArtifacts.stream().map(ContentHandle::content).collect(Collectors.toList()),
-             proposedArtifact.content()
-        );
-    }
+    CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact);
 
     /**
      * @param compatibilityLevel MUST NOT be null
@@ -58,5 +45,8 @@ public interface CompatibilityChecker {
      *                           (e.g. a global COMPATIBILITY rule with <code>io.apicurio.registry.rules.RuleApplicationType#CREATE</code>)
      * @param proposedArtifact   MUST NOT be null
      */
-    CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact);
+    default CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingArtifacts, String proposedArtifact) {
+        final List<ContentHandle> contentHandles = existingArtifacts.stream().map(ContentHandle::create).collect(Collectors.toList());
+        return testCompatibility(compatibilityLevel, contentHandles, ContentHandle.create(proposedArtifact));
+    }
 }

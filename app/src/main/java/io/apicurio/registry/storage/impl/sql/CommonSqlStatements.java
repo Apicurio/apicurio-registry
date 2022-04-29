@@ -250,6 +250,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionContent()
+     */
+    @Override
+    public String selectArtifactContentIds() {
+        return "SELECT v.contentId FROM versions v WHERE v.tenantId = ? AND v.groupId = ? AND v.artifactId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestArtifactContent()
      */
     @Override

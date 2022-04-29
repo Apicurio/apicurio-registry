@@ -395,6 +395,22 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
+    /**
+     * @see RegistryStorage#getArtifactContentIds(String, String)
+     */
+    @Override
+    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectArtifactContentIds();
+
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext.tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
 
     /**
      * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)

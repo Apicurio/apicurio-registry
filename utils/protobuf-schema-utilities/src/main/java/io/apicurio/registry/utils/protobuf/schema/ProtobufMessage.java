@@ -21,6 +21,7 @@ import java.util.Map;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.DescriptorProto;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
+import metadata.ProtobufSchemaMetadata;
 
 /**
  * @author Fabian Martinez

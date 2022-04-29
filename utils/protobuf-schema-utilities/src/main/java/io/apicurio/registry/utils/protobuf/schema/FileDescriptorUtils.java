@@ -47,6 +47,7 @@ import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import kotlin.ranges.IntRange;
+import metadata.ProtobufSchemaMetadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -380,9 +381,9 @@ public class FileDescriptorUtils {
             return isNotNested;
         }
 
-        //In case the package is not defined, we select the types that are not google types or apicurio metadata types.
+        //In case the package is not defined, we select the types that are not google types or metadata types.
         return !typeName.startsWith("google.type") && !typeName.startsWith("google.protobuf")
-            && !typeName.startsWith("io.apicurio.registry.utils.protobuf.schema.metadata");
+            && !typeName.startsWith("metadata");
     }
 
     private static DescriptorProto messageElementToDescriptorProto(
@@ -480,7 +481,7 @@ public class FileDescriptorUtils {
 
                 allFields.add(ProtobufMessage.buildFieldDescriptorProto(
                         label, fieldType, fieldTypeName, field.getName(), field.getTag(), field.getDefault(),
-                        jsonName, isDeprecated, isPacked, cType, jsType, metadataKey, metadataValue,null, null));
+                        jsonName, isDeprecated, isPacked, cType, jsType, metadataKey, metadataValue, null, null));
             }
         }
 

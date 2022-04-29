@@ -2,17 +2,13 @@ syntax = "proto3";
 
 package io.apicurio.registry.utils.protobuf.schema.syntax3.customoptions;
 
-import "io/apicurio/registry/utils/protobuf/schema/metadata/metadata.proto";
+import "metadata/metadata.proto";
 
 message Address {
 
-  string street = 1 [
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_key) = "description",
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_value) = "less than 40 characters"];
+  string street = 1 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "less than 40 characters"];
 
-  int32 zip = 2 [
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_key) = "connect.schema",
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_value) = "int8"];
+  int32 zip = 2 [(metadata.metadata_key) = "connect.schema", (metadata.metadata_value) = "int8"];
 
   string city = 3;
 
@@ -22,17 +18,13 @@ message Address {
     HOUSE = 2;
   }
 
-  map<int32, int32> rentPerYear = 4 [
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_key) = "description",
-    (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_value) = "rent per year in USD"];
+  map<int32, int32> rentPerYear = 4 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "rent per year in USD"];
 
   map<string, Type> addressType = 9;
 
   message ContactPersons {
     string name = 1;
-    int32 phone = 2 [
-      (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_key) = "maximum number of characters",
-      (io.apicurio.registry.utils.protobuf.schema.metadata.metadata_value) = "20"];
+    int32 phone = 2 [(metadata.metadata_key) = "maximum number of characters", (metadata.metadata_value) = "20"];
   }
 
   map<string, ContactPersons> pastOwners = 12;

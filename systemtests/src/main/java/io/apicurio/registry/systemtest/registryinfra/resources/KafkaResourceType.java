@@ -3,9 +3,6 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
-import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.strimzi.api.kafka.model.Kafka;
@@ -56,24 +53,17 @@ public class KafkaResourceType implements ResourceType<Kafka> {
 
     @Override
     public boolean isReady(Kafka resource) {
-        Deployment deployment = Kubernetes.getClient().apps().deployments().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName() + "-entity-operator").get();
+        Kafka kafka = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
-        if (deployment == null) {
+        if (kafka == null || kafka.getStatus() == null) {
             return false;
         }
 
-        DeploymentSpec deploymentSpec = deployment.getSpec();
-        DeploymentStatus deploymentStatus = deployment.getStatus();
-
-        if (deploymentStatus == null || deploymentStatus.getReplicas() == null || deploymentStatus.getAvailableReplicas() == null) {
-            return false;
-        }
-
-        if (deploymentSpec == null || deploymentSpec.getReplicas() == null) {
-            return false;
-        }
-
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas() && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
+        return kafka.getStatus().getConditions().stream()
+                .filter(condition -> condition.getType().equals("Ready"))
+                .map(condition -> condition.getStatus().equals("True"))
+                .findFirst()
+                .orElse(false);
     }
 
     @Override

@@ -18,7 +18,7 @@ public class Utils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static String getTestsuiteDirectory() {
-        return System.getenv().get(Constants.TESTSUITE_DIRECTORY_ENV_VAR);
+        return System.getenv().get(Environment.TESTSUITE_DIRECTORY_ENV_VAR);
     }
 
     public static boolean waitStatefulSetReady(String namespace, String name) {
@@ -91,6 +91,6 @@ public class Utils {
     }
 
     public static String getDefaultKeycloakURL(String namespace) {
-        return getKeycloakURL(namespace, Constants.KEYCLOAK_HTTP_SERVICE_NAME);
+        return getKeycloakURL(namespace, Environment.KEYCLOAK_HTTP_SERVICE_NAME);
     }
 }

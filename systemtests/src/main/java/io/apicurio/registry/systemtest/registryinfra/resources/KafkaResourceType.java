@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -172,14 +172,14 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     }
 
     public static Kafka getDefaultNoAuth() {
-        return getDefaultByKind("apicurio-registry-kafkasql-no-auth", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.NO_AUTH);
+        return getDefaultByKind("apicurio-registry-kafkasql-no-auth", Environment.strimziOperatorNamespace, KafkaKind.NO_AUTH);
     }
 
     public static Kafka getDefaultTLS() {
-        return getDefaultByKind("apicurio-registry-kafkasql-tls", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.TLS);
+        return getDefaultByKind("apicurio-registry-kafkasql-tls", Environment.strimziOperatorNamespace, KafkaKind.TLS);
     }
 
     public static Kafka getDefaultSCRAM() {
-        return getDefaultByKind("apicurio-registry-kafkasql-scram", OperatorUtils.getStrimziOperatorNamespace(), KafkaKind.SCRAM);
+        return getDefaultByKind("apicurio-registry-kafkasql-scram", Environment.strimziOperatorNamespace, KafkaKind.SCRAM);
     }
 }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -36,7 +37,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
 
     @Override
     public String getDeploymentName() {
-        return OperatorUtils.getKeycloakOLMOperatorPackage();
+        return Environment.keycloakSubscriptionPkg;
     }
 
     @Override
@@ -51,10 +52,10 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         if(((OpenShiftClient) Kubernetes.getClient()).operatorHub().operatorGroups().inNamespace(operatorNamespace).list().getItems().size() != 0) {
             LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
         } else {
-            operatorGroup = OperatorUtils.createOperatorGroup(OperatorUtils.getKeycloakOLMOperatorGroupName(), operatorNamespace);
+            operatorGroup = OperatorUtils.createOperatorGroup(Environment.keycloakOperatorGroupName, operatorNamespace);
         }
 
-        PackageManifest packageManifest = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().packageManifests().inNamespace(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace()).withName(OperatorUtils.getKeycloakOLMOperatorPackage()).get();
+        PackageManifest packageManifest = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().packageManifests().inNamespace(Environment.apicurioOLMCatalogSourceNamespace).withName(Environment.keycloakSubscriptionPkg).get();
 
         String channelName = packageManifest.getStatus().getDefaultChannel();
         String channelCSV = "";
@@ -67,14 +68,14 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         }
 
         subscription = OperatorUtils.createSubscription(
-                OperatorUtils.getKeycloakOLMOperatorSubscriptionName(),
+                Environment.keycloakSubscriptionName,
                 operatorNamespace,
-                OperatorUtils.getKeycloakOLMOperatorPackage(),
-                OperatorUtils.getKeycloakOLMOperatorCatalogSourceName(),
-                OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace(),
+                Environment.keycloakSubscriptionPkg,
+                Environment.keycloakCatalogSourceName,
+                Environment.apicurioOLMCatalogSourceNamespace,
                 channelCSV,
                 channelName,
-                OperatorUtils.getKeycloakOLMOperatorInstallPlanApproval()
+                Environment.keycloakSubscriptionPlanApproval
         );
 
         /**

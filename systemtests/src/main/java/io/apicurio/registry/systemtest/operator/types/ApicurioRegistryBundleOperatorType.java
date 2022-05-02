@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
-import io.apicurio.registry.systemtest.framework.Constants;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -44,9 +44,9 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(System.getenv().getOrDefault(Constants.APICURIO_BUNDLE_SOURCE_PATH_ENV_VAR, Constants.APICURIO_BUNDLE_SOURCE_PATH_DEFAULT));
+        super(System.getenv().getOrDefault(Environment.APICURIO_BUNDLE_SOURCE_PATH_ENV_VAR, Environment.APICURIO_BUNDLE_SOURCE_PATH_DEFAULT));
 
-        operatorNamespace = OperatorUtils.getApicurioRegistryOperatorNamespace();
+        operatorNamespace = Environment.apicurioOperatorNamespace;
 
         try {
             loadOperatorResourcesFromFile();
@@ -58,7 +58,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public ApicurioRegistryBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = OperatorUtils.getApicurioRegistryOperatorNamespace();
+        operatorNamespace = Environment.apicurioOperatorNamespace;
 
         try {
             loadOperatorResourcesFromFile();
@@ -96,17 +96,17 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
             return null;
         }
 
-        return Kubernetes.getClient().apps().deployments().inNamespace(OperatorUtils.getApicurioRegistryOperatorNamespace()).withName(deployment.getMetadata().getName()).get();
+        return Kubernetes.getClient().apps().deployments().inNamespace(Environment.apicurioOperatorNamespace).withName(deployment.getMetadata().getName()).get();
     }
 
     @Override
     public void install() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(OperatorUtils.getApicurioRegistryOperatorNamespace()).createOrReplace();
+        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.apicurioOperatorNamespace).createOrReplace();
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(OperatorUtils.getApicurioRegistryOperatorNamespace()).delete();
+        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.apicurioOperatorNamespace).delete();
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-no-auth-instance", OperatorUtils.getStrimziOperatorNamespace());
+        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-no-auth-instance", Environment.strimziOperatorNamespace);
 
         // Create Apicurio Registry without authentication
         ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlNoAuth);
@@ -17,7 +17,7 @@ public class ApicurioRegistryUtils {
 
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-tls-instance", OperatorUtils.getStrimziOperatorNamespace());
+        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-tls-instance", Environment.strimziOperatorNamespace);
 
         // Update to have TLS configuration
         ApicurioRegistryResourceType.updateWithDefaultTLS(apicurioRegistryKafkasqlTLS);
@@ -39,7 +39,7 @@ public class ApicurioRegistryUtils {
 
     public static void deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-scram-instance", OperatorUtils.getStrimziOperatorNamespace());
+        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-scram-instance", Environment.strimziOperatorNamespace);
 
         // Update to have SCRAM configuration
         ApicurioRegistryResourceType.updateWithDefaultSCRAM(apicurioRegistryKafkasqlSCRAM);

@@ -1,7 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.framework.Environment;
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -85,7 +84,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                 .endMetadata()
                 .withNewSpec()
                     .withReplicas(3)
-                    .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9092")
+                    .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9092")
                     .withNewBuild()
                         .withOutput(new DockerOutputBuilder()
                                 .withImage("image-registry.openshift-image-registry.svc.cluster.local:5000/" + namespace + "/apicurio-debezium:latest-ci")
@@ -115,6 +114,6 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
     }
 
     public static KafkaConnect getDefault() {
-        return getDefault("apicurio-registry-kafkasql-connect-no-auth", OperatorUtils.getStrimziOperatorNamespace());
+        return getDefault("apicurio-registry-kafkasql-connect-no-auth", Environment.strimziOperatorNamespace);
     }
 }

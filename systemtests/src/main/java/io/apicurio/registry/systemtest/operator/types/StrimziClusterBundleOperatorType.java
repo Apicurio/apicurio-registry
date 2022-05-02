@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
-import io.apicurio.registry.systemtest.framework.Constants;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -44,9 +44,9 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(System.getenv().getOrDefault(Constants.STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR, Constants.STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT));
+        super(System.getenv().getOrDefault(Environment.STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR, Environment.STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT));
 
-        operatorNamespace = OperatorUtils.getStrimziOperatorNamespace();
+        operatorNamespace = Environment.strimziOperatorNamespace;
 
         try {
             loadOperatorResourcesFromFile();
@@ -58,7 +58,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public StrimziClusterBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = OperatorUtils.getStrimziOperatorNamespace();
+        operatorNamespace = Environment.strimziOperatorNamespace;
 
         try {
             loadOperatorResourcesFromFile();
@@ -96,17 +96,17 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
             return null;
         }
 
-        return Kubernetes.getClient().apps().deployments().inNamespace(OperatorUtils.getStrimziOperatorNamespace()).withName(deployment.getMetadata().getName()).get();
+        return Kubernetes.getClient().apps().deployments().inNamespace(Environment.strimziOperatorNamespace).withName(deployment.getMetadata().getName()).get();
     }
 
     @Override
     public void install() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(OperatorUtils.getStrimziOperatorNamespace()).createOrReplace();
+        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.strimziOperatorNamespace).createOrReplace();
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(OperatorUtils.getStrimziOperatorNamespace()).delete();
+        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.strimziOperatorNamespace).delete();
     }
 
     @Override

@@ -3,9 +3,9 @@ package io.apicurio.registry.systemtest;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.KafkaUtils;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.Utils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
@@ -142,7 +142,7 @@ public class SimpleTestsIT extends TestBase {
 
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", Environment.apicurioOperatorNamespace);
 
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
@@ -157,13 +157,13 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), OperatorUtils.getApicurioRegistryOperatorNamespace(),false);
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, Environment.apicurioOperatorNamespace,false);
 
             operatorManager.installOperator(testContext, testOperator);
 
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", OperatorUtils.getApicurioRegistryOperatorNamespace());
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", Environment.apicurioOperatorNamespace);
 
             // Try to create registry in operator namespace,
             // it should be OK
@@ -197,7 +197,7 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null,true);
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null,true);
 
             operatorManager.installOperator(testContext, testOperator);
 
@@ -269,7 +269,7 @@ public class SimpleTestsIT extends TestBase {
 
             Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTLS(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
@@ -292,7 +292,7 @@ public class SimpleTestsIT extends TestBase {
 
             Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaSCRAM(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
@@ -315,7 +315,7 @@ public class SimpleTestsIT extends TestBase {
 
             Kafka kafkasqlNoAuth = KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 

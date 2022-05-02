@@ -3,7 +3,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -112,7 +112,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withNewConfiguration()
                             .withPersistence("kafkasql")
                             .withNewKafkasql()
-                                .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9092")
+                                .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9092")
                             .endKafkasql()
                         .endConfiguration()
                     .endSpec()
@@ -165,7 +165,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .build()
         );
 
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-tls-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9093");
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-tls-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9093");
     }
 
     public static void updateWithDefaultSCRAM(ApicurioRegistry apicurioRegistry) {
@@ -178,6 +178,6 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .build()
         );
 
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-scram-kafka-bootstrap." + OperatorUtils.getStrimziOperatorNamespace() + ".svc.cluster.local:9093");
+        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-scram-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9093");
     }
 }

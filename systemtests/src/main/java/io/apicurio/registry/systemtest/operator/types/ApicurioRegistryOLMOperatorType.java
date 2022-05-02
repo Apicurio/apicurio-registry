@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
-import io.apicurio.registry.systemtest.framework.Constants;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
@@ -34,7 +34,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if(isClusterWide) {
             // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.APICURIO_OLM_CLUSTER_WIDE_NAMESPACE;
+            this.operatorNamespace = Environment.APICURIO_OLM_CLUSTER_WIDE_NAMESPACE;
         } else {
             this.operatorNamespace = operatorNamespace;
         }
@@ -72,7 +72,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 }
             }
         } else {
-            LOGGER.info("Catalog source namespace {} will not be removed, it existed before.", OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
+            LOGGER.info("Catalog source namespace {} will not be removed, it existed before.", Environment.apicurioOLMCatalogSourceNamespace);
         }
     }
 
@@ -275,7 +275,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public String getDeploymentName() {
-        return Constants.APICURIO_OLM_DEPLOYMENT_NAME;
+        return Environment.APICURIO_OLM_DEPLOYMENT_NAME;
     }
 
     @Override
@@ -295,25 +295,25 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         }
 
-        createCatalogSourceNamespace(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
+        createCatalogSourceNamespace(Environment.apicurioOLMCatalogSourceNamespace);
 
-        createCatalogSource(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(), OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace());
+        createCatalogSource(Environment.apicurioOLMCatalogSourceName, Environment.apicurioOLMCatalogSourceNamespace);
 
         if(!isClusterWide) {
-            operatorGroup = OperatorUtils.createOperatorGroup(OperatorUtils.getApicurioRegistryOLMOperatorGroupName(), operatorNamespace);
+            operatorGroup = OperatorUtils.createOperatorGroup(Environment.apicurioOLMOperatorGroupName, operatorNamespace);
         }
 
         LOGGER.info("TODO: Wait for package manifest to be available here?");
 
         subscription = OperatorUtils.createSubscription(
-                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionName(),
+                Environment.apicurioOLMSubscriptionName,
                 operatorNamespace,
-                OperatorUtils.getApicurioRegistryOLMOperatorPackage(),
-                OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceName(),
-                OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceNamespace(),
-                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionStartingCSV(),
-                OperatorUtils.getApicurioRegistryOLMOperatorSubscriptionChannel(),
-                OperatorUtils.getApicurioRegistryOLMOperatorInstallPlanApproval()
+                Environment.apicurioOLMSubscriptionPkg,
+                Environment.apicurioOLMCatalogSourceName,
+                Environment.apicurioOLMCatalogSourceNamespace,
+                Environment.apicurioOLMSubscriptionStartingCSV,
+                Environment.apicurioOLMSubscriptionChannel,
+                Environment.apicurioOLMSubscriptionPlanApproval
         );
 
         /**

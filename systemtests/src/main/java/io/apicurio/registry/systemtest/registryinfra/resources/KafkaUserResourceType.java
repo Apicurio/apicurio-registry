@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -94,10 +94,10 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     }
 
     public static KafkaUser getDefaultTLS() {
-        return getDefaultByKind("apicurio-registry-kafka-user-secured-tls", OperatorUtils.getStrimziOperatorNamespace(), "apicurio-registry-kafkasql-tls", KafkaKind.TLS);
+        return getDefaultByKind("apicurio-registry-kafka-user-secured-tls", Environment.strimziOperatorNamespace, "apicurio-registry-kafkasql-tls", KafkaKind.TLS);
     }
 
     public static KafkaUser getDefaultSCRAM() {
-        return getDefaultByKind("apicurio-registry-kafka-user-secured-scram", OperatorUtils.getStrimziOperatorNamespace(), "apicurio-registry-kafkasql-scram", KafkaKind.SCRAM);
+        return getDefaultByKind("apicurio-registry-kafka-user-secured-scram", Environment.strimziOperatorNamespace, "apicurio-registry-kafkasql-scram", KafkaKind.SCRAM);
     }
 }

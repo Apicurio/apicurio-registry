@@ -7,6 +7,14 @@ import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class ApicurioRegistryUtils {
+    public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext, Kafka kafka) {
+        // Get Apicurio Registry
+        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-no-auth-instance", OperatorUtils.getStrimziOperatorNamespace());
+
+        // Create Apicurio Registry without authentication
+        ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlNoAuth);
+    }
+
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-tls-instance", OperatorUtils.getStrimziOperatorNamespace());

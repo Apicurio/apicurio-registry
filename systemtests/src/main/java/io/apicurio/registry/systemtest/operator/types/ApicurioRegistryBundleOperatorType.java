@@ -44,7 +44,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(System.getenv().getOrDefault(Constants.APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_ENV_VARIABLE, Constants.APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_DEFAULT_VALUE));
+        super(System.getenv().getOrDefault(Constants.APICURIO_BUNDLE_SOURCE_PATH_ENV_VAR, Constants.APICURIO_BUNDLE_SOURCE_PATH_DEFAULT));
 
         operatorNamespace = OperatorUtils.getApicurioRegistryOperatorNamespace();
 

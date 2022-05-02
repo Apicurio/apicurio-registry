@@ -34,7 +34,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if(isClusterWide) {
             // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.APICURIO_REGISTRY_OLM_OPERATOR_CLUSTER_WIDE_NAMESPACE;
+            this.operatorNamespace = Constants.APICURIO_OLM_CLUSTER_WIDE_NAMESPACE;
         } else {
             this.operatorNamespace = operatorNamespace;
         }
@@ -275,7 +275,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public String getDeploymentName() {
-        return Constants.APICURIO_REGISTRY_OLM_OPERATOR_DEPLOYMENT_NAME;
+        return Constants.APICURIO_OLM_DEPLOYMENT_NAME;
     }
 
     @Override

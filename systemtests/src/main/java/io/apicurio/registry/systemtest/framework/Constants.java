@@ -1,47 +1,53 @@
 package io.apicurio.registry.systemtest.framework;
 
 public final class Constants {
-    public static final String TESTSUITE_DIRECTORY_ENV_VARIABLE = "TESTSUITE_DIRECTORY";
-    public static final String APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_ENV_VARIABLE = "APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH";
-    public static final String APICURIO_REGISTRY_BUNDLE_OPERATOR_SOURCE_PATH_DEFAULT_VALUE = "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
-    public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_ENV_VARIABLE = "APICURIO_REGISTRY_OPERATOR_NAMESPACE";
-    public static final String APICURIO_REGISTRY_OPERATOR_NAMESPACE_DEFAULT_VALUE = "apicurio-registry-operator-namespace";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_DEPLOYMENT_NAME = "apicurio-registry-operator";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_NAME_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_NAME";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_NAME_DEFAULT_VALUE = "keycloak-operator";
-    public static final String KEYCLOAK_OLM_OPERATOR_CATALOG_SOURCE_NAME_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_CATALOG_SOURCE_NAME";
-    public static final String KEYCLOAK_OLM_OPERATOR_CATALOG_SOURCE_NAME_DEFAULT_VALUE = "community-operators";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_NAME";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE = "keycloak-subscription";
-    public static final String KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME";
-    public static final String KEYCLOAK_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE = "keycloak-operator-group";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE = "KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL";
-    public static final String KEYCLOAK_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE = "Automatic";
-    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
+    /** Apicurio Registry */
+    public static final String APICURIO_BUNDLE_SOURCE_PATH_DEFAULT = "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
+    public static final String APICURIO_BUNDLE_SOURCE_PATH_ENV_VAR = "APICURIO_BUNDLE_SOURCE_PATH";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_IMAGE_ENV_VAR = "APICURIO_OLM_CATALOG_SOURCE_IMAGE";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT = "openshift-marketplace";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_ENV_VAR = "APICURIO_OLM_CATALOG_SOURCE_NAMESPACE";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_NAME_DEFAULT = "apicurio-registry-catalog-source";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_NAME_ENV_VAR = "APICURIO_OLM_CATALOG_SOURCE_NAME";
+    public static final String APICURIO_OLM_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
+    public static final String APICURIO_OLM_DEPLOYMENT_NAME = "apicurio-registry-operator";
+    public static final String APICURIO_OLM_OPERATOR_GROUP_NAME_DEFAULT = "apicurio-registry-operator-group";
+    public static final String APICURIO_OLM_OPERATOR_GROUP_NAME_ENV_VAR = "APICURIO_OLM_OPERATOR_GROUP_NAME";
+    public static final String APICURIO_OLM_SUBSCRIPTION_CHANNEL_ENV_VAR = "APICURIO_OLM_SUBSCRIPTION_CHANNEL";
+    public static final String APICURIO_OLM_SUBSCRIPTION_NAME_DEFAULT = "apicurio-registry-subscription";
+    public static final String APICURIO_OLM_SUBSCRIPTION_NAME_ENV_VAR = "APICURIO_OLM_SUBSCRIPTION_NAME";
+    public static final String APICURIO_OLM_SUBSCRIPTION_PKG_ENV_VAR = "APICURIO_OLM_SUBSCRIPTION_PKG";
+    public static final String APICURIO_OLM_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT = "Automatic";
+    public static final String APICURIO_OLM_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR = "APICURIO_OLM_SUBSCRIPTION_PLAN_APPROVAL";
+    public static final String APICURIO_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR = "APICURIO_OLM_SUBSCRIPTION_STARTING_CSV";
+    public static final String APICURIO_OPERATOR_NAMESPACE_DEFAULT = "apicurio-registry-operator-namespace";
+    public static final String APICURIO_OPERATOR_NAMESPACE_ENV_VAR = "APICURIO_OPERATOR_NAMESPACE";
 
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_OPERATOR_GROUP_NAME_DEFAULT_VALUE = "apicurio-registry-operator-group";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_IMAGE";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAMESPACE_DEFAULT_VALUE = "openshift-marketplace";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_CATALOG_SOURCE_NAME_DEFAULT_VALUE = "apicurio-registry-catalog-source";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_INSTALL_PLAN_APPROVAL_DEFAULT_VALUE = "Automatic";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_CHANNEL";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_STARTING_CSV";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_PACKAGE_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_PACKAGE";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_ENV_VARIABLE = "APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME";
-    public static final String APICURIO_REGISTRY_OLM_OPERATOR_SUBSCRIPTION_NAME_DEFAULT_VALUE = "apicurio-registry-subscription";
-
-    public static final String STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH_ENV_VARIABLE = "STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH";
-    public static final String STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH_DEFAULT_VALUE = "https://strimzi.io/install/latest?namespace=strimzi-cluster-operator-namespace";
-    public static final String STRIMZI_CLUSTER_OPERATOR_NAMESPACE_ENV_VARIABLE = "STRIMZI_CLUSTER_OPERATOR_NAMESPACE";
-    public static final String STRIMZI_CLUSTER_OPERATOR_NAMESPACE_DEFAULT_VALUE = "strimzi-cluster-operator-namespace";
-
-    public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
+    /** Converters */
     public static final String CONVERTERS_SHA512SUM_ENV_VAR = "CONVERTERS_SHA512SUM";
+    public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
+
+    /** Keycloak */
+    public static final String KEYCLOAK_CATALOG_SOURCE_NAME_DEFAULT = "community-operators";
+    public static final String KEYCLOAK_CATALOG_SOURCE_NAME_ENV_VAR = "KEYCLOAK_CATALOG_SOURCE_NAME";
+    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
+    public static final String KEYCLOAK_OPERATOR_GROUP_NAME_DEFAULT = "keycloak-operator-group";
+    public static final String KEYCLOAK_OPERATOR_GROUP_NAME_ENV_VAR = "KEYCLOAK_OPERATOR_GROUP_NAME";
+    public static final String KEYCLOAK_SUBSCRIPTION_NAME_DEFAULT = "keycloak-subscription";
+    public static final String KEYCLOAK_SUBSCRIPTION_NAME_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_NAME";
+    public static final String KEYCLOAK_SUBSCRIPTION_PKG_DEFAULT = "keycloak-operator";
+    public static final String KEYCLOAK_SUBSCRIPTION_PKG_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_PKG_NAME";
+    public static final String KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT = "Automatic";
+    public static final String KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL";
+
+    /** Strimzi */
+    public static final String STRIMZI_OPERATOR_NAMESPACE_DEFAULT = "strimzi-cluster-operator-namespace";
+    public static final String STRIMZI_OPERATOR_NAMESPACE_ENV_VAR = "STRIMZI_OPERATOR_NAMESPACE";
+    public static final String STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT = "https://strimzi.io/install/latest?namespace=strimzi-cluster-operator-namespace";
+    public static final String STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR = "STRIMZI_OPERATOR_SOURCE_PATH";
+
+    /** Test suite */
+    public static final String TESTSUITE_DIRECTORY_ENV_VAR = "TESTSUITE_DIRECTORY";
 
     // TODO: Move other constants here too.
     // PostgreSQL port

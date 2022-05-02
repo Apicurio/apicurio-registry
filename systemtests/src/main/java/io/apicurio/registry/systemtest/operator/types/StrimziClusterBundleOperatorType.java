@@ -44,7 +44,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(System.getenv().getOrDefault(Constants.STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH_ENV_VARIABLE, Constants.STRIMZI_CLUSTER_OPERATOR_SOURCE_PATH_DEFAULT_VALUE));
+        super(System.getenv().getOrDefault(Constants.STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR, Constants.STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT));
 
         operatorNamespace = OperatorUtils.getStrimziOperatorNamespace();
 

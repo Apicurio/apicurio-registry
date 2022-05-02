@@ -18,7 +18,7 @@ public class Utils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static String getTestsuiteDirectory() {
-        return System.getenv().get(Constants.TESTSUITE_DIRECTORY_ENV_VARIABLE);
+        return System.getenv().get(Constants.TESTSUITE_DIRECTORY_ENV_VAR);
     }
 
     public static boolean waitStatefulSetReady(String namespace, String name) {

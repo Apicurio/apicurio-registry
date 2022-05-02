@@ -40,6 +40,9 @@ public final class Constants {
     public static final String STRIMZI_CLUSTER_OPERATOR_NAMESPACE_ENV_VARIABLE = "STRIMZI_CLUSTER_OPERATOR_NAMESPACE";
     public static final String STRIMZI_CLUSTER_OPERATOR_NAMESPACE_DEFAULT_VALUE = "strimzi-cluster-operator-namespace";
 
+    public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
+    public static final String CONVERTERS_SHA512SUM_ENV_VAR = "CONVERTERS_SHA512SUM";
+
     // TODO: Move other constants here too.
     // PostgreSQL port
     // PostgreSQL username

@@ -954,4 +954,9 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return delegate.isArtifactExists(groupId, artifactId);
     }
+
+    @Override
+    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
+        return delegate.getArtifactContentIds(groupId, artifactId);
+    }
 }

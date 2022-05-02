@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 
 import org.apache.avro.AvroTypeException;
@@ -25,9 +26,9 @@ import org.apache.avro.SchemaValidationException;
 import org.apache.avro.SchemaValidator;
 import org.apache.avro.SchemaValidatorBuilder;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -37,14 +38,11 @@ import static java.util.Objects.requireNonNull;
  */
 public class AvroCompatibilityChecker implements CompatibilityChecker {
 
-    /**
-     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
-     */
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemaStrings, String proposedSchemaString) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
-        requireNonNull(existingSchemaStrings, "existingSchemaStrings MUST NOT be null");
-        requireNonNull(proposedSchemaString, "proposedSchemaString MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingSchemaStrings MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedSchemaString MUST NOT be null");
 
         SchemaValidator schemaValidator = validatorFor(compatibilityLevel);
 
@@ -53,17 +51,17 @@ public class AvroCompatibilityChecker implements CompatibilityChecker {
         }
 
         try {
-            List<Schema> existingSchemas = existingSchemaStrings.stream().map(s -> new Schema.Parser().parse(s)).collect(Collectors.toList());
+            final List<Schema> existingSchemas = new ArrayList<>();
+            existingArtifacts.forEach(contentHandle -> existingSchemas.add(new Schema.Parser().parse(contentHandle.content())));
             Collections.reverse(existingSchemas); // the most recent must come first, i.e. reverse-chronological.
-            Schema toValidate = new Schema.Parser().parse(proposedSchemaString);
+            Schema toValidate = new Schema.Parser().parse(proposedArtifact.content());
             schemaValidator.validate(toValidate, existingSchemas);
             return CompatibilityExecutionResult.compatible();
         } catch (SchemaValidationException e) {
             return CompatibilityExecutionResult.incompatible(e);
         } catch (SchemaParseException | AvroTypeException e) {
             throw new UnprocessableSchemaException(e.getMessage());
-        }
-    }
+        }    }
 
     private SchemaValidator validatorFor(CompatibilityLevel compatibilityLevel) {
         switch (compatibilityLevel) {

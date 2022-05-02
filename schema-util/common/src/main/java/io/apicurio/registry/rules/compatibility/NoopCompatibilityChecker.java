@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.rules.compatibility;
 
+import io.apicurio.registry.content.ContentHandle;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -27,13 +29,13 @@ public class NoopCompatibilityChecker implements CompatibilityChecker {
     public static CompatibilityChecker INSTANCE = new NoopCompatibilityChecker();
 
     /**
-     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
+     * @see CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, ContentHandle)
      */
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
-        requireNonNull(existingSchemas, "existingSchemas MUST NOT be null");
-        requireNonNull(proposedSchema, "proposedSchema MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
         return CompatibilityExecutionResult.compatible();
     }
 }

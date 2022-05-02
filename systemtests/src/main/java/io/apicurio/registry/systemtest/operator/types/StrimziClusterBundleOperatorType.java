@@ -68,7 +68,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     @Override
-    public String getKind() {
+    public OperatorKind getKind() {
         return OperatorKind.STRIMZI_CLUSTER_BUNDLE_OPERATOR;
     }
 

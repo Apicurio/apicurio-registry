@@ -264,7 +264,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     @Override
-    public String getKind() {
+    public OperatorKind getKind() {
         return OperatorKind.APICURIO_REGISTRY_OLM_OPERATOR;
     }
 

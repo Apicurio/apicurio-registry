@@ -26,7 +26,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     }
 
     @Override
-    public String getKind() {
+    public OperatorKind getKind() {
         return OperatorKind.KEYCLOAK_OLM_OPERATOR;
     }
 

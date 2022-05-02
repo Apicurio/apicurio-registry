@@ -3,7 +3,7 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 
 public interface OperatorType {
-    String getKind();
+    OperatorKind getKind();
 
     String getNamespaceName();
 

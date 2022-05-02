@@ -78,8 +78,8 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
                     .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName))
                 .endMetadata()
                 .withNewSpec()
-                    .withPartitions(1)
-                    .withReplicas(1)
+                    .withPartitions(3)
+                    .withReplicas(3)
                     .withConfig(new HashMap<>() {{
                         put("retention.ms", 7200000);
                         put("segment.bytes", 1073741824);

@@ -85,7 +85,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
                     .withNewSpec()
                         .withNewKafka()
                             .withVersion("3.1.0")
-                            .withReplicas(1)
+                            .withReplicas(3)
                             .withListeners(new GenericKafkaListener() {{
                                 setName("plain");
                                 setPort(9092);
@@ -126,7 +126,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
                     .withNewSpec()
                         .withNewKafka()
                             .withVersion("3.1.0")
-                            .withReplicas(1)
+                            .withReplicas(3)
                             .withListeners(
                                     new GenericKafkaListener() {{
                                         setName("plain");

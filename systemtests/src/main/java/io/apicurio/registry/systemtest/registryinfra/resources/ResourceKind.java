@@ -9,6 +9,7 @@ public interface ResourceKind {
     String KAFKA = "Kafka";
     String KAFKA_TOPIC = "KafkaTopic";
     String KAFKA_USER = "KafkaUser";
+    String KAFKA_CONNECT = "KafkaConnect";
     String ROUTE = "Route";
     String SECRET = "Secret";
 }

@@ -13,7 +13,9 @@ import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
 import io.strimzi.api.kafka.model.Kafka;
+import io.strimzi.api.kafka.model.KafkaConnect;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -295,6 +297,33 @@ public class SimpleTestsIT extends TestBase {
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
             ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafkasqlScram);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testCreateKafkaConnect(ExtensionContext testContext) {
+        try {
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType();
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+
+            Kafka kafkasqlNoAuth = KafkaUtils.deployDefaultKafkaNoAuth(testContext);
+
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(OperatorUtils.getApicurioRegistryOLMOperatorCatalogSourceImage(), null, true);
+
+            operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
+
+            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, kafkasqlNoAuth);
+
+            KafkaConnect kafkaConnect = KafkaConnectResourceType.getDefault();
+
+            resourceManager.createResource(testContext, true, kafkaConnect);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

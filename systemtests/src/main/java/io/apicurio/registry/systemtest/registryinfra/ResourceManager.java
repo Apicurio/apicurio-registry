@@ -7,6 +7,7 @@ import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaTopicResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaUserResourceType;
@@ -56,6 +57,7 @@ public class ResourceManager {
             new KafkaResourceType(),
             new KafkaTopicResourceType(),
             new KafkaUserResourceType(),
+            new KafkaConnectResourceType(),
             new RouteResourceType(),
             new SecretResourceType()
     };

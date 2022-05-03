@@ -32,6 +32,12 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+                    <groupId>org.jboss.spec.javax.ws.rs</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

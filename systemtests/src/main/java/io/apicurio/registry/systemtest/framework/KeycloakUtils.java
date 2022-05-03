@@ -14,12 +14,8 @@ import org.slf4j.Logger;
 import java.nio.file.Paths;
 import java.time.Duration;
 
-public class Utils {
+public class KeycloakUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
-
-    public static String getTestsuiteDirectory() {
-        return System.getenv().get(Environment.TESTSUITE_DIRECTORY_ENV_VAR);
-    }
 
     public static boolean waitStatefulSetReady(String namespace, String name) {
         return waitStatefulSetReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
@@ -62,7 +58,7 @@ public class Utils {
 
     public static void deployKeycloak(ExtensionContext testContext, String namespace) {
         // Deploy Keycloak server
-        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", Paths.get(Utils.getTestsuiteDirectory(), "kubefiles", "keycloak", "keycloak.yaml").toString());
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", Paths.get(Environment.testsuiteDirectory, "kubefiles", "keycloak", "keycloak.yaml").toString());
 
         // Wait for Keycloak server to be ready
         waitStatefulSetReady(namespace, "keycloak");
@@ -77,13 +73,13 @@ public class Utils {
         LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
 
         // Create Keycloak Realm
-        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", Paths.get(Utils.getTestsuiteDirectory(), "kubefiles", "keycloak", "keycloak-realm.yaml").toString());
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", Paths.get(Environment.testsuiteDirectory, "kubefiles", "keycloak", "keycloak-realm.yaml").toString());
     }
 
     public static void removeKeycloak(String namespace) {
-        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f", Paths.get(Utils.getTestsuiteDirectory(), "kubefiles", "keycloak", "keycloak-realm.yaml").toString());
+        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f", Paths.get(Environment.testsuiteDirectory, "kubefiles", "keycloak", "keycloak-realm.yaml").toString());
 
-        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f", Paths.get(Utils.getTestsuiteDirectory(), "kubefiles", "keycloak", "keycloak.yaml").toString());
+        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f", Paths.get(Environment.testsuiteDirectory, "kubefiles", "keycloak", "keycloak.yaml").toString());
     }
 
     public static String getKeycloakURL(String namespace, String name) {

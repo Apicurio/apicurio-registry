@@ -93,9 +93,9 @@ public class KafkaResourceType implements ResourceType<Kafka> {
                                 setTls(false);
                             }})
                             .withConfig(new HashMap<>() {{
-                                put("offsets.topic.replication.factor", 1);
-                                put("transaction.state.log.replication.factor", 1);
-                                put("transaction.state.log.min.isr", 1);
+                                put("offsets.topic.replication.factor", 3);
+                                put("transaction.state.log.replication.factor", 3);
+                                put("transaction.state.log.min.isr", 2);
                             }})
                             .withStorage(new PersistentClaimStorage() {{
                                 setSize("100Gi");
@@ -143,9 +143,9 @@ public class KafkaResourceType implements ResourceType<Kafka> {
                                     }}
                             )
                             .withConfig(new HashMap<>() {{
-                                put("offsets.topic.replication.factor", 1);
-                                put("transaction.state.log.replication.factor", 1);
-                                put("transaction.state.log.min.isr", 1);
+                                put("offsets.topic.replication.factor", 3);
+                                put("transaction.state.log.replication.factor", 3);
+                                put("transaction.state.log.min.isr", 2);
                             }})
                             .withStorage(new PersistentClaimStorage() {{
                                 setSize("100Gi");

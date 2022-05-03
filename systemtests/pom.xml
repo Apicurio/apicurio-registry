@@ -21,6 +21,7 @@
         <version.slf4.simple>1.7.36</version.slf4.simple>
         <version.strimzi.api>0.28.0</version.strimzi.api>
         <version.eclipse.jgit>6.1.0.202203080745-r</version.eclipse.jgit>
+        <version.org.json>20220320</version.org.json>
     </properties>
 
     <dependencies>
@@ -87,6 +88,11 @@
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
             <version>${version.eclipse.jgit}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>${version.org.json}</version>
         </dependency>
     </dependencies>
 

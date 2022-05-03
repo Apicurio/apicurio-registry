@@ -1,6 +1,8 @@
 package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.systemtest.client.ApicurioRegistryApiClient;
+import io.apicurio.registry.systemtest.client.ArtifactType;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.Environment;
@@ -17,6 +19,7 @@ import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryR
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
 import io.strimzi.api.kafka.model.Kafka;
 import io.strimzi.api.kafka.model.KafkaConnect;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -25,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -389,6 +394,43 @@ public class SimpleTestsIT extends TestBase {
             e.printStackTrace();
         } finally {
             operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    @Disabled
+    public void testApicurioRegistryApiClient(ExtensionContext testContext) throws URISyntaxException, IOException, InterruptedException {
+        ApicurioRegistryApiClient apicurioRegistryApiClient = new ApicurioRegistryApiClient("<hostname>", "80");
+
+        String artifactGroup = "artifact-group";
+        String artifactId = "artifact-id";
+        String artifactData = new JSONObject()
+                .put("type", "record")
+                .put("name", "price")
+                .toString();
+
+        TEST_LOGGER.info("=== List artifacts ===");
+        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+            TEST_LOGGER.info(s);
+        }
+
+        TEST_LOGGER.info("=== Create artifact " + artifactGroup + "/" + artifactId + " with data=" + artifactData + " ===");
+        apicurioRegistryApiClient.createArtifact(artifactGroup, artifactId, ArtifactType.AVRO, artifactData);
+
+        TEST_LOGGER.info("=== List artifacts ===");
+        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+            TEST_LOGGER.info(s);
+        }
+
+        TEST_LOGGER.info("=== Read artifact " + artifactGroup + "/" + artifactId + " ===");
+        TEST_LOGGER.info(apicurioRegistryApiClient.readArtifact(artifactGroup, artifactId));
+
+        TEST_LOGGER.info("=== Delete artifact " + artifactGroup + "/" + artifactId + " ===");
+        apicurioRegistryApiClient.deleteArtifact(artifactGroup, artifactId);
+
+        TEST_LOGGER.info("=== List artifacts ===");
+        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+            TEST_LOGGER.info(s);
         }
     }
 

@@ -135,7 +135,7 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
-    public void testInstallStrimziClusterBundleOperatorGitHubRepo(ExtensionContext testContext) {
+    public void testInstallStrimziClusterBundleOperatorGitHubRepoFirst(ExtensionContext testContext) {
         try {
             // Ability to install bundle operator from GitHub repository,
             // source should contain repository URL and path to operator files inside repository,
@@ -147,6 +147,22 @@ public class SimpleTestsIT extends TestBase {
             e.printStackTrace();
         } finally {
             operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testInstallStrimziClusterBundleOperatorGitHubRepoSecond(ExtensionContext testContext) {
+        try {
+            // Ability to install bundle operator from GitHub repository,
+            // source should contain repository URL and path to operator files inside repository,
+            // these two parts are joined by semicolon
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType("https://github.com/strimzi/strimzi-kafka-operator;install/cluster-operator");
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // operatorManager.uninstallOperators(testContext);
         }
     }
 

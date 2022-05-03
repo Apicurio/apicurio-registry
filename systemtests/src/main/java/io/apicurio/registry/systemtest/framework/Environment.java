@@ -20,27 +20,45 @@ public final class Environment {
     public static final String KEYCLOAK_SUBSCRIPTION_NAME_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_NAME";
     public static final String KEYCLOAK_SUBSCRIPTION_PKG_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_PKG_NAME";
     public static final String KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR = "KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL";
+    public static final String STRIMZI_OLM_CATALOG_SOURCE_NAME_ENV_VAR = "STRIMZI_OLM_CATALOG_SOURCE_NAME";
+    public static final String STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE_ENV_VAR = "STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE";
+    public static final String STRIMZI_OLM_DEPLOYMENT_NAME_ENV_VAR = "STRIMZI_OLM_DEPLOYMENT_NAME";
+    public static final String STRIMZI_OLM_OPERATOR_GROUP_NAME_ENV_VAR = "STRIMZI_OLM_OPERATOR_GROUP_NAME";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_CHANNEL_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_CHANNEL";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_NAME_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_NAME";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_PKG_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_PKG";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV";
     public static final String STRIMZI_OPERATOR_NAMESPACE_ENV_VAR = "STRIMZI_OPERATOR_NAMESPACE";
     public static final String STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR = "STRIMZI_OPERATOR_SOURCE_PATH";
     public static final String TESTSUITE_DIRECTORY_ENV_VAR = "TESTSUITE_DIRECTORY";
 
     /** Default values */
+    public static final String APICURIO_BUNDLE_SOURCE_PATH_DEFAULT = "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
     public static final String APICURIO_OLM_CATALOG_SOURCE_NAME_DEFAULT = "apicurio-registry-catalog-source";
     public static final String APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT = "openshift-marketplace";
+    public static final String APICURIO_OLM_DEPLOYMENT_NAME = "apicurio-registry-operator";
     public static final String APICURIO_OLM_OPERATOR_GROUP_NAME_DEFAULT = "apicurio-registry-operator-group";
     public static final String APICURIO_OLM_SUBSCRIPTION_NAME_DEFAULT = "apicurio-registry-subscription";
     public static final String APICURIO_OLM_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT = "Automatic";
     public static final String APICURIO_OPERATOR_NAMESPACE_DEFAULT = "apicurio-registry-operator-namespace";
     public static final String KEYCLOAK_CATALOG_SOURCE_NAME_DEFAULT = "community-operators";
+    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
     public static final String KEYCLOAK_OPERATOR_GROUP_NAME_DEFAULT = "keycloak-operator-group";
     public static final String KEYCLOAK_SUBSCRIPTION_NAME_DEFAULT = "keycloak-subscription";
     public static final String KEYCLOAK_SUBSCRIPTION_PKG_DEFAULT = "keycloak-operator";
     public static final String KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT = "Automatic";
+    public static final String OLM_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
+    public static final String STRIMZI_OLM_CATALOG_SOURCE_NAME_DEFAULT = "community-operators";
+    public static final String STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT = "openshift-marketplace";
+    public static final String STRIMZI_OLM_DEPLOYMENT_NAME_DEFAULT = "strimzi-cluster-operator";
+    public static final String STRIMZI_OLM_OPERATOR_GROUP_NAME_DEFAULT = "strimzi-operator-group";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_CHANNEL_DEFAULT = "stable";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_NAME_DEFAULT = "strimzi-subscription";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_PKG_DEFAULT = "strimzi-kafka-operator";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT = "Automatic";
+    public static final String STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT = "";
     public static final String STRIMZI_OPERATOR_NAMESPACE_DEFAULT = "strimzi-cluster-operator-namespace";
-    public static final String APICURIO_BUNDLE_SOURCE_PATH_DEFAULT = "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
-    public static final String APICURIO_OLM_CLUSTER_WIDE_NAMESPACE = "openshift-operators";
-    public static final String APICURIO_OLM_DEPLOYMENT_NAME = "apicurio-registry-operator";
-    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
     public static final String STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT = "https://strimzi.io/install/latest?namespace=strimzi-cluster-operator-namespace";
 
     /** Collecting variables */
@@ -61,6 +79,15 @@ public final class Environment {
     public static final String keycloakSubscriptionName = System.getenv().getOrDefault(KEYCLOAK_SUBSCRIPTION_NAME_ENV_VAR, KEYCLOAK_SUBSCRIPTION_NAME_DEFAULT);
     public static final String keycloakSubscriptionPkg = System.getenv().getOrDefault(KEYCLOAK_SUBSCRIPTION_PKG_ENV_VAR, KEYCLOAK_SUBSCRIPTION_PKG_DEFAULT);
     public static final String keycloakSubscriptionPlanApproval = System.getenv().getOrDefault(KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR, KEYCLOAK_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT);
+    public static final String strimziOLMCatalogSourceName = System.getenv().getOrDefault(STRIMZI_OLM_CATALOG_SOURCE_NAME_ENV_VAR, STRIMZI_OLM_CATALOG_SOURCE_NAME_DEFAULT);
+    public static final String strimziOLMCatalogSourceNamespace = System.getenv().getOrDefault(STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE_ENV_VAR, STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT);
+    public static final String strimziOLMDeploymentName = System.getenv().getOrDefault(STRIMZI_OLM_DEPLOYMENT_NAME_ENV_VAR, STRIMZI_OLM_DEPLOYMENT_NAME_DEFAULT);
+    public static final String strimziOLMOperatorGroupName = System.getenv().getOrDefault(STRIMZI_OLM_OPERATOR_GROUP_NAME_ENV_VAR, STRIMZI_OLM_OPERATOR_GROUP_NAME_DEFAULT);
+    public static final String strimziOLMSubscriptionChannel = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_CHANNEL_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_CHANNEL_DEFAULT);
+    public static final String strimziOLMSubscriptionName = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_NAME_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_NAME_DEFAULT);
+    public static final String strimziOLMSubscriptionPkg = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_PKG_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_PKG_DEFAULT);
+    public static final String strimziOLMSubscriptionPlanApproval = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT);
+    public static final String strimziOLMSubscriptionStartingCSV = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT);
     public static final String strimziOperatorNamespace = System.getenv().getOrDefault(STRIMZI_OPERATOR_NAMESPACE_ENV_VAR, STRIMZI_OPERATOR_NAMESPACE_DEFAULT);
 
     // TODO: Move other constants here too.

@@ -34,7 +34,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if(isClusterWide) {
             // Static set of cluster wide operator namespace
-            this.operatorNamespace = Environment.APICURIO_OLM_CLUSTER_WIDE_NAMESPACE;
+            this.operatorNamespace = Environment.OLM_CLUSTER_WIDE_NAMESPACE;
         } else {
             this.operatorNamespace = operatorNamespace;
         }

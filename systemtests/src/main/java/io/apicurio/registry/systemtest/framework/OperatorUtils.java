@@ -12,16 +12,27 @@ import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OperatorUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
+
+    public static List<String> listFiles(Path directory) throws IOException {
+        return Files.list(directory)
+                .filter(file -> !Files.isDirectory(file))
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .collect(Collectors.toList());
+    }
 
     public static Deployment findDeployment(List<HasMetadata> resourceList) {
         for (HasMetadata r : resourceList) {

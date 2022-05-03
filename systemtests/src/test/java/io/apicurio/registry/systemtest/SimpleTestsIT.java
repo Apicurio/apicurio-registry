@@ -5,8 +5,8 @@ import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.KafkaUtils;
+import io.apicurio.registry.systemtest.framework.KeycloakUtils;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.framework.Utils;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOperatorType;
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
@@ -135,6 +135,22 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    public void testInstallStrimziClusterBundleOperatorGitHubRepo(ExtensionContext testContext) {
+        try {
+            // Ability to install bundle operator from GitHub repository,
+            // source should contain repository URL and path to operator files inside repository,
+            // these two parts are joined by semicolon
+            StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType("https://github.com/jboss-container-images/amqstreams-1-openshift-image;install/cluster-operator");
+
+            operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
     public void testInstallApicurioRegistry(ExtensionContext testContext) {
         try {
             ApicurioRegistryBundleOperatorType testOperator = new ApicurioRegistryBundleOperatorType("http://radimkubis.cz/apicurio_install.yaml");
@@ -247,11 +263,11 @@ public class SimpleTestsIT extends TestBase {
             // Operator should be ready here
             TEST_LOGGER.info(Kubernetes.getClient().apps().deployments().inNamespace(keycloakOLMOperatorType.getNamespaceName()).withName(keycloakOLMOperatorType.getDeploymentName()).get().getStatus().getConditions().toString());
 
-            Utils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
+            KeycloakUtils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
 
             // Keycloak should be deployed here
 
-            Utils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+            KeycloakUtils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

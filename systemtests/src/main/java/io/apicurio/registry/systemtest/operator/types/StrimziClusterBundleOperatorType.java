@@ -7,9 +7,16 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.Subject;
+import org.eclipse.jgit.api.Git;
 
 import java.io.FileInputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 public class StrimziClusterBundleOperatorType extends Operator implements OperatorType {
@@ -21,17 +28,62 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
         LOGGER.info("Loading operator resources from file " + source + "...");
 
         if(source.startsWith("http://") || source.startsWith("https://")) {
-            String tmpPath = "/tmp/strimzi-cluster-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml";
+            if(source.startsWith("https://github.com/")) {
+                // Get timestamp
+                String timestamp = String.valueOf(Instant.now().getEpochSecond());
+                // Split source string to two values: repo-URL and operator-files-path
+                String sourceParts[] = source.split(";");
+                // Get repo URL
+                String repoUrl = sourceParts[0];
+                // Get path to operator files inside repo
+                String operatorFilesPath = sourceParts[1];
+                // Get path to clone of repo
+                Path repoClonePath = Paths.get(Environment.tempPath, "strimzi-bundle-repo-" + timestamp);
+                // Clone repo from repo URL to clone repo path
+                Git.cloneRepository()
+                        .setURI(repoUrl) // Repo URL
+                        .setDirectory(repoClonePath.toFile()) // Repo clone path
+                        .call(); // Run cloning
+                // Get list of files in operator files path
+                List<String> operatorFiles = OperatorUtils.listFiles(Paths.get(repoClonePath.toString(), operatorFilesPath));
+                // Initialize operator resources
+                operatorResources = new ArrayList<>();
+                // Load operator files to operator resources
+                for(String file : operatorFiles) {
+                    // Load one operator file and add all resources from file to operator resources
+                    operatorResources.addAll(Kubernetes.getClient().load(new FileInputStream(Paths.get(repoClonePath.toString(), operatorFilesPath, file).toString())).get());
+                }
+                // Go through all loaded operator resources
+                for(HasMetadata resource : operatorResources) {
+                    // If resource is RoleBinding
+                    if(resource.getKind().equals("RoleBinding")) {
+                        // Iterate over all subjects in this RoleBinding
+                        for(Subject s: ((RoleBinding) resource).getSubjects()) {
+                            // Change namespace of subject to operator namespace
+                            s.setNamespace(operatorNamespace);
+                        }
+                    // If resource is ClusterRoleBinding
+                    } else if(resource.getKind().equals("ClusterRoleBinding")) {
+                        // Iterate over all subjects in this ClusterRoleBinding
+                        for(Subject s : ((ClusterRoleBinding) resource).getSubjects()) {
+                            // Change namespace of subject to operator namespace
+                            s.setNamespace(operatorNamespace);
+                        }
+                    }
+                }
+            } else {
+                String tmpPath = Paths.get(Environment.tempPath, "strimzi-cluster-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml").toString();
 
-            LOGGER.info("Downloading file " + source + " to " + tmpPath + "...");
+                LOGGER.info("Downloading file " + source + " to " + tmpPath + "...");
 
-            OperatorUtils.downloadFile(source, tmpPath);
+                OperatorUtils.downloadFile(source, tmpPath);
 
-            LOGGER.info("Using file " + tmpPath + " to load operator resources...");
+                LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
+                operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
 
-            LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
+                LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
+            }
         } else if(source.endsWith(".yaml") || source.endsWith(".yml")) {
             LOGGER.info("Using file " + source + " to load operator resources...");
 

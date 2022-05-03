@@ -9,6 +9,7 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 
 import java.io.FileInputStream;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         LOGGER.info("Loading operator resources from file " + source + "...");
 
         if(source.startsWith("http://") || source.startsWith("https://")) {
-            String tmpPath = "/tmp/apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml";
+            String tmpPath = Paths.get(Environment.tempPath, "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml").toString();
 
             LOGGER.info("Downloading file " + source + " to " + tmpPath + "...");
 

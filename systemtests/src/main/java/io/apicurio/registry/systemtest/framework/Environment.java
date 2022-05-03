@@ -31,6 +31,7 @@ public final class Environment {
     public static final String STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR = "STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV";
     public static final String STRIMZI_OPERATOR_NAMESPACE_ENV_VAR = "STRIMZI_OPERATOR_NAMESPACE";
     public static final String STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR = "STRIMZI_OPERATOR_SOURCE_PATH";
+    public static final String TEMP_PATH_ENV_VAR = "TEMP_PATH";
     public static final String TESTSUITE_DIRECTORY_ENV_VAR = "TESTSUITE_DIRECTORY";
 
     /** Default values */
@@ -60,6 +61,7 @@ public final class Environment {
     public static final String STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT = "";
     public static final String STRIMZI_OPERATOR_NAMESPACE_DEFAULT = "strimzi-cluster-operator-namespace";
     public static final String STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT = "https://strimzi.io/install/latest?namespace=strimzi-cluster-operator-namespace";
+    public static final String TEMP_PATH_DEFAULT = "/tmp";
 
     /** Collecting variables */
     public static final String apicurioOLMCatalogSourceImage = System.getenv().get(APICURIO_OLM_CATALOG_SOURCE_IMAGE_ENV_VAR);
@@ -89,6 +91,9 @@ public final class Environment {
     public static final String strimziOLMSubscriptionPlanApproval = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_PLAN_APPROVAL_DEFAULT);
     public static final String strimziOLMSubscriptionStartingCSV = System.getenv().getOrDefault(STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR, STRIMZI_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT);
     public static final String strimziOperatorNamespace = System.getenv().getOrDefault(STRIMZI_OPERATOR_NAMESPACE_ENV_VAR, STRIMZI_OPERATOR_NAMESPACE_DEFAULT);
+    public static final String tempPath = System.getenv().getOrDefault(TEMP_PATH_ENV_VAR, TEMP_PATH_DEFAULT);
+    public static final String testsuiteDirectory = System.getenv().get(Environment.TESTSUITE_DIRECTORY_ENV_VAR);
+
 
     // TODO: Move other constants here too.
     // PostgreSQL port

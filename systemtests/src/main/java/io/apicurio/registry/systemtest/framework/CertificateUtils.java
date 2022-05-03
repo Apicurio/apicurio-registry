@@ -41,7 +41,7 @@ public class CertificateUtils {
     private static void createKeystore(String newKeystorePath, String newKeystorePassword, String publicKeyToImportPath, String privateKeyToImportPath, String hostname) {
         List<String> commands = List.of("openssl",  "pkcs12",  "-export",  "-in", publicKeyToImportPath, "-inkey", privateKeyToImportPath, "-name", hostname, "-password", "pass:" + newKeystorePassword, "-out", newKeystorePath);
 
-        Exec.executeAndCheck(commands, 60_000, true, true, Collections.singletonMap("RANDFILE", "/tmp/.rnd"));
+        Exec.executeAndCheck(commands, 60_000, true, true, Collections.singletonMap("RANDFILE", Paths.get(Environment.tempPath, ".rnd").toString()));
     }
 
     private static String getBase64DecodedSecretValue(String namespace, String name, String dataKey) {
@@ -94,8 +94,8 @@ public class CertificateUtils {
         LOGGER.info("Namespace: {}", namespace);
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
-        String caPath = "/tmp/ca-" + timestamp + ".crt";
-        String truststorePath = "/tmp/truststore-" + timestamp + ".p12";
+        String caPath = Paths.get(Environment.tempPath, "ca-" + timestamp + ".crt").toString();
+        String truststorePath = Paths.get(Environment.tempPath, "truststore-" + timestamp + ".p12").toString();
 
         String clusterCaCertificateSecretValue = getBase64DecodedSecretValue(namespace, clusterCaCertificateSecretName, "ca.crt");
 
@@ -122,9 +122,9 @@ public class CertificateUtils {
         }
 
         if(clientCertificateSecretName != null && !clientCertificateSecretName.equals("")) {
-            String userCertificatePath = "/tmp/user-" + timestamp + ".crt";
-            String userKeyPath = "/tmp/user-" + timestamp + ".key";
-            String keystorePath = "/tmp/keystore-" + timestamp + ".p12";
+            String userCertificatePath = Paths.get(Environment.tempPath, "user-" + timestamp + ".crt").toString();
+            String userKeyPath = Paths.get(Environment.tempPath, "user-" + timestamp + ".key").toString();
+            String keystorePath = Paths.get(Environment.tempPath, "keystore-" + timestamp + ".p12").toString();
             // TODO: Check necessary values to be set
             LOGGER.info("Preparing keystore...");
 

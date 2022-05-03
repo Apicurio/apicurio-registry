@@ -11,6 +11,7 @@ import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryBundleOper
 import io.apicurio.registry.systemtest.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.KeycloakOLMOperatorType;
 import io.apicurio.registry.systemtest.operator.types.StrimziClusterBundleOperatorType;
+import io.apicurio.registry.systemtest.operator.types.StrimziClusterOLMOperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
@@ -329,6 +330,32 @@ public class SimpleTestsIT extends TestBase {
         } finally {
             resourceManager.deleteResources(testContext);
 
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testInstallStrimziOLMOperatorClusterWide(ExtensionContext testContext) {
+        try {
+            StrimziClusterOLMOperatorType strimziClusterOLMOperatorTypeClusterWide = new StrimziClusterOLMOperatorType(null, null, true);
+
+            operatorManager.installOperator(testContext, strimziClusterOLMOperatorTypeClusterWide);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testInstallStrimziOLMOperatorNamespaced(ExtensionContext testContext) {
+        try {
+            StrimziClusterOLMOperatorType strimziClusterOLMOperatorTypeNamespaced = new StrimziClusterOLMOperatorType(null, "strimzi-olm-namespace", false);
+
+            operatorManager.installOperator(testContext, strimziClusterOLMOperatorTypeNamespaced);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
             operatorManager.uninstallOperators(testContext);
         }
     }

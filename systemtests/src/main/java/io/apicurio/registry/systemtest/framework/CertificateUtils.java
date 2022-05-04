@@ -5,6 +5,7 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -101,7 +102,7 @@ public class CertificateUtils {
 
         LOGGER.info("Preparing truststore...");
 
-        String truststorePassword = StringUtils.getRandom(32);
+        String truststorePassword = RandomStringUtils.randomAlphanumeric(32);
 
         writeContentToFile(clusterCaCertificateSecretValue, caPath);
 
@@ -128,7 +129,7 @@ public class CertificateUtils {
             // TODO: Check necessary values to be set
             LOGGER.info("Preparing keystore...");
 
-            String keystorePassword = StringUtils.getRandom(32);
+            String keystorePassword = RandomStringUtils.randomAlphanumeric(32);
 
             writeContentToFile(getBase64DecodedSecretValue(namespace, clientCertificateSecretName, "user.crt"), userCertificatePath);
             writeContentToFile(getBase64DecodedSecretValue(namespace, clientCertificateSecretName, "user.key"), userKeyPath);

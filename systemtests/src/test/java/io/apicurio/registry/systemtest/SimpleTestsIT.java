@@ -167,7 +167,7 @@ public class SimpleTestsIT extends TestBase {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            // operatorManager.uninstallOperators(testContext);
+            operatorManager.uninstallOperators(testContext);
         }
     }
 

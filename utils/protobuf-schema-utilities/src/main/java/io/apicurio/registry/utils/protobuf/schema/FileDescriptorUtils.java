@@ -47,6 +47,7 @@ import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import kotlin.ranges.IntRange;
+import metadata.ProtobufSchemaMetadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -157,7 +158,8 @@ public class FileDescriptorUtils {
             IntervalProto.getDescriptor().getFile(),
             ExprProto.getDescriptor().getFile(),
             QuaternionProto.getDescriptor().getFile(),
-            PostalAddressProto.getDescriptor().getFile()
+            PostalAddressProto.getDescriptor().getFile(),
+            ProtobufSchemaMetadata.getDescriptor().getFile()
         };
     }
 
@@ -379,8 +381,9 @@ public class FileDescriptorUtils {
             return isNotNested;
         }
 
-        //In case the package is not defined, we select the types that are not google types.
-        return !typeName.startsWith("google.type") && !typeName.startsWith("google.protobuf");
+        //In case the package is not defined, we select the types that are not google types or metadata types.
+        return !typeName.startsWith("google.type") && !typeName.startsWith("google.protobuf")
+            && !typeName.startsWith("metadata");
     }
 
     private static DescriptorProto messageElementToDescriptorProto(
@@ -457,9 +460,9 @@ public class FileDescriptorUtils {
                                     .build());
 
                     protobufMapMessage
-                            .addField(OPTIONAL, determineFieldType(keyType, schema), String.valueOf(keyType), KEY_FIELD, 1, null, null, null, null, null, null, null, null);
+                            .addField(OPTIONAL, determineFieldType(keyType, schema), String.valueOf(keyType), KEY_FIELD, 1, null, null, null, null, null, null, null, null, null, null);
                     protobufMapMessage
-                            .addField(OPTIONAL, determineFieldType(valueType, schema), String.valueOf(valueType), VALUE_FIELD, 2, null, null, null, null, null, null, null, null);
+                            .addField(OPTIONAL, determineFieldType(valueType, schema), String.valueOf(valueType), VALUE_FIELD, 2, null, null, null, null, null, null, null, null, null, null);
                     allNestedTypes.put(field.getLocation(), mapMessage.build());
                 }
 
@@ -471,10 +474,14 @@ public class FileDescriptorUtils {
                         .map(o -> DescriptorProtos.FieldOptions.CType.valueOf(o.getValue().toString())).orElse(null);
                 DescriptorProtos.FieldOptions.JSType jsType = findOption(JSTYPE_OPTION, field.getOptions())
                         .map(o -> DescriptorProtos.FieldOptions.JSType.valueOf(o.getValue().toString())).orElse(null);
+                String metadataKey = findOptionString(ProtobufSchemaMetadata.metadataKey.getDescriptor().getFullName(),
+                        field.getOptions());
+                String metadataValue = findOptionString(ProtobufSchemaMetadata.metadataValue.getDescriptor().getFullName(),
+                        field.getOptions());
 
                 allFields.add(ProtobufMessage.buildFieldDescriptorProto(
                         label, fieldType, fieldTypeName, field.getName(), field.getTag(), field.getDefault(),
-                        jsonName, isDeprecated, isPacked, cType, jsType, null, null));
+                        jsonName, isDeprecated, isPacked, cType, jsType, metadataKey, metadataValue, null, null));
             }
         }
 
@@ -515,6 +522,8 @@ public class FileDescriptorUtils {
                         oneOfIsPacked,
                         oneOfCType,
                         oneOfJsType,
+                        null,
+                        null,
                         message.protoBuilder().getOneofDeclCount() - 1,
                         isProto3OptionalField));
 
@@ -949,6 +958,18 @@ public class FileDescriptorUtils {
         if (fieldDescriptorOptions.hasJstype()) {
             OptionElement option = new OptionElement(JSTYPE_OPTION, enumKind, fieldDescriptorOptions.getJstype(), false);
             options.add(option);
+        }
+        if (fieldDescriptorOptions.hasExtension(ProtobufSchemaMetadata.metadataKey)) {
+            OptionElement keyOption = new OptionElement(
+                ProtobufSchemaMetadata.metadataKey.getDescriptor().getFullName(), stringKind,
+                fieldDescriptorOptions.getExtension(ProtobufSchemaMetadata.metadataKey), false);
+            options.add(keyOption);
+        }
+        if (fieldDescriptorOptions.hasExtension(ProtobufSchemaMetadata.metadataValue)) {
+            OptionElement valueOption = new OptionElement(
+                ProtobufSchemaMetadata.metadataValue.getDescriptor().getFullName(), stringKind,
+                fieldDescriptorOptions.getExtension(ProtobufSchemaMetadata.metadataValue), false);
+            options.add(valueOption);
         }
 
         //Implicitly jsonName to null as Options is already setting it. Setting it here results in duplicate json_name

@@ -1,0 +1,12 @@
+syntax = "proto3";
+package metadata;
+
+import "google/protobuf/descriptor.proto";
+
+option java_package = "metadata";
+option java_outer_classname = "ProtobufSchemaMetadata";
+
+extend google.protobuf.FieldOptions {
+  string metadata_key = 50001;
+  string metadata_value = 50002;
+}

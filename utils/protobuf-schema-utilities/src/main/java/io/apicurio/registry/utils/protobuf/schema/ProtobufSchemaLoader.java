@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ public class ProtobufSchemaLoader {
 
     private static final String GOOGLE_API_PATH = "google/type/";
     private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
+    private static final String METADATA_PATH = "metadata/";
     //Adding pre-built support for commonly used Google API Protos,
     //https://github.com/googleapis/googleapis
     //These files need to be manually loaded into the FileSystem
@@ -61,6 +63,8 @@ public class ProtobufSchemaLoader {
             .add("type.proto")
             .build();
 
+    private final static String METADATA_PROTO = "metadata.proto";
+
     private static FileSystem getFileSystem() throws IOException {
         final FileSystem inMemoryFileSystem =
             Jimfs.newFileSystem(
@@ -78,6 +82,9 @@ public class ProtobufSchemaLoader {
 
         createDirectory(GOOGLE_WELLKNOWN_PATH.split("/"), inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, GOOGLE_WELLKNOWN_PROTOS, GOOGLE_WELLKNOWN_PATH);
+
+        createDirectory(METADATA_PATH.split("/"), inMemoryFileSystem);
+        loadProtoFiles(inMemoryFileSystem, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
 
         return inMemoryFileSystem;
     }

@@ -18,6 +18,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.Difference;
 
@@ -36,45 +37,44 @@ import static java.util.Objects.requireNonNull;
  */
 public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
 
-    /**
-     * @see io.apicurio.registry.rules.compatibility.CompatibilityChecker#testCompatibility(io.apicurio.registry.rules.compatibility.CompatibilityLevel, java.util.List, java.lang.String)
-     */
     @Override
-    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<String> existingSchemas, String proposedSchema) {
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<ContentHandle> existingArtifacts, ContentHandle proposedArtifact) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
-        requireNonNull(existingSchemas, "existingSchemas MUST NOT be null");
-        requireNonNull(proposedSchema, "proposedSchema MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
 
-        if (existingSchemas.isEmpty()) {
+        if (existingArtifacts.isEmpty()) {
             return CompatibilityExecutionResult.compatible();
         }
 
+        final String proposedArtifactContent = proposedArtifact.content();
+
         Set<Difference> incompatibleDiffs = new HashSet<>();
-        String lastExistingSchema = existingSchemas.get(existingSchemas.size() - 1);
+        String lastExistingSchema = existingArtifacts.get(existingArtifacts.size() - 1).content();
 
         switch (compatibilityLevel) {
             case BACKWARD:
-                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(lastExistingSchema, proposedSchema);
+                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(lastExistingSchema, proposedArtifactContent);
                 break;
             case BACKWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingSchemas, proposedSchema, JsonSchemaDiffLibrary::getIncompatibleDifferences);
+                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, JsonSchemaDiffLibrary::getIncompatibleDifferences);
                 break;
             case FORWARD:
-                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedSchema, lastExistingSchema);
+                incompatibleDiffs = JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedArtifactContent, lastExistingSchema);
                 break;
             case FORWARD_TRANSITIVE:
-                incompatibleDiffs = transitively(existingSchemas, proposedSchema, (existing, proposed) -> JsonSchemaDiffLibrary.getIncompatibleDifferences(proposed, existing));
+                incompatibleDiffs = transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> JsonSchemaDiffLibrary.getIncompatibleDifferences(proposed, existing));
                 break;
             case FULL:
                 incompatibleDiffs = ImmutableSet.<Difference>builder()
-                    .addAll(JsonSchemaDiffLibrary.getIncompatibleDifferences(lastExistingSchema, proposedSchema))
-                    .addAll(JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedSchema, lastExistingSchema))
+                    .addAll(JsonSchemaDiffLibrary.getIncompatibleDifferences(lastExistingSchema, proposedArtifactContent))
+                    .addAll(JsonSchemaDiffLibrary.getIncompatibleDifferences(proposedArtifactContent, lastExistingSchema))
                     .build();
                 break;
             case FULL_TRANSITIVE:
                 incompatibleDiffs = ImmutableSet.<Difference>builder()
-                    .addAll(transitively(existingSchemas, proposedSchema, JsonSchemaDiffLibrary::getIncompatibleDifferences)) // Forward
-                    .addAll(transitively(existingSchemas, proposedSchema, (existing, proposed) -> JsonSchemaDiffLibrary.getIncompatibleDifferences(proposed, existing))) // Backward
+                    .addAll(transitively(existingArtifacts, proposedArtifactContent, JsonSchemaDiffLibrary::getIncompatibleDifferences)) // Forward
+                    .addAll(transitively(existingArtifacts, proposedArtifactContent, (existing, proposed) -> JsonSchemaDiffLibrary.getIncompatibleDifferences(proposed, existing))) // Backward
                     .build();
                 break;
             case NONE:
@@ -94,11 +94,11 @@ public class JsonSchemaCompatibilityChecker implements CompatibilityChecker {
      *
      * @return The collected set of differences.
      */
-    private Set<Difference> transitively(List<String> existingSchemas, String proposedSchema,
+    private Set<Difference> transitively(List<ContentHandle> existingSchemas, String proposedSchema,
                                          BiFunction<String, String, Set<Difference>> checkExistingProposed) {
         Set<Difference> result = new HashSet<>();
         for (int i = existingSchemas.size() - 1; i >= 0; i--) { // TODO This may become too slow, more wide refactoring needed.
-            Set<Difference> current = checkExistingProposed.apply(existingSchemas.get(i), proposedSchema);
+            Set<Difference> current = checkExistingProposed.apply(existingSchemas.get(i).content(), proposedSchema);
             result.addAll(current);
         }
         return result;

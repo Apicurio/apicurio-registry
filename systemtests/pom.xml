@@ -22,6 +22,7 @@
         <version.strimzi.api>0.28.0</version.strimzi.api>
         <version.eclipse.jgit>6.1.0.202203080745-r</version.eclipse.jgit>
         <version.org.json>20220320</version.org.json>
+        <version.apache.commons>3.12.0</version.apache.commons>
     </properties>
 
     <dependencies>
@@ -93,6 +94,11 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>${version.org.json}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${version.apache.commons}</version>
         </dependency>
     </dependencies>
 

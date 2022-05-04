@@ -13,8 +13,8 @@ import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 public class StrimziClusterOLMOperatorType extends Operator implements OperatorType {
-    private String operatorNamespace = null;
-    private boolean isClusterWide = false;
+    private final String operatorNamespace;
+    private final boolean isClusterWide;
     private Subscription subscription = null;
     private OperatorGroup operatorGroup = null;
 
@@ -56,9 +56,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
     @Override
     public void install() {
-        /**
-         * Operator namespace is created in OperatorManager.
-         */
+        /* Operator namespace is created in OperatorManager. */
 
         if(isClusterWide) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
@@ -70,7 +68,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
         String startingCSV = Environment.strimziOLMSubscriptionStartingCSV;
 
-        if(startingCSV == "") {
+        if(startingCSV.equals("")) {
             PackageManifest packageManifest = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().packageManifests().inNamespace(Environment.strimziOLMCatalogSourceNamespace).withName(Environment.strimziOLMSubscriptionPkg).get();
 
             for (PackageChannel packageChannel : packageManifest.getStatus().getChannels()) {
@@ -91,9 +89,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
                 Environment.strimziOLMSubscriptionPlanApproval
         );
 
-        /**
-         * Waiting for operator deployment readiness is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
@@ -102,9 +98,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
         OperatorUtils.deleteOperatorGroup(operatorGroup);
 
-        /**
-         * Waiting for operator deployment removal is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment removal is implemented in OperatorManager. */
     }
 
     @Override

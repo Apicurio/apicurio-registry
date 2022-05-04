@@ -191,7 +191,7 @@ public class OperatorUtils {
 
                 ((OpenShiftClient) Kubernetes.getClient()).operatorHub().subscriptions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getMetadata().getName()).delete();
 
-                if(subscription.getSpec().getStartingCSV() != "") {
+                if(!subscription.getSpec().getStartingCSV().equals("")) {
                     LOGGER.info("Removing startingCSV {} in namespace {}...", subscription.getSpec().getStartingCSV(), subscription.getMetadata().getNamespace());
 
                     ((OpenShiftClient) Kubernetes.getClient()).operatorHub().clusterServiceVersions().inNamespace(subscription.getMetadata().getNamespace()).withName(subscription.getSpec().getStartingCSV()).delete();

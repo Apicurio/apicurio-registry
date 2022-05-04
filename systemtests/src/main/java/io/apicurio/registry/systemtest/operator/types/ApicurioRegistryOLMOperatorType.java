@@ -22,8 +22,8 @@ import java.time.Duration;
 
 public class ApicurioRegistryOLMOperatorType extends Operator implements OperatorType {
 
-    private String operatorNamespace = null;
-    private boolean isClusterWide = false;
+    private final String operatorNamespace;
+    private final boolean isClusterWide;
     private Subscription subscription = null;
     private OperatorGroup operatorGroup = null;
     private CatalogSource catalogSource = null;
@@ -285,9 +285,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public void install() {
-        /**
-         * Operator namespace is created in OperatorManager.
-         */
+        /* Operator namespace is created in OperatorManager. */
 
         if(isClusterWide) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
@@ -316,9 +314,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 Environment.apicurioOLMSubscriptionPlanApproval
         );
 
-        /**
-         * Waiting for operator deployment readiness is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
@@ -331,9 +327,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         deleteCatalogSourceNamespace();
 
-        /**
-         * Waiting for operator deployment removal is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment removal is implemented in OperatorManager. */
     }
 
     @Override

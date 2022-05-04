@@ -5,9 +5,9 @@
 package io.apicurio.registry.systemtest.executor;
 
 public class ExecutionResultData {
-    private boolean retCode;
-    private String stdOut;
-    private String stdErr;
+    private final boolean retCode;
+    private final String stdOut;
+    private final String stdErr;
 
     public ExecutionResultData(int retCode, String stdOut, String stdErr) {
         this.retCode = retCode == 0;

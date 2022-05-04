@@ -7,7 +7,7 @@ import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class ApicurioRegistryUtils {
-    public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext, Kafka kafka) {
+    public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-no-auth-instance", Environment.strimziOperatorNamespace);
 

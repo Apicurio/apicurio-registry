@@ -63,12 +63,16 @@ public class ResourceManager {
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
+        ResourceType<T> result = null;
+
         for (ResourceType<?> type : resourceTypes) {
             if (type.getKind().equals(resource.getKind())) {
-                return (ResourceType<T>) type;
+                result = (ResourceType<T>) type;
+                break;
             }
         }
-        return null;
+
+        return result;
     }
 
     public final <T extends HasMetadata> void createResource(ExtensionContext testContext, boolean waitReady, T resource) {

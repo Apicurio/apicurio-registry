@@ -32,7 +32,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
                 // Get timestamp
                 String timestamp = String.valueOf(Instant.now().getEpochSecond());
                 // Split source string to two values: repo-URL and operator-files-path
-                String sourceParts[] = source.split(";");
+                String[] sourceParts = source.split(";");
                 // Get repo URL
                 String repoUrl = sourceParts[0];
                 // Get path to operator files inside repo

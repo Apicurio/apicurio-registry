@@ -351,13 +351,13 @@ public class SimpleTestsIT extends TestBase {
 
             operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
 
-            Kafka kafkasqlNoAuth = KafkaUtils.deployDefaultKafkaNoAuth(testContext);
+            KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
-            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, kafkasqlNoAuth);
+            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext);
 
             KafkaConnect kafkaConnect = KafkaConnectResourceType.getDefault();
 

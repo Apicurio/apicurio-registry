@@ -42,7 +42,7 @@ public class Exec {
     private StreamGobbler stdErrReader;
     private Path logPath;
     private Map<String, String> env;
-    private boolean appendLineSeparator;
+    private final boolean appendLineSeparator;
     private Subscriber<String> stdErrProcessor;
     private static final Pattern PATH_SPLITTER = Pattern.compile(System.getProperty("path.separator"));
     protected static final Object lock = new Object();
@@ -336,9 +336,9 @@ public class Exec {
      * Class represent async reader
      */
     private class StreamGobbler implements Publisher<String> {
-        private InputStream is;
-        private StringBuilder data = new StringBuilder();
-        private Collection<Subscriber<? super String>> subscribers = new ConcurrentLinkedQueue<>();
+        private final InputStream is;
+        private final StringBuilder data = new StringBuilder();
+        private final Collection<Subscriber<? super String>> subscribers = new ConcurrentLinkedQueue<>();
 
         /**
          * Constructor of StreamGobbler

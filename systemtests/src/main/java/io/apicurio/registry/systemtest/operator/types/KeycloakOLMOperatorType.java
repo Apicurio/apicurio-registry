@@ -15,7 +15,7 @@ import io.fabric8.openshift.client.OpenShiftClient;
 public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     private Subscription subscription = null;
 
-    private String operatorNamespace = null;
+    private final String operatorNamespace;
 
     private OperatorGroup operatorGroup = null;
 
@@ -78,9 +78,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
                 Environment.keycloakSubscriptionPlanApproval
         );
 
-        /**
-         * Waiting for operator deployment readiness is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
@@ -89,9 +87,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
 
         OperatorUtils.deleteOperatorGroup(operatorGroup);
 
-        /**
-         * Waiting for operator deployment removal is implemented in OperatorManager.
-         */
+        /* Waiting for operator deployment removal is implemented in OperatorManager. */
     }
 
     @Override

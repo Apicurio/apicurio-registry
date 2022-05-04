@@ -8,7 +8,6 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.strimzi.api.kafka.model.KafkaConnect;
 import io.strimzi.api.kafka.model.KafkaConnectBuilder;
 import io.strimzi.api.kafka.model.connect.build.DockerOutputBuilder;
-import io.strimzi.api.kafka.model.connect.build.Plugin;
 import io.strimzi.api.kafka.model.connect.build.PluginBuilder;
 import io.strimzi.api.kafka.model.connect.build.TgzArtifactBuilder;
 
@@ -90,7 +89,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                                 .withImage("image-registry.openshift-image-registry.svc.cluster.local:5000/" + namespace + "/apicurio-debezium:latest-ci")
                                 .build()
                         )
-                        .withPlugins(new ArrayList<Plugin>() {{
+                        .withPlugins(new ArrayList<>() {{
                             add(new PluginBuilder()
                                     .withName("debezium-connector-postgres")
                                     .withArtifacts(new TgzArtifactBuilder()

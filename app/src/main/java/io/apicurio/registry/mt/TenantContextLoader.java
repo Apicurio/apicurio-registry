@@ -149,7 +149,7 @@ public class TenantContextLoader {
             }
 
             if (null == accessedOrganizationId || !tenantCanAccessOrganization(tenant, accessedOrganizationId)) {
-                logger.warn("User not authorized to access tenant {}", tenant.getTenantId());
+                logger.warn("User not authorized to access tenant.");
                 throw new TenantNotAuthorizedException("Tenant not authorized");
             }
         }

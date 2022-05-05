@@ -24,7 +24,7 @@ public class ApicurioRegistryApiClient {
         this.port = port;
     }
 
-    public boolean createArtifact(String artifactGroup, String artifactId, String artifactType, String artifactData) throws URISyntaxException, IOException, InterruptedException {
+    public boolean createArtifact(String artifactGroup, String artifactId, ArtifactType artifactType, String artifactData) throws URISyntaxException, IOException, InterruptedException {
         // Create request
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 // Get URL
@@ -33,7 +33,7 @@ public class ApicurioRegistryApiClient {
                 .header("Content-Type", "application/json")
                 // Set request header
                 .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType)
+                .header("X-Registry-ArtifactType", artifactType.name())
                 // Get body
                 .POST(HttpRequest.BodyPublishers.ofString(artifactData))
                 .build();

@@ -1,7 +1,6 @@
 package io.apicurio.registry.systemtest.client;
 
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
@@ -17,124 +16,137 @@ import java.util.List;
 public class ApicurioRegistryApiClient {
     private static final Logger LOGGER = LoggerUtils.getLogger();
     private String host;
-    private String port;
+    private int port;
 
-    public ApicurioRegistryApiClient(String host, String port) {
+    public ApicurioRegistryApiClient(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
-    public boolean createArtifact(String artifactGroup, String artifactId, ArtifactType artifactType, String artifactData) throws URISyntaxException, IOException, InterruptedException {
+    public boolean createArtifact(
+            String group, String id, ArtifactType type, String content
+    ) throws URISyntaxException, IOException, InterruptedException {
+        // Get request URI
+        URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, group));
+
         // Create request
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                // Get URL
-                .uri(new URI("http://" + host + ":" + port + "/apis/registry/v2/groups/" + artifactGroup + "/artifacts"))
-                // Set artifact type
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
                 .header("Content-Type", "application/json")
-                // Set request header
-                .header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", artifactType.name())
-                // Get body
-                .POST(HttpRequest.BodyPublishers.ofString(artifactData))
+                .header("X-Registry-ArtifactId", id)
+                .header("X-Registry-ArtifactType", type.name())
+                .POST(HttpRequest.BodyPublishers.ofString(content))
                 .build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
 
-        // Check status code
-        if(response.statusCode() != 200) {
+        // Check response status code
+        if (response.statusCode() != 200) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            // Return failure
             return false;
         }
 
-        // Return success
         return true;
     }
 
-    public String readArtifact(String artifactGroup, String artifactId) throws URISyntaxException, IOException, InterruptedException {
+    public String readArtifactContent(
+            String group, String id
+    ) throws URISyntaxException, IOException, InterruptedException {
+        // Get request URI
+        URI uri = new URI(
+                String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
+        );
+
         // Create request
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                // Get URL
-                .uri(new URI("http://" + host + ":" + port + "/apis/registry/v2/groups/" + artifactGroup + "/artifacts/" + artifactId))
+                .uri(uri)
                 .GET()
                 .build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-        // Check status code
-        if(response.statusCode() != 200) {
+        // Check response status code
+        if (response.statusCode() != 200) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            // Return failure
             return null;
         }
 
-        // Read and return artifact data
         return response.body();
     }
 
-    public boolean deleteArtifact(String artifactGroup, String artifactId) throws URISyntaxException, IOException, InterruptedException {
+    public boolean deleteArtifact(
+            String group, String id
+    ) throws URISyntaxException, IOException, InterruptedException {
+        // Get request URL
+        URI uri = new URI(
+                String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
+        );
+
         // Create request
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                // Get URL
-                .uri(new URI("http://" + host + ":" + port + "/apis/registry/v2/groups/" + artifactGroup + "/artifacts/" + artifactId))
+                .uri(uri)
                 .DELETE()
                 .build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-        // Check status code
-        if(response.statusCode() != 204) {
+        // Check response status code
+        if (response.statusCode() != 204) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            // Return failure
             return false;
         }
 
-        // Return success
         return true;
     }
 
     public List<String> listArtifacts() throws URISyntaxException, IOException, InterruptedException {
+        // Get request URI
+        URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/search/artifacts", host, port));
+
         // Create request
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                // Get URL
-                .uri(new URI("http://" + host + ":" + port + "/apis/registry/v2/search/artifacts"))
+                .uri(uri)
                 .GET()
                 .build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-        // Check status code
-        if(response.statusCode() != 200) {
+        // Check response status code
+        if (response.statusCode() != 200) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            // Return failure
             return null;
         }
 
-        // Get response with artifact list
-        JSONObject jsonObject = new JSONObject(response.body());
+        // Get JSON response with artifact list
+        JSONObject jsonArtifactList = new JSONObject(response.body());
 
         // Initialize artifact list to return
-        List<String> artifactList = new ArrayList<>();
+        List<String> artifactListToReturn = new ArrayList<>();
 
         // Iterate over artifact list items in response
-        for (Object o : jsonObject.getJSONArray("artifacts")) {
+        for (Object o : jsonArtifactList.getJSONArray("artifacts")) {
             // Get artifact
             JSONObject artifact = (JSONObject) o;
 
-            // Add artifact group and ID from response to artifact list to return
-            artifactList.add(artifact.get("groupId").toString() + "/" + artifact.get("id") + ", " + artifact.get("type"));
+            // Add artifact group, ID and type from response to artifact list to return
+            artifactListToReturn.add(String.format(
+                    "%s/%s (%s)", artifact.get("groupId").toString(), artifact.get("id"), artifact.get("type")
+            ));
         }
 
-        // Return artifact list
-        return artifactList;
+        return artifactListToReturn;
     }
 
     public String getHost() {
@@ -145,31 +157,11 @@ public class ApicurioRegistryApiClient {
         this.host = host;
     }
 
-    public String getPort() {
+    public int getPort() {
         return port;
     }
 
-    public void setPort(String port) {
+    public void setPort(int port) {
         this.port = port;
-    }
-
-    /** Get default instances */
-
-    public static String getDefaultAvroArtifact() {
-        return new JSONObject()
-                .put("type", "record")
-                .put("name", "price")
-                .put("namespace", "com.example")
-                .put("fields", new JSONArray() {{
-                    put(new JSONObject() {{
-                        put("name", "symbol");
-                        put("type", "string");
-                    }});
-                    put(new JSONObject() {{
-                        put("name", "price");
-                        put("type", "string");
-                    }});
-                }})
-                .toString();
     }
 }

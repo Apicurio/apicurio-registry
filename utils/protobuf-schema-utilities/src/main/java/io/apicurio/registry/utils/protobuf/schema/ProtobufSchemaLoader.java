@@ -28,6 +28,7 @@ public class ProtobufSchemaLoader {
     private static final String GOOGLE_API_PATH = "google/type/";
     private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
     private static final String METADATA_PATH = "metadata/";
+    private static final String DECIMAL_PATH = "decimal/";
     //Adding pre-built support for commonly used Google API Protos,
     //https://github.com/googleapis/googleapis
     //These files need to be manually loaded into the FileSystem
@@ -64,6 +65,7 @@ public class ProtobufSchemaLoader {
             .build();
 
     private final static String METADATA_PROTO = "metadata.proto";
+    private final static String DECIMAL_PROTO = "decimal.proto";
 
     private static FileSystem getFileSystem() throws IOException {
         final FileSystem inMemoryFileSystem =
@@ -85,6 +87,9 @@ public class ProtobufSchemaLoader {
 
         createDirectory(METADATA_PATH.split("/"), inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
+
+        createDirectory(DECIMAL_PATH.split("/"), inMemoryFileSystem);
+        loadProtoFiles(inMemoryFileSystem, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
 
         return inMemoryFileSystem;
     }

@@ -191,7 +191,7 @@
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
+        <jackson-datatype-json-org.version>2.13.2</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->

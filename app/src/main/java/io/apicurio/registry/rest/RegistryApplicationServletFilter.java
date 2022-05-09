@@ -18,7 +18,6 @@ package io.apicurio.registry.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
@@ -28,6 +27,7 @@ import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -39,7 +39,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
 
 /**
  *
@@ -130,7 +129,11 @@ public class RegistryApplicationServletFilter implements Filter {
             }
 
             if (mtProperties.isMultitenancyEnabled() && tenantContext.getTenantStatus() != TenantStatusValue.READY) {
-                log.warn("Request {} is rejected because the tenant is not ready", requestURI);
+                if(requestURI.endsWith("/apis/registry/v2/system/limits")) {
+                    log.debug("Request {} is rejected because the tenant is not ready", requestURI);
+                } else {
+                    log.warn("Request {} is rejected because the tenant is not ready", requestURI);
+                }                
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

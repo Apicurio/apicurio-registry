@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 
 import java.time.Duration;
 
@@ -52,5 +53,15 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());
         existing.setStatus(newResource.getStatus());
+    }
+
+    /** Get default instances **/
+
+    public static Namespace getDefault(String name) {
+        return new NamespaceBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                .endMetadata()
+                .build();
     }
 }

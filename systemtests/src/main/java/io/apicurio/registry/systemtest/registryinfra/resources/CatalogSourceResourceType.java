@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSourceBuilder;
 
 import java.time.Duration;
 
@@ -54,5 +55,22 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());
         existing.setStatus(newResource.getStatus());
+    }
+
+    /** Get default instances **/
+
+    public static CatalogSource getDefault(String name, String namespace, String image) {
+        return new CatalogSourceBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withDisplayName("Apicurio Registry Operator Catalog Source")
+                    .withImage(image)
+                    .withPublisher("apicurio-registry-qe")
+                    .withSourceType("grpc")
+                .endSpec()
+                .build();
     }
 }

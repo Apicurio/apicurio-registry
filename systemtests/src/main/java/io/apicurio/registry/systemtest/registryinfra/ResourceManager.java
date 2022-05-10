@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
@@ -89,7 +88,7 @@ public class ResourceManager {
 
         synchronized (this) {
             if (namespace != null && Kubernetes.getNamespace(namespace) == null) {
-                createResource(testContext, waitReady, ResourceUtils.buildNamespace(namespace));
+                createResource(testContext, waitReady, NamespaceResourceType.getDefault(namespace));
             }
         }
 

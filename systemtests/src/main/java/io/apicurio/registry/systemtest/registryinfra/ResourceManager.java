@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.CatalogSourceResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType;
@@ -60,7 +61,8 @@ public class ResourceManager {
             new RouteResourceType(),
             new SecretResourceType(),
             new OperatorGroupResourceType(),
-            new SubscriptionResourceType()
+            new SubscriptionResourceType(),
+            new CatalogSourceResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {

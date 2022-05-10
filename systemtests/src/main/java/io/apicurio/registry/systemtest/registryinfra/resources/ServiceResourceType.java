@@ -23,22 +23,22 @@ public class ServiceResourceType implements ResourceType<Service> {
 
     @Override
     public Service get(String namespace, String name) {
-        return Kubernetes.getClient().services().inNamespace(namespace).withName(name).get();
+        return Kubernetes.getService(namespace, name);
     }
 
     @Override
     public void create(Service resource) {
-        Kubernetes.getClient().services().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        Kubernetes.createService(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void createOrReplace(Service resource) {
-        Kubernetes.getClient().services().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        Kubernetes.createOrReplaceService(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void delete(Service resource) {
-        Kubernetes.getClient().services().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deleteService(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override
@@ -53,7 +53,7 @@ public class ServiceResourceType implements ResourceType<Service> {
             return true;
         }
 
-        return Kubernetes.getClient().pods().inNamespace(service.getMetadata().getNamespace()).withLabels(service.getSpec().getSelector()).list().getItems().size() > 0;
+        return Kubernetes.isServiceReady(service.getMetadata().getNamespace(), service.getSpec().getSelector());
     }
 
     @Override

@@ -7,9 +7,10 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.FileInputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -19,35 +20,37 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     private List<HasMetadata> operatorResources;
 
     public void loadOperatorResourcesFromFile() throws Exception {
-        LOGGER.info("Loading operator resources from file " + source + "...");
+        LOGGER.info("Loading operator resources from file " + getSource() + "...");
 
-        if(source.startsWith("http://") || source.startsWith("https://")) {
-            String tmpPath = Paths.get(Environment.tempPath, "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml").toString();
+        if(getSource().startsWith("http://") || getSource().startsWith("https://")) {
+            Path tmpPath = Environment.getTempPath(
+                    "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml"
+            );
 
-            LOGGER.info("Downloading file " + source + " to " + tmpPath + "...");
+            LOGGER.info("Downloading file " + getSource() + " to " + tmpPath + "...");
 
-            OperatorUtils.downloadFile(source, tmpPath);
+            OperatorUtils.downloadFile(getSource(), tmpPath);
 
             LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath)).get();
+            operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath.toString())).get();
 
             LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
-        } else if(source.endsWith(".yaml") || source.endsWith(".yml")) {
-            LOGGER.info("Using file " + source + " to load operator resources...");
+        } else if(getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
+            LOGGER.info("Using file " + getSource() + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(source)).get();
+            operatorResources = Kubernetes.getClient().load(new FileInputStream(getSource())).get();
 
-            LOGGER.info("Operator resources loaded from file " + source + ".");
+            LOGGER.info("Operator resources loaded from file " + getSource() + ".");
         } else {
-            throw new Exception("Unable to identify file by source " + source + ".");
+            throw new Exception("Unable to identify file by source " + getSource() + ".");
         }
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(System.getenv().getOrDefault(Environment.APICURIO_BUNDLE_SOURCE_PATH_ENV_VAR, Environment.APICURIO_BUNDLE_SOURCE_PATH_DEFAULT));
+        super(Environment.APICURIO_BUNDLE_SOURCE_PATH);
 
-        operatorNamespace = Environment.apicurioOperatorNamespace;
+        operatorNamespace = Environment.APICURIO_OPERATOR_NAMESPACE;
 
         try {
             loadOperatorResourcesFromFile();
@@ -59,7 +62,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public ApicurioRegistryBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = Environment.apicurioOperatorNamespace;
+        operatorNamespace = Environment.APICURIO_OPERATOR_NAMESPACE;
 
         try {
             loadOperatorResourcesFromFile();
@@ -80,7 +83,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
     @Override
     public String getDeploymentName() {
-        Deployment deployment = OperatorUtils.findDeployment(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
 
         if(deployment == null) {
             return null;
@@ -91,23 +94,23 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
     @Override
     public Deployment getDeployment() {
-        Deployment deployment = OperatorUtils.findDeployment(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
 
         if (deployment == null) {
             return null;
         }
 
-        return Kubernetes.getClient().apps().deployments().inNamespace(Environment.apicurioOperatorNamespace).withName(deployment.getMetadata().getName()).get();
+        return Kubernetes.getDeployment(Environment.APICURIO_OPERATOR_NAMESPACE, deployment.getMetadata().getName());
     }
 
     @Override
-    public void install() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.apicurioOperatorNamespace).createOrReplace();
+    public void install(ExtensionContext testContext) {
+        Kubernetes.createOrReplaceResources(Environment.APICURIO_OPERATOR_NAMESPACE, operatorResources);
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.getClient().resourceList(operatorResources).inNamespace(Environment.apicurioOperatorNamespace).delete();
+        Kubernetes.deleteResources(Environment.APICURIO_OPERATOR_NAMESPACE, operatorResources);
     }
 
     @Override
@@ -121,7 +124,11 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         DeploymentSpec deploymentSpec = deployment.getSpec();
         DeploymentStatus deploymentStatus = deployment.getStatus();
 
-        if (deploymentStatus == null || deploymentStatus.getReplicas() == null || deploymentStatus.getAvailableReplicas() == null) {
+        if (
+                deploymentStatus == null
+                || deploymentStatus.getReplicas() == null
+                || deploymentStatus.getAvailableReplicas() == null
+        ) {
             return false;
         }
 
@@ -129,7 +136,8 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
             return false;
         }
 
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas() && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
+        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas()
+                && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
     }
 
     @Override

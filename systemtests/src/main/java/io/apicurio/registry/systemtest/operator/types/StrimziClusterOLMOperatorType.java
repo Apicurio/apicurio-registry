@@ -6,11 +6,10 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageChannel;
 import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
-import io.fabric8.openshift.client.OpenShiftClient;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class StrimziClusterOLMOperatorType extends Operator implements OperatorType {
     private final String operatorNamespace;
@@ -43,19 +42,16 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
     @Override
     public String getDeploymentName() {
-        return Environment.strimziOLMDeploymentName;
+        return Environment.STRIMZI_OLM_DEPLOYMENT_NAME;
     }
 
     @Override
     public Deployment getDeployment() {
-        return Kubernetes.getClient().apps().deployments().inNamespace(subscription.getMetadata().getNamespace()).list().getItems().stream()
-                .filter(d -> d.getMetadata().getName().startsWith(getDeploymentName()))
-                .findFirst()
-                .orElse(null);
+        return Kubernetes.getDeploymentByPrefix(subscription.getMetadata().getNamespace(), getDeploymentName());
     }
 
     @Override
-    public void install() {
+    public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
         if(isClusterWide) {
@@ -63,30 +59,27 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
 
-            operatorGroup = OperatorUtils.createOperatorGroup(Environment.strimziOLMOperatorGroupName, operatorNamespace);
-        }
-
-        String startingCSV = Environment.strimziOLMSubscriptionStartingCSV;
-
-        if(startingCSV.equals("")) {
-            PackageManifest packageManifest = ((OpenShiftClient) Kubernetes.getClient()).operatorHub().packageManifests().inNamespace(Environment.strimziOLMCatalogSourceNamespace).withName(Environment.strimziOLMSubscriptionPkg).get();
-
-            for (PackageChannel packageChannel : packageManifest.getStatus().getChannels()) {
-                if (packageChannel.getName().equals(Environment.strimziOLMSubscriptionChannel)) {
-                    startingCSV = packageChannel.getCurrentCSV();
-                }
+            if(!OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
+                operatorGroup = OperatorUtils.createOperatorGroup(operatorNamespace);
             }
         }
 
+        PackageManifest packageManifest = Kubernetes.getPackageManifest(
+                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE,
+                Environment.STRIMZI_OLM_SUBSCRIPTION_PKG
+        );
+
+        String channelName = packageManifest.getStatus().getDefaultChannel();
+        String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
+
         subscription = OperatorUtils.createSubscription(
-                Environment.strimziOLMSubscriptionName,
+                Environment.STRIMZI_OLM_SUBSCRIPTION_NAME,
                 operatorNamespace,
-                Environment.strimziOLMSubscriptionPkg,
-                Environment.strimziOLMCatalogSourceName,
-                Environment.strimziOLMCatalogSourceNamespace,
-                startingCSV,
-                Environment.strimziOLMSubscriptionChannel,
-                Environment.strimziOLMSubscriptionPlanApproval
+                Environment.STRIMZI_OLM_SUBSCRIPTION_PKG,
+                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAME,
+                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE,
+                channelCSV,
+                channelName
         );
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
@@ -96,7 +89,9 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     public void uninstall() {
         OperatorUtils.deleteSubscription(subscription);
 
-        OperatorUtils.deleteOperatorGroup(operatorGroup);
+        if (operatorGroup != null) {
+            OperatorUtils.deleteOperatorGroup(operatorGroup);
+        }
 
         /* Waiting for operator deployment removal is implemented in OperatorManager. */
     }
@@ -109,18 +104,19 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
             return false;
         }
 
-        DeploymentSpec deploymentSpec = deployment.getSpec();
-        DeploymentStatus deploymentStatus = deployment.getStatus();
+        DeploymentSpec spec = deployment.getSpec();
+        DeploymentStatus status = deployment.getStatus();
 
-        if (deploymentStatus == null || deploymentStatus.getReplicas() == null || deploymentStatus.getAvailableReplicas() == null) {
+        if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
 
-        if (deploymentSpec == null || deploymentSpec.getReplicas() == null) {
+        if (spec == null || spec.getReplicas() == null) {
             return false;
         }
 
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas() && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
+        return spec.getReplicas().intValue() == status.getReplicas()
+                && spec.getReplicas() <= status.getAvailableReplicas();
     }
 
     @Override

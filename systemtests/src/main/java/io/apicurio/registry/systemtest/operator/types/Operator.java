@@ -5,12 +5,9 @@ import org.slf4j.Logger;
 
 public abstract class Operator {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
-    protected boolean namespaceCreated = false;
-
-    /*
-        Contains path to bundle operator file or OLM operator catalog source image.
-     */
-    protected String source;
+    private boolean namespaceCreated = false;
+    /* Contains path to bundle operator file or OLM operator catalog source image. */
+    private String source;
 
     public Operator(String source) {
         this.source = source;
@@ -22,5 +19,13 @@ public abstract class Operator {
 
     public boolean getNamespaceCreated() {
         return namespaceCreated;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }

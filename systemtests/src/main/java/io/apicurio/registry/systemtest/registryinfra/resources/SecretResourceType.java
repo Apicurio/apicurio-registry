@@ -19,22 +19,22 @@ public class SecretResourceType implements ResourceType<Secret> {
 
     @Override
     public Secret get(String namespace, String name) {
-        return Kubernetes.getClient().secrets().inNamespace(namespace).withName(name).get();
+        return Kubernetes.getSecret(namespace, name);
     }
 
     @Override
     public void create(Secret resource) {
-        Kubernetes.getClient().secrets().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        Kubernetes.createSecret(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void createOrReplace(Secret resource) {
-        Kubernetes.getClient().secrets().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        Kubernetes.createOrReplaceSecret(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void delete(Secret resource) throws Exception {
-        Kubernetes.getClient().secrets().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deleteSecret(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override

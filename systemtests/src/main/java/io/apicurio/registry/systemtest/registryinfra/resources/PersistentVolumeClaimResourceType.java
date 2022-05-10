@@ -21,27 +21,30 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
 
     @Override
     public PersistentVolumeClaim get(String namespace, String name) {
-        return Kubernetes.getClient().persistentVolumeClaims().inNamespace(namespace).withName(name).get();
+        return Kubernetes.getPersistentVolumeClaim(namespace, name);
     }
 
     @Override
     public void create(PersistentVolumeClaim resource) {
-        Kubernetes.getClient().persistentVolumeClaims().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        Kubernetes.createPersistentVolumeClaim(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void createOrReplace(PersistentVolumeClaim resource) {
-        Kubernetes.getClient().persistentVolumeClaims().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        Kubernetes.createOrReplacePersistentVolumeClaim(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void delete(PersistentVolumeClaim resource) {
-        Kubernetes.getClient().persistentVolumeClaims().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deletePersistentVolumeClaim(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override
     public boolean isReady(PersistentVolumeClaim resource) {
-        PersistentVolumeClaim persistentVolumeClaim = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        PersistentVolumeClaim persistentVolumeClaim = get(
+                resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName()
+        );
 
         if (persistentVolumeClaim == null) {
             return false;

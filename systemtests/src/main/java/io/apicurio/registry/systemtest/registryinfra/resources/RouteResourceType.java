@@ -5,7 +5,6 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.api.model.RouteBuilder;
 import io.fabric8.openshift.api.model.RouteTargetReference;
-import io.fabric8.openshift.client.OpenShiftClient;
 
 import java.time.Duration;
 
@@ -22,27 +21,27 @@ public class RouteResourceType implements ResourceType<Route> {
 
     @Override
     public Route get(String namespace, String name) {
-        return ((OpenShiftClient) Kubernetes.getClient()).routes().inNamespace(namespace).withName(name).get();
+        return Kubernetes.getRoute(namespace, name);
     }
 
     @Override
     public void create(Route resource) {
-        ((OpenShiftClient) Kubernetes.getClient()).routes().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        Kubernetes.createRoute(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void createOrReplace(Route resource) {
-        ((OpenShiftClient) Kubernetes.getClient()).routes().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        Kubernetes.createOrReplaceRoute(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void delete(Route resource) throws Exception {
-        ((OpenShiftClient) Kubernetes.getClient()).routes().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deleteRoute(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override
     public boolean isReady(Route resource) {
-        return ((OpenShiftClient) Kubernetes.getClient()).routes().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).get().getStatus().getIngress().size() > 0;
+        return Kubernetes.isRouteReady(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override

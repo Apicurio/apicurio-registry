@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
+import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.DeploymentResourceType;
@@ -19,7 +20,6 @@ import io.apicurio.registry.systemtest.registryinfra.resources.SecretResourceTyp
 import io.apicurio.registry.systemtest.registryinfra.resources.ServiceResourceType;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -28,17 +28,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ResourceManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
-
+    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
     private static ResourceManager instance;
-
-    private static final Map<String, Stack<Runnable>> storedResources = new LinkedHashMap<>();
+    private static final Map<String, Stack<Runnable>> STORED_RESOURCES = new LinkedHashMap<>();
 
     public static synchronized ResourceManager getInstance() {
         if (instance == null) {
@@ -75,83 +73,100 @@ public class ResourceManager {
         return result;
     }
 
-    public final <T extends HasMetadata> void createResource(ExtensionContext testContext, boolean waitReady, T resource) {
-        LOGGER.info("Creating resource {} with name {} in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+    public final <T extends HasMetadata> void createResource(
+            ExtensionContext testContext, boolean waitReady, T resource
+    ) {
+        String kind = resource.getKind();
+        String name = resource.getMetadata().getName();
+        String namespace = resource.getMetadata().getNamespace();
+        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
 
-        ResourceType<T> type = findResourceType(resource);
+        LOGGER.info("Creating resource {}...", resourceInfo);
 
         synchronized (this) {
-            if(resource.getMetadata().getNamespace() != null && !Kubernetes.getClient().namespaces().list().getItems().stream().map(n -> n.getMetadata().getName())
-                    .collect(Collectors.toList()).contains((resource.getMetadata().getNamespace()))) {
-                createResource(testContext, waitReady, new NamespaceBuilder().editOrNewMetadata().withName(resource.getMetadata().getNamespace()).endMetadata().build());
+            if (namespace != null && Kubernetes.getNamespace(namespace) == null) {
+                createResource(testContext, waitReady, ResourceUtils.buildNamespace(namespace));
             }
         }
+
+        ResourceType<T> type = findResourceType(resource);
 
         type.create(resource);
 
         synchronized (this) {
-            storedResources.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
-            storedResources.get(testContext.getDisplayName()).push(() -> deleteResource(resource));
+            STORED_RESOURCES.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
+            STORED_RESOURCES.get(testContext.getDisplayName()).push(() -> deleteResource(resource));
         }
 
-        LOGGER.info("Resource {} with name {} created in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+        LOGGER.info("Resource {} created.", resourceInfo);
 
         if(waitReady) {
-            LOGGER.info("Waiting for resource {} with name {} to be ready in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            assertTrue(
+                    waitResourceCondition(resource, type::isReady),
+                    MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
+            );
 
-            assertTrue(waitResourceCondition(resource, type::isReady),
-                    MessageFormat.format("Timed out waiting for resource {0} with name {1} to be ready in namespace {2}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()));
-
-            if(type.isReady(resource)) {
-                LOGGER.info("Resource {} with name {} is ready in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
-            }
+            LOGGER.info("Resource {} is ready.", resourceInfo);
 
             T updated = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
             type.refreshResource(resource, updated);
         } else {
-            LOGGER.info("Do not wait for resource {} with name {} to be ready in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            LOGGER.info("Do not wait for resource {} to be ready.", resourceInfo);
         }
     }
 
     public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition) {
-        return waitResourceCondition(resource, condition, TimeoutBudget.ofDuration(findResourceType(resource).getTimeout()));
+        return waitResourceCondition(
+                resource,
+                condition,
+                TimeoutBudget.ofDuration(findResourceType(resource).getTimeout())
+        );
     }
 
-    public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition, TimeoutBudget timeout) {
+    public final <T extends HasMetadata> boolean waitResourceCondition(
+            T resource, Predicate<T> condition, TimeoutBudget timeout
+    ) {
         assertNotNull(resource);
         assertNotNull(resource.getMetadata());
         assertNotNull(resource.getMetadata().getName());
         ResourceType<T> type = findResourceType(resource);
         assertNotNull(type);
 
+        LOGGER.info("Waiting for resource {} to be ready...", resource.getKind());
+
         while (!timeout.timeoutExpired()) {
             T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+
             if (condition.test(res)) {
                 return true;
             }
+
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+
                 return false;
             }
         }
-        T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
-        boolean pass = condition.test(res);
-        if (!pass) {
-            LOGGER.info("Resource failed condition check: {}", resourceToString(res));
-        }
-        return pass;
-    }
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+
+        if (!condition.test(res)) {
+            LOGGER.info("Resource failed condition check: {}", resourceToString(res));
+
+            return false;
+        }
+
+        return true;
+    }
 
     public static <T extends HasMetadata> String resourceToString(T resource) {
         if (resource == null) {
             return "null";
         }
         try {
-            return mapper.writeValueAsString(resource);
+            return MAPPER.writeValueAsString(resource);
         } catch (JsonProcessingException e) {
             LOGGER.info("Failed converting resource to YAML: {}", e.getMessage());
             return "unknown";
@@ -159,7 +174,12 @@ public class ResourceManager {
     }
 
     public final <T extends HasMetadata> void deleteResource(T resource) {
-        LOGGER.info("Deleting resource {} with name {} in namespace {}...", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+        String resourceInfo = MessageFormat.format(
+                "{0} with name {1} in namespace {2}",
+                resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()
+        );
+
+        LOGGER.info("Deleting resource {}...", resourceInfo);
 
         ResourceType<T> type = findResourceType(resource);
 
@@ -170,9 +190,9 @@ public class ResourceManager {
         }
 
         if(type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
-            LOGGER.info("Resource {} with name {} deleted in namespace {}.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            LOGGER.info("Resource {} deleted.", resourceInfo);
         } else {
-            LOGGER.info("Resource {} with name {} is not deleted in namespace {} yet.", resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace());
+            LOGGER.warn("Resource {} is not deleted yet.", resourceInfo);
         }
     }
 
@@ -181,14 +201,20 @@ public class ResourceManager {
         LOGGER.info("Going to clear all resources.");
         LOGGER.info("----------------------------------------------");
         LOGGER.info("Resources key: {}", testContext.getDisplayName());
-        if (!storedResources.containsKey(testContext.getDisplayName()) || storedResources.get(testContext.getDisplayName()).isEmpty()) {
+
+        if (
+                !STORED_RESOURCES.containsKey(testContext.getDisplayName())
+                || STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()
+        ) {
             LOGGER.info("Nothing to delete");
         }
-        while (!storedResources.get(testContext.getDisplayName()).isEmpty()) {
-            storedResources.get(testContext.getDisplayName()).pop().run();
+
+        while (!STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()) {
+            STORED_RESOURCES.get(testContext.getDisplayName()).pop().run();
         }
+
         LOGGER.info("----------------------------------------------");
         LOGGER.info("");
-        storedResources.remove(testContext.getDisplayName());
+        STORED_RESOURCES.remove(testContext.getDisplayName());
     }
 }

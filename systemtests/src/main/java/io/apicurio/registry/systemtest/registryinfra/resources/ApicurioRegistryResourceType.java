@@ -24,37 +24,54 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     @Override
     public ApicurioRegistry get(String namespace, String name) {
-        return getOperation().inNamespace(namespace).withName(name).get();
+        return getOperation()
+                .inNamespace(namespace)
+                .withName(name)
+                .get();
     }
 
-    public static MixedOperation<ApicurioRegistry, KubernetesResourceList<ApicurioRegistry>, Resource<ApicurioRegistry>> getOperation() {
+    public static MixedOperation<ApicurioRegistry, KubernetesResourceList<ApicurioRegistry>, Resource<ApicurioRegistry>>
+    getOperation() {
         return Kubernetes.getClient().resources(ApicurioRegistry.class);
     }
 
     @Override
     public void create(ApicurioRegistry resource) {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .create(resource);
     }
 
     @Override
     public void createOrReplace(ApicurioRegistry resource) {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .createOrReplace(resource);
     }
 
     @Override
     public void delete(ApicurioRegistry resource) {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName())
+                .delete();
     }
 
     @Override
     public boolean isReady(ApicurioRegistry resource) {
-        ApicurioRegistry apicurioRegistry = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        ApicurioRegistry apicurioRegistry = get(
+                resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName()
+        );
 
         if (apicurioRegistry == null || apicurioRegistry.getStatus() == null) {
             return false;
         }
 
-        return apicurioRegistry.getStatus().getConditions().stream()
+        return apicurioRegistry
+                .getStatus()
+                .getConditions()
+                .stream()
                 .filter(condition -> condition.getType().equals("Ready"))
                 .map(condition -> condition.getStatus().equals("True"))
                 .findFirst()
@@ -70,66 +87,58 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     /** Get default instances **/
 
-    public static ApicurioRegistry getDefaultByKind(String name, String namespace, String kind) {
-        if (PersistenceKind.MEM.equals(kind)) {
-            return new ApicurioRegistryBuilder()
-                    .withNewMetadata()
-                        .withName(name)
-                        .withNamespace(namespace)
-                    .endMetadata()
-                    .withNewSpec()
-                        .withNewConfiguration()
-                            .withPersistence("mem")
-                        .endConfiguration()
-                    .endSpec()
-                    .build();
-        } else if (PersistenceKind.SQL.equals(kind)) {
-            return new ApicurioRegistryBuilder()
-                    .withNewMetadata()
-                        .withName(name)
-                        .withNamespace(namespace)
-                    .endMetadata()
-                    .withNewSpec()
-                        .withNewConfiguration()
-                            .withPersistence("sql")
-                            .withNewSql()
-                                .withNewDataSource()
-                                    .withUrl("jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/postgresdb")
-                                    .withUserName("postgresuser")
-                                    .withPassword("postgrespassword")
-                                .endDataSource()
-                            .endSql()
-                        .endConfiguration()
-                    .endSpec()
-                    .build();
-        } else if (PersistenceKind.KAFKA_SQL.equals(kind)) {
-            return new ApicurioRegistryBuilder()
-                    .withNewMetadata()
-                        .withName(name)
-                        .withNamespace(namespace)
-                    .endMetadata()
-                    .withNewSpec()
-                        .withNewConfiguration()
-                            .withPersistence("kafkasql")
-                            .withNewKafkasql()
-                                .withBootstrapServers("apicurio-registry-kafkasql-no-auth-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9092")
-                            .endKafkasql()
-                        .endConfiguration()
-                    .endSpec()
-                    .build();
-        }
-        throw new IllegalStateException("Unexpected value: " + kind);
-    }
-
     public static ApicurioRegistry getDefaultMem(String name, String namespace) {
-        return getDefaultByKind(name, namespace, PersistenceKind.MEM);
+        return new ApicurioRegistryBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withNewConfiguration()
+                        .withPersistence("mem")
+                    .endConfiguration()
+                .endSpec()
+                .build();
     }
 
     public static ApicurioRegistry getDefaultSql(String name, String namespace) {
-        return getDefaultByKind(name, namespace, PersistenceKind.SQL);
+        return new ApicurioRegistryBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withNewConfiguration()
+                        .withPersistence("sql")
+                        .withNewSql()
+                            .withNewDataSource()
+                                .withUrl("jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/postgresdb")
+                                .withUserName("postgresuser")
+                                .withPassword("postgrespassword")
+                            .endDataSource()
+                        .endSql()
+                    .endConfiguration()
+                .endSpec()
+                .build();
     }
     public static ApicurioRegistry getDefaultKafkasql(String name, String namespace) {
-        return getDefaultByKind(name, namespace, PersistenceKind.KAFKA_SQL);
+        return new ApicurioRegistryBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withNewConfiguration()
+                        .withPersistence("kafkasql")
+                        .withNewKafkasql()
+                            .withBootstrapServers(
+                                    "apicurio-registry-kafkasql-no-auth-kafka-bootstrap."
+                                       + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9092"
+                            )
+                        .endKafkasql()
+                    .endConfiguration()
+                .endSpec()
+                .build();
     }
 
     public static ApicurioRegistry getDefaultMem(String name) {
@@ -157,27 +166,53 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     public static void updateWithDefaultTLS(ApicurioRegistry apicurioRegistry) {
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setSecurity(new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
-                .withNewTls()
-                    .withKeystoreSecretName("apicurio-registry-kafka-user-secured-tls-keystore")
-                    .withTruststoreSecretName("apicurio-registry-kafkasql-tls-cluster-ca-truststore")
-                .endTls()
-                .build()
-        );
+        apicurioRegistry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .setSecurity(
+                        new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                                .withNewTls()
+                                    .withKeystoreSecretName("apicurio-registry-kafka-user-secured-tls-keystore")
+                                    .withTruststoreSecretName("apicurio-registry-kafkasql-tls-cluster-ca-truststore")
+                                .endTls()
+                                .build()
+                );
 
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-tls-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9093");
+        apicurioRegistry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .setBootstrapServers(
+                        "apicurio-registry-kafkasql-tls-kafka-bootstrap."
+                        + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9093"
+                );
     }
 
     public static void updateWithDefaultSCRAM(ApicurioRegistry apicurioRegistry) {
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setSecurity(new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
-                .withNewScram()
-                    .withTruststoreSecretName("apicurio-registry-kafkasql-scram-cluster-ca-truststore")
-                    .withPasswordSecretName("apicurio-registry-kafka-user-secured-scram")
-                    .withUser("apicurio-registry-kafka-user-secured-scram")
-                .endScram()
-                .build()
-        );
+        apicurioRegistry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .setSecurity(
+                        new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                                .withNewScram()
+                                    .withTruststoreSecretName(
+                                            "apicurio-registry-kafkasql-scram-cluster-ca-truststore"
+                                    )
+                                    .withPasswordSecretName("apicurio-registry-kafka-user-secured-scram")
+                                    .withUser("apicurio-registry-kafka-user-secured-scram")
+                                .endScram()
+                                .build()
+                );
 
-        apicurioRegistry.getSpec().getConfiguration().getKafkasql().setBootstrapServers("apicurio-registry-kafkasql-scram-kafka-bootstrap." + Environment.strimziOperatorNamespace + ".svc.cluster.local:9093");
+        apicurioRegistry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .setBootstrapServers(
+                        "apicurio-registry-kafkasql-scram-kafka-bootstrap."
+                        + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9093"
+                );
     }
 }

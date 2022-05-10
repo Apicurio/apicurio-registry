@@ -7,9 +7,32 @@ import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class ApicurioRegistryUtils {
+    private static String getTruststoreSecretName(ApicurioRegistry registry) {
+        return registry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .getSecurity()
+                .getTls()
+                .getTruststoreSecretName();
+    }
+
+    private static String getKeystoreSecretName(ApicurioRegistry registry) {
+        return registry
+                .getSpec()
+                .getConfiguration()
+                .getKafkasql()
+                .getSecurity()
+                .getTls()
+                .getKeystoreSecretName();
+    }
+
     public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-no-auth-instance", Environment.strimziOperatorNamespace);
+        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
+                "apicurio-registry-kafkasql-no-auth-instance",
+                Environment.STRIMZI_NAMESPACE
+        );
 
         // Create Apicurio Registry without authentication
         ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlNoAuth);
@@ -17,20 +40,27 @@ public class ApicurioRegistryUtils {
 
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-tls-instance", Environment.strimziOperatorNamespace);
+        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
+                "apicurio-registry-kafkasql-tls-instance",
+                Environment.STRIMZI_NAMESPACE
+        );
 
-        // Update to have TLS configuration
+        // Update Apicurio Registry to have TLS configuration
         ApicurioRegistryResourceType.updateWithDefaultTLS(apicurioRegistryKafkasqlTLS);
 
-        // Create TLS certificates and secrets
-        CertificateUtils.createCertificateStores(
+        CertificateUtils.createTruststore(
                 testContext,
+                kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
+                getTruststoreSecretName(apicurioRegistryKafkasqlTLS)
+        );
+
+        CertificateUtils.createKeystore(
+                testContext,
+                kafka.getMetadata().getNamespace(),
                 "apicurio-registry-kafka-user-secured-tls",
-                apicurioRegistryKafkasqlTLS.getSpec().getConfiguration().getKafkasql().getSecurity().getTls().getTruststoreSecretName(),
-                apicurioRegistryKafkasqlTLS.getSpec().getConfiguration().getKafkasql().getSecurity().getTls().getKeystoreSecretName(),
-                kafka.getMetadata().getName() + "-kafka-bootstrap",
-                kafka.getMetadata().getNamespace()
+                getKeystoreSecretName(apicurioRegistryKafkasqlTLS),
+                kafka.getMetadata().getName() + "-kafka-bootstrap"
         );
 
         // Create Apicurio Registry with TLS configuration
@@ -39,20 +69,19 @@ public class ApicurioRegistryUtils {
 
     public static void deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql("apicurio-registry-kafkasql-scram-instance", Environment.strimziOperatorNamespace);
+        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
+                "apicurio-registry-kafkasql-scram-instance",
+                Environment.STRIMZI_NAMESPACE
+        );
 
         // Update to have SCRAM configuration
         ApicurioRegistryResourceType.updateWithDefaultSCRAM(apicurioRegistryKafkasqlSCRAM);
 
-        // Create SCRAM certificates and secrets
-        CertificateUtils.createCertificateStores(
+        CertificateUtils.createTruststore(
                 testContext,
+                kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
-                null,
-                apicurioRegistryKafkasqlSCRAM.getSpec().getConfiguration().getKafkasql().getSecurity().getScram().getTruststoreSecretName(),
-                null,
-                null,
-                kafka.getMetadata().getNamespace()
+                getTruststoreSecretName(apicurioRegistryKafkasqlSCRAM)
         );
 
         // Create Apicurio Registry with SCRAM configuration

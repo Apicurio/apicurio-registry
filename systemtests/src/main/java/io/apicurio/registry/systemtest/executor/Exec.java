@@ -45,7 +45,7 @@ public class Exec {
     private final boolean appendLineSeparator;
     private Subscriber<String> stdErrProcessor;
     private static final Pattern PATH_SPLITTER = Pattern.compile(System.getProperty("path.separator"));
-    protected static final Object lock = new Object();
+    protected static final Object LOCK = new Object();
 
     public Exec() {
         this.appendLineSeparator = true;
@@ -125,6 +125,46 @@ public class Exec {
         return exec(null, commands, timeout);
     }
 
+    private ProcessBuilder getProcessBuilder(List<String> commands) {
+        ProcessBuilder builder = new ProcessBuilder()
+                .command(commands)
+                .directory(new File(System.getProperty("user.dir")));
+
+        if (this.env != null) {
+            for (Map.Entry<String, String> entry : this.env.entrySet()) {
+                if (entry.getValue() != null) {
+                    builder.environment().put(entry.getKey(), entry.getValue());
+                } else {
+                    builder.environment().remove(entry.getKey());
+                }
+            }
+        }
+
+        return builder;
+    }
+
+    private void processStdOut() throws ExecutionException, InterruptedException {
+        Future<String> output = readStdOutput();
+
+        try {
+            stdOut = output.get(500, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ex) {
+            output.cancel(true);
+            stdOut = stdOutReader.getData();
+        }
+    }
+
+    private void processStdErr() throws ExecutionException, InterruptedException {
+        Future<String> error = readStdError();
+
+        try {
+            stdErr = error.get(500, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ex) {
+            error.cancel(true);
+            stdErr = stdErrReader.getData();
+        }
+    }
+
     /**
      * Method executes external command
      *
@@ -136,24 +176,12 @@ public class Exec {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public int exec(String input, List<String> commands, int timeout) throws IOException, InterruptedException, ExecutionException {
+    public int exec(
+            String input, List<String> commands, int timeout
+    ) throws IOException, InterruptedException, ExecutionException {
         LOGGER.debug("Running command - " + String.join(" ", commands.toArray(new String[0])));
-        ProcessBuilder builder = new ProcessBuilder();
-        builder.command(commands);
-        builder.directory(new File(System.getProperty("user.dir")));
-        if (this.env != null) {
-            for (Map.Entry<String, String> entry : this.env.entrySet()) {
-                if (entry.getValue() != null) {
-                    builder.environment().put(entry.getKey(), entry.getValue());
-                } else {
-                    builder.environment().remove(entry.getKey());
-                }
-            }
-        }
-        process = builder.start();
 
-        Future<String> output = readStdOutput();
-        Future<String> error = readStdError();
+        process = getProcessBuilder(commands).start();
 
         if (input != null) {
             try (Writer writer = new OutputStreamWriter(process.getOutputStream())) {
@@ -162,6 +190,7 @@ public class Exec {
         }
 
         int retCode = 1;
+
         if (timeout > 0) {
             if (process.waitFor(timeout, TimeUnit.MILLISECONDS)) {
                 retCode = process.exitValue();
@@ -172,20 +201,12 @@ public class Exec {
             retCode = process.waitFor();
         }
 
-        try {
-            stdOut = output.get(500, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ex) {
-            output.cancel(true);
-            stdOut = stdOutReader.getData();
-        }
+        processStdOut();
 
-        try {
-            stdErr = error.get(500, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ex) {
-            error.cancel(true);
-            stdErr = stdErrReader.getData();
-        }
+        processStdErr();
+
         storeOutputsToFile();
+
         return retCode;
     }
 
@@ -262,14 +283,25 @@ public class Exec {
     }
 
     public static ExecutionResultData executeAndCheck(String input, int timeout, String... commands) {
-        ExecutionResultData results = execute(Arrays.asList(commands), timeout, true, true, null, input);
+        ExecutionResultData results = execute(
+                Arrays.asList(commands),
+                timeout,
+                true,
+                true,
+                null,
+                input
+        );
+
         if (!results.getRetCode()) {
             throw new IllegalStateException(results.getStdErr());
         }
+
         return results;
     }
 
-    public static ExecutionResultData executeAndCheck(List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env) {
+    public static ExecutionResultData executeAndCheck(
+            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env
+    ) {
         ExecutionResultData results = execute(command, timeout, logToOutput, appendLineSeparator, env, null);
         if (!results.getRetCode()) {
             throw new IllegalStateException(results.getStdErr());
@@ -297,20 +329,31 @@ public class Exec {
         return execute(command, timeout, logToOutput, true);
     }
 
-    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator) {
+    public static ExecutionResultData execute(
+            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator
+    ) {
         return execute(command, timeout, logToOutput, appendLineSeparator, null);
     }
 
-    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env) {
+    public static ExecutionResultData execute(
+            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env
+    ) {
         return execute(command, timeout, logToOutput, appendLineSeparator, env, null);
     }
 
-    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env, String input) {
+    public static ExecutionResultData execute(
+            List<String> command,
+            int timeout,
+            boolean logToOutput,
+            boolean appendLineSeparator,
+            Map<String, String> env,
+            String input
+    ) {
         Exec executor = new Exec(appendLineSeparator);
         try {
             executor.setEnv(env);
             int ret = executor.exec(input, command, timeout);
-            synchronized (lock) {
+            synchronized (LOCK) {
                 if (logToOutput) {
                     LOGGER.info("Command - " + String.join(" ", command.toArray(new String[0])));
                     LOGGER.info("Return code: {}", ret);

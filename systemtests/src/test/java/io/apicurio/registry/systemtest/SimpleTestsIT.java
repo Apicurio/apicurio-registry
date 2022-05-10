@@ -180,7 +180,7 @@ public class SimpleTestsIT extends TestBase {
 
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", Environment.apicurioOperatorNamespace);
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-test-instance", Environment.APICURIO_OPERATOR_NAMESPACE);
 
             resourceManager.createResource(testContext, true, apicurioRegistry);
         } catch (Exception e) {
@@ -195,13 +195,13 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, Environment.apicurioOperatorNamespace,false);
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE, Environment.APICURIO_OPERATOR_NAMESPACE,false);
 
             operatorManager.installOperator(testContext, testOperator);
 
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", Environment.apicurioOperatorNamespace);
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", Environment.APICURIO_OPERATOR_NAMESPACE);
 
             // Try to create registry in operator namespace,
             // it should be OK
@@ -235,7 +235,74 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null,true);
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE, null,true);
+
+            operatorManager.installOperator(testContext, testOperator);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-cluster-wide-test-instance", "my-apicurio-registry-test-namespace");
+
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+
+            // Apicurio Registry should be ready here
+            TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    @Disabled
+    public void testInstallApicurioRegistryOLMOperatorNamespacedWithoutCatalogSourceImage(ExtensionContext testContext) {
+        // Use when default catalog is already present only
+        try {
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(null, Environment.APICURIO_OPERATOR_NAMESPACE,false);
+
+            operatorManager.installOperator(testContext, testOperator);
+
+            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance", Environment.APICURIO_OPERATOR_NAMESPACE);
+
+            // Try to create registry in operator namespace,
+            // it should be OK
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+
+            // Apicurio Registry should be ready here
+            TEST_LOGGER.info(ApicurioRegistryResourceType.getOperation().inNamespace(apicurioRegistry.getMetadata().getNamespace()).withName(apicurioRegistry.getMetadata().getName()).get().getStatus().getConditions().toString());
+
+            ApicurioRegistry apicurioRegistryNamespace = ApicurioRegistryResourceType.getDefaultSql("apicurio-registry-operator-namespace-test-instance-fail", "some-namespace");
+
+            // Try to create registry in another namespace than operator namespace,
+            // this should fail
+            AssertionFailedError assertionFailedError = assertThrows(AssertionFailedError.class, () -> resourceManager.createResource(testContext, true, apicurioRegistryNamespace));
+
+            assertEquals(
+                    MessageFormat.format(
+                            "Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. ==> expected: <true> but was: <false>",
+                            apicurioRegistryNamespace.getKind(), apicurioRegistryNamespace.getMetadata().getName(), apicurioRegistryNamespace.getMetadata().getNamespace()
+                    ),
+                    assertionFailedError.getMessage()
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    @Disabled
+    public void testInstallApicurioRegistryOLMOperatorClusterWideWithoutCatalogSourceImage(ExtensionContext testContext) {
+        try {
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(null, null,true);
 
             operatorManager.installOperator(testContext, testOperator);
 
@@ -305,9 +372,9 @@ public class SimpleTestsIT extends TestBase {
 
             operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
 
-            Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTLS(testContext);
+            Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTls(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
@@ -328,9 +395,9 @@ public class SimpleTestsIT extends TestBase {
 
             operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
 
-            Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaSCRAM(testContext);
+            Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaScram(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
@@ -353,7 +420,7 @@ public class SimpleTestsIT extends TestBase {
 
             KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
-            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.apicurioOLMCatalogSourceImage, null, true);
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE, null, true);
 
             operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
 
@@ -400,7 +467,7 @@ public class SimpleTestsIT extends TestBase {
     @Test
     @Disabled
     public void testApicurioRegistryApiClient(ExtensionContext testContext) throws URISyntaxException, IOException, InterruptedException {
-        ApicurioRegistryApiClient apicurioRegistryApiClient = new ApicurioRegistryApiClient("<hostname>", "80");
+        ApicurioRegistryApiClient apicurioRegistryApiClient = new ApicurioRegistryApiClient("apicurio-registry-test-kafkasql.apicurio-registry-operator-namespace.router-default.apps.ocp4-707.0422-bd1.fw.rhcloud.com", 80);
 
         String artifactGroup = "artifact-group";
         String artifactId = "artifact-id";
@@ -423,7 +490,7 @@ public class SimpleTestsIT extends TestBase {
         }
 
         TEST_LOGGER.info("=== Read artifact " + artifactGroup + "/" + artifactId + " ===");
-        TEST_LOGGER.info(apicurioRegistryApiClient.readArtifact(artifactGroup, artifactId));
+        TEST_LOGGER.info(apicurioRegistryApiClient.readArtifactContent(artifactGroup, artifactId));
 
         TEST_LOGGER.info("=== Delete artifact " + artifactGroup + "/" + artifactId + " ===");
         apicurioRegistryApiClient.deleteArtifact(artifactGroup, artifactId);

@@ -6,7 +6,6 @@ import io.apicurio.registry.systemtest.operator.types.Operator;
 import io.apicurio.registry.systemtest.operator.types.OperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -20,10 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class OperatorManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
-
     private static OperatorManager instance;
-
-    private static final Map<String, Stack<Runnable>> storedOperators = new LinkedHashMap<>();
+    private static final Map<String, Stack<Runnable>> STORED_OPERATORS = new LinkedHashMap<>();
 
     public static synchronized OperatorManager getInstance() {
         if (instance == null) {
@@ -33,52 +30,81 @@ public class OperatorManager {
         return instance;
     }
 
-    public void installOperator(ExtensionContext testContext, OperatorType operatorType) {
-        installOperator(operatorType, true);
+    private void createOperatorNamespace(OperatorType operatorType) {
+        String namespace = operatorType.getNamespaceName();
 
-        synchronized (this) {
-            storedOperators.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
-            storedOperators.get(testContext.getDisplayName()).push(() -> uninstallOperator(operatorType));
+        LOGGER.info("Creating new namespace {} for operator...", namespace);
+
+        Kubernetes.createNamespace(namespace);
+
+        if(OperatorUtils.waitNamespaceReady(namespace)) {
+            LOGGER.info("Namespace {} for operator is created and ready.", namespace);
+
+            // Set flag that namespace for operator was created and did not exist before
+            ((Operator) operatorType).setNamespaceCreated(true);
+        } else {
+            LOGGER.error("Namespace {} for operator is not created and ready.", namespace);
         }
     }
 
-    public void installOperator(OperatorType operatorType, boolean waitForReady) {
-        if(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null) {
-            LOGGER.info("Creating new namespace {} for operator {} with name {}...", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+    private void deleteOperatorNamespace(OperatorType operatorType) {
+        String namespace = operatorType.getNamespaceName();
 
-            Kubernetes.getClient().namespaces().create(new NamespaceBuilder()
-                    .withNewMetadata()
-                        .withName(operatorType.getNamespaceName())
-                    .endMetadata()
-                    .build()
-            );
-
-            if(OperatorUtils.waitNamespaceReady(operatorType.getNamespaceName())) {
-                LOGGER.info("New namespace {} for operator {} with name {} is created and ready.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-
-                // Set flag that namespace for operator was created and did not exist before
-                ((Operator) operatorType).setNamespaceCreated(true);
-            }
+        if (Kubernetes.getNamespace(namespace) == null) {
+            LOGGER.info("Namespace {} for operator already removed.", namespace);
         } else {
-            LOGGER.info("Namespace {} for operator {} with name {} already exists.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
+            LOGGER.info("Removing namespace {} for operator ...", namespace);
+
+            Kubernetes.deleteNamespace(Kubernetes.getNamespace(namespace));
+
+            if (OperatorUtils.waitNamespaceRemoved(namespace)) {
+                LOGGER.info("Namespace {} for operator removed.", namespace);
+            } else {
+                LOGGER.error("Namespace {} for operator is not removed.", namespace);
+            }
+        }
+    }
+
+    public void installOperator(ExtensionContext testContext, OperatorType operatorType) {
+        installOperator(testContext, operatorType, true);
+
+        synchronized (this) {
+            STORED_OPERATORS.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
+            STORED_OPERATORS.get(testContext.getDisplayName()).push(() -> uninstallOperator(operatorType));
+        }
+    }
+
+    public void installOperator(ExtensionContext testContext, OperatorType operatorType, boolean waitForReady) {
+        String kind = operatorType.getKind().toString();
+        String name = operatorType.getDeploymentName();
+        String namespace = operatorType.getNamespaceName();
+        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+
+        if(Kubernetes.getNamespace(namespace) == null) {
+            createOperatorNamespace(operatorType);
+        } else {
+            LOGGER.info("Namespace {} for operator {} with name {} already exists.", namespace, kind, name);
         }
 
-        LOGGER.info("Installing operator {} with name {} in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+        LOGGER.info("Installing operator {}...", operatorInfo);
 
-        operatorType.install();
+        operatorType.install(testContext);
 
-        LOGGER.info("Operator {} with name {} installed in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+        LOGGER.info("Operator {} installed.", operatorInfo);
 
         if(waitForReady) {
-            LOGGER.info("Waiting for operator {} with name {} to be ready in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            LOGGER.info("Waiting for operator {} to be ready...", operatorInfo);
 
-            assertTrue(waitOperatorReady(operatorType), MessageFormat.format("Timed out waiting for operator {0} with name {1} to be ready in namespace {2}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(
+                    waitOperatorReady(operatorType),
+                    MessageFormat.format("Timed out waiting for operator {0} to be ready.", operatorInfo)
+            );
 
             if(operatorType.isReady()) {
-                LOGGER.info("Operator {} with name {} is ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+                LOGGER.info("Operator {} is ready.", operatorInfo);
             }
         } else {
-            LOGGER.info("Do not wait for operator {} with name {} to be ready in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            LOGGER.info("Do not wait for operator {} to be ready.", operatorInfo);
         }
     }
 
@@ -87,37 +113,34 @@ public class OperatorManager {
     }
 
     public void uninstallOperator(OperatorType operatorType, boolean waitForRemoved) {
-        LOGGER.info("Uninstalling operator {} with name {} in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+        String kind = operatorType.getKind().toString();
+        String name = operatorType.getDeploymentName();
+        String namespace = operatorType.getNamespaceName();
+        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+
+        LOGGER.info("Uninstalling operator {}...", operatorInfo);
 
         operatorType.uninstall();
 
         if(waitForRemoved) {
-            LOGGER.info("Waiting for operator {} with name {} to be uninstalled in namespace {}...", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            LOGGER.info("Waiting for operator {} to be uninstalled...", operatorInfo);
 
-            assertTrue(waitOperatorRemoved(operatorType), MessageFormat.format("Timed out waiting for operator {0} with name {1} to be uninstalled in namespace {2}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()));
+            assertTrue(
+                    waitOperatorRemoved(operatorType),
+                    MessageFormat.format("Timed out waiting for operator {0} to be uninstalled.", operatorInfo)
+            );
 
             if(operatorType.doesNotExist()) {
-                LOGGER.info("Operator {} with name {} uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+                LOGGER.info("Operator {} uninstalled.", operatorInfo);
             }
         }  else {
-            LOGGER.info("Do not wait for operator {} with name {} to be uninstalled in namespace {}.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            LOGGER.info("Do not wait for operator {} to be uninstalled.", operatorInfo);
         }
 
         // Check flag if operator namespace was created and did not exist before
         if(((Operator) operatorType).getNamespaceCreated()) {
             // Delete operator namespace when created by test
-
-            if (Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get() == null) {
-                LOGGER.info("Namespace {} for operator {} with name {} already removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-            } else {
-                LOGGER.info("Removing namespace {} for operator {} with name {}...", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-
-                Kubernetes.getClient().namespaces().delete(Kubernetes.getClient().namespaces().withName(operatorType.getNamespaceName()).get());
-
-                if (OperatorUtils.waitNamespaceRemoved(operatorType.getNamespaceName())) {
-                    LOGGER.info("Namespace {} for operator {} with name {} removed.", operatorType.getNamespaceName(), operatorType.getKind(), operatorType.getDeploymentName());
-                }
-            }
+            deleteOperatorNamespace(operatorType);
         }
     }
 
@@ -126,15 +149,21 @@ public class OperatorManager {
         LOGGER.info("Going to uninstall all operators.");
         LOGGER.info("----------------------------------------------");
         LOGGER.info("Operators key: {}", testContext.getDisplayName());
-        if (!storedOperators.containsKey(testContext.getDisplayName()) || storedOperators.get(testContext.getDisplayName()).isEmpty()) {
+
+        if (
+                !STORED_OPERATORS.containsKey(testContext.getDisplayName())
+                || STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()
+        ) {
             LOGGER.info("Nothing to uninstall.");
         }
-        while (!storedOperators.get(testContext.getDisplayName()).isEmpty()) {
-            storedOperators.get(testContext.getDisplayName()).pop().run();
+
+        while (!STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()) {
+            STORED_OPERATORS.get(testContext.getDisplayName()).pop().run();
         }
+
         LOGGER.info("----------------------------------------------");
         LOGGER.info("");
-        storedOperators.remove(testContext.getDisplayName());
+        STORED_OPERATORS.remove(testContext.getDisplayName());
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {
@@ -156,13 +185,16 @@ public class OperatorManager {
             }
         }
 
-        boolean pass = operatorType.isReady();
+        if (!operatorType.isReady()) {
+            LOGGER.info(
+                    "Operator {} with name {} in namespace {} failed readiness check.",
+                    operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
+            );
 
-        if (!pass) {
-            LOGGER.info("Operator {} with name {} in namespace {} failed readiness check.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            return false;
         }
 
-        return pass;
+        return true;
     }
 
     public boolean waitOperatorRemoved(OperatorType operatorType) {
@@ -184,12 +216,15 @@ public class OperatorManager {
             }
         }
 
-        boolean pass = operatorType.doesNotExist();
+        if (!operatorType.doesNotExist()) {
+            LOGGER.info(
+                    "Operator {} with name {} in namespace {} failed removal check.",
+                    operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
+            );
 
-        if (!pass) {
-            LOGGER.info("Operator {} with name {} in namespace {} failed removal check.", operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName());
+            return false;
         }
 
-        return pass;
+        return true;
     }
 }

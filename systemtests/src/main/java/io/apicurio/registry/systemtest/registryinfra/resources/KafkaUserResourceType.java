@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.strimzi.api.kafka.model.KafkaUser;
+import io.strimzi.api.kafka.model.KafkaUserAuthentication;
 import io.strimzi.api.kafka.model.KafkaUserBuilder;
 import io.strimzi.api.kafka.model.KafkaUserScramSha512ClientAuthentication;
 import io.strimzi.api.kafka.model.KafkaUserTlsClientAuthentication;
@@ -35,17 +36,24 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
 
     @Override
     public void create(KafkaUser resource) {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .create(resource);
     }
 
     @Override
     public void createOrReplace(KafkaUser resource) {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .createOrReplace(resource);
     }
 
     @Override
     public void delete(KafkaUser resource) throws Exception {
-        getOperation().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        getOperation()
+                .inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName())
+                .delete();
     }
 
     @Override
@@ -56,7 +64,10 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
             return false;
         }
 
-        return kafkaUser.getStatus().getConditions().stream()
+        return kafkaUser
+                .getStatus()
+                .getConditions()
+                .stream()
                 .filter(condition -> condition.getType().equals("Ready"))
                 .map(condition -> condition.getStatus().equals("True"))
                 .findFirst()
@@ -73,6 +84,14 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     /** Get default instances **/
 
     public static KafkaUser getDefaultByKind(String name, String namespace, String clusterName, KafkaKind kafkaKind) {
+        KafkaUserAuthentication kafkaUserAuthentication = null;
+
+        if (KafkaKind.TLS.equals(kafkaKind)) {
+            kafkaUserAuthentication = new KafkaUserTlsClientAuthentication();
+        } else if (KafkaKind.SCRAM.equals(kafkaKind)) {
+            kafkaUserAuthentication = new KafkaUserScramSha512ClientAuthentication();
+        }
+
         return new KafkaUserBuilder()
                 .withNewMetadata()
                     .withName(name)
@@ -80,7 +99,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
                     .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName))
                 .endMetadata()
                 .withNewSpec()
-                    .withAuthentication(KafkaKind.TLS.equals(kafkaKind) ? new KafkaUserTlsClientAuthentication() : new KafkaUserScramSha512ClientAuthentication())
+                    .withAuthentication(kafkaUserAuthentication)
                 .endSpec()
                 .build();
     }
@@ -94,10 +113,20 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     }
 
     public static KafkaUser getDefaultTLS() {
-        return getDefaultByKind("apicurio-registry-kafka-user-secured-tls", Environment.strimziOperatorNamespace, "apicurio-registry-kafkasql-tls", KafkaKind.TLS);
+        return getDefaultByKind(
+                "apicurio-registry-kafka-user-secured-tls",
+                Environment.STRIMZI_NAMESPACE,
+                "apicurio-registry-kafkasql-tls",
+                KafkaKind.TLS
+        );
     }
 
     public static KafkaUser getDefaultSCRAM() {
-        return getDefaultByKind("apicurio-registry-kafka-user-secured-scram", Environment.strimziOperatorNamespace, "apicurio-registry-kafkasql-scram", KafkaKind.SCRAM);
+        return getDefaultByKind(
+                "apicurio-registry-kafka-user-secured-scram",
+                Environment.STRIMZI_NAMESPACE,
+                "apicurio-registry-kafkasql-scram",
+                KafkaKind.SCRAM
+        );
     }
 }

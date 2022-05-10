@@ -1,14 +1,13 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.platform.Kubernetes;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaimVolumeSource;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DeploymentResourceType implements ResourceType<Deployment> {
     @Override
@@ -23,22 +22,22 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
 
     @Override
     public Deployment get(String namespace, String name) {
-        return Kubernetes.getClient().apps().deployments().inNamespace(namespace).withName(name).get();
+        return Kubernetes.getDeployment(namespace, name);
     }
 
     @Override
     public void create(Deployment resource) {
-        Kubernetes.getClient().apps().deployments().inNamespace(resource.getMetadata().getNamespace()).create(resource);
+        Kubernetes.createDeployment(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void createOrReplace(Deployment resource) {
-        Kubernetes.getClient().apps().deployments().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
+        Kubernetes.createOrReplaceDeployment(resource.getMetadata().getNamespace(), resource);
     }
 
     @Override
     public void delete(Deployment resource) {
-        Kubernetes.getClient().apps().deployments().inNamespace(resource.getMetadata().getNamespace()).withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deleteDeployment(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override
@@ -49,7 +48,10 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
             return false;
         }
 
-        return deployment.getStatus().getConditions().stream()
+        return deployment
+                .getStatus()
+                .getConditions()
+                .stream()
                 .filter(condition -> condition.getType().equals("Available"))
                 .map(condition -> condition.getStatus().equals("True"))
                 .findFirst()
@@ -64,6 +66,45 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
     }
 
     /** Get default instances **/
+
+    private static List<EnvVar> getDefaultPostgresqlEnvVars() {
+        List<EnvVar> envVars = new ArrayList<>();
+
+        envVars.add(new EnvVar("POSTGRESQL_ADMIN_PASSWORD", "adminpassword", null));
+        envVars.add(new EnvVar("POSTGRESQL_DATABASE", "postgresdb", null));
+        envVars.add(new EnvVar("POSTGRESQL_USER", "postgresuser", null));
+        envVars.add(new EnvVar("POSTGRESQL_PASSWORD", "postgrespassword", null));
+
+        return envVars;
+    }
+
+    private static Container getDefaultPostgresqlContainer(String name) {
+        return new ContainerBuilder()
+                .withEnv(getDefaultPostgresqlEnvVars())
+                .withImage("quay.io/centos7/postgresql-12-centos7:latest")
+                .withImagePullPolicy("Always")
+                .withName(name)
+                .addNewPort()
+                    .withContainerPort(5432)
+                    .withName("postgresql")
+                    .withProtocol("TCP")
+                .endPort()
+                .withNewReadinessProbe()
+                    .withNewTcpSocket()
+                        .withNewPort(5432)
+                    .endTcpSocket()
+                .endReadinessProbe()
+                .withNewLivenessProbe()
+                    .withNewTcpSocket()
+                        .withNewPort(5432)
+                    .endTcpSocket()
+                .endLivenessProbe()
+                .withVolumeMounts(new VolumeMount() {{
+                    setMountPath("/var/lib/pgsql/data");
+                    setName(name);
+                }})
+                .build();
+    }
 
     public static Deployment getDefaultPostgresql(String name, String namespace) {
         return new DeploymentBuilder()
@@ -82,36 +123,7 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
                             .addToLabels("app", name)
                         .endMetadata()
                         .withNewSpec()
-                            .addNewContainer()
-                                .withEnv(
-                                    new EnvVar("POSTGRESQL_ADMIN_PASSWORD", "adminpassword", null),
-                                    new EnvVar("POSTGRESQL_DATABASE", "postgresdb", null),
-                                    new EnvVar("POSTGRESQL_USER", "postgresuser", null),
-                                    new EnvVar("POSTGRESQL_PASSWORD", "postgrespassword", null)
-                                )
-                                .withImage("quay.io/centos7/postgresql-12-centos7:latest")
-                                .withImagePullPolicy("Always")
-                                .withName(name)
-                                .addNewPort()
-                                    .withContainerPort(5432)
-                                    .withName("postgresql")
-                                    .withProtocol("TCP")
-                                .endPort()
-                                .withNewReadinessProbe()
-                                    .withNewTcpSocket()
-                                        .withNewPort(5432)
-                                    .endTcpSocket()
-                                .endReadinessProbe()
-                                .withNewLivenessProbe()
-                                    .withNewTcpSocket()
-                                        .withNewPort(5432)
-                                    .endTcpSocket()
-                                .endLivenessProbe()
-                                .withVolumeMounts(new VolumeMount() {{
-                                    setMountPath("/var/lib/pgsql/data");
-                                    setName(name);
-                                }})
-                            .endContainer()
+                            .withContainers(getDefaultPostgresqlContainer(name))
                             .withVolumes(new Volume() {{
                                 setName(name);
                                 setPersistentVolumeClaim(new PersistentVolumeClaimVolumeSource() {{

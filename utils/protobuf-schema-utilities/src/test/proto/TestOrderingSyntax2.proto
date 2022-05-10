@@ -1,6 +1,6 @@
 package io.apicurio.registry.utils.protobuf.schema.syntax2;
 
-import "decimal/decimal.proto";
+import "additionalTypes/decimal.proto";
 
 message Address {
   required string street = 1 [json_name = "Address_Street"];
@@ -39,7 +39,7 @@ message Address {
 message Customer {
   required string name = 1;
 
-  required decimal.Decimal decimal = 5;
+  required additionalTypes.Decimal decimal = 5;
 
   reserved 2, 15, 10 to 11, 800 to 899;
 

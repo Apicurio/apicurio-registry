@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package decimal;
+package additionalTypes;
 
-option java_package = "decimal";
+option java_package = "additionalTypes";
 option java_outer_classname = "Decimals";
 
 

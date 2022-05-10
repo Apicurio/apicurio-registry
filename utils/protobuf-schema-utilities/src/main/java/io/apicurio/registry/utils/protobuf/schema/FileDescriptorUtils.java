@@ -48,7 +48,7 @@ import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import kotlin.ranges.IntRange;
 import metadata.ProtobufSchemaMetadata;
-import decimal.Decimals;
+import additionalTypes.Decimals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -386,7 +386,7 @@ public class FileDescriptorUtils {
         //In case the package is not defined, we select the types that are not google types or metadata types.
         return !typeName.startsWith("google.type") && !typeName.startsWith("google.protobuf")
             && !typeName.startsWith("metadata")
-            && !typeName.startsWith("decimal");
+            && !typeName.startsWith("additionalTypes");
     }
 
     private static DescriptorProto messageElementToDescriptorProto(

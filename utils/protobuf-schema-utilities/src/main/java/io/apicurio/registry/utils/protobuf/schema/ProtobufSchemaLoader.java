@@ -28,7 +28,7 @@ public class ProtobufSchemaLoader {
     private static final String GOOGLE_API_PATH = "google/type/";
     private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
     private static final String METADATA_PATH = "metadata/";
-    private static final String DECIMAL_PATH = "decimal/";
+    private static final String DECIMAL_PATH = "additionalTypes/";
     //Adding pre-built support for commonly used Google API Protos,
     //https://github.com/googleapis/googleapis
     //These files need to be manually loaded into the FileSystem

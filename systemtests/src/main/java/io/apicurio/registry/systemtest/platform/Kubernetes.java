@@ -278,6 +278,14 @@ public final class Kubernetes {
                 .create(operatorGroup);
     }
 
+    public static void createOrReplaceOperatorGroup(String namespace, OperatorGroup operatorGroup) {
+        ((OpenShiftClient) getClient())
+                .operatorHub()
+                .operatorGroups()
+                .inNamespace(namespace)
+                .createOrReplace(operatorGroup);
+    }
+
     public static void deleteOperatorGroup(String namespace, String name) {
         ((OpenShiftClient) getClient())
                 .operatorHub()
@@ -293,6 +301,14 @@ public final class Kubernetes {
                 .subscriptions()
                 .inNamespace(namespace)
                 .create(subscription);
+    }
+
+    public static void createOrReplaceSubscription(String namespace, Subscription subscription) {
+        ((OpenShiftClient) getClient())
+                .operatorHub()
+                .subscriptions()
+                .inNamespace(namespace)
+                .createOrReplace(subscription);
     }
 
     public static Subscription getSubscription(String namespace, String name) {

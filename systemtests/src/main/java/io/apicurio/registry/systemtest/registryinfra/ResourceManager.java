@@ -19,6 +19,7 @@ import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.SecretResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ServiceResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -59,7 +60,8 @@ public class ResourceManager {
             new KafkaConnectResourceType(),
             new RouteResourceType(),
             new SecretResourceType(),
-            new OperatorGroupResourceType()
+            new OperatorGroupResourceType(),
+            new SubscriptionResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {

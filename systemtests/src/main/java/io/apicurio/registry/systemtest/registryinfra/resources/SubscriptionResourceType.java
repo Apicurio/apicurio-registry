@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 
 import java.time.Duration;
 
@@ -53,5 +54,32 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());
         existing.setStatus(newResource.getStatus());
+    }
+
+    /** Get default instances **/
+
+    public static Subscription getDefault(
+            String name,
+            String namespace,
+            String packageName,
+            String sourceName,
+            String sourceNamespace,
+            String startingCSV,
+            String channel
+    ) {
+        return new SubscriptionBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withName(packageName)
+                    .withSource(sourceName)
+                    .withSourceNamespace(sourceNamespace)
+                    .withStartingCSV(startingCSV)
+                    .withChannel(channel)
+                    .withInstallPlanApproval("Automatic")
+                .endSpec()
+                .build();
     }
 }

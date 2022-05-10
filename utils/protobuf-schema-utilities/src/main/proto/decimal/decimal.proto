@@ -3,12 +3,12 @@ syntax = "proto3";
 package decimal;
 
 option java_package = "decimal";
-option java_outer_classname = "ProtobufSchemaDecimal";
+option java_outer_classname = "Decimals";
+
 
 // Protobuf standard library / WellKnownTypes don't provide a Decimal type.
 // This posses a challenge to represent Decimals that cannot be accurately represented
-// using float or double types. This Proto provides a way to represent Decimals for
-// customers using Glue Schema Registry.
+// using float or double types.
 // Related issue: https://github.com/protocolbuffers/protobuf/issues/4406
 message Decimal {
 

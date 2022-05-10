@@ -141,6 +141,14 @@ public final class Kubernetes {
                 .create(catalogSource);
     }
 
+    public static void createOrReplaceCatalogSource(String namespace, CatalogSource catalogSource) {
+        ((OpenShiftClient) getClient())
+                .operatorHub()
+                .catalogSources()
+                .inNamespace(namespace)
+                .createOrReplace(catalogSource);
+    }
+
     public static CatalogSource getCatalogSource(String namespace, String name) {
         return ((OpenShiftClient) getClient())
                 .operatorHub()

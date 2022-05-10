@@ -60,7 +60,7 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
     public boolean isReady(KafkaTopic resource) {
         KafkaTopic kafkaTopic = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
-        if(kafkaTopic == null || kafkaTopic.getStatus() == null) {
+        if (kafkaTopic == null || kafkaTopic.getStatus() == null) {
             return false;
         }
 

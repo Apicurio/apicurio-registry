@@ -48,7 +48,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     public void install(ExtensionContext testContext) {
         // Add ability to install operator from source?
 
-        if(OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
+        if (OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
             LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
         } else {
             operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);

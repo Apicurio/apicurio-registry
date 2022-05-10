@@ -108,7 +108,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public String getDeploymentName() {
         Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
 
-        if(deployment == null) {
+        if (deployment == null) {
             return null;
         }
 

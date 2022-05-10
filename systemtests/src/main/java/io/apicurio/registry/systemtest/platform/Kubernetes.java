@@ -1,7 +1,13 @@
 package io.apicurio.registry.systemtest.platform;
 
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
-import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.Config;
@@ -72,7 +78,7 @@ public final class Kubernetes {
         List<HasMetadata> resources = new ArrayList<>();
 
         // Load files to resources
-        for(String file : filenames) {
+        for (String file : filenames) {
             // Load one file and add all resources from file to resources
             resources.addAll(loadFromFile(Paths.get(path.toString(), file)));
         }

@@ -37,7 +37,7 @@ public class OperatorManager {
 
         Kubernetes.createNamespace(namespace);
 
-        if(OperatorUtils.waitNamespaceReady(namespace)) {
+        if (OperatorUtils.waitNamespaceReady(namespace)) {
             LOGGER.info("Namespace {} for operator is created and ready.", namespace);
 
             // Set flag that namespace for operator was created and did not exist before
@@ -80,7 +80,7 @@ public class OperatorManager {
         String namespace = operatorType.getNamespaceName();
         String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
 
-        if(Kubernetes.getNamespace(namespace) == null) {
+        if (Kubernetes.getNamespace(namespace) == null) {
             createOperatorNamespace(operatorType);
         } else {
             LOGGER.info("Namespace {} for operator {} with name {} already exists.", namespace, kind, name);
@@ -92,7 +92,7 @@ public class OperatorManager {
 
         LOGGER.info("Operator {} installed.", operatorInfo);
 
-        if(waitForReady) {
+        if (waitForReady) {
             LOGGER.info("Waiting for operator {} to be ready...", operatorInfo);
 
             assertTrue(
@@ -100,7 +100,7 @@ public class OperatorManager {
                     MessageFormat.format("Timed out waiting for operator {0} to be ready.", operatorInfo)
             );
 
-            if(operatorType.isReady()) {
+            if (operatorType.isReady()) {
                 LOGGER.info("Operator {} is ready.", operatorInfo);
             }
         } else {
@@ -122,7 +122,7 @@ public class OperatorManager {
 
         operatorType.uninstall();
 
-        if(waitForRemoved) {
+        if (waitForRemoved) {
             LOGGER.info("Waiting for operator {} to be uninstalled...", operatorInfo);
 
             assertTrue(
@@ -130,7 +130,7 @@ public class OperatorManager {
                     MessageFormat.format("Timed out waiting for operator {0} to be uninstalled.", operatorInfo)
             );
 
-            if(operatorType.doesNotExist()) {
+            if (operatorType.doesNotExist()) {
                 LOGGER.info("Operator {} uninstalled.", operatorInfo);
             }
         }  else {
@@ -138,7 +138,7 @@ public class OperatorManager {
         }
 
         // Check flag if operator namespace was created and did not exist before
-        if(((Operator) operatorType).getNamespaceCreated()) {
+        if (((Operator) operatorType).getNamespaceCreated()) {
             // Delete operator namespace when created by test
             deleteOperatorNamespace(operatorType);
         }

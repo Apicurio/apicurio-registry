@@ -60,7 +60,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     public boolean isReady(KafkaUser resource) {
         KafkaUser kafkaUser = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
-        if(kafkaUser == null || kafkaUser.getStatus() == null) {
+        if (kafkaUser == null || kafkaUser.getStatus() == null) {
             return false;
         }
 

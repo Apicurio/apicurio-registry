@@ -477,7 +477,7 @@ public class SimpleTestsIT extends TestBase {
                 .toString();
 
         TEST_LOGGER.info("=== List artifacts ===");
-        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+        for (String s : apicurioRegistryApiClient.listArtifacts()) {
             TEST_LOGGER.info(s);
         }
 
@@ -485,7 +485,7 @@ public class SimpleTestsIT extends TestBase {
         apicurioRegistryApiClient.createArtifact(artifactGroup, artifactId, ArtifactType.AVRO, artifactData);
 
         TEST_LOGGER.info("=== List artifacts ===");
-        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+        for (String s : apicurioRegistryApiClient.listArtifacts()) {
             TEST_LOGGER.info(s);
         }
 
@@ -496,7 +496,7 @@ public class SimpleTestsIT extends TestBase {
         apicurioRegistryApiClient.deleteArtifact(artifactGroup, artifactId);
 
         TEST_LOGGER.info("=== List artifacts ===");
-        for(String s : apicurioRegistryApiClient.listArtifacts()) {
+        for (String s : apicurioRegistryApiClient.listArtifacts()) {
             TEST_LOGGER.info(s);
         }
     }

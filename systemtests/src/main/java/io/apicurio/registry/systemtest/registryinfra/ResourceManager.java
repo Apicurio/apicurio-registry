@@ -69,6 +69,7 @@ public class ResourceManager {
         for (ResourceType<?> type : resourceTypes) {
             if (type.getKind().equals(resource.getKind())) {
                 result = (ResourceType<T>) type;
+
                 break;
             }
         }
@@ -103,7 +104,7 @@ public class ResourceManager {
 
         LOGGER.info("Resource {} created.", resourceInfo);
 
-        if(waitReady) {
+        if (waitReady) {
             assertTrue(
                     waitResourceCondition(resource, type::isReady),
                     MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
@@ -192,7 +193,7 @@ public class ResourceManager {
             e.printStackTrace();
         }
 
-        if(type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
+        if (type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
             LOGGER.info("Resource {} deleted.", resourceInfo);
         } else {
             LOGGER.warn("Resource {} is not deleted yet.", resourceInfo);

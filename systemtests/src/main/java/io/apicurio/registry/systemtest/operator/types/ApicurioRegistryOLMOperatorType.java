@@ -29,7 +29,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     public ApicurioRegistryOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
         super(source);
 
-        if(isClusterWide) {
+        if (isClusterWide) {
             // Static set of cluster wide operator namespace
             this.operatorNamespace = Environment.OLM_CLUSTER_WIDE_NAMESPACE;
         } else {
@@ -83,7 +83,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         LOGGER.info("Deleting pod(s) of catalog source {}...", info);
         Kubernetes.deletePods(namespace, "olm.catalogSource", name);
 
-        if(Kubernetes.getPods(namespace, "olm.catalogSource", name).getItems().size() != 0) {
+        if (Kubernetes.getPods(namespace, "olm.catalogSource", name).getItems().size() != 0) {
             LOGGER.warn("Pod(s) of catalog source {} is/are not deleted.", info);
         }
 
@@ -95,7 +95,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     private void deleteCatalogSource() {
-        if(catalogSource != null) {
+        if (catalogSource != null) {
             String namespace = catalogSource.getMetadata().getNamespace();
             String name = catalogSource.getMetadata().getName();
 
@@ -135,13 +135,13 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
-        if(isClusterWide) {
+        if (isClusterWide) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         }
 
-        if(getSource() != null) {
+        if (getSource() != null) {
             createCatalogSource(
                     testContext,
                     Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
@@ -149,7 +149,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             );
         }
 
-        if(!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
+        if (!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
             operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
@@ -180,7 +180,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             OperatorUtils.deleteOperatorGroup(operatorGroup);
         }
 
-        if(getSource() != null) {
+        if (getSource() != null) {
             deleteCatalogSource();
 
             deleteCatalogSourceNamespace();

@@ -21,7 +21,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public void loadOperatorResourcesFromFile() throws Exception {
         LOGGER.info("Loading operator resources from file " + getSource() + "...");
 
-        if(getSource().startsWith("http://") || getSource().startsWith("https://")) {
+        if (getSource().startsWith("http://") || getSource().startsWith("https://")) {
             Path tmpPath = Environment.getTempPath(
                     "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml"
             );
@@ -35,7 +35,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
             operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath.toString())).get();
 
             LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
-        } else if(getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
+        } else if (getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
             LOGGER.info("Using file " + getSource() + " to load operator resources...");
 
             operatorResources = Kubernetes.getClient().load(new FileInputStream(getSource())).get();
@@ -84,7 +84,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public String getDeploymentName() {
         Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
 
-        if(deployment == null) {
+        if (deployment == null) {
             return null;
         }
 

@@ -130,7 +130,7 @@ public class OperatorUtils {
             }
         }
 
-        if(Kubernetes.getPods(namespace, labelKey, labelValue).getItems().size() == 0) {
+        if (Kubernetes.getPods(namespace, labelKey, labelValue).getItems().size() == 0) {
             LOGGER.error(
                     "Pod(s) of catalog source in namespace {} with label {}={} failed creation check.",
                     namespace, labelKey, labelValue
@@ -172,7 +172,7 @@ public class OperatorUtils {
 
     public static boolean waitPodsReady(String namespace, String labelKey, String labelValue, TimeoutBudget timeout) {
         while (!timeout.timeoutExpired()) {
-            if(collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
+            if (collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
                 return true;
             }
 
@@ -185,7 +185,7 @@ public class OperatorUtils {
             }
         }
 
-        if(!collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
+        if (!collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
             LOGGER.error(
                     "Pod(s) of catalog source in namespace {} with label {}={} failed readiness check.",
                     namespace, labelKey, labelValue
@@ -216,7 +216,7 @@ public class OperatorUtils {
             }
         }
 
-        if(Kubernetes.getCatalogSource(namespace, name) == null) {
+        if (Kubernetes.getCatalogSource(namespace, name) == null) {
             LOGGER.error("Catalog source in namespace {} with name {} failed creation check.", namespace, name);
 
             return false;

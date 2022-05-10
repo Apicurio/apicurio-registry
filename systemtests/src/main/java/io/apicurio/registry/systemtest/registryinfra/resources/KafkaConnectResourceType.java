@@ -64,7 +64,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
     public boolean isReady(KafkaConnect resource) {
         KafkaConnect kafkaConnect = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
-        if(kafkaConnect == null || kafkaConnect.getStatus() == null) {
+        if (kafkaConnect == null || kafkaConnect.getStatus() == null) {
             return false;
         }
 

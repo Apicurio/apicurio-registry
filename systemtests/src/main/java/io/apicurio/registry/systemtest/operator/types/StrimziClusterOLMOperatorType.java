@@ -22,7 +22,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     public StrimziClusterOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
         super(source);
 
-        if(isClusterWide) {
+        if (isClusterWide) {
             // Static set of cluster wide operator namespace
             this.operatorNamespace = Environment.OLM_CLUSTER_WIDE_NAMESPACE;
         } else {
@@ -56,12 +56,12 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
-        if(isClusterWide) {
+        if (isClusterWide) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
 
-            if(!OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
+            if (!OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
                 operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
             }
         }

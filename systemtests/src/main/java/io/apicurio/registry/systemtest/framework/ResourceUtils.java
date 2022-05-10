@@ -23,7 +23,7 @@ public class ResourceUtils {
         StatefulSet statefulSet = Kubernetes.getStatefulSet(namespace, name);
 
         while (!timeoutBudget.timeoutExpired()) {
-            if(statefulSet == null || statefulSet.getStatus() == null) {
+            if (statefulSet == null || statefulSet.getStatus() == null) {
                 return false;
             }
 
@@ -42,7 +42,7 @@ public class ResourceUtils {
 
         statefulSet = Kubernetes.getStatefulSet(namespace, name);
 
-        if(statefulSet == null || statefulSet.getStatus() == null || statefulSet.getStatus().getReadyReplicas() <= 0) {
+        if (statefulSet == null || statefulSet.getStatus() == null || statefulSet.getStatus().getReadyReplicas() <= 0) {
             LOGGER.error("StatefulSet with name {} in namespace {} failed readiness check.", name, namespace);
 
             return false;
@@ -53,18 +53,18 @@ public class ResourceUtils {
 
     public static void updateRoleBindingNamespace(List<HasMetadata> resources, String namespace) {
         // Go through all loaded operator resources
-        for(HasMetadata resource : resources) {
+        for (HasMetadata resource : resources) {
             // If resource is RoleBinding
-            if(resource.getKind().equals("RoleBinding")) {
+            if (resource.getKind().equals("RoleBinding")) {
                 // Iterate over all subjects in this RoleBinding
-                for(Subject s: ((RoleBinding) resource).getSubjects()) {
+                for (Subject s: ((RoleBinding) resource).getSubjects()) {
                     // Change namespace of subject to operator namespace
                     s.setNamespace(namespace);
                 }
                 // If resource is ClusterRoleBinding
-            } else if(resource.getKind().equals("ClusterRoleBinding")) {
+            } else if (resource.getKind().equals("ClusterRoleBinding")) {
                 // Iterate over all subjects in this ClusterRoleBinding
-                for(Subject s : ((ClusterRoleBinding) resource).getSubjects()) {
+                for (Subject s : ((ClusterRoleBinding) resource).getSubjects()) {
                     // Change namespace of subject to operator namespace
                     s.setNamespace(namespace);
                 }

@@ -16,7 +16,6 @@ import java.util.List;
 
 public class ApicurioRegistryBundleOperatorType extends Operator implements OperatorType {
     private final String operatorNamespace;
-
     private List<HasMetadata> operatorResources;
 
     public void loadOperatorResourcesFromFile() throws Exception {
@@ -121,23 +120,20 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
             return false;
         }
 
-        DeploymentSpec deploymentSpec = deployment.getSpec();
-        DeploymentStatus deploymentStatus = deployment.getStatus();
+        DeploymentStatus status = deployment.getStatus();
 
-        if (
-                deploymentStatus == null
-                || deploymentStatus.getReplicas() == null
-                || deploymentStatus.getAvailableReplicas() == null
-        ) {
+        if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
 
-        if (deploymentSpec == null || deploymentSpec.getReplicas() == null) {
+        DeploymentSpec spec = deployment.getSpec();
+
+        if (spec == null || spec.getReplicas() == null) {
             return false;
         }
 
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas()
-                && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
+        return spec.getReplicas().intValue() == status.getReplicas()
+                && spec.getReplicas() <= status.getAvailableReplicas();
     }
 
     @Override

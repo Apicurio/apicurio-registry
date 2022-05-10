@@ -20,6 +20,8 @@ public class KeycloakUtils {
     public static void deployKeycloak(ExtensionContext testContext, String namespace) {
         LOGGER.info("Deploying Keycloak...");
 
+        ResourceManager manager = ResourceManager.getInstance();
+
         // Deploy Keycloak server
         Exec.executeAndCheck(
                 "oc",
@@ -27,23 +29,16 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak.yaml")
         );
+        // TODO: Add Keycloak server cleanup
 
         // Wait for Keycloak server to be ready
         ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
         // Create Keycloak HTTP Service and do not wait for its readiness
-        ResourceManager.getInstance().createResource(
-                testContext,
-                false,
-                ServiceResourceType.getDefaultKeycloakHttp(namespace)
-        );
+        manager.createResource(testContext, false, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
         // Create Keycloak Route and wait for its readiness
-        ResourceManager.getInstance().createResource(
-                testContext,
-                true,
-                RouteResourceType.getDefaultKeycloak(namespace)
-        );
+        manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
 
         // Log Keycloak URL
         LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
@@ -55,6 +50,7 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
+        // TODO: Add Keycloak Realm cleanup
 
         LOGGER.info("Keycloak should be deployed.");
     }

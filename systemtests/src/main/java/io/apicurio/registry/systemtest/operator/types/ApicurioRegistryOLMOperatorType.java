@@ -3,13 +3,15 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
+import io.apicurio.registry.systemtest.registryinfra.resources.CatalogSourceResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSourceBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -35,20 +37,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
 
         this.isClusterWide = isClusterWide;
-    }
-
-    private void createCatalogSourceNamespace(String catalogSourceNamespaceName) {
-        if(Kubernetes.getNamespace(catalogSourceNamespaceName) == null) {
-            LOGGER.info("Creating catalog source namespace {}...", catalogSourceNamespaceName);
-
-            catalogSourceNamespace = Kubernetes.getNamespace(catalogSourceNamespaceName);
-
-            if(OperatorUtils.waitNamespaceReady(catalogSourceNamespaceName)) {
-                LOGGER.info("Catalog source namespace {} is created and ready.", catalogSourceNamespaceName);
-            }
-        } else {
-            LOGGER.info("Catalog source namespace {} already exists.", catalogSourceNamespaceName);
-        }
     }
 
     private void deleteCatalogSourceNamespace() {
@@ -77,25 +65,14 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     /**
      * Create catalog source and wait for its creation.
      */
-    private void createCatalogSource(String namespace, String name) {
+    private void createCatalogSource(ExtensionContext testContext, String namespace, String name) {
         String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
 
         LOGGER.info("Creating catalog source {}...", info);
 
-        catalogSource = new CatalogSourceBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withDisplayName("Apicurio Registry Operator Catalog Source")
-                    .withImage(getSource())
-                    .withPublisher("apicurio-registry-qe")
-                    .withSourceType("grpc")
-                .endSpec()
-                .build();
+        catalogSource = CatalogSourceResourceType.getDefault(name, namespace, getSource());
 
-        Kubernetes.createCatalogSource(namespace, catalogSource);
+        ResourceManager.getInstance().createResource(testContext, false, catalogSource);
 
         LOGGER.info("Waiting for catalog source {} to be created...", info);
         OperatorUtils.waitCatalogSourceExists(namespace, name);
@@ -134,15 +111,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
     }
 
-    private void prepareCatalogSource() {
-        createCatalogSourceNamespace(Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE);
-
-        createCatalogSource(
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAME
-        );
-    }
-
     @Override
     public OperatorKind getKind() {
         return OperatorKind.APICURIO_REGISTRY_OLM_OPERATOR;
@@ -174,18 +142,22 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
 
         if(getSource() != null) {
-            prepareCatalogSource();
+            createCatalogSource(
+                    testContext,
+                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
+                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAME
+            );
         }
 
         if(!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
-            operatorGroup = OperatorUtils.createOperatorGroup(operatorNamespace);
+            operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
         // TODO: Get default channel and current CSV
         // TODO: Check Environment for user defined channel and CSV
         LOGGER.info("TODO: Wait for package manifest to be available here?");
 
-        subscription = OperatorUtils.createSubscription(
+        subscription = SubscriptionResourceType.getDefault(
                 Environment.APICURIO_OLM_SUBSCRIPTION_NAME,
                 operatorNamespace,
                 Environment.APICURIO_OLM_SUBSCRIPTION_PKG,
@@ -194,6 +166,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 Environment.APICURIO_OLM_SUBSCRIPTION_STARTING_CSV,
                 Environment.APICURIO_OLM_SUBSCRIPTION_CHANNEL
         );
+
+        ResourceManager.getInstance().createResource(testContext, true, subscription);
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
@@ -223,12 +197,13 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             return false;
         }
 
-        DeploymentSpec spec = deployment.getSpec();
         DeploymentStatus status = deployment.getStatus();
 
         if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
+
+        DeploymentSpec spec = deployment.getSpec();
 
         if (spec == null || spec.getReplicas() == null) {
             return false;

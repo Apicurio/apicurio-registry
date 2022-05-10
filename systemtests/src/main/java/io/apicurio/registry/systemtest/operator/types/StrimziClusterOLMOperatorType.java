@@ -3,6 +3,8 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
+import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
@@ -60,7 +62,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
 
             if(!OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
-                operatorGroup = OperatorUtils.createOperatorGroup(operatorNamespace);
+                operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
             }
         }
 
@@ -72,7 +74,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         String channelName = packageManifest.getStatus().getDefaultChannel();
         String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
 
-        subscription = OperatorUtils.createSubscription(
+        subscription = SubscriptionResourceType.getDefault(
                 Environment.STRIMZI_OLM_SUBSCRIPTION_NAME,
                 operatorNamespace,
                 Environment.STRIMZI_OLM_SUBSCRIPTION_PKG,
@@ -81,6 +83,8 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
                 channelCSV,
                 channelName
         );
+
+        ResourceManager.getInstance().createResource(testContext, true, subscription);
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
@@ -104,12 +108,13 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
             return false;
         }
 
-        DeploymentSpec spec = deployment.getSpec();
         DeploymentStatus status = deployment.getStatus();
 
         if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
+
+        DeploymentSpec spec = deployment.getSpec();
 
         if (spec == null || spec.getReplicas() == null) {
             return false;

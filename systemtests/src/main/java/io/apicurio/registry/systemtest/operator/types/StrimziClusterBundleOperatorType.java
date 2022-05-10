@@ -155,12 +155,13 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
             return false;
         }
 
-        DeploymentSpec spec = deployment.getSpec();
         DeploymentStatus status = deployment.getStatus();
 
         if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
+
+        DeploymentSpec spec = deployment.getSpec();
 
         if (spec == null || spec.getReplicas() == null) {
             return false;

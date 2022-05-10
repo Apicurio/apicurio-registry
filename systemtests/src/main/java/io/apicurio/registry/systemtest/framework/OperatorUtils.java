@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtest.framework;
 
 import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.ResourceKind;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -13,9 +14,9 @@ import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionSpec;
 import io.fabric8.openshift.client.OpenShiftClient;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -229,11 +230,11 @@ public class OperatorUtils {
     }
 
     private static boolean isCatalogSourceReady(CatalogSource catalogSource) {
-        if (
-                catalogSource != null
-                && catalogSource.getStatus() != null
-                && catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY")
-        ) {
+        if (catalogSource == null || catalogSource.getStatus() == null) {
+            return  false;
+        }
+
+        if (catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY")) {
             return true;
         }
 
@@ -277,16 +278,13 @@ public class OperatorUtils {
                 .getItems()
                 .size();
 
-        return  namespaceOperatorGroupsCount > 0;
+        return namespaceOperatorGroupsCount > 0;
     }
 
-    public static OperatorGroup createOperatorGroup(String namespace) {
+    public static OperatorGroup createOperatorGroup(ExtensionContext testContext, String namespace) {
         String name = namespace + "-operator-group";
-        String info = MessageFormat.format(
-                "{0} in namespace {1} targeting namespaces {2}", name, namespace, namespace
-        );
 
-        LOGGER.info("Creating operator group {}...", info);
+        LOGGER.info("Creating operator group {} in namespace {} targeting namespace {}...", name, namespace, namespace);
 
         OperatorGroup operatorGroup = new OperatorGroupBuilder()
                 .withNewMetadata()
@@ -298,15 +296,7 @@ public class OperatorUtils {
                 .endSpec()
                 .build();
 
-        Kubernetes.createOperatorGroup(namespace, operatorGroup);
-
-        if (Kubernetes.getOperatorGroup(namespace, name) == null) {
-            LOGGER.error("Operator group {} is not created.", info);
-
-            return null;
-        }
-
-        LOGGER.info("Operator group {} created.", info);
+        ResourceManager.getInstance().createResource(testContext, true, operatorGroup);
 
         return operatorGroup;
     }
@@ -328,51 +318,6 @@ public class OperatorUtils {
 
             // TODO: Wait for removal?
         }
-    }
-
-    public static Subscription createSubscription(
-            String name,
-            String namespace,
-            String packageName,
-            String sourceName,
-            String sourceNamespace,
-            String startingCSV,
-            String channel
-    ) {
-        String info = MessageFormat.format(
-                "{0} in namespace {1}: packageName={2}, sourceName={3}, sourceNamespace={4}, " +
-                        "startingCSV={5}, channel={6}",
-                name, namespace, packageName, sourceName, sourceNamespace, startingCSV, channel
-        );
-
-        LOGGER.info("Creating subscription {}...", info);
-
-        Subscription subscription = new SubscriptionBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withName(packageName)
-                    .withSource(sourceName)
-                    .withSourceNamespace(sourceNamespace)
-                    .withStartingCSV(startingCSV)
-                    .withChannel(channel)
-                    .withInstallPlanApproval("Automatic")
-                .endSpec()
-                .build();
-
-        Kubernetes.createSubscription(namespace, subscription);
-
-        if (Kubernetes.getSubscription(namespace, name) == null) {
-            LOGGER.error("Subscription {} is not created.", info);
-
-            return null;
-        }
-
-        LOGGER.info("Subscription {} created.", info);
-
-        return subscription;
     }
 
     public static void deleteSubscription(Subscription subscription) {

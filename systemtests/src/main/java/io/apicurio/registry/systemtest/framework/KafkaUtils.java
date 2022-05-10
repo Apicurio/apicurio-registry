@@ -14,7 +14,6 @@ import java.time.Duration;
 
 public class KafkaUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
-    private static final ResourceManager RESOURCE_MANAGER = ResourceManager.getInstance();
 
     private static boolean waitSecretReady(String namespace, String name) {
         return waitSecretReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(1)));
@@ -48,7 +47,7 @@ public class KafkaUtils {
         String namespace = kafka.getMetadata().getNamespace();
         String kafkaName = kafka.getMetadata().getName();
 
-        RESOURCE_MANAGER.createResource(
+        ResourceManager.getInstance().createResource(
                 testContext,
                 true,
                 KafkaUserResourceType.getDefaultByKind(username, namespace, kafkaName, kind)
@@ -81,7 +80,7 @@ public class KafkaUtils {
             throw new IllegalStateException("Unexpected value: " + kind);
         }
 
-        RESOURCE_MANAGER.createResource(testContext, true, kafka);
+        ResourceManager.getInstance().createResource(testContext, true, kafka);
 
         /* Update of bootstrap server to use secured port is handled in ApicurioRegistryResourceType */
 

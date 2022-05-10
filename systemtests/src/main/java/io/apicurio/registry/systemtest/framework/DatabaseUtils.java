@@ -11,16 +11,14 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class DatabaseUtils {
     public static void deployDefaultPostgresqlDatabase(ExtensionContext testContext) {
-        ResourceManager resourceManager = ResourceManager.getInstance();
-
         PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql();
         Deployment deployment = DeploymentResourceType.getDefaultPostgresql();
         Service service = ServiceResourceType.getDefaultPostgresql();
 
         try {
-            resourceManager.createResource(testContext, false, persistentVolumeClaim);
-            resourceManager.createResource(testContext, true, deployment);
-            resourceManager.createResource(testContext, false, service);
+            ResourceManager.getInstance().createResource(testContext, false, persistentVolumeClaim);
+            ResourceManager.getInstance().createResource(testContext, true, deployment);
+            ResourceManager.getInstance().createResource(testContext, false, service);
         } catch (Exception e) {
             e.printStackTrace();
         }

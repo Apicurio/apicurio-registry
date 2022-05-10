@@ -3,6 +3,8 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
+import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
@@ -49,7 +51,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         if(OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
             LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
         } else {
-            operatorGroup = OperatorUtils.createOperatorGroup(operatorNamespace);
+            operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
         PackageManifest packageManifest = Kubernetes.getPackageManifest(
@@ -60,7 +62,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         String channelName = packageManifest.getStatus().getDefaultChannel();
         String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
 
-        subscription = OperatorUtils.createSubscription(
+        subscription = SubscriptionResourceType.getDefault(
                 Environment.KEYCLOAK_SUBSCRIPTION_NAME,
                 operatorNamespace,
                 Environment.KEYCLOAK_SUBSCRIPTION_PKG,
@@ -69,6 +71,8 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
                 channelCSV,
                 channelName
         );
+
+        ResourceManager.getInstance().createResource(testContext, true, subscription);
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
@@ -92,23 +96,20 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
             return false;
         }
 
-        DeploymentSpec deploymentSpec = deployment.getSpec();
-        DeploymentStatus deploymentStatus = deployment.getStatus();
+        DeploymentStatus status = deployment.getStatus();
 
-        if (
-                deploymentStatus == null
-                || deploymentStatus.getReplicas() == null
-                || deploymentStatus.getAvailableReplicas() == null
-        ) {
+        if (status == null || status.getReplicas() == null || status.getAvailableReplicas() == null) {
             return false;
         }
 
-        if (deploymentSpec == null || deploymentSpec.getReplicas() == null) {
+        DeploymentSpec spec = deployment.getSpec();
+
+        if (spec == null || spec.getReplicas() == null) {
             return false;
         }
 
-        return deploymentSpec.getReplicas().intValue() == deploymentStatus.getReplicas()
-                && deploymentSpec.getReplicas() <= deploymentStatus.getAvailableReplicas();
+        return spec.getReplicas().intValue() == status.getReplicas()
+                && spec.getReplicas() <= status.getAvailableReplicas();
     }
 
     @Override

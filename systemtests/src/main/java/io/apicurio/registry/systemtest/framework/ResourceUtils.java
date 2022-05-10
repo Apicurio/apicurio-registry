@@ -3,8 +3,6 @@ package io.apicurio.registry.systemtest.framework;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.Namespace;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
@@ -72,13 +70,5 @@ public class ResourceUtils {
                 }
             }
         }
-    }
-
-    public static Namespace buildNamespace(String name) {
-        return new NamespaceBuilder()
-                .editOrNewMetadata()
-                    .withName(name)
-                .endMetadata()
-                .build();
     }
 }

@@ -13,6 +13,7 @@ import io.apicurio.registry.systemtest.registryinfra.resources.KafkaResourceType
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaTopicResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaUserResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResourceType;
+import io.apicurio.registry.systemtest.registryinfra.resources.OperatorGroupResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.PersistentVolumeClaimResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.ResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.RouteResourceType;
@@ -57,7 +58,8 @@ public class ResourceManager {
             new KafkaUserResourceType(),
             new KafkaConnectResourceType(),
             new RouteResourceType(),
-            new SecretResourceType()
+            new SecretResourceType(),
+            new OperatorGroupResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {

@@ -12,4 +12,5 @@ public final class ResourceKind {
     public static final String KAFKA_CONNECT = "KafkaConnect";
     public static final String ROUTE = "Route";
     public static final String SECRET = "Secret";
+    public static final String OPERATOR_GROUP = "OperatorGroup";
 }

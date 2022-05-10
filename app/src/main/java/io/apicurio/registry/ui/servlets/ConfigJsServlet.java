@@ -98,8 +98,14 @@ public class ConfigJsServlet extends HttpServlet {
      * @param config
      */
     private void configureAuth(ConfigJs config) {
-        if (uiConfig.isKeycloakAuthEnabled()) {
-            config.auth.type = "keycloakjs";
+        if (uiConfig.isAuthenticationEnabled()) {
+            if (uiConfig.getUiAuthType().equals("keycloakjs")) {
+                config.auth.type = "keycloakjs";
+
+            } else if (uiConfig.getUiAuthType().equals("oidc")) {
+                config.auth.type = "oidc";
+            }
+
             config.auth.options = uiConfig.getKeycloakProperties();
             config.auth.rbacEnabled = authConfig.isRbacEnabled();
             config.auth.obacEnabled = authConfig.isObacEnabled();

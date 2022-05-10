@@ -62,6 +62,10 @@ public class UiConfigProperties {
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
     boolean tenantEnabled;
 
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.type", defaultValue = "none")
+    String uiAuthType;
+
     private final Map<String, Object> keycloakConfig;
 
     /**
@@ -103,8 +107,11 @@ public class UiConfigProperties {
         return apiUrl;
     }
 
-    public boolean isKeycloakAuthEnabled() {
+    public boolean isAuthenticationEnabled() {
         return tenantEnabled;
     }
 
+    public String getUiAuthType() {
+        return uiAuthType;
+    }
 }

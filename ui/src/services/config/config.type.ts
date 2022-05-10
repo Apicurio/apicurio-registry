@@ -96,7 +96,7 @@ export interface AuthConfig {
 }
 
 // Used when `type=keycloakjs`
-export interface KeycloakJsAuthConfig extends AuthConfig {
+export interface OidcJsAuthConfig extends AuthConfig {
     options?: any;
 }
 
@@ -119,7 +119,7 @@ export interface Principal {
 
 export interface ConfigType {
     artifacts: ArtifactsConfig;
-    auth: KeycloakJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
+    auth: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
     principals?: Principal[];
     features?: FeaturesConfig;
     ui: UiConfig;

@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -132,8 +133,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("kafkasql")
                         .withNewKafkasql()
                             .withBootstrapServers(
-                                    "apicurio-registry-kafkasql-no-auth-kafka-bootstrap."
-                                       + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9092"
+                                    Constants.KAFKA_NAME + "-kafka-bootstrap." + Environment.STRIMZI_NAMESPACE
+                                            + ".svc.cluster.local:9092"
                             )
                         .endKafkasql()
                     .endConfiguration()
@@ -142,27 +143,27 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     public static ApicurioRegistry getDefaultMem(String name) {
-        return getDefaultMem(name, "apicurio-registry-test-namespace-mem");
+        return getDefaultMem(name, Constants.REGISTRY_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultSql(String name) {
-        return getDefaultSql(name, "apicurio-registry-test-namespace-sql");
+        return getDefaultSql(name, Constants.REGISTRY_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultKafkasql(String name) {
-        return getDefaultKafkasql(name, "apicurio-registry-test-namespace-kafkasql");
+        return getDefaultKafkasql(name, Constants.REGISTRY_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultMem() {
-        return getDefaultMem("apicurio-registry-test-instance-mem");
+        return getDefaultMem(Constants.REGISTRY_NAME);
     }
 
     public static ApicurioRegistry getDefaultSql() {
-        return getDefaultSql("apicurio-registry-test-instance-sql");
+        return getDefaultSql(Constants.REGISTRY_NAME);
     }
 
     public static ApicurioRegistry getDefaultKafkasql() {
-        return getDefaultKafkasql("apicurio-registry-test-instance-kafkasql");
+        return getDefaultKafkasql(Constants.REGISTRY_NAME);
     }
 
     public static void updateWithDefaultTLS(ApicurioRegistry apicurioRegistry) {
@@ -173,8 +174,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .setSecurity(
                         new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
                                 .withNewTls()
-                                    .withKeystoreSecretName("apicurio-registry-kafka-user-secured-tls-keystore")
-                                    .withTruststoreSecretName("apicurio-registry-kafkasql-tls-cluster-ca-truststore")
+                                    .withKeystoreSecretName(Constants.KAFKA_USER + "-keystore")
+                                    .withTruststoreSecretName(Constants.KAFKA_NAME + "-cluster-ca-truststore")
                                 .endTls()
                                 .build()
                 );
@@ -184,8 +185,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        "apicurio-registry-kafkasql-tls-kafka-bootstrap."
-                        + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9093"
+                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Environment.STRIMZI_NAMESPACE
+                                + ".svc.cluster.local:9093"
                 );
     }
 
@@ -197,11 +198,9 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .setSecurity(
                         new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
                                 .withNewScram()
-                                    .withTruststoreSecretName(
-                                            "apicurio-registry-kafkasql-scram-cluster-ca-truststore"
-                                    )
-                                    .withPasswordSecretName("apicurio-registry-kafka-user-secured-scram")
-                                    .withUser("apicurio-registry-kafka-user-secured-scram")
+                                    .withTruststoreSecretName(Constants.KAFKA_NAME + "-cluster-ca-truststore")
+                                    .withPasswordSecretName(Constants.KAFKA_USER)
+                                    .withUser(Constants.KAFKA_USER)
                                 .endScram()
                                 .build()
                 );
@@ -211,8 +210,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        "apicurio-registry-kafkasql-scram-kafka-bootstrap."
-                        + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9093"
+                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Environment.STRIMZI_NAMESPACE
+                                + ".svc.cluster.local:9093"
                 );
     }
 }

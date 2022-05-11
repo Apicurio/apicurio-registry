@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtest.framework;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurity;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryResourceType;
 import io.strimzi.api.kafka.model.Kafka;
@@ -8,29 +9,39 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class ApicurioRegistryUtils {
     private static String getTruststoreSecretName(ApicurioRegistry registry) {
-        return registry
+        ApicurioRegistrySpecConfigurationKafkaSecurity security = registry
                 .getSpec()
                 .getConfiguration()
                 .getKafkasql()
-                .getSecurity()
-                .getTls()
-                .getTruststoreSecretName();
+                .getSecurity();
+
+        if (security.getTls() != null) {
+            return security.getTls().getTruststoreSecretName();
+        } else if (security.getScram() != null) {
+            return security.getScram().getTruststoreSecretName();
+        }
+
+        return null;
     }
 
     private static String getKeystoreSecretName(ApicurioRegistry registry) {
-        return registry
+        ApicurioRegistrySpecConfigurationKafkaSecurity security = registry
                 .getSpec()
                 .getConfiguration()
                 .getKafkasql()
-                .getSecurity()
-                .getTls()
-                .getKeystoreSecretName();
+                .getSecurity();
+
+        if (security.getTls() != null) {
+            return security.getTls().getKeystoreSecretName();
+        }
+
+        return null;
     }
 
     public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
-                "apicurio-registry-kafkasql-no-auth-instance",
+                Constants.REGISTRY_NAME,
                 Environment.STRIMZI_NAMESPACE
         );
 
@@ -41,7 +52,7 @@ public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
-                "apicurio-registry-kafkasql-tls-instance",
+                Constants.REGISTRY_NAME,
                 Environment.STRIMZI_NAMESPACE
         );
 
@@ -58,7 +69,7 @@ public class ApicurioRegistryUtils {
         CertificateUtils.createKeystore(
                 testContext,
                 kafka.getMetadata().getNamespace(),
-                "apicurio-registry-kafka-user-secured-tls",
+                Constants.KAFKA_USER,
                 getKeystoreSecretName(apicurioRegistryKafkasqlTLS),
                 kafka.getMetadata().getName() + "-kafka-bootstrap"
         );
@@ -70,7 +81,7 @@ public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
-                "apicurio-registry-kafkasql-scram-instance",
+                Constants.REGISTRY_NAME,
                 Environment.STRIMZI_NAMESPACE
         );
 

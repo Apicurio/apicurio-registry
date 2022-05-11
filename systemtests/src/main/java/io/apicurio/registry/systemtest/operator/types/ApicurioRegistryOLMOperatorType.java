@@ -72,7 +72,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         } else {
             LOGGER.info(
                     "Catalog source namespace {} will not be removed, it existed before.",
-                    Environment.REGISTRY_CATALOG_NAMESPACE
+                    Constants.CATALOG_NAMESPACE
             );
         }
     }
@@ -80,7 +80,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     /**
      * Create catalog source and wait for its creation.
      */
-    private void createCatalogSource(ExtensionContext testContext, String namespace, String name) {
+    private void createCatalogSource(ExtensionContext testContext, String namespace) {
+        String name = "testsuite-operators";
         String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
 
         LOGGER.info("Creating catalog source {}...", info);
@@ -151,7 +152,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if (channel == null) {
             PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Environment.REGISTRY_CATALOG_NAMESPACE,
+                    Constants.CATALOG_NAMESPACE,
                     Environment.REGISTRY_PACKAGE
             );
 
@@ -166,7 +167,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if (startingCSV == null) {
             PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Environment.REGISTRY_CATALOG_NAMESPACE,
+                    Constants.CATALOG_NAMESPACE,
                     Environment.REGISTRY_PACKAGE
             );
 
@@ -185,11 +186,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), operatorNamespace);
 
         if (getSource() != null) {
-            createCatalogSource(
-                    testContext,
-                    Environment.REGISTRY_CATALOG_NAMESPACE,
-                    Environment.REGISTRY_CATALOG
-            );
+            createCatalogSource(testContext, Constants.CATALOG_NAMESPACE);
         }
 
         if (!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
@@ -198,13 +195,14 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         String channelName = getChannel();
         String startingCSV = getStartingCSV(channelName);
+        String catalogName = catalogSource == null ? Constants.CATALOG_NAME : catalogSource.getMetadata().getName();
 
         subscription = SubscriptionResourceType.getDefault(
                 "registry-subscription",
                 operatorNamespace,
                 Environment.REGISTRY_PACKAGE,
-                Environment.REGISTRY_CATALOG,
-                Environment.REGISTRY_CATALOG_NAMESPACE,
+                catalogName,
+                Constants.CATALOG_NAMESPACE,
                 startingCSV,
                 channelName
         );

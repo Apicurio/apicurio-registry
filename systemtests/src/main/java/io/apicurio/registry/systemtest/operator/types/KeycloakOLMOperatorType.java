@@ -68,7 +68,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         }
 
         PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Environment.SSO_CATALOG_NAMESPACE,
+                Constants.CATALOG_NAMESPACE,
                 Environment.SSO_PACKAGE
         );
 
@@ -79,8 +79,8 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
                 "sso-subscription",
                 operatorNamespace,
                 Environment.SSO_PACKAGE,
-                Environment.SSO_CATALOG,
-                Environment.SSO_CATALOG_NAMESPACE,
+                Constants.CATALOG_NAME,
+                Constants.CATALOG_NAMESPACE,
                 channelCSV,
                 channelName
         );

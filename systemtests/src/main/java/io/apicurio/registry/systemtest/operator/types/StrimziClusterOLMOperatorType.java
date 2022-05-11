@@ -80,7 +80,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         }
 
         PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Environment.KAFKA_CATALOG_NAMESPACE,
+                Constants.CATALOG_NAMESPACE,
                 Environment.KAFKA_PACKAGE
         );
 
@@ -91,8 +91,8 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
                 "kafka-subscription",
                 operatorNamespace,
                 Environment.KAFKA_PACKAGE,
-                Environment.KAFKA_CATALOG,
-                Environment.KAFKA_CATALOG_NAMESPACE,
+                Constants.CATALOG_NAME,
+                Constants.CATALOG_NAMESPACE,
                 channelCSV,
                 channelName
         );

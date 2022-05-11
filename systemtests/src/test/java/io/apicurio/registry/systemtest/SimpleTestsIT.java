@@ -37,16 +37,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class SimpleTestsIT extends TestBase {
-    protected static final Logger TEST_LOGGER = LoggerUtils.getLogger();
+    protected static final Logger LOGGER = LoggerUtils.getLogger();
 
     @BeforeAll
     public static void prepareInfra() {
-        TEST_LOGGER.info("Prepare infra before all tests.");
+        LOGGER.info("Prepare infra before all tests.");
     }
 
     @AfterAll
     public static void destroyInfra() {
-        TEST_LOGGER.info("Destroy infra after all tests.");
+        LOGGER.info("Destroy infra after all tests.");
     }
 
     @Test
@@ -269,7 +269,7 @@ public class SimpleTestsIT extends TestBase {
             resourceManager.createResource(testContext, true, apicurioRegistry);
 
             // Apicurio Registry should be ready here
-            TEST_LOGGER.info(
+            LOGGER.info(
                     ApicurioRegistryResourceType.getOperation()
                             .inNamespace(apicurioRegistry.getMetadata().getNamespace())
                             .withName(apicurioRegistry.getMetadata().getName())
@@ -335,7 +335,7 @@ public class SimpleTestsIT extends TestBase {
             resourceManager.createResource(testContext, true, apicurioRegistry);
 
             // Apicurio Registry should be ready here
-            TEST_LOGGER.info(
+            LOGGER.info(
                     ApicurioRegistryResourceType.getOperation()
                             .inNamespace(apicurioRegistry.getMetadata().getNamespace())
                             .withName(apicurioRegistry.getMetadata().getName())
@@ -382,7 +382,7 @@ public class SimpleTestsIT extends TestBase {
             resourceManager.createResource(testContext, true, apicurioRegistry);
 
             // Apicurio Registry should be ready here
-            TEST_LOGGER.info(
+            LOGGER.info(
                     ApicurioRegistryResourceType.getOperation()
                             .inNamespace(apicurioRegistry.getMetadata().getNamespace())
                             .withName(apicurioRegistry.getMetadata().getName())
@@ -449,7 +449,7 @@ public class SimpleTestsIT extends TestBase {
             resourceManager.createResource(testContext, true, apicurioRegistry);
 
             // Apicurio Registry should be ready here
-            TEST_LOGGER.info(
+            LOGGER.info(
                     ApicurioRegistryResourceType.getOperation()
                             .inNamespace(apicurioRegistry.getMetadata().getNamespace())
                             .withName(apicurioRegistry.getMetadata().getName())
@@ -507,7 +507,7 @@ public class SimpleTestsIT extends TestBase {
             operatorManager.installOperator(testContext, keycloakOLMOperatorType);
 
             // Operator should be ready here
-            TEST_LOGGER.info(
+            LOGGER.info(
                     Kubernetes.getClient()
                             .apps()
                             .deployments()
@@ -693,30 +693,30 @@ public class SimpleTestsIT extends TestBase {
                 .put("name", "price")
                 .toString();
 
-        TEST_LOGGER.info("=== List artifacts ===");
+        LOGGER.info("=== List artifacts ===");
         for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            TEST_LOGGER.info(s);
+            LOGGER.info(s);
         }
 
-        TEST_LOGGER.info(
+        LOGGER.info(
                 "=== Create artifact " + artifactGroup + "/" + artifactId + " with data=" + artifactData + " ==="
         );
         apicurioRegistryApiClient.createArtifact(artifactGroup, artifactId, ArtifactType.AVRO, artifactData);
 
-        TEST_LOGGER.info("=== List artifacts ===");
+        LOGGER.info("=== List artifacts ===");
         for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            TEST_LOGGER.info(s);
+            LOGGER.info(s);
         }
 
-        TEST_LOGGER.info("=== Read artifact " + artifactGroup + "/" + artifactId + " ===");
-        TEST_LOGGER.info(apicurioRegistryApiClient.readArtifactContent(artifactGroup, artifactId));
+        LOGGER.info("=== Read artifact " + artifactGroup + "/" + artifactId + " ===");
+        LOGGER.info(apicurioRegistryApiClient.readArtifactContent(artifactGroup, artifactId));
 
-        TEST_LOGGER.info("=== Delete artifact " + artifactGroup + "/" + artifactId + " ===");
+        LOGGER.info("=== Delete artifact " + artifactGroup + "/" + artifactId + " ===");
         apicurioRegistryApiClient.deleteArtifact(artifactGroup, artifactId);
 
-        TEST_LOGGER.info("=== List artifacts ===");
+        LOGGER.info("=== List artifacts ===");
         for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            TEST_LOGGER.info(s);
+            LOGGER.info(s);
         }
     }
 
@@ -740,5 +740,6 @@ public class SimpleTestsIT extends TestBase {
     @Disabled
     public void testCode(ExtensionContext testContext) {
         // Just for trying Java code
+        LOGGER.info("Hello, world!");
     }
 }

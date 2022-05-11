@@ -35,14 +35,11 @@ public final class Environment {
             "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/"
             + "apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
     public static final String APICURIO_OLM_CATALOG_SOURCE_IMAGE_DEFAULT = null;
-    public static final String APICURIO_OLM_CATALOG_SOURCE_NAME_DEFAULT = "apicurio-registry-catalog-source";
+    public static final String APICURIO_OLM_CATALOG_SOURCE_NAME_DEFAULT = "community-operators";
     public static final String APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT = "openshift-marketplace";
     public static final String APICURIO_OLM_DEPLOYMENT_NAME = "apicurio-registry-operator";
-    public static final String APICURIO_OLM_SUBSCRIPTION_CHANNEL_DEFAULT = "2.x";
     public static final String APICURIO_OLM_SUBSCRIPTION_NAME_DEFAULT = "apicurio-registry-subscription";
     public static final String APICURIO_OLM_SUBSCRIPTION_PKG_DEFAULT = "apicurio-registry";
-    public static final String APICURIO_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT =
-            "apicurio-registry-operator.v1.0.0-v2.0.0.final";
     public static final String APICURIO_OPERATOR_NAMESPACE_DEFAULT = "apicurio-registry-operator-namespace";
     public static final String KEYCLOAK_CATALOG_SOURCE_NAME_DEFAULT = "community-operators";
     public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
@@ -76,9 +73,8 @@ public final class Environment {
             APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_ENV_VAR,
             APICURIO_OLM_CATALOG_SOURCE_NAMESPACE_DEFAULT
     );
-    public static final String APICURIO_OLM_SUBSCRIPTION_CHANNEL = System.getenv().getOrDefault(
-            APICURIO_OLM_SUBSCRIPTION_CHANNEL_ENV_VAR,
-            APICURIO_OLM_SUBSCRIPTION_CHANNEL_DEFAULT
+    public static final String APICURIO_OLM_SUBSCRIPTION_CHANNEL = System.getenv().get(
+            APICURIO_OLM_SUBSCRIPTION_CHANNEL_ENV_VAR
     );
     public static final String APICURIO_OLM_SUBSCRIPTION_NAME = System.getenv().getOrDefault(
             APICURIO_OLM_SUBSCRIPTION_NAME_ENV_VAR,
@@ -88,9 +84,8 @@ public final class Environment {
             APICURIO_OLM_SUBSCRIPTION_PKG_ENV_VAR,
             APICURIO_OLM_SUBSCRIPTION_PKG_DEFAULT
     );
-    public static final String APICURIO_OLM_SUBSCRIPTION_STARTING_CSV = System.getenv().getOrDefault(
-            APICURIO_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR,
-            APICURIO_OLM_SUBSCRIPTION_STARTING_CSV_DEFAULT
+    public static final String APICURIO_OLM_SUBSCRIPTION_STARTING_CSV = System.getenv().get(
+            APICURIO_OLM_SUBSCRIPTION_STARTING_CSV_ENV_VAR
     );
     public static final String APICURIO_OPERATOR_NAMESPACE = System.getenv().getOrDefault(
             APICURIO_OPERATOR_NAMESPACE_ENV_VAR,

@@ -498,12 +498,12 @@ public class SimpleTestsIT extends TestBase {
 
     @Test
     public void testInstallKeycloakOLMOperator(ExtensionContext testContext) {
-        try {
-            KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(
-                    null,
-                    "apicurio-registry-keycloak-namespace"
-            );
+        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(
+                null,
+                "apicurio-registry-keycloak-namespace"
+        );
 
+        try {
             operatorManager.installOperator(testContext, keycloakOLMOperatorType);
 
             // Operator should be ready here
@@ -523,7 +523,43 @@ public class SimpleTestsIT extends TestBase {
 
             // Keycloak should be deployed here
 
+            // TODO: Add assert/check of pass
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            fail("Unexpected exception happened.");
+        } finally {
             KeycloakUtils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+
+            resourceManager.deleteResources(testContext);
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
+    public void testInstallKeycloakOLMOperatorDefaultNamespace(ExtensionContext testContext) {
+        KeycloakOLMOperatorType keycloakOLMOperatorType = new KeycloakOLMOperatorType(null);
+
+        try {
+            operatorManager.installOperator(testContext, keycloakOLMOperatorType);
+
+            // Operator should be ready here
+            LOGGER.info(
+                    Kubernetes.getClient()
+                            .apps()
+                            .deployments()
+                            .inNamespace(keycloakOLMOperatorType.getNamespaceName())
+                            .withName(keycloakOLMOperatorType.getDeploymentName())
+                            .get()
+                            .getStatus()
+                            .getConditions()
+                            .toString()
+            );
+
+            KeycloakUtils.deployKeycloak(testContext, keycloakOLMOperatorType.getNamespaceName());
+
+            // Keycloak should be deployed here
 
             // TODO: Add assert/check of pass
         } catch (Exception e) {
@@ -531,6 +567,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            KeycloakUtils.removeKeycloak(keycloakOLMOperatorType.getNamespaceName());
+
             resourceManager.deleteResources(testContext);
 
             operatorManager.uninstallOperators(testContext);

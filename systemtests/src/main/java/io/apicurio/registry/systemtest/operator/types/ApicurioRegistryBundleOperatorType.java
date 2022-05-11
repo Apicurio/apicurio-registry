@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.operator.types;
 
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -44,6 +45,8 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         } else {
             throw new Exception("Unable to identify file by source " + getSource() + ".");
         }
+
+        ResourceUtils.updateRoleBindingNamespace(operatorResources, operatorNamespace);
     }
 
     public ApicurioRegistryBundleOperatorType() {

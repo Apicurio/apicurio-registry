@@ -56,14 +56,14 @@ public class RouteResourceType implements ResourceType<Route> {
     public static Route getDefaultKeycloak(String namespace) {
         return new RouteBuilder()
                 .withNewMetadata()
-                    .withName(Constants.KEYCLOAK_HTTP_SERVICE_NAME)
+                    .withName(Constants.SSO_HTTP_SERVICE_NAME)
                     .withNamespace(namespace)
                 .endMetadata()
                 .withNewSpec()
                     .withPath("/")
                     .withTo(new RouteTargetReference() {{
                         setKind("Service");
-                        setName(Constants.KEYCLOAK_HTTP_SERVICE_NAME);
+                        setName(Constants.SSO_HTTP_SERVICE_NAME);
                         setWeight(100);
                     }})
                 .endSpec()

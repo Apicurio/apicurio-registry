@@ -80,6 +80,6 @@ public class KeycloakUtils {
     }
 
     public static String getDefaultKeycloakURL(String namespace) {
-        return getKeycloakURL(namespace, Constants.KEYCLOAK_HTTP_SERVICE_NAME);
+        return getKeycloakURL(namespace, Constants.SSO_HTTP_SERVICE_NAME);
     }
 }

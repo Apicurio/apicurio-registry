@@ -1,7 +1,7 @@
 apiVersion: keycloak.org/v1alpha1
 kind: KeycloakRealm
 metadata:
-  name: apicurio-registry-testsuite-keycloakrealm
+  name: registry-sso-realm
 spec:
   instanceSelector:
     matchLabels:

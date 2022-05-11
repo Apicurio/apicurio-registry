@@ -7,8 +7,8 @@ public final class Constants {
     public static final String REGISTRY_NAME = "registry";
     public static final String REGISTRY_NAMESPACE = "namespace-for-registry";
     public static final String CLUSTER_WIDE_NAMESPACE = "openshift-operators";
-    public static final String KEYCLOAK_HTTP_SERVICE_NAME = "keycloak-http";
-    public static final String APICURIO_OLM_DEPLOYMENT_NAME = "apicurio-registry-operator";
+    public static final String SSO_HTTP_SERVICE_NAME = "sso-http";
+    public static final String REGISTRY_DEPLOYMENT_NAME = "apicurio-registry-operator";
 
     // TODO: Move other constants here too?
     // PostgreSQL port

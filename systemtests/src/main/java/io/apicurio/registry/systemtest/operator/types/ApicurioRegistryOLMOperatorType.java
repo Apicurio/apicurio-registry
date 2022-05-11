@@ -125,7 +125,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public String getDeploymentName() {
-        return Constants.APICURIO_OLM_DEPLOYMENT_NAME;
+        return Constants.REGISTRY_DEPLOYMENT_NAME;
     }
 
     @Override

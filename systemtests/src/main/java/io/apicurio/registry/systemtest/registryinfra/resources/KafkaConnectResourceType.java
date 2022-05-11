@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -134,8 +135,8 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                 .withNewSpec()
                     .withReplicas(3)
                     .withBootstrapServers(
-                            "apicurio-registry-kafkasql-no-auth-kafka-bootstrap."
-                                    + Environment.STRIMZI_NAMESPACE + ".svc.cluster.local:9092"
+                            Constants.KAFKA_NAME + "-kafka-bootstrap." + Environment.STRIMZI_NAMESPACE
+                                    + ".svc.cluster.local:9092"
                     )
                     .withNewBuild()
                         .withOutput(new DockerOutputBuilder()
@@ -152,6 +153,6 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
     }
 
     public static KafkaConnect getDefault() {
-        return getDefault("apicurio-registry-kafkasql-connect-no-auth", Environment.STRIMZI_NAMESPACE);
+        return getDefault(Constants.KAFKA_CONNECT_NAME, Environment.STRIMZI_NAMESPACE);
     }
 }

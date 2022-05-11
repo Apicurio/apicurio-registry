@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import java.lang.reflect.Method;
 
 public class TestNameGenerator extends DisplayNameGenerator.ReplaceUnderscores {
-
     @Override
     public String generateDisplayNameForClass(Class<?> testClass) {
         return super.generateDisplayNameForClass(testClass);
@@ -20,5 +19,4 @@ public class TestNameGenerator extends DisplayNameGenerator.ReplaceUnderscores {
     public String generateDisplayNameForMethod(Class<?> testClass, Method testMethod) {
         return testMethod.getName();
     }
-
 }

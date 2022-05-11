@@ -20,13 +20,17 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
-            <scope>test</scope>
+            <artifactId>apicurio-common-rest-client-jdk</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-common-rest-client-jdk</artifactId>
+            <artifactId>apicurio-common-rest-client-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
             <scope>test</scope>
         </dependency>
 

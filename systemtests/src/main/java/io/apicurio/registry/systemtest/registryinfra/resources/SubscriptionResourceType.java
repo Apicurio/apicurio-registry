@@ -39,7 +39,13 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
 
     @Override
     public boolean isReady(Subscription resource) {
-        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName())
+        Subscription subscription = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+
+        if (subscription == null || subscription.getStatus() == null) {
+            return  false;
+        }
+
+        return subscription
                 .getStatus()
                 .getConditions()
                 .stream()

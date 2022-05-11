@@ -191,7 +191,9 @@ public final class Kubernetes {
                 .endMetadata()
                 .build();
 
-        getClient().namespaces().create(namespace);
+        getClient()
+                .namespaces()
+                .create(namespace);
     }
 
     public static void deleteNamespace(String name) {
@@ -236,11 +238,13 @@ public final class Kubernetes {
     }
 
     public static boolean isRouteReady(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .withName(name)
-                .get()
+        Route route = getRoute(namespace, name);
+
+        if (route == null || route.getStatus() == null) {
+            return false;
+        }
+
+        return route
                 .getStatus()
                 .getIngress()
                 .size() > 0;
@@ -263,10 +267,13 @@ public final class Kubernetes {
     }
 
     public static String getNamespacePhase(String name) {
-        return getClient()
-                .namespaces()
-                .withName(name)
-                .get()
+        Namespace namespace = getNamespace(name);
+
+        if (namespace == null || namespace.getStatus() == null) {
+            return "";
+        }
+
+        return namespace
                 .getStatus()
                 .getPhase();
     }
@@ -362,11 +369,7 @@ public final class Kubernetes {
     }
 
     public static String getRouteHost(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .withName(name)
-                .get()
+        return getRoute(namespace, name)
                 .getStatus()
                 .getIngress()
                 .get(0)
@@ -374,11 +377,7 @@ public final class Kubernetes {
     }
 
     public static String getSecretValue(String namespace, String name, String secretKey) {
-        return getClient()
-                .secrets()
-                .inNamespace(namespace)
-                .withName(name)
-                .get()
+        return getSecret(namespace, name)
                 .getData()
                 .get(secretKey);
     }
@@ -487,20 +486,18 @@ public final class Kubernetes {
                 .get();
     }
 
-    public static void createPersistentVolumeClaim(String namespace, PersistentVolumeClaim persistentVolumeClaim) {
+    public static void createPersistentVolumeClaim(String namespace, PersistentVolumeClaim volumeClaim) {
         getClient()
                 .persistentVolumeClaims()
                 .inNamespace(namespace)
-                .create(persistentVolumeClaim);
+                .create(volumeClaim);
     }
 
-    public static void createOrReplacePersistentVolumeClaim(
-            String namespace, PersistentVolumeClaim persistentVolumeClaim
-    ) {
+    public static void createOrReplacePersistentVolumeClaim(String namespace, PersistentVolumeClaim volumeClaim) {
         getClient()
                 .persistentVolumeClaims()
                 .inNamespace(namespace)
-                .createOrReplace(persistentVolumeClaim);
+                .createOrReplace(volumeClaim);
     }
 
     public static void deletePersistentVolumeClaim(String namespace, String name) {

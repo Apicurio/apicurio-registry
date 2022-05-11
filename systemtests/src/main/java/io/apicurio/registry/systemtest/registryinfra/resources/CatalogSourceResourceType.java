@@ -66,9 +66,9 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
                     .withNamespace(namespace)
                 .endMetadata()
                 .withNewSpec()
-                    .withDisplayName("Apicurio Registry Operator Catalog Source")
+                    .withDisplayName("Registry Operator Catalog Source")
                     .withImage(image)
-                    .withPublisher("apicurio-registry-qe")
+                    .withPublisher("registry-qe")
                     .withSourceType("grpc")
                 .endSpec()
                 .build();

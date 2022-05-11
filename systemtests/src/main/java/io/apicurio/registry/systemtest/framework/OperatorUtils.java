@@ -339,15 +339,15 @@ public class OperatorUtils {
             LOGGER.info("Removing subscription {}...", info);
 
             Kubernetes.deleteSubscription(namespace, name);
+        }
 
-            if (!startingCSV.equals("")) {
-                LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", startingCSV, namespace);
+        if (startingCSV != null && !startingCSV.equals("")) {
+            LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", startingCSV, namespace);
 
-                Kubernetes.deleteClusterServiceVersion(namespace, startingCSV);
+            Kubernetes.deleteClusterServiceVersion(namespace, startingCSV);
 
-                if (Kubernetes.getClusterServiceVersion(namespace, startingCSV) == null) {
-                    LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", startingCSV, namespace);
-                }
+            if (Kubernetes.getClusterServiceVersion(namespace, startingCSV) == null) {
+                LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", startingCSV, namespace);
             }
         }
     }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -153,7 +154,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultNoAuth() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName("no-auth-kafka-for-registry")
+                    .withName(Constants.KAFKA_NAME)
                     .withNamespace(Environment.STRIMZI_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
@@ -176,7 +177,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultTLS() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName("tls-kafka-for-registry")
+                    .withName(Constants.KAFKA_NAME)
                     .withNamespace(Environment.STRIMZI_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
@@ -202,7 +203,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultSCRAM() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName("scram-kafka-for-registry")
+                    .withName(Constants.KAFKA_NAME)
                     .withNamespace(Environment.STRIMZI_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
@@ -223,5 +224,17 @@ public class KafkaResourceType implements ResourceType<Kafka> {
                     .withEntityOperator(getDefaultEntityOperator())
                 .endSpec()
                 .build();
+    }
+
+    public static Kafka getDefaultByKind(KafkaKind kind) {
+        if (KafkaKind.NO_AUTH.equals(kind)) {
+            return getDefaultNoAuth();
+        } else if (KafkaKind.TLS.equals(kind)) {
+            return getDefaultTLS();
+        } else if (KafkaKind.SCRAM.equals(kind)) {
+            return getDefaultSCRAM();
+        } else {
+            throw new IllegalStateException("Unexpected value: " + kind);
+        }
     }
 }

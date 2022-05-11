@@ -50,6 +50,31 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    public void testInstallAllOLMOperatorsClusterWide(ExtensionContext testContext) {
+        try {
+            ApicurioRegistryOLMOperatorType registryOperator = new ApicurioRegistryOLMOperatorType(true);
+
+            operatorManager.installOperator(testContext, registryOperator);
+
+            StrimziClusterOLMOperatorType kafkaOperator = new StrimziClusterOLMOperatorType(true);
+
+            operatorManager.installOperator(testContext, kafkaOperator);
+
+            KeycloakOLMOperatorType ssoOperator = new KeycloakOLMOperatorType();
+
+            operatorManager.installOperator(testContext, ssoOperator);
+
+            // TODO: Add assert/check of pass
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            fail("Unexpected exception happened.");
+        } finally {
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
     public void testApicurioRegistryWithMemPersistenceBecomeReady(ExtensionContext testContext) {
         try {
             ApicurioRegistryBundleOperatorType apicurioBundleOperatorType = new ApicurioRegistryBundleOperatorType();

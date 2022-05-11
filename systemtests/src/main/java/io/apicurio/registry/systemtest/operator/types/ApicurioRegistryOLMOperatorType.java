@@ -28,6 +28,19 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     private CatalogSource catalogSource = null;
     private Namespace catalogSourceNamespace = null;
 
+    public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
+        super(null);
+
+        if (isClusterWide) {
+            // Static set of cluster wide operator namespace
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
+        } else {
+            this.operatorNamespace = Environment.REGISTRY_NAMESPACE;
+        }
+
+        this.isClusterWide = isClusterWide;
+    }
+
     public ApicurioRegistryOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
         super(source);
 

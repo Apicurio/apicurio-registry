@@ -20,6 +20,18 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     private Subscription subscription = null;
     private OperatorGroup operatorGroup = null;
 
+    public StrimziClusterOLMOperatorType(boolean isClusterWide) {
+        super(null);
+
+        if (isClusterWide) {
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
+        } else {
+            this.operatorNamespace = Environment.KAFKA_NAMESPACE;
+        }
+
+        this.isClusterWide = isClusterWide;
+    }
+
     public StrimziClusterOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
         super(source);
 

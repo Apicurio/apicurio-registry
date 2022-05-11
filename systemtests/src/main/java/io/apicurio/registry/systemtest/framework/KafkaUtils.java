@@ -46,41 +46,30 @@ public class KafkaUtils {
     public static void createSecuredUser(ExtensionContext testContext, String username, Kafka kafka, KafkaKind kind) {
         String namespace = kafka.getMetadata().getNamespace();
         String kafkaName = kafka.getMetadata().getName();
+        String kafkaCaSecretName = kafkaName + "-cluster-ca-cert";
+
+        // Wait for cluster CA secret
+        if (waitSecretReady(namespace, kafkaCaSecretName)) {
+            LOGGER.info("Secret with name {} present in namespace {}.", kafkaCaSecretName, namespace);
+        } else {
+            LOGGER.info("Secret with name {} is not present in namespace {}.", kafkaCaSecretName, namespace);
+        }
 
         ResourceManager.getInstance().createResource(
                 testContext,
                 true,
                 KafkaUserResourceType.getDefaultByKind(username, namespace, kafkaName, kind)
         );
-
-        String kafkaCaSecretName = kafkaName + "-cluster-ca-cert";
-
-        // Wait for cluster CA secret
-        if (waitSecretReady(namespace, kafkaCaSecretName)) {
-            LOGGER.info("Secret with name {} created in namespace {}.", kafkaCaSecretName, namespace);
-        } else {
-            LOGGER.info("Secret with name {} is not created in namespace {}.", kafkaCaSecretName, namespace);
-        }
     }
 
     public static Kafka deployDefaultKafkaByKind(ExtensionContext testContext, KafkaKind kind) {
-        Kafka kafka;
-
-        if (KafkaKind.NO_AUTH.equals(kind)) {
-            kafka = KafkaResourceType.getDefaultNoAuth();
-        } else if (KafkaKind.TLS.equals(kind)) {
-            kafka = KafkaResourceType.getDefaultTLS();
-
-            createSecuredUser(testContext, "apicurio-registry-kafka-user-secured-tls", kafka, kind);
-        } else if (KafkaKind.SCRAM.equals(kind)) {
-            kafka = KafkaResourceType.getDefaultSCRAM();
-
-            createSecuredUser(testContext, "apicurio-registry-kafka-user-secured-scram", kafka, kind);
-        } else {
-            throw new IllegalStateException("Unexpected value: " + kind);
-        }
+        Kafka kafka = KafkaResourceType.getDefaultByKind(kind);
 
         ResourceManager.getInstance().createResource(testContext, true, kafka);
+
+        if (KafkaKind.SCRAM.equals(kind) || KafkaKind.TLS.equals(kind)) {
+            createSecuredUser(testContext, Constants.KAFKA_USER, kafka, kind);
+        }
 
         /* Update of bootstrap server to use secured port is handled in ApicurioRegistryResourceType */
 

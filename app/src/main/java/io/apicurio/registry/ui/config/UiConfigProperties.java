@@ -66,6 +66,18 @@ public class UiConfigProperties {
     @ConfigProperty(name = "registry.ui.config.auth.type", defaultValue = "none")
     String uiAuthType;
 
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.url", defaultValue = "none")
+    String oidcUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.client-id", defaultValue = "none")
+    String oidcClientId;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.redirect-url", defaultValue = "none")
+    String oidcRedirectUrl;
+
     private final Map<String, Object> keycloakConfig;
 
     /**
@@ -113,5 +125,17 @@ public class UiConfigProperties {
 
     public String getUiAuthType() {
         return uiAuthType;
+    }
+
+    public String getOidcUrl() {
+        return oidcUrl;
+    }
+
+    public String getOidcClientId() {
+        return oidcClientId;
+    }
+
+    public String getOidcRedirectUrl() {
+        return oidcRedirectUrl;
     }
 }

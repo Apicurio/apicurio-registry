@@ -64,6 +64,8 @@ export class AuthService implements Service {
     public authenticateUsingOidc = (onAuthenticatedCallback: () => void) => {
         this.userManager.getUser().then((authenticatedUser) => {
             if (authenticatedUser) {
+                this.oidcUser = authenticatedUser;
+                this.userManager.startSilentRenew()
                 onAuthenticatedCallback();
             } else {
                 console.warn("Not authenticated!");

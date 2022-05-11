@@ -123,16 +123,18 @@ public class CertificateUtils {
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
         String caCertSecretValue = decodeBase64Secret(namespace, caCertSecretName, "ca.crt");
         Path caPath = Environment.getTempPath("ca-" + timestamp + ".crt");
+
+        writeToFile(caCertSecretValue, caPath);
+
         Path truststorePath = Environment.getTempPath("truststore-" + timestamp + ".p12");
         String truststorePassword = RandomStringUtils.randomAlphanumeric(32);
+
+        runTruststoreCmd(truststorePath, truststorePassword, caPath);
+
         Map<String, String> secretData = new HashMap<>() {{
             put("ca.p12", encode(truststorePath));
             put("ca.password", encode(truststorePassword));
         }};
-
-        writeToFile(caCertSecretValue, caPath);
-
-        runTruststoreCmd(truststorePath, truststorePassword, caPath);
 
         createSecret(testContext, namespace, truststoreSecretName, secretData);
     }
@@ -148,18 +150,22 @@ public class CertificateUtils {
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
         Path userCertPath = Environment.getTempPath("user-" + timestamp + ".crt");
+
+        writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.crt"), userCertPath);
+
         Path userKeyPath = Environment.getTempPath("user-" + timestamp + ".key");
+
+        writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.key"), userKeyPath);
+
         Path keystorePath = Environment.getTempPath("keystore-" + timestamp + ".p12");
         String keystorePassword = RandomStringUtils.randomAlphanumeric(32);
+
+        runKeystoreCmd(keystorePath, keystorePassword, userCertPath, userKeyPath, hostname);
+
         Map<String, String> secretData = new HashMap<>() {{
             put("user.p12", encode(keystorePath));
             put("user.password", encode(keystorePassword));
         }};
-
-        writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.crt"), userCertPath);
-        writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.key"), userKeyPath);
-
-        runKeystoreCmd(keystorePath, keystorePassword, userCertPath, userKeyPath, hostname);
 
         createSecret(testContext, namespace, keystoreSecretName, secretData);
     }

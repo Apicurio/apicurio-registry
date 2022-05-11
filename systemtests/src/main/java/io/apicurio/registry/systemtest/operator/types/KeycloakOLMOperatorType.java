@@ -18,6 +18,18 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     private final String operatorNamespace;
     private OperatorGroup operatorGroup = null;
 
+    public KeycloakOLMOperatorType() {
+        super(null);
+
+        this.operatorNamespace = Environment.SSO_NAMESPACE;
+    }
+
+    public KeycloakOLMOperatorType(String source) {
+        super(source);
+
+        this.operatorNamespace = Environment.SSO_NAMESPACE;
+    }
+
     public KeycloakOLMOperatorType(String source, String operatorNamespace) {
         super(source);
 

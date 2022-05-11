@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
+import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
@@ -131,15 +132,43 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         return Kubernetes.getDeployment(subscription.getMetadata().getNamespace(), getDeploymentName());
     }
 
+    private String getChannel() {
+        String channel = Environment.APICURIO_OLM_SUBSCRIPTION_CHANNEL;
+
+        if (channel == null) {
+            PackageManifest packageManifest = Kubernetes.getPackageManifest(
+                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
+                    Environment.APICURIO_OLM_SUBSCRIPTION_PKG
+            );
+
+            channel = packageManifest.getStatus().getDefaultChannel();
+        }
+
+        return channel;
+    }
+
+    private String getStartingCSV(String channelName) {
+        String startingCSV = Environment.APICURIO_OLM_SUBSCRIPTION_STARTING_CSV;
+
+        if (startingCSV == null) {
+            PackageManifest packageManifest = Kubernetes.getPackageManifest(
+                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
+                    Environment.APICURIO_OLM_SUBSCRIPTION_PKG
+            );
+
+            startingCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
+        }
+
+        return startingCSV;
+    }
+
     @Override
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
-        if (isClusterWide) {
-            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
-        } else {
-            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
-        }
+        String scope = isClusterWide ? "cluster wide" : "namespaced";
+
+        LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), operatorNamespace);
 
         if (getSource() != null) {
             createCatalogSource(
@@ -153,9 +182,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
-        // TODO: Get default channel and current CSV
-        // TODO: Check Environment for user defined channel and CSV
-        LOGGER.info("TODO: Wait for package manifest to be available here?");
+        String channelName = getChannel();
+        String startingCSV = getStartingCSV(channelName);
 
         subscription = SubscriptionResourceType.getDefault(
                 Environment.APICURIO_OLM_SUBSCRIPTION_NAME,
@@ -163,8 +191,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 Environment.APICURIO_OLM_SUBSCRIPTION_PKG,
                 Environment.APICURIO_OLM_CATALOG_SOURCE_NAME,
                 Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                Environment.APICURIO_OLM_SUBSCRIPTION_STARTING_CSV,
-                Environment.APICURIO_OLM_SUBSCRIPTION_CHANNEL
+                startingCSV,
+                channelName
         );
 
         ResourceManager.getInstance().createResource(testContext, true, subscription);

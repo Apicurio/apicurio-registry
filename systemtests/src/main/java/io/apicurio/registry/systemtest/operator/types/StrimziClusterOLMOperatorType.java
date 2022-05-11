@@ -26,7 +26,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         if (isClusterWide) {
             this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
         } else {
-            this.operatorNamespace = Environment.KAFKA_NAMESPACE;
+            this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
         }
 
         this.isClusterWide = isClusterWide;

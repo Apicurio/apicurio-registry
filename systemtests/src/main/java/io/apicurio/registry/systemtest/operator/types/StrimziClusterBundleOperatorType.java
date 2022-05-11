@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
@@ -70,7 +71,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public StrimziClusterBundleOperatorType() {
         super(Environment.KAFKA_BUNDLE);
 
-        operatorNamespace = Environment.KAFKA_NAMESPACE;
+        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
 
         try {
             loadOperatorResources();
@@ -82,7 +83,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public StrimziClusterBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = Environment.KAFKA_NAMESPACE;
+        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
 
         try {
             loadOperatorResources();
@@ -123,7 +124,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
         return Kubernetes.getClient()
                 .apps()
                 .deployments()
-                .inNamespace(Environment.KAFKA_NAMESPACE)
+                .inNamespace(Constants.TESTSUITE_NAMESPACE)
                 .withName(deployment.getMetadata().getName())
                 .get();
     }
@@ -132,7 +133,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public void install(ExtensionContext testContext) {
         Kubernetes.getClient()
                 .resourceList(operatorResources)
-                .inNamespace(Environment.KAFKA_NAMESPACE)
+                .inNamespace(Constants.TESTSUITE_NAMESPACE)
                 .createOrReplace();
     }
 
@@ -140,7 +141,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public void uninstall() {
         Kubernetes.getClient()
                 .resourceList(operatorResources)
-                .inNamespace(Environment.KAFKA_NAMESPACE)
+                .inNamespace(Constants.TESTSUITE_NAMESPACE)
                 .delete();
     }
 

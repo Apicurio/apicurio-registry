@@ -1,7 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
 import io.apicurio.registry.systemtest.framework.Constants;
-import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -155,7 +154,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
         return new KafkaBuilder()
                 .withNewMetadata()
                     .withName(Constants.KAFKA_NAME)
-                    .withNamespace(Environment.KAFKA_NAMESPACE)
+                    .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
                     .withNewKafka()
@@ -178,7 +177,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
         return new KafkaBuilder()
                 .withNewMetadata()
                     .withName(Constants.KAFKA_NAME)
-                    .withNamespace(Environment.KAFKA_NAMESPACE)
+                    .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
                     .withNewKafka()
@@ -204,7 +203,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
         return new KafkaBuilder()
                 .withNewMetadata()
                     .withName(Constants.KAFKA_NAME)
-                    .withNamespace(Environment.KAFKA_NAMESPACE)
+                    .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
                     .withNewKafka()

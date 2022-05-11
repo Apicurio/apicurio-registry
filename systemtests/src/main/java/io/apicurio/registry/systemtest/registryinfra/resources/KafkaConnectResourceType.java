@@ -135,7 +135,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                 .withNewSpec()
                     .withReplicas(3)
                     .withBootstrapServers(
-                            Constants.KAFKA_NAME + "-kafka-bootstrap." + Environment.KAFKA_NAMESPACE
+                            Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE
                                     + ".svc.cluster.local:9092"
                     )
                     .withNewBuild()
@@ -153,6 +153,6 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
     }
 
     public static KafkaConnect getDefault() {
-        return getDefault(Constants.KAFKA_CONNECT_NAME, Environment.KAFKA_NAMESPACE);
+        return getDefault(Constants.KAFKA_CONNECT_NAME, Constants.TESTSUITE_NAMESPACE);
     }
 }

@@ -42,7 +42,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY_NAME,
-                Environment.KAFKA_NAMESPACE
+                Constants.TESTSUITE_NAMESPACE
         );
 
         // Create Apicurio Registry without authentication
@@ -53,7 +53,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY_NAME,
-                Environment.KAFKA_NAMESPACE
+                Constants.TESTSUITE_NAMESPACE
         );
 
         // Update Apicurio Registry to have TLS configuration
@@ -82,7 +82,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY_NAME,
-                Environment.KAFKA_NAMESPACE
+                Constants.TESTSUITE_NAMESPACE
         );
 
         // Update to have SCRAM configuration

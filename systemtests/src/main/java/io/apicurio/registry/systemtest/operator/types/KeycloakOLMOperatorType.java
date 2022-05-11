@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -21,13 +22,13 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     public KeycloakOLMOperatorType() {
         super(null);
 
-        this.operatorNamespace = Environment.SSO_NAMESPACE;
+        this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
     }
 
     public KeycloakOLMOperatorType(String source) {
         super(source);
 
-        this.operatorNamespace = Environment.SSO_NAMESPACE;
+        this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
     }
 
     public KeycloakOLMOperatorType(String source, String operatorNamespace) {

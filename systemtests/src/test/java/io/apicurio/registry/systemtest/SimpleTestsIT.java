@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtest.client.ArtifactType;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.KafkaUtils;
@@ -254,7 +255,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-test-instance",
-                    Environment.REGISTRY_NAMESPACE
+                    Constants.TESTSUITE_NAMESPACE
             );
 
             resourceManager.createResource(testContext, true, apicurioRegistry);
@@ -276,7 +277,7 @@ public class SimpleTestsIT extends TestBase {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
                     Environment.REGISTRY_CATALOG_IMAGE,
-                    Environment.REGISTRY_NAMESPACE,
+                    Constants.TESTSUITE_NAMESPACE,
                     false
             );
 
@@ -286,7 +287,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-operator-namespace-test-instance",
-                    Environment.REGISTRY_NAMESPACE
+                    Constants.TESTSUITE_NAMESPACE
             );
 
             // Try to create registry in operator namespace,
@@ -389,7 +390,7 @@ public class SimpleTestsIT extends TestBase {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
                     null,
-                    Environment.REGISTRY_NAMESPACE,
+                    Constants.TESTSUITE_NAMESPACE,
                     false
             );
 
@@ -399,7 +400,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-operator-namespace-test-instance",
-                    Environment.REGISTRY_NAMESPACE
+                    Constants.TESTSUITE_NAMESPACE
             );
 
             // Try to create registry in operator namespace,

@@ -47,9 +47,9 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(Environment.APICURIO_BUNDLE_SOURCE_PATH);
+        super(Environment.REGISTRY_BUNDLE);
 
-        operatorNamespace = Environment.APICURIO_OPERATOR_NAMESPACE;
+        operatorNamespace = Environment.REGISTRY_NAMESPACE;
 
         try {
             loadOperatorResourcesFromFile();
@@ -61,7 +61,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     public ApicurioRegistryBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = Environment.APICURIO_OPERATOR_NAMESPACE;
+        operatorNamespace = Environment.REGISTRY_NAMESPACE;
 
         try {
             loadOperatorResourcesFromFile();
@@ -99,17 +99,17 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
             return null;
         }
 
-        return Kubernetes.getDeployment(Environment.APICURIO_OPERATOR_NAMESPACE, deployment.getMetadata().getName());
+        return Kubernetes.getDeployment(Environment.REGISTRY_NAMESPACE, deployment.getMetadata().getName());
     }
 
     @Override
     public void install(ExtensionContext testContext) {
-        Kubernetes.createOrReplaceResources(Environment.APICURIO_OPERATOR_NAMESPACE, operatorResources);
+        Kubernetes.createOrReplaceResources(Environment.REGISTRY_NAMESPACE, operatorResources);
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.deleteResources(Environment.APICURIO_OPERATOR_NAMESPACE, operatorResources);
+        Kubernetes.deleteResources(Environment.REGISTRY_NAMESPACE, operatorResources);
     }
 
     @Override

@@ -229,7 +229,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-test-instance",
-                    Environment.APICURIO_OPERATOR_NAMESPACE
+                    Environment.REGISTRY_NAMESPACE
             );
 
             resourceManager.createResource(testContext, true, apicurioRegistry);
@@ -250,8 +250,8 @@ public class SimpleTestsIT extends TestBase {
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE,
-                    Environment.APICURIO_OPERATOR_NAMESPACE,
+                    Environment.REGISTRY_CATALOG_IMAGE,
+                    Environment.REGISTRY_NAMESPACE,
                     false
             );
 
@@ -261,7 +261,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-operator-namespace-test-instance",
-                    Environment.APICURIO_OPERATOR_NAMESPACE
+                    Environment.REGISTRY_NAMESPACE
             );
 
             // Try to create registry in operator namespace,
@@ -318,7 +318,7 @@ public class SimpleTestsIT extends TestBase {
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE,
+                    Environment.REGISTRY_CATALOG_IMAGE,
                     null,
                     true
             );
@@ -364,7 +364,7 @@ public class SimpleTestsIT extends TestBase {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
                     null,
-                    Environment.APICURIO_OPERATOR_NAMESPACE,
+                    Environment.REGISTRY_NAMESPACE,
                     false
             );
 
@@ -374,7 +374,7 @@ public class SimpleTestsIT extends TestBase {
 
             ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultSql(
                     "apicurio-registry-operator-namespace-test-instance",
-                    Environment.APICURIO_OPERATOR_NAMESPACE
+                    Environment.REGISTRY_NAMESPACE
             );
 
             // Try to create registry in operator namespace,
@@ -547,7 +547,7 @@ public class SimpleTestsIT extends TestBase {
             Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTls(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE,
+                    Environment.REGISTRY_CATALOG_IMAGE,
                     null,
                     true
             );
@@ -578,7 +578,7 @@ public class SimpleTestsIT extends TestBase {
             Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaScram(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE,
+                    Environment.REGISTRY_CATALOG_IMAGE,
                     null,
                     true
             );
@@ -609,7 +609,7 @@ public class SimpleTestsIT extends TestBase {
             KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_IMAGE,
+                    Environment.REGISTRY_CATALOG_IMAGE,
                     null,
                     true
             );
@@ -740,6 +740,5 @@ public class SimpleTestsIT extends TestBase {
     @Disabled
     public void testCode(ExtensionContext testContext) {
         // Just for trying Java code
-        LOGGER.info("Hello, world!");
     }
 }

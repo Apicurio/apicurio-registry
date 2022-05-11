@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
-import io.apicurio.registry.systemtest.framework.Environment;
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Service;
@@ -96,7 +96,7 @@ public class ServiceResourceType implements ResourceType<Service> {
     public static Service getDefaultKeycloakHttp(String namespace) {
         return new ServiceBuilder()
                 .withNewMetadata()
-                    .withName(Environment.KEYCLOAK_HTTP_SERVICE_NAME)
+                    .withName(Constants.KEYCLOAK_HTTP_SERVICE_NAME)
                     .withNamespace(namespace)
                 .endMetadata()
                 .withNewSpec()

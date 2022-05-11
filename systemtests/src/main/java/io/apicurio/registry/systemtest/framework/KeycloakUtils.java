@@ -14,7 +14,7 @@ public class KeycloakUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     private static String getKeycloakFilePath(String filename) {
-        return Paths.get(Environment.TESTSUITE_DIRECTORY, "kubefiles", "keycloak", filename).toString();
+        return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
     public static void deployKeycloak(ExtensionContext testContext, String namespace) {
@@ -80,6 +80,6 @@ public class KeycloakUtils {
     }
 
     public static String getDefaultKeycloakURL(String namespace) {
-        return getKeycloakURL(namespace, Environment.KEYCLOAK_HTTP_SERVICE_NAME);
+        return getKeycloakURL(namespace, Constants.KEYCLOAK_HTTP_SERVICE_NAME);
     }
 }

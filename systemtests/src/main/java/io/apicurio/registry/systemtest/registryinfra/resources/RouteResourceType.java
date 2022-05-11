@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtest.registryinfra.resources;
 
-import io.apicurio.registry.systemtest.framework.Environment;
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.api.model.RouteBuilder;
@@ -56,14 +56,14 @@ public class RouteResourceType implements ResourceType<Route> {
     public static Route getDefaultKeycloak(String namespace) {
         return new RouteBuilder()
                 .withNewMetadata()
-                    .withName(Environment.KEYCLOAK_HTTP_SERVICE_NAME)
+                    .withName(Constants.KEYCLOAK_HTTP_SERVICE_NAME)
                     .withNamespace(namespace)
                 .endMetadata()
                 .withNewSpec()
                     .withPath("/")
                     .withTo(new RouteTargetReference() {{
                         setKind("Service");
-                        setName(Environment.KEYCLOAK_HTTP_SERVICE_NAME);
+                        setName(Constants.KEYCLOAK_HTTP_SERVICE_NAME);
                         setWeight(100);
                     }})
                 .endSpec()

@@ -36,7 +36,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
 
     @Override
     public String getDeploymentName() {
-        return Environment.KEYCLOAK_SUBSCRIPTION_PKG;
+        return Environment.SSO_PACKAGE;
     }
 
     @Override
@@ -55,19 +55,19 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         }
 
         PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                Environment.KEYCLOAK_SUBSCRIPTION_PKG
+                Environment.SSO_CATALOG_NAMESPACE,
+                Environment.SSO_PACKAGE
         );
 
         String channelName = packageManifest.getStatus().getDefaultChannel();
         String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
 
         subscription = SubscriptionResourceType.getDefault(
-                Environment.KEYCLOAK_SUBSCRIPTION_NAME,
+                "sso-subscription",
                 operatorNamespace,
-                Environment.KEYCLOAK_SUBSCRIPTION_PKG,
-                Environment.KEYCLOAK_CATALOG_SOURCE_NAME,
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
+                Environment.SSO_PACKAGE,
+                Environment.SSO_CATALOG,
+                Environment.SSO_CATALOG_NAMESPACE,
                 channelCSV,
                 channelName
         );

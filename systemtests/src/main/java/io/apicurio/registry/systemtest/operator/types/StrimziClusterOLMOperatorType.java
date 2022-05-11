@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -24,7 +25,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
         if (isClusterWide) {
             // Static set of cluster wide operator namespace
-            this.operatorNamespace = Environment.OLM_CLUSTER_WIDE_NAMESPACE;
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
         } else {
             this.operatorNamespace = operatorNamespace;
         }
@@ -44,7 +45,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
     @Override
     public String getDeploymentName() {
-        return Environment.STRIMZI_OLM_DEPLOYMENT_NAME;
+        return Environment.KAFKA_DEPLOYMENT;
     }
 
     @Override
@@ -67,19 +68,19 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         }
 
         PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE,
-                Environment.STRIMZI_OLM_SUBSCRIPTION_PKG
+                Environment.KAFKA_CATALOG_NAMESPACE,
+                Environment.KAFKA_PACKAGE
         );
 
         String channelName = packageManifest.getStatus().getDefaultChannel();
         String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
 
         subscription = SubscriptionResourceType.getDefault(
-                Environment.STRIMZI_OLM_SUBSCRIPTION_NAME,
+                "kafka-subscription",
                 operatorNamespace,
-                Environment.STRIMZI_OLM_SUBSCRIPTION_PKG,
-                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAME,
-                Environment.STRIMZI_OLM_CATALOG_SOURCE_NAMESPACE,
+                Environment.KAFKA_PACKAGE,
+                Environment.KAFKA_CATALOG,
+                Environment.KAFKA_CATALOG_NAMESPACE,
                 channelCSV,
                 channelName
         );

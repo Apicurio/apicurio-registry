@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtest.operator.types;
 
+import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -32,7 +33,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if (isClusterWide) {
             // Static set of cluster wide operator namespace
-            this.operatorNamespace = Environment.OLM_CLUSTER_WIDE_NAMESPACE;
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
         } else {
             this.operatorNamespace = operatorNamespace;
         }
@@ -58,7 +59,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         } else {
             LOGGER.info(
                     "Catalog source namespace {} will not be removed, it existed before.",
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE
+                    Environment.REGISTRY_CATALOG_NAMESPACE
             );
         }
     }
@@ -124,7 +125,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public String getDeploymentName() {
-        return Environment.APICURIO_OLM_DEPLOYMENT_NAME;
+        return Constants.APICURIO_OLM_DEPLOYMENT_NAME;
     }
 
     @Override
@@ -133,12 +134,12 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     private String getChannel() {
-        String channel = Environment.APICURIO_OLM_SUBSCRIPTION_CHANNEL;
+        String channel = Environment.REGISTRY_CHANNEL;
 
         if (channel == null) {
             PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                    Environment.APICURIO_OLM_SUBSCRIPTION_PKG
+                    Environment.REGISTRY_CATALOG_NAMESPACE,
+                    Environment.REGISTRY_PACKAGE
             );
 
             channel = packageManifest.getStatus().getDefaultChannel();
@@ -148,12 +149,12 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     private String getStartingCSV(String channelName) {
-        String startingCSV = Environment.APICURIO_OLM_SUBSCRIPTION_STARTING_CSV;
+        String startingCSV = Environment.REGISTRY_STARTING_CSV;
 
         if (startingCSV == null) {
             PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                    Environment.APICURIO_OLM_SUBSCRIPTION_PKG
+                    Environment.REGISTRY_CATALOG_NAMESPACE,
+                    Environment.REGISTRY_PACKAGE
             );
 
             startingCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
@@ -173,8 +174,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         if (getSource() != null) {
             createCatalogSource(
                     testContext,
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
-                    Environment.APICURIO_OLM_CATALOG_SOURCE_NAME
+                    Environment.REGISTRY_CATALOG_NAMESPACE,
+                    Environment.REGISTRY_CATALOG
             );
         }
 
@@ -186,11 +187,11 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         String startingCSV = getStartingCSV(channelName);
 
         subscription = SubscriptionResourceType.getDefault(
-                Environment.APICURIO_OLM_SUBSCRIPTION_NAME,
+                "registry-subscription",
                 operatorNamespace,
-                Environment.APICURIO_OLM_SUBSCRIPTION_PKG,
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAME,
-                Environment.APICURIO_OLM_CATALOG_SOURCE_NAMESPACE,
+                Environment.REGISTRY_PACKAGE,
+                Environment.REGISTRY_CATALOG,
+                Environment.REGISTRY_CATALOG_NAMESPACE,
                 startingCSV,
                 channelName
         );

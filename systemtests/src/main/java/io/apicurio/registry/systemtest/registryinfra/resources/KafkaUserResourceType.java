@@ -116,7 +116,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     public static KafkaUser getDefaultTLS() {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
-                Environment.STRIMZI_NAMESPACE,
+                Environment.KAFKA_NAMESPACE,
                 Constants.KAFKA_NAME,
                 KafkaKind.TLS
         );
@@ -125,7 +125,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     public static KafkaUser getDefaultSCRAM() {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
-                Environment.STRIMZI_NAMESPACE,
+                Environment.KAFKA_NAMESPACE,
                 Constants.KAFKA_NAME,
                 KafkaKind.SCRAM
         );

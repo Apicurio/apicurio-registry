@@ -68,12 +68,9 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(System.getenv().getOrDefault(
-                Environment.STRIMZI_OPERATOR_SOURCE_PATH_ENV_VAR,
-                Environment.STRIMZI_OPERATOR_SOURCE_PATH_DEFAULT)
-        );
+        super(Environment.KAFKA_BUNDLE);
 
-        operatorNamespace = Environment.STRIMZI_NAMESPACE;
+        operatorNamespace = Environment.KAFKA_NAMESPACE;
 
         try {
             loadOperatorResources();
@@ -85,7 +82,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public StrimziClusterBundleOperatorType(String source) {
         super(source);
 
-        operatorNamespace = Environment.STRIMZI_NAMESPACE;
+        operatorNamespace = Environment.KAFKA_NAMESPACE;
 
         try {
             loadOperatorResources();
@@ -126,7 +123,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
         return Kubernetes.getClient()
                 .apps()
                 .deployments()
-                .inNamespace(Environment.STRIMZI_NAMESPACE)
+                .inNamespace(Environment.KAFKA_NAMESPACE)
                 .withName(deployment.getMetadata().getName())
                 .get();
     }
@@ -135,7 +132,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public void install(ExtensionContext testContext) {
         Kubernetes.getClient()
                 .resourceList(operatorResources)
-                .inNamespace(Environment.STRIMZI_NAMESPACE)
+                .inNamespace(Environment.KAFKA_NAMESPACE)
                 .createOrReplace();
     }
 
@@ -143,7 +140,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     public void uninstall() {
         Kubernetes.getClient()
                 .resourceList(operatorResources)
-                .inNamespace(Environment.STRIMZI_NAMESPACE)
+                .inNamespace(Environment.KAFKA_NAMESPACE)
                 .delete();
     }
 

@@ -29,7 +29,7 @@ public final class Environment {
 
     /** Default values of environment variables */
     public static final String KAFKA_BUNDLE_DEFAULT =
-            "https://strimzi.io/install/latest?namespace=strimzi-cluster-operator-namespace";
+            "https://strimzi.io/install/latest?namespace=kafka-operator-namespace"; // KAFKA_NAMESPACE_DEFAULT
     public static final String KAFKA_CATALOG_DEFAULT = "community-operators";
     public static final String KAFKA_CATALOG_NAMESPACE_DEFAULT = "openshift-marketplace";
     public static final String KAFKA_DEPLOYMENT_DEFAULT = "strimzi-cluster-operator"; // Default from catalog
@@ -42,7 +42,6 @@ public final class Environment {
     public static final String REGISTRY_CATALOG_DEFAULT = "community-operators";
     public static final String REGISTRY_CATALOG_NAMESPACE_DEFAULT = "openshift-marketplace";
     public static final String REGISTRY_NAMESPACE_DEFAULT = "registry-operator-namespace";
-
     public static final String REGISTRY_PACKAGE_DEFAULT = "apicurio-registry"; // Default from catalog
     public static final String SSO_CATALOG_DEFAULT = "community-operators";
     public static final String SSO_CATALOG_NAMESPACE_DEFAULT = "openshift-marketplace";

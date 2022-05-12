@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtest.client.ApicurioRegistryApiClient;
+import io.apicurio.registry.systemtest.client.Artifact;
 import io.apicurio.registry.systemtest.client.ArtifactType;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.Constants;
@@ -19,7 +20,6 @@ import io.apicurio.registry.systemtest.registryinfra.resources.ApicurioRegistryR
 import io.apicurio.registry.systemtest.registryinfra.resources.KafkaConnectResourceType;
 import io.strimzi.api.kafka.model.Kafka;
 import io.strimzi.api.kafka.model.KafkaConnect;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -736,14 +736,11 @@ public class SimpleTestsIT extends TestBase {
 
         String artifactGroup = "artifact-group";
         String artifactId = "artifact-id";
-        String artifactData = new JSONObject()
-                .put("type", "record")
-                .put("name", "price")
-                .toString();
+        String artifactData = "{\"name\":\"price\",\"type\":\"record\"}";
 
         LOGGER.info("=== List artifacts ===");
-        for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            LOGGER.info(s);
+        for (Artifact a: apicurioRegistryApiClient.listArtifacts().getArtifacts()) {
+            LOGGER.info(a.getGroupId() + "/" + a.getId() + "(" + a.getType() + ")");
         }
 
         LOGGER.info(
@@ -752,8 +749,8 @@ public class SimpleTestsIT extends TestBase {
         apicurioRegistryApiClient.createArtifact(artifactGroup, artifactId, ArtifactType.AVRO, artifactData);
 
         LOGGER.info("=== List artifacts ===");
-        for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            LOGGER.info(s);
+        for (Artifact a: apicurioRegistryApiClient.listArtifacts().getArtifacts()) {
+            LOGGER.info(a.getGroupId() + "/" + a.getId() + "(" + a.getType() + ")");
         }
 
         LOGGER.info("=== Read artifact " + artifactGroup + "/" + artifactId + " ===");
@@ -763,8 +760,8 @@ public class SimpleTestsIT extends TestBase {
         apicurioRegistryApiClient.deleteArtifact(artifactGroup, artifactId);
 
         LOGGER.info("=== List artifacts ===");
-        for (String s : apicurioRegistryApiClient.listArtifacts()) {
-            LOGGER.info(s);
+        for (Artifact a: apicurioRegistryApiClient.listArtifacts().getArtifacts()) {
+            LOGGER.info(a.getGroupId() + "/" + a.getId() + "(" + a.getType() + ")");
         }
     }
 

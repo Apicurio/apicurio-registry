@@ -30,6 +30,7 @@ public final class Environment {
     public static final String REGISTRY_CATALOG_IMAGE_DEFAULT = null;
     public static final String REGISTRY_PACKAGE_DEFAULT = "apicurio-registry"; // Default from catalog
     public static final String SSO_PACKAGE_DEFAULT = "keycloak-operator"; // Default from catalog
+    public static final String TESTSUITE_PATH_DEFAULT = System.getProperty("user.dir");
     public static final String TMP_PATH_DEFAULT = "/tmp";
 
     /** Collecting environment variables */
@@ -46,7 +47,7 @@ public final class Environment {
     );
     public static final String REGISTRY_PACKAGE = getOrDefault(REGISTRY_PACKAGE_ENV_VAR, REGISTRY_PACKAGE_DEFAULT);
     public static final String SSO_PACKAGE = getOrDefault(SSO_PACKAGE_ENV_VAR, SSO_PACKAGE_DEFAULT);
-    public static final String TESTSUITE_PATH = get(TESTSUITE_PATH_ENV_VAR);
+    public static final String TESTSUITE_PATH = getOrDefault(TESTSUITE_PATH_ENV_VAR, TESTSUITE_PATH_DEFAULT);
     public static final String TMP_PATH = getOrDefault(TMP_PATH_ENV_VAR, TMP_PATH_DEFAULT);
 
     private static String get(String key) {

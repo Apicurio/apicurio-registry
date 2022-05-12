@@ -203,8 +203,8 @@ public class SimpleTestsIT extends TestBase {
             // source should contain repository URL and path to operator files inside repository,
             // these two parts are joined by semicolon
             StrimziClusterBundleOperatorType strimziClusterBundleOperatorType = new StrimziClusterBundleOperatorType(
-                    "https://github.com/jboss-container-images/amqstreams-1-openshift-image"
-                    + ";install/cluster-operator"
+                    "https://github.com/jboss-container-images/amqstreams-1-openshift-image" +
+                            ";install/cluster-operator"
             );
 
             operatorManager.installOperator(testContext, strimziClusterBundleOperatorType);
@@ -314,8 +314,8 @@ public class SimpleTestsIT extends TestBase {
 
             assertEquals(
                     MessageFormat.format(
-                            "Timed out waiting for resource {0} with name {1} in namespace {2} to be ready. "
-                                    + "==> expected: <true> but was: <false>",
+                            "Timed out waiting for resource {0} with name {1} in namespace {2} to be ready. " +
+                                    "==> expected: <true> but was: <false>",
                             apicurioRegistryNamespace.getKind(),
                             apicurioRegistryNamespace.getMetadata().getName(),
                             apicurioRegistryNamespace.getMetadata().getNamespace()
@@ -423,8 +423,8 @@ public class SimpleTestsIT extends TestBase {
 
             assertEquals(
                     MessageFormat.format(
-                            "Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. "
-                                    + "==> expected: <true> but was: <false>",
+                            "Timed out waiting for resource {0} with name {1} to be ready in namespace {2}. " +
+                                    "==> expected: <true> but was: <false>",
                             apicurioRegistryNamespace.getKind(),
                             apicurioRegistryNamespace.getMetadata().getName(),
                             apicurioRegistryNamespace.getMetadata().getNamespace()

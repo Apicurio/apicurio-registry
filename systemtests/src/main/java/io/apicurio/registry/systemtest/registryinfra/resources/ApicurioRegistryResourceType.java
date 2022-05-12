@@ -132,8 +132,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("kafkasql")
                         .withNewKafkasql()
                             .withBootstrapServers(
-                                    Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE
-                                            + ".svc.cluster.local:9092"
+                                    Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                            ".svc.cluster.local:9092"
                             )
                         .endKafkasql()
                     .endConfiguration()
@@ -184,8 +184,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE
-                                + ".svc.cluster.local:9093"
+                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                ".svc.cluster.local:9093"
                 );
     }
 
@@ -209,8 +209,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE
-                                + ".svc.cluster.local:9093"
+                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                ".svc.cluster.local:9093"
                 );
     }
 }

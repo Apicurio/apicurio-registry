@@ -93,12 +93,12 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                 .withName("debezium-connector-postgres")
                 .withArtifacts(new TgzArtifactBuilder()
                         .withUrl(
-                                "https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.4.1.Final/"
-                                        + "debezium-connector-postgres-1.4.1.Final-plugin.tar.gz"
+                                "https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.4.1.Final/" +
+                                        "debezium-connector-postgres-1.4.1.Final-plugin.tar.gz"
                         )
                         .withSha512sum(
-                                "99b0924aad98c6066e6bd22a05cf25789e6ba95ed53102d0c76e7775c3966ac8cf1b9a88e779685123c90e"
-                                        + "0bd1512d3bb986ad5052e8cae18cbcd2e8cf16f116"
+                                "99b0924aad98c6066e6bd22a05cf25789e6ba95ed53102d0c76e7775c3966ac8cf1b9a88e779685123c9" +
+                                        "0e0bd1512d3bb986ad5052e8cae18cbcd2e8cf16f116"
                         )
                         .build()
                 )
@@ -135,14 +135,14 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                 .withNewSpec()
                     .withReplicas(3)
                     .withBootstrapServers(
-                            Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE
-                                    + ".svc.cluster.local:9092"
+                            Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                    ".svc.cluster.local:9092"
                     )
                     .withNewBuild()
                         .withOutput(new DockerOutputBuilder()
                                 .withImage(
-                                        "image-registry.openshift-image-registry.svc.cluster.local:5000/"
-                                        + namespace + "/apicurio-debezium:latest-ci"
+                                        "image-registry.openshift-image-registry.svc.cluster.local:5000/" +
+                                                namespace + "/apicurio-debezium:latest-ci"
                                 )
                                 .build()
                         )

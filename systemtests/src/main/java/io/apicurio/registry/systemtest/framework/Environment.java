@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 
 public final class Environment {
     /** Environment variables */
+    public static final String CATALOG_IMAGE_ENV_VAR = "CATALOG_IMAGE";
     public static final String CATALOG_NAME_ENV_VAR = "CATALOG_NAME";
     public static final String CONVERTERS_SHA512SUM_ENV_VAR = "CONVERTERS_SHA512SUM";
     public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
@@ -12,7 +13,6 @@ public final class Environment {
     public static final String KAFKA_DEPLOYMENT_ENV_VAR = "KAFKA_DEPLOYMENT";
     public static final String KAFKA_PACKAGE_ENV_VAR = "KAFKA_PACKAGE";
     public static final String REGISTRY_BUNDLE_ENV_VAR = "REGISTRY_BUNDLE";
-    public static final String REGISTRY_CATALOG_IMAGE_ENV_VAR = "REGISTRY_CATALOG_IMAGE";
     public static final String REGISTRY_PACKAGE_ENV_VAR = "REGISTRY_PACKAGE";
     public static final String SSO_PACKAGE_ENV_VAR = "SSO_PACKAGE";
     public static final String TESTSUITE_PATH_ENV_VAR = "TESTSUITE_PATH";
@@ -27,13 +27,13 @@ public final class Environment {
     public static final String REGISTRY_BUNDLE_DEFAULT =
             "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/"
             + "apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
-    public static final String REGISTRY_CATALOG_IMAGE_DEFAULT = null;
     public static final String REGISTRY_PACKAGE_DEFAULT = "apicurio-registry"; // Default from catalog
     public static final String SSO_PACKAGE_DEFAULT = "keycloak-operator"; // Default from catalog
     public static final String TESTSUITE_PATH_DEFAULT = System.getProperty("user.dir");
     public static final String TMP_PATH_DEFAULT = "/tmp";
 
     /** Collecting environment variables */
+    public static final String CATALOG_IMAGE = get(CATALOG_IMAGE_ENV_VAR);
     public static final String CATALOG_NAME = getOrDefault(CATALOG_NAME_ENV_VAR, CATALOG_NAME_DEFAULT);
     public static final String CONVERTERS_SHA512SUM = get(CONVERTERS_SHA512SUM_ENV_VAR);
     public static final String CONVERTERS_URL = get(CONVERTERS_URL_ENV_VAR);
@@ -41,10 +41,6 @@ public final class Environment {
     public static final String KAFKA_DEPLOYMENT = getOrDefault(KAFKA_DEPLOYMENT_ENV_VAR, KAFKA_DEPLOYMENT_DEFAULT);
     public static final String KAFKA_PACKAGE = getOrDefault(KAFKA_PACKAGE_ENV_VAR, KAFKA_PACKAGE_DEFAULT);
     public static final String REGISTRY_BUNDLE = getOrDefault(REGISTRY_BUNDLE_ENV_VAR, REGISTRY_BUNDLE_DEFAULT);
-    public static final String REGISTRY_CATALOG_IMAGE = getOrDefault(
-            REGISTRY_CATALOG_IMAGE_ENV_VAR,
-            REGISTRY_CATALOG_IMAGE_DEFAULT
-    );
     public static final String REGISTRY_PACKAGE = getOrDefault(REGISTRY_PACKAGE_ENV_VAR, REGISTRY_PACKAGE_DEFAULT);
     public static final String SSO_PACKAGE = getOrDefault(SSO_PACKAGE_ENV_VAR, SSO_PACKAGE_DEFAULT);
     public static final String TESTSUITE_PATH = getOrDefault(TESTSUITE_PATH_ENV_VAR, TESTSUITE_PATH_DEFAULT);

@@ -6,7 +6,6 @@ import io.apicurio.registry.systemtest.client.ArtifactType;
 import io.apicurio.registry.systemtest.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.DatabaseUtils;
-import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.KafkaUtils;
 import io.apicurio.registry.systemtest.framework.KeycloakUtils;
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
@@ -275,11 +274,7 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorNamespaced(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
-                    Environment.REGISTRY_CATALOG_IMAGE,
-                    Constants.TESTSUITE_NAMESPACE,
-                    false
-            );
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(false);
 
             operatorManager.installOperator(testContext, testOperator);
 
@@ -343,11 +338,7 @@ public class SimpleTestsIT extends TestBase {
     @Test
     public void testInstallApicurioRegistryOLMOperatorClusterWide(ExtensionContext testContext) {
         try {
-            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
-                    Environment.REGISTRY_CATALOG_IMAGE,
-                    null,
-                    true
-            );
+            ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(true);
 
             operatorManager.installOperator(testContext, testOperator);
 
@@ -390,8 +381,8 @@ public class SimpleTestsIT extends TestBase {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
                     null,
-                    Constants.TESTSUITE_NAMESPACE,
-                    false
+                    false,
+                    "registry-operator-test-namespace"
             );
 
             operatorManager.installOperator(testContext, testOperator);
@@ -458,7 +449,6 @@ public class SimpleTestsIT extends TestBase {
     public void testInstallApicurioRegistryOLMOperatorClusterWideWithoutCatalogSourceImg(ExtensionContext testContext) {
         try {
             ApicurioRegistryOLMOperatorType testOperator = new ApicurioRegistryOLMOperatorType(
-                    null,
                     null,
                     true
             );
@@ -611,8 +601,6 @@ public class SimpleTestsIT extends TestBase {
             Kafka kafkasqlTls = KafkaUtils.deployDefaultKafkaTls(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.REGISTRY_CATALOG_IMAGE,
-                    null,
                     true
             );
 
@@ -642,8 +630,6 @@ public class SimpleTestsIT extends TestBase {
             Kafka kafkasqlScram = KafkaUtils.deployDefaultKafkaScram(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.REGISTRY_CATALOG_IMAGE,
-                    null,
                     true
             );
 
@@ -673,8 +659,6 @@ public class SimpleTestsIT extends TestBase {
             KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
             ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
-                    Environment.REGISTRY_CATALOG_IMAGE,
-                    null,
                     true
             );
 

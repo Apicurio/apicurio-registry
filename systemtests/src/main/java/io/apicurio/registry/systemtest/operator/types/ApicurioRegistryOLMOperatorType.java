@@ -27,7 +27,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     private CatalogSource catalogSource = null;
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
-        super(null);
+        super(Environment.REGISTRY_CATALOG_IMAGE);
 
         if (isClusterWide) {
             // Static set of cluster wide operator namespace
@@ -39,7 +39,33 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         this.isClusterWide = isClusterWide;
     }
 
-    public ApicurioRegistryOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
+    public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide) {
+        super(source);
+
+        if (isClusterWide) {
+            // Static set of cluster wide operator namespace
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
+        } else {
+            this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        }
+
+        this.isClusterWide = isClusterWide;
+    }
+
+    public ApicurioRegistryOLMOperatorType(boolean isClusterWide, String operatorNamespace) {
+        super(Environment.REGISTRY_CATALOG_IMAGE);
+
+        if (isClusterWide) {
+            // Static set of cluster wide operator namespace
+            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
+        } else {
+            this.operatorNamespace = operatorNamespace;
+        }
+
+        this.isClusterWide = isClusterWide;
+    }
+
+    public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide, String operatorNamespace) {
         super(source);
 
         if (isClusterWide) {

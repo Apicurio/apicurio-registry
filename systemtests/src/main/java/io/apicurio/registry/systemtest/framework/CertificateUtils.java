@@ -64,7 +64,7 @@ public class CertificateUtils {
                 60_000,
                 true,
                 true,
-                Collections.singletonMap("RANDFILE", Environment.getTempPath(".rnd").toString())
+                Collections.singletonMap("RANDFILE", Environment.getTmpPath(".rnd").toString())
         );
     }
 
@@ -122,11 +122,11 @@ public class CertificateUtils {
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
         String caCertSecretValue = decodeBase64Secret(namespace, caCertSecretName, "ca.crt");
-        Path caPath = Environment.getTempPath("ca-" + timestamp + ".crt");
+        Path caPath = Environment.getTmpPath("ca-" + timestamp + ".crt");
 
         writeToFile(caCertSecretValue, caPath);
 
-        Path truststorePath = Environment.getTempPath("truststore-" + timestamp + ".p12");
+        Path truststorePath = Environment.getTmpPath("truststore-" + timestamp + ".p12");
         String truststorePassword = RandomStringUtils.randomAlphanumeric(32);
 
         runTruststoreCmd(truststorePath, truststorePassword, caPath);
@@ -149,15 +149,15 @@ public class CertificateUtils {
         LOGGER.info("Preparing keystore...");
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
-        Path userCertPath = Environment.getTempPath("user-" + timestamp + ".crt");
+        Path userCertPath = Environment.getTmpPath("user-" + timestamp + ".crt");
 
         writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.crt"), userCertPath);
 
-        Path userKeyPath = Environment.getTempPath("user-" + timestamp + ".key");
+        Path userKeyPath = Environment.getTmpPath("user-" + timestamp + ".key");
 
         writeToFile(decodeBase64Secret(namespace, clientCertSecretName, "user.key"), userKeyPath);
 
-        Path keystorePath = Environment.getTempPath("keystore-" + timestamp + ".p12");
+        Path keystorePath = Environment.getTmpPath("keystore-" + timestamp + ".p12");
         String keystorePassword = RandomStringUtils.randomAlphanumeric(32);
 
         runKeystoreCmd(keystorePath, keystorePassword, userCertPath, userKeyPath, hostname);

@@ -24,7 +24,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
         LOGGER.info("Loading operator resources from file " + getSource() + "...");
 
         if (getSource().startsWith("http://") || getSource().startsWith("https://")) {
-            Path tmpPath = Environment.getTempPath(
+            Path tmpPath = Environment.getTmpPath(
                     "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml"
             );
 

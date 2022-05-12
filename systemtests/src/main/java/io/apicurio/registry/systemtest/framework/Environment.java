@@ -54,7 +54,7 @@ public final class Environment {
         return System.getenv().getOrDefault(key, defaultValue);
     }
 
-    public static Path getTempPath(String filename) {
+    public static Path getTmpPath(String filename) {
         return Paths.get(TMP_PATH, filename);
     }
 }

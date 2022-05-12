@@ -36,7 +36,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
                 // Get path to operator files inside repo
                 String filesPath = sourceParts[1];
                 // Get path to clone of repo
-                Path clonePath = Environment.getTempPath("strimzi-bundle-repo-" + timestamp);
+                Path clonePath = Environment.getTmpPath("strimzi-bundle-repo-" + timestamp);
                 // Clone repo from repo URL to clone repo path
                 Git.cloneRepository()
                         .setURI(repoUrl) // Repo URL
@@ -47,7 +47,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
 
                 ResourceUtils.updateRoleBindingNamespace(operatorResources, operatorNamespace);
             } else {
-                Path tmpPath = Environment.getTempPath("strimzi-bundle-install-" + timestamp + ".yaml");
+                Path tmpPath = Environment.getTmpPath("strimzi-bundle-install-" + timestamp + ".yaml");
 
                 OperatorUtils.downloadFile(getSource(), tmpPath);
 

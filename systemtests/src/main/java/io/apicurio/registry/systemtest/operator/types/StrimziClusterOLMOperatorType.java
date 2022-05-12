@@ -91,7 +91,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
                 "kafka-subscription",
                 operatorNamespace,
                 Environment.KAFKA_PACKAGE,
-                Constants.CATALOG_NAME,
+                Environment.CATALOG_NAME,
                 Constants.CATALOG_NAMESPACE,
                 channelCSV,
                 channelName

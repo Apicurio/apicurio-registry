@@ -195,7 +195,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         String channelName = getChannel();
         String startingCSV = getStartingCSV(channelName);
-        String catalogName = catalogSource == null ? Constants.CATALOG_NAME : catalogSource.getMetadata().getName();
+        String catalogName = catalogSource == null ? Environment.CATALOG_NAME : catalogSource.getMetadata().getName();
 
         subscription = SubscriptionResourceType.getDefault(
                 "registry-subscription",

@@ -79,7 +79,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
                 "sso-subscription",
                 operatorNamespace,
                 Environment.SSO_PACKAGE,
-                Constants.CATALOG_NAME,
+                Environment.CATALOG_NAME,
                 Constants.CATALOG_NAMESPACE,
                 channelCSV,
                 channelName

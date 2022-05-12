@@ -30,6 +30,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 
+import io.apicurio.rest.client.auth.exception.AuthException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -45,7 +46,6 @@ import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
-import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -105,9 +105,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                 if (null != clientCredentials) {
                     try {
                         return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
-                    } catch (NotAuthorizedException ex) {
-                        //Ignore exception, wrong credentials passed
-                        throw new AuthenticationFailedException();
+                    } catch (AuthException | NotAuthorizedException ex) {
+                        //Ignore exception, wrong credentials passed, trying to authenticate without credentials will result in a 401
+                        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                     }
                 } else {
                     return customAuthentication(context, identityProviderManager);

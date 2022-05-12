@@ -7,7 +7,6 @@ import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.CatalogSourceResourceType;
 import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
-import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
@@ -26,7 +25,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     private Subscription subscription = null;
     private OperatorGroup operatorGroup = null;
     private CatalogSource catalogSource = null;
-    private Namespace catalogSourceNamespace = null;
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
         super(null);
@@ -52,29 +50,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         }
 
         this.isClusterWide = isClusterWide;
-    }
-
-    private void deleteCatalogSourceNamespace() {
-        if (catalogSourceNamespace != null) {
-            String catalogSourceNamespaceName = catalogSourceNamespace.getMetadata().getName();
-
-            if (Kubernetes.getNamespace(catalogSourceNamespaceName) == null) {
-                LOGGER.info("Catalog source namespace {} already removed.", catalogSourceNamespaceName);
-            } else {
-                LOGGER.info("Removing catalog source namespace {}...", catalogSourceNamespaceName);
-
-                Kubernetes.deleteNamespace(catalogSourceNamespaceName);
-
-                if (OperatorUtils.waitNamespaceRemoved(catalogSourceNamespaceName)) {
-                    LOGGER.info("Catalog source namespace {} removed.", catalogSourceNamespaceName);
-                }
-            }
-        } else {
-            LOGGER.info(
-                    "Catalog source namespace {} will not be removed, it existed before.",
-                    Constants.CATALOG_NAMESPACE
-            );
-        }
     }
 
     /**
@@ -210,8 +185,6 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
         if (getSource() != null) {
             deleteCatalogSource();
-
-            deleteCatalogSourceNamespace();
         }
 
         /* Waiting for operator deployment removal is implemented in OperatorManager. */

@@ -148,33 +148,21 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     }
 
     private String getChannel() {
-        String channel = Environment.REGISTRY_CHANNEL;
+        PackageManifest packageManifest = Kubernetes.getPackageManifest(
+                Constants.CATALOG_NAMESPACE,
+                Environment.REGISTRY_PACKAGE
+        );
 
-        if (channel == null) {
-            PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Constants.CATALOG_NAMESPACE,
-                    Environment.REGISTRY_PACKAGE
-            );
-
-            channel = packageManifest.getStatus().getDefaultChannel();
-        }
-
-        return channel;
+        return packageManifest.getStatus().getDefaultChannel();
     }
 
     private String getStartingCSV(String channelName) {
-        String startingCSV = Environment.REGISTRY_STARTING_CSV;
+        PackageManifest packageManifest = Kubernetes.getPackageManifest(
+                Constants.CATALOG_NAMESPACE,
+                Environment.REGISTRY_PACKAGE
+        );
 
-        if (startingCSV == null) {
-            PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                    Constants.CATALOG_NAMESPACE,
-                    Environment.REGISTRY_PACKAGE
-            );
-
-            startingCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
-        }
-
-        return startingCSV;
+        return OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
     }
 
     @Override

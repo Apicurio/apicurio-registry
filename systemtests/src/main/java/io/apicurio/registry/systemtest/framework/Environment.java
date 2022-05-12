@@ -13,9 +13,7 @@ public final class Environment {
     public static final String KAFKA_PACKAGE_ENV_VAR = "KAFKA_PACKAGE";
     public static final String REGISTRY_BUNDLE_ENV_VAR = "REGISTRY_BUNDLE";
     public static final String REGISTRY_CATALOG_IMAGE_ENV_VAR = "REGISTRY_CATALOG_IMAGE";
-    public static final String REGISTRY_CHANNEL_ENV_VAR = "REGISTRY_CHANNEL";
     public static final String REGISTRY_PACKAGE_ENV_VAR = "REGISTRY_PACKAGE";
-    public static final String REGISTRY_STARTING_CSV_ENV_VAR = "REGISTRY_STARTING_CSV";
     public static final String SSO_PACKAGE_ENV_VAR = "SSO_PACKAGE";
     public static final String TESTSUITE_PATH_ENV_VAR = "TESTSUITE_PATH";
     public static final String TMP_PATH_ENV_VAR = "TMP_PATH";
@@ -46,9 +44,7 @@ public final class Environment {
             REGISTRY_CATALOG_IMAGE_ENV_VAR,
             REGISTRY_CATALOG_IMAGE_DEFAULT
     );
-    public static final String REGISTRY_CHANNEL = get(REGISTRY_CHANNEL_ENV_VAR);
     public static final String REGISTRY_PACKAGE = getOrDefault(REGISTRY_PACKAGE_ENV_VAR, REGISTRY_PACKAGE_DEFAULT);
-    public static final String REGISTRY_STARTING_CSV = get(REGISTRY_STARTING_CSV_ENV_VAR);
     public static final String SSO_PACKAGE = getOrDefault(SSO_PACKAGE_ENV_VAR, SSO_PACKAGE_DEFAULT);
     public static final String TESTSUITE_PATH = get(TESTSUITE_PATH_ENV_VAR);
     public static final String TMP_PATH = getOrDefault(TMP_PATH_ENV_VAR, TMP_PATH_DEFAULT);

@@ -14,88 +14,123 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from "react";
+import React, {FunctionComponent, useState} from "react";
 import "./configProperty.css";
-import {
-    Button, Checkbox,
-    Modal, NumberInput, TextInput
-} from '@patternfly/react-core';
-import { TableComposable, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import {Button, Flex, FlexItem, Switch} from '@patternfly/react-core';
 import {ConfigurationProperty} from "../../../../models/configurationProperty.model";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../components";
 import {PropertyInput} from "./propertyInput";
+import {If} from "../../../components/common/if";
+import {CheckIcon, CloseIcon, PencilAltIcon} from "@patternfly/react-icons";
 
 /**
  * Properties
  */
-export interface ConfigPropertyProps extends PureComponentProps {
+export interface ConfigPropertyProps {
     property: ConfigurationProperty;
     onChange: (property: ConfigurationProperty, newValue: string) => void;
     onReset: (property: ConfigurationProperty) => void;
 }
 
-/**
- * State
- */
-// tslint:disable-next-line:no-empty-interface
-export interface ConfigPropertyState extends PureComponentState {
-    isChecked: boolean | undefined;
-}
 
-/**
- * Models a single editable config property.
- */
-export class ConfigProperty extends PureComponent<ConfigPropertyProps, ConfigPropertyState> {
+export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({property, onChange, onReset}: ConfigPropertyProps) => {
+    const [ isEditing, setEditing ] = useState(false);
+    const [ newPropertyValue, setNewPropertyValue ] = useState(property.value);
+    const [ isValid, setValid ] = useState(true);
 
-    constructor(props: Readonly<ConfigPropertyProps>) {
-        super(props);
+    const onCheckboxChange = (checked: boolean): void => {
+        const newValue: string = checked ? "true" : "false";
+        onChange(property, newValue);
+    };
+
+    const onPropertyValueChange = (newValue: string): void => {
+        setNewPropertyValue(newValue);
+    };
+
+    const onPropertyValueValid = (valid: boolean): void => {
+        setValid(valid);
+    };
+
+    const onCancelEdit = (): void => {
+        setNewPropertyValue(property.value);
+        setEditing(false);
+    };
+
+    const onStartEditing = (): void => {
+        setValid(true);
+        setEditing(true);
+    };
+
+    const onSavePropertyValue = (): void => {
+        onChange(property, newPropertyValue);
+        setEditing(false);
+    };
+
+    const renderBooleanProp = (): React.ReactElement => {
+        return (
+            <Flex className="configuration-property boolean-property">
+                <FlexItem>
+                    <div className="property-name">
+                        <span className="name">{property.label}</span>
+                        <span className="sep">:</span>
+                        <span className="value">{property.value === "true" ? "On" : "Off"}</span>
+                    </div>
+                    <div className="property-description">{property.description}</div>
+                </FlexItem>
+                <FlexItem className="actions" align={{default: "alignRight"}}>
+                    <Switch id={property.name} aria-label={property.label}
+                            className="action"
+                            isChecked={property.value === "true"}
+                            onChange={onCheckboxChange} />
+                </FlexItem>
+            </Flex>
+        );
+    };
+
+    const renderStringProp = (type: 'text' | 'number'): React.ReactElement => {
+        return (
+            <Flex className="configuration-property string-property">
+                <FlexItem>
+                    <div className="property-name">
+                        <span className="name">{property.label}</span>
+                    </div>
+                    <div className="property-description">{property.description}</div>
+                    <If condition={!isEditing}>
+                        <div className="property-value">{property.value}</div>
+                    </If>
+                    <If condition={isEditing}>
+                        <div className="property-editor">
+                            <PropertyInput name={ property.name }
+                                           value={ property.value }
+                                           type={ type }
+                                           onChange={ onPropertyValueChange }
+                                           onValid={ onPropertyValueValid }
+                                           onCancel={ onCancelEdit }
+                                           onSave={ onSavePropertyValue }
+                            />
+                        </div>
+                    </If>
+                </FlexItem>
+                <FlexItem className="actions" align={{default: "alignRight"}}>
+                    <If condition={!isEditing}>
+                        <Button variant="plain" className="action single" onClick={onStartEditing}><PencilAltIcon /></Button>
+                    </If>
+                    <If condition={isEditing}>
+                        <Button variant="plain" className="action" onClick={onSavePropertyValue} isDisabled={!isValid}><CheckIcon /></Button>
+                        <Button variant="plain" className="action" onClick={onCancelEdit}><CloseIcon /></Button>
+                    </If>
+                </FlexItem>
+            </Flex>
+        );
     }
 
-    public render(): React.ReactElement {
-        if (this.props.property.type === "java.lang.Boolean") {
-            return this.renderBooleanProp();
-        } else if (this.props.property.type === "java.lang.Integer") {
-            return this.renderStringProp("number");
-        } else if (this.props.property.type === "java.lang.Long") {
-            return this.renderStringProp("number");
-        } else {
-            return this.renderStringProp("text");
-        }
+    if (property.type === "java.lang.Boolean") {
+        return renderBooleanProp();
+    } else if (property.type === "java.lang.Integer") {
+        return renderStringProp("number");
+    } else if (property.type === "java.lang.Long") {
+        return renderStringProp("number");
+    } else {
+        return renderStringProp("text");
     }
 
-    protected initializeState(): ConfigPropertyState {
-        return {
-            isChecked: this.props.property?.value === "true"
-        };
-    }
-
-    private renderBooleanProp(): React.ReactElement {
-        return  <div className="configuration-property boolean-property">
-                    <Checkbox id={this.props.property.name}
-                              label={this.props.property.label}
-                              aria-label={this.props.property.label}
-                              description={this.props.property.description}
-                              isChecked={this.state.isChecked}
-                              onChange={ (checked, _event) => {
-                                  const newValue: string = checked ? "true" : "false";
-                                  this.setSingleState("isChecked", checked);
-                                  this.props.onChange(this.props.property, newValue);
-                              }}
-                    />
-                </div>;
-    }
-
-    private renderStringProp(type: 'text' | 'number'): React.ReactElement {
-        return <div className="configuration-property string-property">
-            <div className="property-name">{ this.props.property.label }</div>
-            <div className="property-description">{ this.props.property.description }</div>
-            <div className="property-value">
-                <PropertyInput name={ this.props.property.name }
-                               value={ this.props.property.value }
-                               type={ type } onChange={(newValue) => {
-                    this.props.onChange(this.props.property, newValue);
-                }} />
-            </div>
-        </div>;
-    }
 }

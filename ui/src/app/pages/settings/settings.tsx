@@ -17,10 +17,18 @@
 
 import React from "react";
 import "./settings.css";
-import {PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
+import {
+    Card,
+    CardBody, CardFooter,
+    CardTitle,
+    PageSection,
+    PageSectionVariants,
+    SearchInput,
+    TextContent
+} from '@patternfly/react-core';
 import {PageComponent, PageProps, PageState} from "../basePage";
 import {Services} from "../../../services";
-import {RootPageHeader} from "../../components";
+import {IfNotEmpty, RootPageHeader} from "../../components";
 import {ConfigurationProperty} from "../../../models/configurationProperty.model";
 import {ConfigProperty} from "./components";
 
@@ -38,7 +46,9 @@ export interface SettingsPageProps extends PageProps {
  */
 // tslint:disable-next-line:no-empty-interface
 export interface SettingsPageState extends PageState {
-    properties: ConfigurationProperty[] | null;
+    properties?: ConfigurationProperty[];
+    searchedProperties?: ConfigurationProperty[];
+    searchCriteria: string;
 }
 
 /**
@@ -60,19 +70,33 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                     <TextContent>
                         Configure global settings for this Service Registry instance.
                     </TextContent>
+                    <TextContent style={{marginTop: "10px", marginBottom: "5px", maxWidth: "450px"}}>
+                        <SearchInput placeholder={`Search settings`}
+                                     aria-label="Search settings"
+                                     value={this.state.searchCriteria}
+                                     onChange={this.onSearchCriteria}
+                                     onSearch={this.onSearchSettings}
+                                     onClear={this.onSearchClear}
+                        />
+                    </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
-                    <div className="config-properties">
-                        {
-                            this.state.properties?.map(prop =>
-                                <ConfigProperty key={prop.name}
-                                                property={prop}
-                                                onChange={this.onPropertyChange}
-                                                onReset={this.onPropertyReset}
-                                />
-                            )
-                        }
-                    </div>
+                    <IfNotEmpty collection={this.state.searchedProperties} emptyStateMessage={`No settings found matching your search criteria.`}>
+                        <Card className="config-property-group">
+                            <CardTitle className="title">All Settings</CardTitle>
+                            <CardBody className="config-properties">
+                                {
+                                    this.state.searchedProperties?.map(prop =>
+                                        <ConfigProperty key={prop.name}
+                                                        property={prop}
+                                                        onChange={this.onPropertyChange}
+                                                        onReset={this.onPropertyReset}
+                                        />
+                                    )
+                                }
+                            </CardBody>
+                        </Card>
+                    </IfNotEmpty>
                 </PageSection>
             </React.Fragment>
         );
@@ -80,7 +104,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
 
     protected initializePageState(): SettingsPageState {
         return {
-            properties: null
+            searchCriteria: ""
         };
     }
 
@@ -91,7 +115,36 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                     isLoading: false,
                     properties
                 });
+                this.filterProperties();
             });
+    }
+
+    private acceptProperty = (property: ConfigurationProperty): boolean => {
+        if (!this.state.searchCriteria || this.state.searchCriteria.trim().length === 0) {
+            return true;
+        }
+        const sc: string = this.state.searchCriteria.toLocaleLowerCase();
+        return property.label.toLocaleLowerCase().indexOf(sc) >= 0 ||
+            property.description.toLocaleLowerCase().indexOf(sc) >= 0;
+    };
+
+    private filterProperties(): void {
+        const filteredProperties: ConfigurationProperty[] | undefined = this.state.properties?.filter(this.acceptProperty);
+        this.setSingleState("searchedProperties", filteredProperties);
+    }
+
+    private onSearchCriteria = (criteria: string): void => {
+        this.setSingleState("searchCriteria", criteria);
+    };
+
+    private onSearchSettings = (): void => {
+        this.filterProperties();
+    };
+
+    private onSearchClear = (): void => {
+        this.setMultiState({
+            searchCriteria: ""
+        }, this.onSearchSettings);
     }
 
     private onPropertyChange = (property: ConfigurationProperty, newValue: string): void => {

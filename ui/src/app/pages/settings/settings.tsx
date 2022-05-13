@@ -31,6 +31,50 @@ import {Services} from "../../../services";
 import {IfNotEmpty, RootPageHeader} from "../../components";
 import {ConfigurationProperty} from "../../../models/configurationProperty.model";
 import {ConfigProperty} from "./components";
+import {If} from "../../components/common/if";
+
+
+interface PropertyGroup {
+    id: string,
+    label: string,
+    propertyNames: string[];
+    properties?: ConfigurationProperty[];
+}
+
+const PROPERTY_GROUPS: PropertyGroup[] = [
+    {
+        id: "authn",
+        label: "Authentication settings",
+        propertyNames: [
+            "registry.auth.basic-auth-client-credentials.enabled",
+        ]
+    },
+    {
+        id: "authz",
+        label: "Authorization settings",
+        propertyNames: [
+            "registry.auth.owner-only-authorization",
+            "registry.auth.owner-only-authorization.limit-group-access",
+            "registry.auth.anonymous-read-access.enabled",
+            "registry.auth.authenticated-read-access.enabled",
+        ]
+    },
+    {
+        id: "compatibility",
+        label: "Compatibility settings",
+        propertyNames: [
+            "registry.ccompat.legacy-id-mode.enabled",
+        ]
+    },
+    {
+        id: "console",
+        label: "Web console settings",
+        propertyNames: [
+            "registry.download.href.ttl",
+            "registry.ui.features.readOnly"
+        ]
+    },
+];
 
 
 /**
@@ -82,20 +126,26 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <IfNotEmpty collection={this.state.searchedProperties} emptyStateMessage={`No settings found matching your search criteria.`}>
-                        <Card className="config-property-group">
-                            <CardTitle className="title">All Settings</CardTitle>
-                            <CardBody className="config-properties">
-                                {
-                                    this.state.searchedProperties?.map(prop =>
-                                        <ConfigProperty key={prop.name}
-                                                        property={prop}
-                                                        onChange={this.onPropertyChange}
-                                                        onReset={this.onPropertyReset}
-                                        />
-                                    )
-                                }
-                            </CardBody>
-                        </Card>
+                        {
+                            this.propertyGroups().map(group =>
+                                <If key={group.id} condition={group.properties !== undefined && group.properties.length > 0}>
+                                    <Card key={group.id} className="config-property-group" style={{marginBottom: "15px"}}>
+                                        <CardTitle className="title">{group.label}</CardTitle>
+                                        <CardBody className="config-properties">
+                                            {
+                                                group.properties?.map(prop =>
+                                                    <ConfigProperty key={prop.name}
+                                                                    property={prop}
+                                                                    onChange={this.onPropertyChange}
+                                                                    onReset={this.onPropertyReset}
+                                                    />
+                                                )
+                                            }
+                                        </CardBody>
+                                    </Card>
+                                </If>
+                            )
+                        }
                     </IfNotEmpty>
                 </PageSection>
             </React.Fragment>
@@ -117,6 +167,36 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                 });
                 this.filterProperties();
             });
+    }
+
+    private groupFor(groups: PropertyGroup[], prop: ConfigurationProperty): PropertyGroup {
+        for (const group of groups) {
+            if (group.propertyNames.indexOf(prop.name) >= 0) {
+                return group;
+            }
+        }
+        // Default to the last group (additional properties).
+        return groups[groups.length - 1];
+    }
+
+    private propertyGroups(): PropertyGroup[] {
+        const groups: PropertyGroup[] = [...PROPERTY_GROUPS];
+        groups.forEach(group => group.properties = []);
+        const additionalGroup: PropertyGroup = {
+            id: "additional",
+            label: "Additional properties",
+            properties: [],
+            propertyNames: []
+        };
+        groups.push(additionalGroup);
+        this.state.searchedProperties?.forEach(prop => {
+            this.groupFor(groups, prop).properties?.push(prop);
+        });
+        groups.forEach(group => {
+            group.properties = group.properties?.sort(
+                (prop1, prop2) => prop1.label.localeCompare(prop2.label));
+        });
+        return groups;
     }
 
     private acceptProperty = (property: ConfigurationProperty): boolean => {

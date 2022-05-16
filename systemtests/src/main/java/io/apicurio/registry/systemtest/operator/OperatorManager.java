@@ -74,7 +74,7 @@ public class OperatorManager {
         }
     }
 
-    public void installOperator(ExtensionContext testContext, OperatorType operatorType, boolean waitForReady) {
+    public void installOperator(ExtensionContext testContext, OperatorType operatorType, boolean waitReady) {
         String kind = operatorType.getKind().toString();
         String name = operatorType.getDeploymentName();
         String namespace = operatorType.getNamespaceName();
@@ -92,7 +92,7 @@ public class OperatorManager {
 
         LOGGER.info("Operator {} installed.", operatorInfo);
 
-        if (waitForReady) {
+        if (waitReady) {
             LOGGER.info("Waiting for operator {} to be ready...", operatorInfo);
 
             assertTrue(
@@ -112,7 +112,7 @@ public class OperatorManager {
         uninstallOperator(operatorType, true);
     }
 
-    public void uninstallOperator(OperatorType operatorType, boolean waitForRemoved) {
+    public void uninstallOperator(OperatorType operatorType, boolean waitRemoved) {
         String kind = operatorType.getKind().toString();
         String name = operatorType.getDeploymentName();
         String namespace = operatorType.getNamespaceName();
@@ -122,7 +122,7 @@ public class OperatorManager {
 
         operatorType.uninstall();
 
-        if (waitForRemoved) {
+        if (waitRemoved) {
             LOGGER.info("Waiting for operator {} to be uninstalled...", operatorInfo);
 
             assertTrue(

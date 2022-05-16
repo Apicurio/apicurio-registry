@@ -103,12 +103,12 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Default
 |`ARTIFACT_RESOLVER_STRATEGY`
 |`apicurio.registry.artifact-resolver-strategy`
-|Used by serializers only. Fully-qualified Java classname that implements `ArtifactResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`. 
+|Used by serializers only. Fully-qualified Java classname that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`. 
 |`String`
 |`io.apicurio.registry.serde.strategy.TopicIdStrategy`
 |`EXPLICIT_ARTIFACT_GROUP_ID`
 |`apicurio.registry.artifact.group-id`
-|Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
+|Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `Artifact Resolver strategy`.
 |`String`
 |None
 |`EXPLICIT_ARTIFACT_ID`

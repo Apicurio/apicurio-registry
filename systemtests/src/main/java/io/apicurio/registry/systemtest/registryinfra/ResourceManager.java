@@ -159,7 +159,7 @@ public class ResourceManager {
         T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
         if (!condition.test(res)) {
-            LOGGER.info("Resource failed condition check: {}", resourceToString(res));
+            LOGGER.error("Resource failed condition check: {}", resourceToString(res));
 
             return false;
         }
@@ -174,7 +174,7 @@ public class ResourceManager {
         try {
             return MAPPER.writeValueAsString(resource);
         } catch (JsonProcessingException e) {
-            LOGGER.info("Failed converting resource to YAML: {}", e.getMessage());
+            LOGGER.error("Failed converting resource to YAML: {}", e.getMessage());
             return "unknown";
         }
     }

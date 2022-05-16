@@ -35,7 +35,7 @@ public class KafkaUtils {
         }
 
         if (Kubernetes.getSecret(namespace, name) == null) {
-            LOGGER.info("Secret {} in namespace {} failed readiness check.", name, namespace);
+            LOGGER.error("Secret {} in namespace {} failed readiness check.", name, namespace);
 
             return false;
         }
@@ -52,7 +52,7 @@ public class KafkaUtils {
         if (waitSecretReady(namespace, kafkaCaSecretName)) {
             LOGGER.info("Secret with name {} present in namespace {}.", kafkaCaSecretName, namespace);
         } else {
-            LOGGER.info("Secret with name {} is not present in namespace {}.", kafkaCaSecretName, namespace);
+            LOGGER.error("Secret with name {} is not present in namespace {}.", kafkaCaSecretName, namespace);
         }
 
         ResourceManager.getInstance().createResource(

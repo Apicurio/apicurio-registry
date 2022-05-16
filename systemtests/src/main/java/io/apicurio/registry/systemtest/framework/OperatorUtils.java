@@ -361,4 +361,24 @@ public class OperatorUtils {
 
         return null;
     }
+
+    public static String getDefaultChannel(String catalog, String packageName) {
+        PackageManifest packageManifest = Kubernetes.getPackageManifest(catalog, packageName);
+
+        if (packageManifest == null || packageManifest.getStatus() == null) {
+            return null;
+        }
+
+        return packageManifest.getStatus().getDefaultChannel();
+    }
+
+    public static String getCurrentCSV(String catalog, String packageName, String channelName) {
+        PackageManifest packageManifest = Kubernetes.getPackageManifest(catalog, packageName);
+
+        if (packageManifest == null) {
+            return null;
+        }
+
+        return getChannelsCurrentCSV(packageManifest, channelName);
+    }
 }

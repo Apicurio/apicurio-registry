@@ -74,7 +74,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
 
         String channelName = OperatorUtils.getDefaultChannel(catalogName, ssoPackage);
-        String channelCSV = OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName);
+        setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName));
 
         subscription = SubscriptionResourceType.getDefault(
                 "sso-subscription",
@@ -82,7 +82,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
                 ssoPackage,
                 catalogName,
                 catalogNamespace,
-                channelCSV,
+                getClusterServiceVersion(),
                 channelName
         );
 
@@ -94,6 +94,8 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     @Override
     public void uninstall() {
         OperatorUtils.deleteSubscription(subscription);
+
+        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
 
         if (operatorGroup != null) {
             OperatorUtils.deleteOperatorGroup(operatorGroup);

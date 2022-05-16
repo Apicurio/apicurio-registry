@@ -86,7 +86,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         ResourceUtils.waitPackageManifestExists(catalogName, kafkaPackage);
 
         String channelName = OperatorUtils.getDefaultChannel(catalogName, kafkaPackage);
-        String channelCSV = OperatorUtils.getCurrentCSV(catalogName, kafkaPackage, channelName);
+        setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, kafkaPackage, channelName));
 
         subscription = SubscriptionResourceType.getDefault(
                 "kafka-subscription",
@@ -94,7 +94,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
                 kafkaPackage,
                 catalogName,
                 catalogNamespace,
-                channelCSV,
+                getClusterServiceVersion(),
                 channelName
         );
 
@@ -106,6 +106,8 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     @Override
     public void uninstall() {
         OperatorUtils.deleteSubscription(subscription);
+
+        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
 
         if (operatorGroup != null) {
             OperatorUtils.deleteOperatorGroup(operatorGroup);

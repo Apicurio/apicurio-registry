@@ -172,7 +172,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         ResourceUtils.waitPackageManifestExists(catalogName, registryPackage);
 
         String channelName = OperatorUtils.getDefaultChannel(catalogName, registryPackage);
-        String startingCSV = OperatorUtils.getCurrentCSV(catalogName, registryPackage, channelName);
+        setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, registryPackage, channelName));
 
         subscription = SubscriptionResourceType.getDefault(
                 "registry-subscription",
@@ -180,7 +180,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
                 registryPackage,
                 catalogName,
                 catalogNamespace,
-                startingCSV,
+                getClusterServiceVersion(),
                 channelName
         );
 
@@ -192,6 +192,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
     @Override
     public void uninstall() {
         OperatorUtils.deleteSubscription(subscription);
+
+        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
 
         if (operatorGroup != null) {
             OperatorUtils.deleteOperatorGroup(operatorGroup);

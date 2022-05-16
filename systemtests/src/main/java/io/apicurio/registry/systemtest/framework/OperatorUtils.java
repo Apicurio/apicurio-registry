@@ -340,14 +340,16 @@ public class OperatorUtils {
 
             Kubernetes.deleteSubscription(namespace, name);
         }
+    }
 
-        if (startingCSV != null && !startingCSV.equals("")) {
-            LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", startingCSV, namespace);
+    public static void deleteClusterServiceVersion(String namespace, String clusterServiceVersion) {
+        if (clusterServiceVersion != null && !clusterServiceVersion.equals("")) {
+            LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", clusterServiceVersion, namespace);
 
-            Kubernetes.deleteClusterServiceVersion(namespace, startingCSV);
+            Kubernetes.deleteClusterServiceVersion(namespace, clusterServiceVersion);
 
-            if (Kubernetes.getClusterServiceVersion(namespace, startingCSV) == null) {
-                LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", startingCSV, namespace);
+            if (Kubernetes.getClusterServiceVersion(namespace, clusterServiceVersion) == null) {
+                LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", clusterServiceVersion, namespace);
             }
         }
     }

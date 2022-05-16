@@ -42,6 +42,34 @@ public class ResourceUtils {
         return true;
     }
 
+    public static boolean waitPackageManifestExists(String catalog, String name) {
+        return waitPackageManifestExists(catalog, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
+    }
+
+    public static boolean waitPackageManifestExists(String catalog, String name, TimeoutBudget timeoutBudget) {
+        while (!timeoutBudget.timeoutExpired()) {
+            if (Kubernetes.getPackageManifest(catalog, name) != null) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        if (Kubernetes.getPackageManifest(catalog, name) == null) {
+            LOGGER.error("PackageManifest with name {} in catalog {} failed existence check.", name, catalog);
+
+            return false;
+        }
+
+        return true;
+    }
+
     public static void updateRoleBindingNamespace(List<HasMetadata> resources, String namespace) {
         // Go through all loaded operator resources
         for (HasMetadata resource : resources) {

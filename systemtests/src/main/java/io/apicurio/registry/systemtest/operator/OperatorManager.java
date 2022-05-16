@@ -1,11 +1,12 @@
 package io.apicurio.registry.systemtest.operator;
 
 import io.apicurio.registry.systemtest.framework.LoggerUtils;
-import io.apicurio.registry.systemtest.framework.OperatorUtils;
-import io.apicurio.registry.systemtest.operator.types.Operator;
 import io.apicurio.registry.systemtest.operator.types.OperatorType;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
+import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
+import io.apicurio.registry.systemtest.registryinfra.resources.NamespaceResourceType;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
+import io.fabric8.kubernetes.api.model.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -30,39 +31,12 @@ public class OperatorManager {
         return instance;
     }
 
-    private void createOperatorNamespace(OperatorType operatorType) {
-        String namespace = operatorType.getNamespaceName();
+    private void createOperatorNamespace(ExtensionContext testContext, String name) {
+        LOGGER.info("Creating new namespace {} for operator...", name);
 
-        LOGGER.info("Creating new namespace {} for operator...", namespace);
+        Namespace namespace = NamespaceResourceType.getDefault(name);
 
-        Kubernetes.createNamespace(namespace);
-
-        if (OperatorUtils.waitNamespaceReady(namespace)) {
-            LOGGER.info("Namespace {} for operator is created and ready.", namespace);
-
-            // Set flag that namespace for operator was created and did not exist before
-            ((Operator) operatorType).setNamespaceCreated(true);
-        } else {
-            LOGGER.error("Namespace {} for operator is not created and ready.", namespace);
-        }
-    }
-
-    private void deleteOperatorNamespace(OperatorType operatorType) {
-        String namespace = operatorType.getNamespaceName();
-
-        if (Kubernetes.getNamespace(namespace) == null) {
-            LOGGER.info("Namespace {} for operator already removed.", namespace);
-        } else {
-            LOGGER.info("Removing namespace {} for operator ...", namespace);
-
-            Kubernetes.deleteNamespace(Kubernetes.getNamespace(namespace));
-
-            if (OperatorUtils.waitNamespaceRemoved(namespace)) {
-                LOGGER.info("Namespace {} for operator removed.", namespace);
-            } else {
-                LOGGER.error("Namespace {} for operator is not removed.", namespace);
-            }
-        }
+        ResourceManager.getInstance().createResource(testContext, true, namespace);
     }
 
     public void installOperator(ExtensionContext testContext, OperatorType operatorType) {
@@ -81,7 +55,7 @@ public class OperatorManager {
         String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
 
         if (Kubernetes.getNamespace(namespace) == null) {
-            createOperatorNamespace(operatorType);
+            createOperatorNamespace(testContext, namespace);
         } else {
             LOGGER.info("Namespace {} for operator {} with name {} already exists.", namespace, kind, name);
         }
@@ -135,12 +109,6 @@ public class OperatorManager {
             }
         }  else {
             LOGGER.info("Do not wait for operator {} to be uninstalled.", operatorInfo);
-        }
-
-        // Check flag if operator namespace was created and did not exist before
-        if (((Operator) operatorType).getNamespaceCreated()) {
-            // Delete operator namespace when created by test
-            deleteOperatorNamespace(operatorType);
         }
     }
 

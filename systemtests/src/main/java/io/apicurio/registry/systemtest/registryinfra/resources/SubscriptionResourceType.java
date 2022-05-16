@@ -56,6 +56,15 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
     }
 
     @Override
+    public boolean doesNotExist(Subscription resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(Subscription existing, Subscription newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

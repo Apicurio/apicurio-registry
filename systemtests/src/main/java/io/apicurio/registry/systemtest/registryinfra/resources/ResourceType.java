@@ -24,6 +24,8 @@ public interface ResourceType<T extends HasMetadata> {
      */
     boolean isReady(T resource);
 
+    boolean doesNotExist(T resource);
+
     /**
      * Update the resource with the latest state on the Kubernetes API.
      */

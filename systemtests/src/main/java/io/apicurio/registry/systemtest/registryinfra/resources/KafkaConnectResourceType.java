@@ -80,6 +80,15 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
     }
 
     @Override
+    public boolean doesNotExist(KafkaConnect resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(KafkaConnect existing, KafkaConnect newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

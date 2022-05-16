@@ -57,6 +57,15 @@ public class ServiceResourceType implements ResourceType<Service> {
     }
 
     @Override
+    public boolean doesNotExist(Service resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(Service existing, Service newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

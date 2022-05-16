@@ -51,6 +51,15 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
     }
 
     @Override
+    public boolean doesNotExist(CatalogSource resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(CatalogSource existing, CatalogSource newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

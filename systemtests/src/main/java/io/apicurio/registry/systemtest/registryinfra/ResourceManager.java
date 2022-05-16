@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -138,10 +139,12 @@ public class ResourceManager {
         ResourceType<T> type = findResourceType(resource);
         assertNotNull(type);
 
-        LOGGER.info("Waiting for resource {} to be ready...", resource.getKind());
+        LOGGER.info("Waiting for resource {} to meet the condition...", resource.getKind());
+
+        T res;
 
         while (!timeout.timeoutExpired()) {
-            T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+            res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
             if (condition.test(res)) {
                 return true;
@@ -156,7 +159,7 @@ public class ResourceManager {
             }
         }
 
-        T res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        res = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
         if (!condition.test(res)) {
             LOGGER.error("Resource failed condition check: {}", resourceToString(res));
@@ -171,10 +174,12 @@ public class ResourceManager {
         if (resource == null) {
             return "null";
         }
+
         try {
             return MAPPER.writeValueAsString(resource);
         } catch (JsonProcessingException e) {
             LOGGER.error("Failed converting resource to YAML: {}", e.getMessage());
+
             return "unknown";
         }
     }
@@ -195,11 +200,12 @@ public class ResourceManager {
             e.printStackTrace();
         }
 
-        if (type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null) {
-            LOGGER.info("Resource {} deleted.", resourceInfo);
-        } else {
-            LOGGER.warn("Resource {} is not deleted yet.", resourceInfo);
-        }
+        assertTrue(
+                waitResourceCondition(resource, type::doesNotExist, TimeoutBudget.ofDuration(Duration.ofMinutes(3))),
+                MessageFormat.format("Timed out waiting for resource {0} to be deleted.", resourceInfo)
+        );
+
+        LOGGER.info("Resource {} is deleted.", resourceInfo);
     }
 
     public void deleteResources(ExtensionContext testContext) {

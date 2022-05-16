@@ -81,6 +81,15 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     @Override
+    public boolean doesNotExist(ApicurioRegistry resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(ApicurioRegistry existing, ApicurioRegistry newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

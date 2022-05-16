@@ -42,6 +42,15 @@ public class OperatorGroupResourceType implements ResourceType<OperatorGroup> {
     }
 
     @Override
+    public boolean doesNotExist(OperatorGroup resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(OperatorGroup existing, OperatorGroup newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

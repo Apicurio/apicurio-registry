@@ -54,6 +54,15 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
     }
 
     @Override
+    public boolean doesNotExist(PersistentVolumeClaim resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(PersistentVolumeClaim existing, PersistentVolumeClaim newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

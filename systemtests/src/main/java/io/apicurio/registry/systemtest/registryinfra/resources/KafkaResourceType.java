@@ -89,6 +89,15 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     }
 
     @Override
+    public boolean doesNotExist(Kafka resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(Kafka existing, Kafka newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

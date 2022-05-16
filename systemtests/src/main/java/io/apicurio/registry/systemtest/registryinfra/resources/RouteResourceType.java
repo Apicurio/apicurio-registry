@@ -45,6 +45,15 @@ public class RouteResourceType implements ResourceType<Route> {
     }
 
     @Override
+    public boolean doesNotExist(Route resource) {
+        if (resource == null) {
+            return true;
+        }
+
+        return get(resource.getMetadata().getNamespace(), resource.getMetadata().getName()) == null;
+    }
+
+    @Override
     public void refreshResource(Route existing, Route newResource) {
         existing.setMetadata(newResource.getMetadata());
         existing.setSpec(newResource.getSpec());

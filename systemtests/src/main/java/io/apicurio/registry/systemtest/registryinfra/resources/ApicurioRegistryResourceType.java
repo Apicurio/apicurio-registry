@@ -3,7 +3,9 @@ package io.apicurio.registry.systemtest.registryinfra.resources;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
+import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationSecurityBuilder;
 import io.apicurio.registry.systemtest.framework.Constants;
+import io.apicurio.registry.systemtest.framework.KeycloakUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -211,6 +213,22 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .setBootstrapServers(
                         Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
                                 ".svc.cluster.local:9093"
+                );
+    }
+
+    public static void updateWithDefaultKeycloak(ApicurioRegistry apicurioRegistry) {
+        apicurioRegistry
+                .getSpec()
+                .getConfiguration()
+                .setSecurity(
+                        new ApicurioRegistrySpecConfigurationSecurityBuilder()
+                                .withNewKeycloak()
+                                .withApiClientId(Constants.SSO_CLIENT_API)
+                                .withUiClientId(Constants.SSO_CLIENT_UI)
+                                .withRealm(Constants.SSO_REALM)
+                                .withUrl(KeycloakUtils.getDefaultKeycloakURL())
+                                .endKeycloak()
+                                .build()
                 );
     }
 }

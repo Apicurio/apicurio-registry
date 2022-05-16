@@ -766,6 +766,40 @@ public class SimpleTestsIT extends TestBase {
     }
 
     @Test
+    public void testApicurioRegistryWithMemPersistenceKeycloakAuth(ExtensionContext testContext) {
+        try {
+            KeycloakOLMOperatorType ssoOperator = new KeycloakOLMOperatorType();
+
+            operatorManager.installOperator(testContext, ssoOperator);
+
+            KeycloakUtils.deployKeycloak(testContext);
+
+            ApicurioRegistryOLMOperatorType apicurioRegistryOLMOperatorType = new ApicurioRegistryOLMOperatorType(
+                    true
+            );
+
+            operatorManager.installOperator(testContext, apicurioRegistryOLMOperatorType);
+
+            ApicurioRegistry apicurioRegistry = ApicurioRegistryResourceType.getDefaultMem();
+
+            ApicurioRegistryResourceType.updateWithDefaultKeycloak(apicurioRegistry);
+
+            resourceManager.createResource(testContext, true, apicurioRegistry);
+            // TODO: Add assert/check of pass
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            fail("Unexpected exception happened.");
+        } finally {
+            resourceManager.deleteResources(testContext);
+
+            KeycloakUtils.removeKeycloak();
+
+            operatorManager.uninstallOperators(testContext);
+        }
+    }
+
+    @Test
     @Disabled
     public void testYamlOutput(ExtensionContext testContext) {
         // Just for checking YAML output of resources

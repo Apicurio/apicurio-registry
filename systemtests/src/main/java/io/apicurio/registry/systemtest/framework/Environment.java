@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 public final class Environment {
     /** Environment variables */
     public static final String CATALOG_IMAGE_ENV_VAR = "CATALOG_IMAGE";
-    public static final String CATALOG_NAME_ENV_VAR = "CATALOG_NAME";
+    public static final String CATALOG_ENV_VAR = "CATALOG";
     public static final String CONVERTERS_SHA512SUM_ENV_VAR = "CONVERTERS_SHA512SUM";
     public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
     public static final String KAFKA_BUNDLE_ENV_VAR = "KAFKA_BUNDLE";
@@ -19,7 +19,7 @@ public final class Environment {
     public static final String TMP_PATH_ENV_VAR = "TMP_PATH";
 
     /** Default values of environment variables */
-    public static final String CATALOG_NAME_DEFAULT = "community-operators";
+    public static final String CATALOG_DEFAULT = "community-operators";
     public static final String KAFKA_BUNDLE_DEFAULT =
             "https://strimzi.io/install/latest?namespace=" + Constants.TESTSUITE_NAMESPACE;
     public static final String KAFKA_DEPLOYMENT_DEFAULT = "strimzi-cluster-operator"; // Default from catalog
@@ -34,7 +34,7 @@ public final class Environment {
 
     /** Collecting environment variables */
     public static final String CATALOG_IMAGE = get(CATALOG_IMAGE_ENV_VAR);
-    public static final String CATALOG_NAME = getOrDefault(CATALOG_NAME_ENV_VAR, CATALOG_NAME_DEFAULT);
+    public static final String CATALOG = getOrDefault(CATALOG_ENV_VAR, CATALOG_DEFAULT);
     public static final String CONVERTERS_SHA512SUM = get(CONVERTERS_SHA512SUM_ENV_VAR);
     public static final String CONVERTERS_URL = get(CONVERTERS_URL_ENV_VAR);
     public static final String KAFKA_BUNDLE = getOrDefault(KAFKA_BUNDLE_ENV_VAR, KAFKA_BUNDLE_DEFAULT);

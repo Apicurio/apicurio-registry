@@ -3,13 +3,13 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -69,6 +69,10 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
+        String catalogName = Environment.CATALOG;
+        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String kafkaPackage = Environment.KAFKA_PACKAGE;
+
         if (isClusterWide) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
         } else {
@@ -79,20 +83,17 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
             }
         }
 
-        PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Constants.CATALOG_NAMESPACE,
-                Environment.KAFKA_PACKAGE
-        );
+        ResourceUtils.waitPackageManifestExists(catalogName, kafkaPackage);
 
-        String channelName = packageManifest.getStatus().getDefaultChannel();
-        String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
+        String channelName = OperatorUtils.getDefaultChannel(catalogName, kafkaPackage);
+        String channelCSV = OperatorUtils.getCurrentCSV(catalogName, kafkaPackage, channelName);
 
         subscription = SubscriptionResourceType.getDefault(
                 "kafka-subscription",
                 operatorNamespace,
-                Environment.KAFKA_PACKAGE,
-                Environment.CATALOG,
-                Constants.CATALOG_NAMESPACE,
+                kafkaPackage,
+                catalogName,
+                catalogNamespace,
                 channelCSV,
                 channelName
         );

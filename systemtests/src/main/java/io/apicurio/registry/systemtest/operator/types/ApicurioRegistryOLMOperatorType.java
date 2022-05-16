@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.CatalogSourceResourceType;
@@ -10,7 +11,6 @@ import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResou
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
@@ -82,7 +82,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
      * Create catalog source and wait for its creation.
      */
     private void createCatalogSource(ExtensionContext testContext, String namespace) {
-        String name = "testsuite-operators";
+        String name = Constants.CATALOG_NAME;
         String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
 
         LOGGER.info("Creating catalog source {}...", info);
@@ -148,50 +148,38 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         return Kubernetes.getDeployment(subscription.getMetadata().getNamespace(), getDeploymentName());
     }
 
-    private String getChannel() {
-        PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Constants.CATALOG_NAMESPACE,
-                Environment.REGISTRY_PACKAGE
-        );
-
-        return packageManifest.getStatus().getDefaultChannel();
-    }
-
-    private String getStartingCSV(String channelName) {
-        PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Constants.CATALOG_NAMESPACE,
-                Environment.REGISTRY_PACKAGE
-        );
-
-        return OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
-    }
-
     @Override
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
         String scope = isClusterWide ? "cluster wide" : "namespaced";
+        String catalogName = Environment.CATALOG;
+        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String registryPackage = Environment.REGISTRY_PACKAGE;
 
         LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), operatorNamespace);
 
         if (getSource() != null) {
-            createCatalogSource(testContext, Constants.CATALOG_NAMESPACE);
+            createCatalogSource(testContext, catalogNamespace);
+
+            catalogName = catalogSource.getMetadata().getName();
         }
 
         if (!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
             operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
-        String channelName = getChannel();
-        String startingCSV = getStartingCSV(channelName);
-        String catalogName = catalogSource == null ? Environment.CATALOG : catalogSource.getMetadata().getName();
+        ResourceUtils.waitPackageManifestExists(catalogName, registryPackage);
+
+        String channelName = OperatorUtils.getDefaultChannel(catalogName, registryPackage);
+        String startingCSV = OperatorUtils.getCurrentCSV(catalogName, registryPackage, channelName);
 
         subscription = SubscriptionResourceType.getDefault(
                 "registry-subscription",
                 operatorNamespace,
-                Environment.REGISTRY_PACKAGE,
+                registryPackage,
                 catalogName,
-                Constants.CATALOG_NAMESPACE,
+                catalogNamespace,
                 startingCSV,
                 channelName
         );

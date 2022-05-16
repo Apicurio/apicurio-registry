@@ -3,13 +3,13 @@ package io.apicurio.registry.systemtest.operator.types;
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
+import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResourceType;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -61,26 +61,27 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
     public void install(ExtensionContext testContext) {
         // Add ability to install operator from source?
 
+        String catalogName = Environment.CATALOG;
+        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String ssoPackage = Environment.SSO_PACKAGE;
+
         if (OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
             LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
         } else {
             operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
         }
 
-        PackageManifest packageManifest = Kubernetes.getPackageManifest(
-                Constants.CATALOG_NAMESPACE,
-                Environment.SSO_PACKAGE
-        );
+        ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
 
-        String channelName = packageManifest.getStatus().getDefaultChannel();
-        String channelCSV = OperatorUtils.getChannelsCurrentCSV(packageManifest, channelName);
+        String channelName = OperatorUtils.getDefaultChannel(catalogName, ssoPackage);
+        String channelCSV = OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName);
 
         subscription = SubscriptionResourceType.getDefault(
                 "sso-subscription",
                 operatorNamespace,
-                Environment.SSO_PACKAGE,
-                Environment.CATALOG,
-                Constants.CATALOG_NAMESPACE,
+                ssoPackage,
+                catalogName,
+                catalogNamespace,
                 channelCSV,
                 channelName
         );

@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtest.framework;
 
 public final class Constants {
+    public static final String CATALOG_NAME = "testsuite-operators";
     public static final String CATALOG_NAMESPACE = "openshift-marketplace";
     public static final String CLUSTER_WIDE_NAMESPACE = "openshift-operators";
     public static final String KAFKA_CONNECT = "kafka-connect-for-registry";

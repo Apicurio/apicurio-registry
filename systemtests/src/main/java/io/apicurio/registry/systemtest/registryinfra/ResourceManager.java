@@ -213,10 +213,10 @@ public class ResourceManager {
                 || STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()
         ) {
             LOGGER.info("Nothing to delete");
-        }
-
-        while (!STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()) {
-            STORED_RESOURCES.get(testContext.getDisplayName()).pop().run();
+        } else {
+            while (!STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()) {
+                STORED_RESOURCES.get(testContext.getDisplayName()).pop().run();
+            }
         }
 
         LOGGER.info("----------------------------------------------");

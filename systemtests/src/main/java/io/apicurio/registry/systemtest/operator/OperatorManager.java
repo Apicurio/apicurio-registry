@@ -155,10 +155,10 @@ public class OperatorManager {
                 || STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()
         ) {
             LOGGER.info("Nothing to uninstall.");
-        }
-
-        while (!STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()) {
-            STORED_OPERATORS.get(testContext.getDisplayName()).pop().run();
+        } else {
+            while (!STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()) {
+                STORED_OPERATORS.get(testContext.getDisplayName()).pop().run();
+            }
         }
 
         LOGGER.info("----------------------------------------------");

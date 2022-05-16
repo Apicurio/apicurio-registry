@@ -3,7 +3,6 @@ package io.apicurio.registry.systemtest.framework;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
 import io.apicurio.registry.systemtest.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.Subject;
@@ -20,14 +19,8 @@ public class ResourceUtils {
     }
 
     public static boolean waitStatefulSetReady(String namespace, String name, TimeoutBudget timeoutBudget) {
-        StatefulSet statefulSet = Kubernetes.getStatefulSet(namespace, name);
-
         while (!timeoutBudget.timeoutExpired()) {
-            if (statefulSet == null || statefulSet.getStatus() == null) {
-                return false;
-            }
-
-            if (statefulSet.getStatus().getReadyReplicas() > 0) {
+            if (Kubernetes.isStatefulSetReady(namespace, name)) {
                 return true;
             }
 
@@ -40,9 +33,7 @@ public class ResourceUtils {
             }
         }
 
-        statefulSet = Kubernetes.getStatefulSet(namespace, name);
-
-        if (statefulSet == null || statefulSet.getStatus() == null || statefulSet.getStatus().getReadyReplicas() <= 0) {
+        if (!Kubernetes.isStatefulSetReady(namespace, name)) {
             LOGGER.error("StatefulSet with name {} in namespace {} failed readiness check.", name, namespace);
 
             return false;

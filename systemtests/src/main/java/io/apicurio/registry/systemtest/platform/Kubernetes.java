@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.api.model.Route;
@@ -506,5 +507,21 @@ public final class Kubernetes {
                 .inNamespace(namespace)
                 .withName(name)
                 .delete();
+    }
+
+    public static boolean isStatefulSetReady(String namespace, String name) {
+        StatefulSet statefulSet = Kubernetes.getStatefulSet(namespace, name);
+
+        if (statefulSet == null || statefulSet.getStatus() == null) {
+            return false;
+        }
+
+        StatefulSetStatus status = statefulSet.getStatus();
+
+        if (status.getReadyReplicas() == null) {
+            return false;
+        }
+
+        return status.getReadyReplicas() > 0;
     }
 }

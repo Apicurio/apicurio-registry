@@ -41,7 +41,7 @@ public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY_NAME,
+                Constants.REGISTRY,
                 Constants.TESTSUITE_NAMESPACE
         );
 
@@ -52,7 +52,7 @@ public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY_NAME,
+                Constants.REGISTRY,
                 Constants.TESTSUITE_NAMESPACE
         );
 
@@ -81,7 +81,7 @@ public class ApicurioRegistryUtils {
     public static void deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext, Kafka kafka) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY_NAME,
+                Constants.REGISTRY,
                 Constants.TESTSUITE_NAMESPACE
         );
 

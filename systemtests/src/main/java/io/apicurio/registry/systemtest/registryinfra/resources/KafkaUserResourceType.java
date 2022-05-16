@@ -116,7 +116,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
                 Constants.TESTSUITE_NAMESPACE,
-                Constants.KAFKA_NAME,
+                Constants.KAFKA,
                 KafkaKind.TLS
         );
     }
@@ -125,7 +125,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
                 Constants.TESTSUITE_NAMESPACE,
-                Constants.KAFKA_NAME,
+                Constants.KAFKA,
                 KafkaKind.SCRAM
         );
     }

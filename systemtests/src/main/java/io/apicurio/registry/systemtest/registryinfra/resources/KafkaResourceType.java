@@ -153,7 +153,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultNoAuth() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName(Constants.KAFKA_NAME)
+                    .withName(Constants.KAFKA)
                     .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
@@ -176,7 +176,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultTLS() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName(Constants.KAFKA_NAME)
+                    .withName(Constants.KAFKA)
                     .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()
@@ -202,7 +202,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     public static Kafka getDefaultSCRAM() {
         return new KafkaBuilder()
                 .withNewMetadata()
-                    .withName(Constants.KAFKA_NAME)
+                    .withName(Constants.KAFKA)
                     .withNamespace(Constants.TESTSUITE_NAMESPACE)
                 .endMetadata()
                 .withNewSpec()

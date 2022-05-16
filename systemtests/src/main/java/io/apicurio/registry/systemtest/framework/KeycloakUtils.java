@@ -17,6 +17,10 @@ public class KeycloakUtils {
         return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
+    public static void deployKeycloak(ExtensionContext testContext) {
+        deployKeycloak(testContext, Constants.TESTSUITE_NAMESPACE);
+    }
+
     public static void deployKeycloak(ExtensionContext testContext, String namespace) {
         LOGGER.info("Deploying Keycloak...");
 
@@ -34,8 +38,8 @@ public class KeycloakUtils {
         // Wait for Keycloak server to be ready
         ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
-        // Create Keycloak HTTP Service and do not wait for its readiness
-        manager.createResource(testContext, false, ServiceResourceType.getDefaultKeycloakHttp(namespace));
+        // Create Keycloak HTTP Service and wait for its readiness
+        manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
         // Create Keycloak Route and wait for its readiness
         manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
@@ -52,7 +56,13 @@ public class KeycloakUtils {
         );
         // TODO: Add Keycloak Realm cleanup
 
+        // TODO: Wait for Keycloak Realm readiness
+
         LOGGER.info("Keycloak should be deployed.");
+    }
+
+    public static void removeKeycloak() {
+        removeKeycloak(Constants.TESTSUITE_NAMESPACE);
     }
 
     public static void removeKeycloak(String namespace) {
@@ -76,10 +86,14 @@ public class KeycloakUtils {
     }
 
     public static String getKeycloakURL(String namespace, String name) {
-        return "http://" + Kubernetes.getRouteHost(namespace, name);
+        return "http://" + Kubernetes.getRouteHost(namespace, name) + "/auth";
+    }
+
+    public static String getDefaultKeycloakURL() {
+        return getDefaultKeycloakURL(Constants.TESTSUITE_NAMESPACE);
     }
 
     public static String getDefaultKeycloakURL(String namespace) {
-        return getKeycloakURL(namespace, Constants.SSO_HTTP_SERVICE_NAME);
+        return getKeycloakURL(namespace, Constants.SSO_HTTP_SERVICE);
     }
 }

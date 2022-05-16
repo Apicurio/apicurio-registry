@@ -3,13 +3,15 @@ package io.apicurio.registry.systemtest.framework;
 public final class Constants {
     public static final String CATALOG_NAMESPACE = "openshift-marketplace";
     public static final String CLUSTER_WIDE_NAMESPACE = "openshift-operators";
-    public static final String KAFKA_CONNECT_NAME = "kafka-connect-for-registry";
-    public static final String KAFKA_NAME = "kafka-for-registry";
+    public static final String KAFKA_CONNECT = "kafka-connect-for-registry";
+    public static final String KAFKA = "kafka-for-registry";
     public static final String KAFKA_USER = "kafka-user-for-registry";
-    public static final String REGISTRY_DEPLOYMENT_NAME = "apicurio-registry-operator"; // Default from catalog
-    public static final String REGISTRY_NAME = "registry";
-    public static final String REGISTRY_NAMESPACE = "namespace-for-registry";
-    public static final String SSO_HTTP_SERVICE_NAME = "sso-http";
+    public static final String REGISTRY_OPERATOR_DEPLOYMENT = "apicurio-registry-operator"; // Default from catalog
+    public static final String REGISTRY = "registry";
+    public static final String SSO_CLIENT_API = "registry-client-api"; // Defined in kubefiles/keycloak
+    public static final String SSO_CLIENT_UI = "registry-client-ui"; // Defined in kubefiles/keycloak
+    public static final String SSO_HTTP_SERVICE = "sso-http";
+    public static final String SSO_REALM = "registry"; // Defined in kubefiles/keycloak
     public static final String TESTSUITE_NAMESPACE = "testsuite-namespace";
 
     // TODO: Move other constants here too?
@@ -21,7 +23,6 @@ public final class Constants {
     // PostgreSQL image
     // PostgreSQL volume size
     // Default KafkaSQL values
-    // Path for temporary files
     // Catalog source display name
     // Catalog source publisher
     // Catalog source source type

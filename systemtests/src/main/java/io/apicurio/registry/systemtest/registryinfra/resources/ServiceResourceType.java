@@ -96,7 +96,7 @@ public class ServiceResourceType implements ResourceType<Service> {
     public static Service getDefaultKeycloakHttp(String namespace) {
         return new ServiceBuilder()
                 .withNewMetadata()
-                    .withName(Constants.SSO_HTTP_SERVICE_NAME)
+                    .withName(Constants.SSO_HTTP_SERVICE)
                     .withNamespace(namespace)
                 .endMetadata()
                 .withNewSpec()

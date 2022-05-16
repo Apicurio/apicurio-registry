@@ -132,7 +132,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("kafkasql")
                         .withNewKafkasql()
                             .withBootstrapServers(
-                                    Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                    Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
                                             ".svc.cluster.local:9092"
                             )
                         .endKafkasql()
@@ -142,27 +142,27 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     public static ApicurioRegistry getDefaultMem(String name) {
-        return getDefaultMem(name, Constants.REGISTRY_NAMESPACE);
+        return getDefaultMem(name, Constants.TESTSUITE_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultSql(String name) {
-        return getDefaultSql(name, Constants.REGISTRY_NAMESPACE);
+        return getDefaultSql(name, Constants.TESTSUITE_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultKafkasql(String name) {
-        return getDefaultKafkasql(name, Constants.REGISTRY_NAMESPACE);
+        return getDefaultKafkasql(name, Constants.TESTSUITE_NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultMem() {
-        return getDefaultMem(Constants.REGISTRY_NAME);
+        return getDefaultMem(Constants.REGISTRY);
     }
 
     public static ApicurioRegistry getDefaultSql() {
-        return getDefaultSql(Constants.REGISTRY_NAME);
+        return getDefaultSql(Constants.REGISTRY);
     }
 
     public static ApicurioRegistry getDefaultKafkasql() {
-        return getDefaultKafkasql(Constants.REGISTRY_NAME);
+        return getDefaultKafkasql(Constants.REGISTRY);
     }
 
     public static void updateWithDefaultTLS(ApicurioRegistry apicurioRegistry) {
@@ -174,7 +174,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
                                 .withNewTls()
                                     .withKeystoreSecretName(Constants.KAFKA_USER + "-keystore")
-                                    .withTruststoreSecretName(Constants.KAFKA_NAME + "-cluster-ca-truststore")
+                                    .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
                                 .endTls()
                                 .build()
                 );
@@ -184,7 +184,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }
@@ -197,7 +197,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .setSecurity(
                         new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
                                 .withNewScram()
-                                    .withTruststoreSecretName(Constants.KAFKA_NAME + "-cluster-ca-truststore")
+                                    .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
                                     .withPasswordSecretName(Constants.KAFKA_USER)
                                     .withUser(Constants.KAFKA_USER)
                                 .endScram()
@@ -209,7 +209,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA_NAME + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }

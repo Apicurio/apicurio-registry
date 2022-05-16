@@ -383,13 +383,17 @@ public final class Kubernetes {
                 .get(secretKey);
     }
 
-    public static PackageManifest getPackageManifest(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
+    public static PackageManifest getPackageManifest(String catalog, String name) {
+        return ((OpenShiftClient) Kubernetes.getClient())
                 .operatorHub()
                 .packageManifests()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+                .list()
+                .getItems()
+                .stream()
+                .filter(p -> p.getMetadata().getName().equals(name))
+                .filter(p -> p.getMetadata().getLabels().get("catalog").equals(catalog))
+                .findFirst()
+                .orElse(null);
     }
 
     public static Deployment getDeployment(String namespace, String name) {

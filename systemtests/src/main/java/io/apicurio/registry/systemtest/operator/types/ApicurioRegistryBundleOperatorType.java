@@ -68,7 +68,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
 
     @Override
     public OperatorKind getKind() {
-        return OperatorKind.APICURIO_REGISTRY_BUNDLE_OPERATOR;
+        return OperatorKind.REGISTRY_BUNDLE_OPERATOR;
     }
 
     @Override

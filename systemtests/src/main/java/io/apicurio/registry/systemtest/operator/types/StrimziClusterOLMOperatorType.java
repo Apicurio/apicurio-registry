@@ -32,7 +32,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
 
     @Override
     public OperatorKind getKind() {
-        return OperatorKind.STRIMZI_CLUSTER_OLM_OPERATOR;
+        return OperatorKind.STRIMZI_OLM_OPERATOR;
     }
 
     @Override

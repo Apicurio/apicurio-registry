@@ -54,9 +54,9 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
-        // TODO: Add Keycloak Realm cleanup
+        // TODO: Add Keycloak Realm cleanup, but API model not available
 
-        // TODO: Wait for Keycloak Realm readiness
+        // TODO: Wait for Keycloak Realm readiness, but API model not available
 
         LOGGER.info("Keycloak should be deployed.");
     }

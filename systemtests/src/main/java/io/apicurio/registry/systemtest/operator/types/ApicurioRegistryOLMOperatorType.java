@@ -11,71 +11,45 @@ import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResou
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.text.MessageFormat;
 
 
-public class ApicurioRegistryOLMOperatorType extends Operator implements OperatorType {
-    private final String operatorNamespace;
-    private final boolean isClusterWide;
-    private Subscription subscription = null;
-    private OperatorGroup operatorGroup = null;
+public class ApicurioRegistryOLMOperatorType extends OLMOperator implements OperatorType {
     private CatalogSource catalogSource = null;
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
-        super(Environment.CATALOG_IMAGE);
-
-        if (isClusterWide) {
-            // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                Environment.CATALOG_IMAGE,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide
+        );
     }
 
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide) {
-        super(source);
-
-        if (isClusterWide) {
-            // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                source,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide
+        );
     }
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide, String operatorNamespace) {
-        super(Environment.CATALOG_IMAGE);
-
-        if (isClusterWide) {
-            // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = operatorNamespace;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                Environment.CATALOG_IMAGE,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide
+        );
     }
 
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide, String operatorNamespace) {
-        super(source);
-
-        if (isClusterWide) {
-            // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = operatorNamespace;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                source,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide
+        );
     }
 
     /**
@@ -135,7 +109,7 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public String getNamespaceName() {
-        return operatorNamespace;
+        return getNamespace();
     }
 
     @Override
@@ -145,19 +119,19 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
 
     @Override
     public Deployment getDeployment() {
-        return Kubernetes.getDeployment(subscription.getMetadata().getNamespace(), getDeploymentName());
+        return Kubernetes.getDeployment(getSubscription().getMetadata().getNamespace(), getDeploymentName());
     }
 
     @Override
     public void install(ExtensionContext testContext) {
         /* Operator namespace is created in OperatorManager. */
 
-        String scope = isClusterWide ? "cluster wide" : "namespaced";
+        String scope = getClusterWide() ? "cluster wide" : "namespaced";
         String catalogName = Environment.CATALOG;
         String catalogNamespace = Constants.CATALOG_NAMESPACE;
         String registryPackage = Environment.REGISTRY_PACKAGE;
 
-        LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), operatorNamespace);
+        LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), getNamespace());
 
         if (getSource() != null) {
             createCatalogSource(testContext, catalogNamespace);
@@ -165,8 +139,8 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
             catalogName = catalogSource.getMetadata().getName();
         }
 
-        if (!isClusterWide && !OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
-            operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
+        if (!getClusterWide() && !OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+            setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
         }
 
         ResourceUtils.waitPackageManifestExists(catalogName, registryPackage);
@@ -174,29 +148,29 @@ public class ApicurioRegistryOLMOperatorType extends Operator implements Operato
         String channelName = OperatorUtils.getDefaultChannel(catalogName, registryPackage);
         setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, registryPackage, channelName));
 
-        subscription = SubscriptionResourceType.getDefault(
+        setSubscription(SubscriptionResourceType.getDefault(
                 "registry-subscription",
-                operatorNamespace,
+                getNamespace(),
                 registryPackage,
                 catalogName,
                 catalogNamespace,
                 getClusterServiceVersion(),
                 channelName
-        );
+        ));
 
-        ResourceManager.getInstance().createResource(testContext, true, subscription);
+        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
     public void uninstall() {
-        OperatorUtils.deleteSubscription(subscription);
+        OperatorUtils.deleteSubscription(getSubscription());
 
-        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
+        OperatorUtils.deleteClusterServiceVersion(getNamespace(), getClusterServiceVersion());
 
-        if (operatorGroup != null) {
-            OperatorUtils.deleteOperatorGroup(operatorGroup);
+        if (getOperatorGroup() != null) {
+            OperatorUtils.deleteOperatorGroup(getOperatorGroup());
         }
 
         if (getSource() != null) {

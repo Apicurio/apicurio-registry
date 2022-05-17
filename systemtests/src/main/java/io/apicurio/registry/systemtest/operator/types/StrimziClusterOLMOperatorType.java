@@ -10,39 +10,24 @@ import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResou
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class StrimziClusterOLMOperatorType extends Operator implements OperatorType {
-    private final String operatorNamespace;
-    private final boolean isClusterWide;
-    private Subscription subscription = null;
-    private OperatorGroup operatorGroup = null;
+public class StrimziClusterOLMOperatorType extends OLMOperator implements OperatorType {
 
     public StrimziClusterOLMOperatorType(boolean isClusterWide) {
-        super(null);
-
-        if (isClusterWide) {
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                null,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide
+        );
     }
 
     public StrimziClusterOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
-        super(source);
-
-        if (isClusterWide) {
-            // Static set of cluster wide operator namespace
-            this.operatorNamespace = Constants.CLUSTER_WIDE_NAMESPACE;
-        } else {
-            this.operatorNamespace = operatorNamespace;
-        }
-
-        this.isClusterWide = isClusterWide;
+        super(
+                source,
+                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide
+        );
     }
 
     @Override
@@ -52,7 +37,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
     @Override
     public String getNamespaceName() {
-        return this.operatorNamespace;
+        return getNamespace();
     }
 
     @Override
@@ -62,7 +47,7 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
 
     @Override
     public Deployment getDeployment() {
-        return Kubernetes.getDeploymentByPrefix(subscription.getMetadata().getNamespace(), getDeploymentName());
+        return Kubernetes.getDeploymentByPrefix(getSubscription().getMetadata().getNamespace(), getDeploymentName());
     }
 
     @Override
@@ -73,13 +58,13 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         String catalogNamespace = Constants.CATALOG_NAMESPACE;
         String kafkaPackage = Environment.KAFKA_PACKAGE;
 
-        if (isClusterWide) {
-            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), operatorNamespace);
+        if (getClusterWide()) {
+            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), getNamespace());
         } else {
-            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), operatorNamespace);
+            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
 
-            if (!OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
-                operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
+            if (!OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+                setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
             }
         }
 
@@ -88,29 +73,29 @@ public class StrimziClusterOLMOperatorType extends Operator implements OperatorT
         String channelName = OperatorUtils.getDefaultChannel(catalogName, kafkaPackage);
         setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, kafkaPackage, channelName));
 
-        subscription = SubscriptionResourceType.getDefault(
+        setSubscription(SubscriptionResourceType.getDefault(
                 "kafka-subscription",
-                operatorNamespace,
+                getNamespace(),
                 kafkaPackage,
                 catalogName,
                 catalogNamespace,
                 getClusterServiceVersion(),
                 channelName
-        );
+        ));
 
-        ResourceManager.getInstance().createResource(testContext, true, subscription);
+        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
     public void uninstall() {
-        OperatorUtils.deleteSubscription(subscription);
+        OperatorUtils.deleteSubscription(getSubscription());
 
-        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
+        OperatorUtils.deleteClusterServiceVersion(getNamespace(), getClusterServiceVersion());
 
-        if (operatorGroup != null) {
-            OperatorUtils.deleteOperatorGroup(operatorGroup);
+        if (getOperatorGroup() != null) {
+            OperatorUtils.deleteOperatorGroup(getOperatorGroup());
         }
 
         /* Waiting for operator deployment removal is implemented in OperatorManager. */

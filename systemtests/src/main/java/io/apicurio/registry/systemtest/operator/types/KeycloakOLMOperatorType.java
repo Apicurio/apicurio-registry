@@ -10,31 +10,20 @@ import io.apicurio.registry.systemtest.registryinfra.resources.SubscriptionResou
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class KeycloakOLMOperatorType extends Operator implements OperatorType {
-    private Subscription subscription = null;
-    private final String operatorNamespace;
-    private OperatorGroup operatorGroup = null;
+public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType {
 
     public KeycloakOLMOperatorType() {
-        super(null);
-
-        this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(null, Constants.TESTSUITE_NAMESPACE, false);
     }
 
     public KeycloakOLMOperatorType(String source) {
-        super(source);
-
-        this.operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(source, Constants.TESTSUITE_NAMESPACE, false);
     }
 
     public KeycloakOLMOperatorType(String source, String operatorNamespace) {
-        super(source);
-
-        this.operatorNamespace = operatorNamespace;
+        super(source, operatorNamespace, false);
     }
 
     @Override
@@ -44,7 +33,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
 
     @Override
     public String getNamespaceName() {
-        return operatorNamespace;
+        return getNamespace();
     }
 
     @Override
@@ -54,7 +43,7 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
 
     @Override
     public Deployment getDeployment() {
-        return Kubernetes.getDeployment(subscription.getMetadata().getNamespace(), getDeploymentName());
+        return Kubernetes.getDeployment(getSubscription().getMetadata().getNamespace(), getDeploymentName());
     }
 
     @Override
@@ -65,10 +54,10 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         String catalogNamespace = Constants.CATALOG_NAMESPACE;
         String ssoPackage = Environment.SSO_PACKAGE;
 
-        if (OperatorUtils.namespaceHasAnyOperatorGroup(operatorNamespace)) {
-            LOGGER.info("Operator group already present in namespace {}.", operatorNamespace);
+        if (OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+            LOGGER.info("Operator group already present in namespace {}.", getNamespace());
         } else {
-            operatorGroup = OperatorUtils.createOperatorGroup(testContext, operatorNamespace);
+            setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
         }
 
         ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
@@ -76,29 +65,29 @@ public class KeycloakOLMOperatorType extends Operator implements OperatorType {
         String channelName = OperatorUtils.getDefaultChannel(catalogName, ssoPackage);
         setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName));
 
-        subscription = SubscriptionResourceType.getDefault(
+        setSubscription(SubscriptionResourceType.getDefault(
                 "sso-subscription",
-                operatorNamespace,
+                getNamespace(),
                 ssoPackage,
                 catalogName,
                 catalogNamespace,
                 getClusterServiceVersion(),
                 channelName
-        );
+        ));
 
-        ResourceManager.getInstance().createResource(testContext, true, subscription);
+        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override
     public void uninstall() {
-        OperatorUtils.deleteSubscription(subscription);
+        OperatorUtils.deleteSubscription(getSubscription());
 
-        OperatorUtils.deleteClusterServiceVersion(operatorNamespace, getClusterServiceVersion());
+        OperatorUtils.deleteClusterServiceVersion(getNamespace(), getClusterServiceVersion());
 
-        if (operatorGroup != null) {
-            OperatorUtils.deleteOperatorGroup(operatorGroup);
+        if (getOperatorGroup() != null) {
+            OperatorUtils.deleteOperatorGroup(getOperatorGroup());
         }
 
         /* Waiting for operator deployment removal is implemented in OperatorManager. */

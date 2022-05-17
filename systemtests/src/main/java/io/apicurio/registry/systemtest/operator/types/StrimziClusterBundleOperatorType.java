@@ -5,7 +5,6 @@ import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
-import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
@@ -15,11 +14,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.List;
 
-public class StrimziClusterBundleOperatorType extends Operator implements OperatorType {
-    private final String operatorNamespace;
-    private List<HasMetadata> operatorResources;
+public class StrimziClusterBundleOperatorType extends BundleOperator implements OperatorType {
 
     public void loadOperatorResources() throws Exception {
         LOGGER.info("Loading operator resources from " + getSource() + "...");
@@ -43,9 +39,9 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
                         .setDirectory(clonePath.toFile()) // Repo clone path
                         .call(); // Run cloning
 
-                operatorResources = Kubernetes.loadFromDirectory(Paths.get(clonePath.toString(), filesPath));
+                setResources(Kubernetes.loadFromDirectory(Paths.get(clonePath.toString(), filesPath)));
 
-                ResourceUtils.updateRoleBindingNamespace(operatorResources, operatorNamespace);
+                ResourceUtils.updateRoleBindingNamespace(getResources(), getNamespace());
             } else {
                 Path tmpPath = Environment.getTmpPath("strimzi-bundle-install-" + timestamp + ".yaml");
 
@@ -53,14 +49,14 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
 
                 LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
-                operatorResources = Kubernetes.loadFromFile(tmpPath);
+                setResources(Kubernetes.loadFromFile(tmpPath));
 
                 LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
             }
         } else if (getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
             LOGGER.info("Using file " + getSource() + " to load operator resources...");
 
-            operatorResources = Kubernetes.loadFromFile(Path.of(getSource()));
+            setResources(Kubernetes.loadFromFile(Path.of(getSource())));
 
             LOGGER.info("Operator resources loaded from file " + getSource() + ".");
         } else {
@@ -69,9 +65,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(Environment.KAFKA_BUNDLE);
-
-        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(Environment.KAFKA_BUNDLE, Constants.TESTSUITE_NAMESPACE);
 
         try {
             loadOperatorResources();
@@ -81,9 +75,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     }
 
     public StrimziClusterBundleOperatorType(String source) {
-        super(source);
-
-        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(source, Constants.TESTSUITE_NAMESPACE);
 
         try {
             loadOperatorResources();
@@ -99,12 +91,12 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
 
     @Override
     public String getNamespaceName() {
-        return this.operatorNamespace;
+        return getNamespace();
     }
 
     @Override
     public String getDeploymentName() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
 
         if (deployment == null) {
             return null;
@@ -115,7 +107,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
 
     @Override
     public Deployment getDeployment() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
 
         if (deployment == null) {
             return null;
@@ -124,7 +116,7 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
         return Kubernetes.getClient()
                 .apps()
                 .deployments()
-                .inNamespace(Constants.TESTSUITE_NAMESPACE)
+                .inNamespace(getNamespace())
                 .withName(deployment.getMetadata().getName())
                 .get();
     }
@@ -132,16 +124,16 @@ public class StrimziClusterBundleOperatorType extends Operator implements Operat
     @Override
     public void install(ExtensionContext testContext) {
         Kubernetes.getClient()
-                .resourceList(operatorResources)
-                .inNamespace(Constants.TESTSUITE_NAMESPACE)
+                .resourceList(getResources())
+                .inNamespace(getNamespace())
                 .createOrReplace();
     }
 
     @Override
     public void uninstall() {
         Kubernetes.getClient()
-                .resourceList(operatorResources)
-                .inNamespace(Constants.TESTSUITE_NAMESPACE)
+                .resourceList(getResources())
+                .inNamespace(getNamespace())
                 .delete();
     }
 

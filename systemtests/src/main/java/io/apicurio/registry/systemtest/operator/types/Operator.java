@@ -7,10 +7,15 @@ public abstract class Operator {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
     /* Contains path to bundle operator file or OLM operator catalog source image. */
     private String source;
-    private String clusterServiceVersion;
+    private String namespace;
 
     public Operator(String source) {
         this.source = source;
+    }
+
+    public Operator(String source, String namespace) {
+        this.source = source;
+        this.namespace = namespace;
     }
 
     public String getSource() {
@@ -21,11 +26,11 @@ public abstract class Operator {
         this.source = source;
     }
 
-    public String getClusterServiceVersion() {
-        return clusterServiceVersion;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public void setClusterServiceVersion(String clusterServiceVersion) {
-        this.clusterServiceVersion = clusterServiceVersion;
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 }

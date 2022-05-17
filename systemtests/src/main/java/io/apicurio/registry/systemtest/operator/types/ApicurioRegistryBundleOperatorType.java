@@ -5,7 +5,6 @@ import io.apicurio.registry.systemtest.framework.Environment;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
-import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
@@ -14,11 +13,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
 
-public class ApicurioRegistryBundleOperatorType extends Operator implements OperatorType {
-    private final String operatorNamespace;
-    private List<HasMetadata> operatorResources;
+public class ApicurioRegistryBundleOperatorType extends BundleOperator implements OperatorType {
 
     public void loadOperatorResourcesFromFile() throws Exception {
         LOGGER.info("Loading operator resources from file " + getSource() + "...");
@@ -34,26 +30,24 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
             LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(tmpPath.toString())).get();
+            setResources(Kubernetes.getClient().load(new FileInputStream(tmpPath.toString())).get());
 
             LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
         } else if (getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
             LOGGER.info("Using file " + getSource() + " to load operator resources...");
 
-            operatorResources = Kubernetes.getClient().load(new FileInputStream(getSource())).get();
+            setResources(Kubernetes.getClient().load(new FileInputStream(getSource())).get());
 
             LOGGER.info("Operator resources loaded from file " + getSource() + ".");
         } else {
             throw new Exception("Unable to identify file by source " + getSource() + ".");
         }
 
-        ResourceUtils.updateRoleBindingNamespace(operatorResources, operatorNamespace);
+        ResourceUtils.updateRoleBindingNamespace(getResources(), getNamespace());
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(Environment.REGISTRY_BUNDLE);
-
-        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(Environment.REGISTRY_BUNDLE, Constants.TESTSUITE_NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();
@@ -63,9 +57,7 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
     }
 
     public ApicurioRegistryBundleOperatorType(String source) {
-        super(source);
-
-        operatorNamespace = Constants.TESTSUITE_NAMESPACE;
+        super(source, Constants.TESTSUITE_NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();
@@ -81,12 +73,12 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
     @Override
     public String getNamespaceName() {
-        return this.operatorNamespace;
+        return getNamespace();
     }
 
     @Override
     public String getDeploymentName() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
 
         if (deployment == null) {
             return null;
@@ -97,23 +89,23 @@ public class ApicurioRegistryBundleOperatorType extends Operator implements Oper
 
     @Override
     public Deployment getDeployment() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(operatorResources);
+        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
 
         if (deployment == null) {
             return null;
         }
 
-        return Kubernetes.getDeployment(Constants.TESTSUITE_NAMESPACE, deployment.getMetadata().getName());
+        return Kubernetes.getDeployment(getNamespace(), deployment.getMetadata().getName());
     }
 
     @Override
     public void install(ExtensionContext testContext) {
-        Kubernetes.createOrReplaceResources(Constants.TESTSUITE_NAMESPACE, operatorResources);
+        Kubernetes.createOrReplaceResources(getNamespace(), getResources());
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.deleteResources(Constants.TESTSUITE_NAMESPACE, operatorResources);
+        Kubernetes.deleteResources(getNamespace(), getResources());
     }
 
     @Override

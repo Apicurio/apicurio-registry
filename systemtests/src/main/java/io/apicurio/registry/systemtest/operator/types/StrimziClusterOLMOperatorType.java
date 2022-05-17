@@ -73,6 +73,8 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
         String channelName = OperatorUtils.getDefaultChannel(catalogName, kafkaPackage);
         setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, kafkaPackage, channelName));
 
+        LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
+
         setSubscription(SubscriptionResourceType.getDefault(
                 "kafka-subscription",
                 getNamespace(),

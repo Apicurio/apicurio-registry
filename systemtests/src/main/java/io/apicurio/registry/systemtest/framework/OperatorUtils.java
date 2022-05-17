@@ -12,7 +12,6 @@ import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageCha
 import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
-import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionSpec;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
 public class OperatorUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
-    public static List<String> listFilesInDirectory(Path directory) throws IOException {
+    public static List<String> listFiles(Path directory) throws IOException {
         return Files.list(directory)
                 .filter(file -> !Files.isDirectory(file))
                 .map(Path::getFileName)
@@ -41,7 +40,7 @@ public class OperatorUtils {
                 .collect(Collectors.toList());
     }
 
-    public static Deployment findDeploymentInResourceList(List<HasMetadata> resourceList) {
+    public static Deployment findDeployment(List<HasMetadata> resourceList) {
         for (HasMetadata r : resourceList) {
             if (r.getKind().equals(ResourceKind.DEPLOYMENT)) {
                 return (Deployment) r;
@@ -57,62 +56,6 @@ public class OperatorUtils {
         try (InputStream inputStream = (new URL(source)).openStream()) {
             Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
         }
-    }
-
-    public static boolean waitNamespaceReady(String name) {
-        return waitNamespaceReady(name, TimeoutBudget.ofDuration(Duration.ofMinutes(1)));
-    }
-
-    public static boolean waitNamespaceReady(String name, TimeoutBudget timeoutBudget) {
-        while (!timeoutBudget.timeoutExpired()) {
-            if (Kubernetes.isNamespaceActive(name)) {
-                return true;
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-
-                return false;
-            }
-        }
-
-        if (!Kubernetes.isNamespaceActive(name)) {
-            LOGGER.error("Namespace {} failed readiness check.", name);
-
-            return false;
-        }
-
-        return true;
-    }
-
-    public static boolean waitNamespaceRemoved(String name) {
-        return waitNamespaceRemoved(name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
-    }
-
-    public static boolean waitNamespaceRemoved(String name, TimeoutBudget timeoutBudget) {
-        while (!timeoutBudget.timeoutExpired()) {
-            if (Kubernetes.getNamespace(name) == null) {
-                return true;
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-
-                return false;
-            }
-        }
-
-        if (Kubernetes.getNamespace(name) != null) {
-            LOGGER.error("Namespace {} failed removal check.", name);
-
-            return false;
-        }
-
-        return true;
     }
 
     public static boolean waitPodsExist(String namespace, String labelKey, String labelValue, TimeoutBudget timeout) {
@@ -229,21 +172,9 @@ public class OperatorUtils {
         return waitCatalogSourceExists(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
     }
 
-    private static boolean isCatalogSourceReady(CatalogSource catalogSource) {
-        if (catalogSource == null || catalogSource.getStatus() == null) {
-            return  false;
-        }
-
-        if (catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY")) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static boolean waitCatalogSourceReady(String namespace, String name, TimeoutBudget timeout) {
         while (!timeout.timeoutExpired()) {
-            if (isCatalogSourceReady(Kubernetes.getCatalogSource(namespace, name))) {
+            if (Kubernetes.isCatalogSourceReady(namespace, name)) {
                 return true;
             }
 
@@ -256,7 +187,7 @@ public class OperatorUtils {
             }
         }
 
-        if (!isCatalogSourceReady(Kubernetes.getCatalogSource(namespace, name))) {
+        if (!Kubernetes.isCatalogSourceReady(namespace, name)) {
             LOGGER.error("Catalog source in namespace {} with name {} failed readiness check.", namespace, name);
 
             return false;

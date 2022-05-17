@@ -12,7 +12,7 @@ public abstract class OLMOperator extends Operator {
     public OLMOperator(String source, String operatorNamespace, boolean clusterWide) {
         super(source);
         setNamespace(operatorNamespace);
-        this.clusterWide = clusterWide;
+        setClusterWide(clusterWide);
     }
 
     public String getClusterServiceVersion() {

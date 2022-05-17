@@ -3,7 +3,6 @@ package io.apicurio.registry.systemtest.platform;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Namespace;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -70,7 +69,7 @@ public final class Kubernetes {
 
         try {
             // Get list of files in path
-            filenames = OperatorUtils.listFilesInDirectory(path);
+            filenames = OperatorUtils.listFiles(path);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -174,6 +173,16 @@ public final class Kubernetes {
                 .delete();
     }
 
+    public static boolean isCatalogSourceReady(String namespace, String name) {
+        CatalogSource catalogSource = getCatalogSource(namespace, name);
+
+        if (catalogSource == null || catalogSource.getStatus() == null) {
+            return  false;
+        }
+
+        return catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY");
+    }
+
     public static Namespace getNamespace(String name) {
         return getClient()
                 .namespaces()
@@ -185,27 +194,11 @@ public final class Kubernetes {
         return getNamespace(namespace.getMetadata().getName());
     }
 
-    public static void createNamespace(String name) {
-        Namespace namespace = new NamespaceBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                .endMetadata()
-                .build();
-
-        getClient()
-                .namespaces()
-                .create(namespace);
-    }
-
     public static void deleteNamespace(String name) {
         getClient()
                 .namespaces()
                 .withName(name)
                 .delete();
-    }
-
-    public static void deleteNamespace(Namespace namespace) {
-        deleteNamespace(namespace.getMetadata().getName());
     }
 
     public static Route getRoute(String namespace, String name) {
@@ -265,22 +258,6 @@ public final class Kubernetes {
                 .inNamespace(namespace)
                 .withLabel(labelKey, labelValue)
                 .delete();
-    }
-
-    public static String getNamespacePhase(String name) {
-        Namespace namespace = getNamespace(name);
-
-        if (namespace == null || namespace.getStatus() == null) {
-            return "";
-        }
-
-        return namespace
-                .getStatus()
-                .getPhase();
-    }
-
-    public static boolean isNamespaceActive(String name) {
-        return getNamespacePhase(name).equals("Active");
     }
 
     public static OperatorGroup getOperatorGroup(String namespace, String name) {

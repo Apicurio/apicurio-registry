@@ -43,11 +43,7 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
             return  false;
         }
 
-        if (resource.getStatus().getConnectionState().getLastObservedState().equals("READY")) {
-            return true;
-        }
-
-        return false;
+        return resource.getStatus().getConnectionState().getLastObservedState().equals("READY");
     }
 
     @Override

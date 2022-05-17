@@ -96,7 +96,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
 
     @Override
     public String getDeploymentName() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
+        Deployment deployment = OperatorUtils.findDeployment(getResources());
 
         if (deployment == null) {
             return null;
@@ -107,7 +107,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
 
     @Override
     public Deployment getDeployment() {
-        Deployment deployment = OperatorUtils.findDeploymentInResourceList(getResources());
+        Deployment deployment = OperatorUtils.findDeployment(getResources());
 
         if (deployment == null) {
             return null;

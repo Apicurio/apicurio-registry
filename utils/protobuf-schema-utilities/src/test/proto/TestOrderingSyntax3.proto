@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package io.apicurio.registry.utils.protobuf.schema.syntax3;
 
+import "additionalTypes/decimal.proto";
+
 message Address {
   map<int32, string> contactPersons = 4;
 
@@ -41,6 +43,8 @@ message Address {
 
 message Customer {
   string name = 1;
+
+  additionalTypes.Decimal decimal = 5;
 
   reserved 2, 15, 10 to 11, 800 to 899;
   Address address = 3;

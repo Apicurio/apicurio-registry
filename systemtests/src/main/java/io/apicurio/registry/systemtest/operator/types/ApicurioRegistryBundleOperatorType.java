@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.operator.types;
 
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
+import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -9,12 +10,14 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
 
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 
 public class ApicurioRegistryBundleOperatorType extends BundleOperator implements OperatorType {
+    protected static final Logger LOGGER = LoggerUtils.getLogger();
 
     public void loadOperatorResourcesFromFile() throws Exception {
         LOGGER.info("Loading operator resources from file " + getSource() + "...");

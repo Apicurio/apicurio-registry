@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.operator.types;
 
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
+import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -11,8 +12,10 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
 
 public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType {
+    protected static final Logger LOGGER = LoggerUtils.getLogger();
 
     public KeycloakOLMOperatorType() {
         super(null, Constants.TESTSUITE_NAMESPACE, false);

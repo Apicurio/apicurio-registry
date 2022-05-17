@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtest.operator.types;
 
 import io.apicurio.registry.systemtest.framework.Constants;
 import io.apicurio.registry.systemtest.framework.Environment;
+import io.apicurio.registry.systemtest.framework.LoggerUtils;
 import io.apicurio.registry.systemtest.framework.OperatorUtils;
 import io.apicurio.registry.systemtest.framework.ResourceUtils;
 import io.apicurio.registry.systemtest.platform.Kubernetes;
@@ -13,11 +14,13 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 
 
 public class ApicurioRegistryOLMOperatorType extends OLMOperator implements OperatorType {
+    protected static final Logger LOGGER = LoggerUtils.getLogger();
     private CatalogSource catalogSource = null;
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {

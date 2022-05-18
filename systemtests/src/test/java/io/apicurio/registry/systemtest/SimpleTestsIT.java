@@ -70,6 +70,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -176,6 +178,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -193,6 +197,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -216,6 +222,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -238,6 +246,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -510,6 +520,8 @@ public class SimpleTestsIT extends TestBase {
             fail("Unexpected exception happened.");
         } finally {
             resourceManager.deleteResources(testContext);
+
+            resourceManager.deleteResources(testContext);
         }
     }
 
@@ -700,6 +712,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }
@@ -721,6 +735,8 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
+            resourceManager.deleteResources(testContext);
+
             operatorManager.uninstallOperators(testContext);
         }
     }

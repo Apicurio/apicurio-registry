@@ -18,3 +18,5 @@
 export * from "./artifactTypeIcon";
 export * from "./ifAuth";
 export * from "./ifFeature";
+export * from "./ifNotEmpty";
+

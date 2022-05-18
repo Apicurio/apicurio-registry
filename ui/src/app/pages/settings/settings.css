@@ -1,8 +1,10 @@
 .ps_settings-header {
-    border-bottom: 1px solid #ddd;
 }
 
-.config-properties {
-    padding: 20px;
-    background-color: white;
+.config-property-group {
+    width: 80%;
+}
+
+.config-property-group .title {
+    border-bottom: 2px solid #eee;
 }

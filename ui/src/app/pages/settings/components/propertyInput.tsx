@@ -31,6 +31,9 @@ export interface PropertyInputProps extends PureComponentProps {
         | 'number'
         ;
     onChange: (newValue: string) => void;
+    onValid: (valid: boolean) => void;
+    onCancel: () => void;
+    onSave: () => void;
 }
 
 /**
@@ -60,12 +63,6 @@ export class PropertyInput extends PureComponent<PropertyInputProps, PropertyInp
                        onChange={ this.handleInputChange }
                        onKeyDown={ this.handleKeyPress }
                        aria-label="configuration property input"/>
-            <Button variant="control" aria-label="save changes button" isDisabled={ !this.state.isDirty || !this.state.isValid } onClick={ this.saveValue }>
-                <CheckIcon/>
-            </Button>
-            <Button variant="control" aria-label="cancel changes button" isDisabled={ !this.state.isDirty } onClick={ this.resetValue }>
-                <TimesIcon/>
-            </Button>
         </InputGroup>
     }
 
@@ -81,38 +78,29 @@ export class PropertyInput extends PureComponent<PropertyInputProps, PropertyInp
         return this.state.isValid ? "default" : "error";
     }
 
-    private saveValue = (): void => {
-        this.props.onChange(this.state.currentValue);
-        this.setMultiState({
-            isDirty: false,
-            isValid: true
-        });
-    };
-
-    private resetValue = (): void => {
-        this.setMultiState({
-            currentValue: this.props.value,
-            isDirty: false,
-            isValid: true
-        });
-    };
-
     private handleInputChange = (value: string): void => {
+        const oldValid: boolean = this.state.isValid;
+        const isValid: boolean = this.validate(value);
         this.setMultiState({
             currentValue: value,
             isDirty: value !== this.props.value,
-            isValid: this.validate(value)
+            isValid
+        }, () => {
+            if (oldValid !== isValid) {
+                this.props.onValid(isValid);
+            }
+            this.props.onChange(value);
         });
-    }
+    };
 
     private validate(value: string): boolean {
         if (this.props.type === "text") {
             return value.trim().length > 0;
         } else if (this.props.type === "number") {
-            if (value.trim().length == 0) {
+            if (value.trim().length === 0) {
                 return false;
             }
-            const num: Number = Number(value);
+            const num: number = Number(value);
             return Number.isInteger(num);
         }
         return true;
@@ -120,10 +108,10 @@ export class PropertyInput extends PureComponent<PropertyInputProps, PropertyInp
 
     private handleKeyPress = (event: any): void => {
         if (event.code === "Escape") {
-            this.resetValue();
+            this.props.onCancel();
         }
         if (event.code === "Enter" && this.state.isDirty && this.state.isValid) {
-            this.saveValue();
+            this.props.onSave();
         }
     };
 

@@ -5,9 +5,9 @@
 = Strategies to look up a schema in {registry}
 
 [role="_abstract"]
-The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactResolverStrategy` Java interface to return a reference to an artifact in the registry.
+The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactReferenceResolverStrategy` Java interface to return a reference to an artifact in the registry.
 
-The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDe are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
+The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDes are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
 
 .Example
 [source,java,subs="+quotes,attributes"]
@@ -29,17 +29,17 @@ Which lookup strategy you use depends on how and where you store your schema. Fo
 
 
 [discrete]
-== ArtifactResolverStrategy interface
+== Artifact resolver strategy
 
 The artifact resolver strategy provides a way to map the Kafka topic and message information to an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
 
-However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.serde.strategy.ArtifactResolverStrategy`.
+However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.serde.strategy.ArtifactReferenceResolverStrategy`.
 
 [discrete]
 [id='service-registry-concepts-artifactid-{context}']
-== Strategies to return an artifact reference
+== Strategies to return a reference to an artifact
 
-{registry} provides the following strategies to return an artifact reference based on an implementation of `ArtifaceResolverStrategy`:
+{registry} provides the following strategies to return a reference to an artifact based on an implementation of `ArtifactReferenceResolverStrategy`:
 
 `RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
 `TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.

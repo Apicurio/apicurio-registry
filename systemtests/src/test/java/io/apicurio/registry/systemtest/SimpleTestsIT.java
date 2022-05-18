@@ -809,9 +809,9 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
-            resourceManager.deleteResources(testContext);
-
             KeycloakUtils.removeKeycloak();
+
+            resourceManager.deleteResources(testContext);
 
             operatorManager.uninstallOperators(testContext);
         }
@@ -845,9 +845,9 @@ public class SimpleTestsIT extends TestBase {
 
             fail("Unexpected exception happened.");
         } finally {
-            resourceManager.deleteResources(testContext);
-
             KeycloakUtils.removeKeycloak();
+
+            resourceManager.deleteResources(testContext);
 
             operatorManager.uninstallOperators(testContext);
         }

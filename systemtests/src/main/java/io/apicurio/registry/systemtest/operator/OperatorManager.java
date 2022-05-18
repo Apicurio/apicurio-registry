@@ -154,7 +154,7 @@ public class OperatorManager {
         }
 
         if (!operatorType.isReady()) {
-            LOGGER.info(
+            LOGGER.error(
                     "Operator {} with name {} in namespace {} failed readiness check.",
                     operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
             );
@@ -185,7 +185,7 @@ public class OperatorManager {
         }
 
         if (!operatorType.doesNotExist()) {
-            LOGGER.info(
+            LOGGER.error(
                     "Operator {} with name {} in namespace {} failed removal check.",
                     operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
             );

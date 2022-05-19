@@ -150,7 +150,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
                     .withNewBuild()
                         .withOutput(new DockerOutputBuilder()
                                 .withImage(
-                                        "image-registry.openshift-image-registry.svc.cluster.local:5000/" +
+                                        "image-registry.openshift-image-registry.svc:5000/" +
                                                 namespace + "/apicurio-debezium:latest-ci"
                                 )
                                 .build()

@@ -30,7 +30,7 @@ props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
 props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092");
 props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <1>
 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
-props.put(SerdeConfig.FIND_LATEST_ARTIFACT, FindLatestIdStrategy.class.getName()); <3>
+props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE); <3>
 ----
 <1> The serializer for the message key provided by {registry}.
 <2> The serializer for the message value provided by {registry}.

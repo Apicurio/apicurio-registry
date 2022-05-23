@@ -20,7 +20,7 @@ Schemas can evolve, so you can define rules in {registry}, for example, to ensur
 * Protobuf
 * JSON Schema
 
-These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDe) services provided by {registry}.  The maturity and usage of the SerDe classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
+These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDes) services provided by {registry}.  The maturity and usage of the SerDes classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
 
 [discrete]
 == Producer schema configuration

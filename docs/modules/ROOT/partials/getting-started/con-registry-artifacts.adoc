@@ -126,7 +126,7 @@ ifdef::apicurio-registry,rh-service-registry[]
 // ** {managing-registry-artifacts-maven}
 endif::[]
 ifdef::rh-openshift-sr[]
-** {base-url}{manage-api-url-registry}
-** {base-url}{manage-maven-plugin-url-registry}
+** {base-url}{manage-api-url-registry}[Managing Service Registry data using the core REST API]
+** {base-url}{manage-maven-plugin-url-registry}[Managing schemas and APIs using the Service Registry Maven plug-in]
 endif::[]
 * For a Java code example, see https://github.com/Apicurio/apicurio-registry-examples/tree/master/serdes-with-references[Apicurio Registry SerDes with references] 

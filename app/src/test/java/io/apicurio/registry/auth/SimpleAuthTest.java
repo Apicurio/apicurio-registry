@@ -26,7 +26,6 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.services.auth.CustomAuthErrorHandler;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -36,6 +35,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.Auth;
 import io.apicurio.rest.client.auth.BasicAuth;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
@@ -71,14 +71,14 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      */
     @Override
     protected RegistryClient createRestClientV2() {
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new CustomAuthErrorHandler());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createClient(auth);
     }
 
     @Override
     protected AdminClient createAdminClientV2(){
-        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new CustomAuthErrorHandler());
+        httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createAdminClient(auth);
     }

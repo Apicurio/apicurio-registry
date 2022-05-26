@@ -15,24 +15,23 @@
  */
 package io.apicurio.multitenant.storage;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.persistence.PersistenceException;
-
-import org.hibernate.exception.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 import io.apicurio.multitenant.storage.hibernate.RegistryTenantPanacheRepository;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
+import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.persistence.PersistenceException;
 
 /**
  * @author Fabian Martinez
@@ -89,6 +88,15 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
     @Override
     public long count(String query, Parameters parameters) {
         return repo.count(query, parameters);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status) {
+        return (List<RegistryTenantDto>) this.repo.getEntityManager()
+                .createQuery("select r from RegistryTenantDto r where r.status = :status")
+                .setParameter("status", status.value())
+                .getResultList();
     }
 
     /**

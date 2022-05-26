@@ -1,23 +1,5 @@
-.ace-wrapper {
-    width: 100%;
-    flex-grow: 1;
-    position: relative;
-}
-
-.ace-wrapper .format-btn {
-    position: absolute;
-    right: 20px;
-    top: 10px;
-    background-color: #667;
-    border: 1px solid #999;
-}
-.ace-wrapper .format-btn:hover {
-    background-color: #445;
-    border: 1px solid #777;
-}
-.ace-wrapper .format-btn.hidden {
-    display: none;
-    visibility: hidden;
+.code-editor-wrapper {
+    padding: 24px;
 }
 
 #artifactContent {

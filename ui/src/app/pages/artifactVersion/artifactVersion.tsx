@@ -108,7 +108,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <DocumentationTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} />
             </Tab>,
             <Tab eventKey={2} title="Content" key="content">
-                <ContentTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} />
+                <ContentTabContent artifactContent={this.state.artifactContent} artifactType={artifact.type} artifactName={artifact.name as string} />
             </Tab>,
         ];
         if (!this.showDocumentationTab()) {

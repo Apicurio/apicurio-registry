@@ -140,15 +140,6 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                         </DescriptionListGroup>
 
                     </DescriptionList>
-
-                    <div className="actions">
-                        {/* TODO: Move to the content tab */}
-                        <Button id="download-action"
-                            data-testid="artifact-btn-download"
-                            title="Download artifact content"
-                            onClick={this.props.onDownloadArtifact}
-                            variant="secondary"><DownloadIcon /> Download</Button>
-                    </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>

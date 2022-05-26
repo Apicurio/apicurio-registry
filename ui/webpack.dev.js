@@ -2,6 +2,7 @@ const path = require("path");
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || "8888";
@@ -14,7 +15,8 @@ module.exports = merge(common('development'), {
         {from: "./src/version.js"},
         {from: "./src/config.js"},
         {from: "./src/favicon.ico"},
-      ]})
+      ]}),
+      new MonacoWebpackPlugin()
   ],
   devServer: {
     contentBase: "./dist",
@@ -42,9 +44,19 @@ module.exports = merge(common('development'), {
           path.resolve(__dirname, "node_modules/@patternfly/patternfly"),
           path.resolve(__dirname, "node_modules/@patternfly/react-styles/css"),
           path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/base.css"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly")
+          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly"),
+          path.resolve(__dirname, "node_modules/@patternfly/react-code-editor"),
+          path.resolve(__dirname, 'node_modules/monaco-editor'),
         ],
         use: ["style-loader", "css-loader"]
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg|ttf)$/i,
+        type: 'asset/resource',
+        include: [
+          path.resolve(__dirname, 'node_modules/@patternfly/react-code-editor/node_modules/@patternfly/react-styles/css/assets/images'),
+          path.resolve(__dirname, 'node_modules/monaco-editor'),
+        ]
       }
     ]
   }

@@ -18,12 +18,7 @@
 import React from "react";
 import "./content.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import AceEditor from "react-ace";
-import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/mode-protobuf";
-import "ace-builds/src-noconflict/mode-xml";
-import "ace-builds/src-noconflict/mode-graphqlschema";
-import "ace-builds/src-noconflict/theme-monokai";
+import { CodeEditor, Language } from '@patternfly/react-code-editor';
 
 
 /**
@@ -33,6 +28,7 @@ import "ace-builds/src-noconflict/theme-monokai";
 export interface ContentTabContentProps extends PureComponentProps {
     artifactContent: string;
     artifactType: string;
+    artifactName: string;
 }
 
 /**
@@ -68,29 +64,14 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
 
     public render(): React.ReactElement {
         return (
-            <div className="ace-wrapper" id="ace-wrapper">
-                <AceEditor
-                    data-testid="ace-content"
-                    mode={this.editorMode()}
-                    theme="monokai"
-                    name="artifactContent"
-                    className="artifactContent"
-                    width={this.state.editorWidth}
-                    height={this.state.editorHeight}
-                    fontSize={14}
-                    showPrintMargin={false}
-                    showGutter={true}
-                    highlightActiveLine={false}
-                    value={this.state.content}
-                    readOnly={true}
-                    setOptions={{
-                        enableBasicAutocompletion: false,
-                        enableLiveAutocompletion: false,
-                        enableSnippets: false,
-                        showLineNumbers: true,
-                        tabSize: 2,
-                        useWorker: false
-                    }}
+            <div className="code-editor-wrapper">
+                <CodeEditor 
+                    code={this.state.content} 
+                    height="sizeToFit" 
+                    language={this.editorMode()} 
+                    isReadOnly 
+                    isDownloadEnabled
+                    downloadFileName={this.props.artifactName}
                 />
             </div>
         );
@@ -104,17 +85,17 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
         };
     }
 
-    private editorMode(): string {
+    private editorMode(): Language {
         if (this.props.artifactType === "PROTOBUF") {
-            return "protobuf";
+            return Language.plaintext;
         }
         if (this.props.artifactType === "WSDL" || this.props.artifactType === "XSD" || this.props.artifactType === "XML") {
-            return "xml";
+            return Language.xml;
         }
         if (this.props.artifactType === "GRAPHQL") {
-            return "graphqlschema";
+            return Language.graphql;
         }
-        return "json";
+        return Language.json;
     }
 
     private formatContent(): string {

@@ -128,12 +128,10 @@ public class RegistryApplicationServletFilter implements Filter {
                 evaluatedURI = rewriteContext.toString();
             }
 
-            if (mtProperties.isMultitenancyEnabled() && tenantContext.getTenantStatus() != TenantStatusValue.READY) {
-                if(requestURI.endsWith("/apis/registry/v2/system/limits")) {
-                    log.debug("Request {} is rejected because the tenant is not ready", requestURI);
-                } else {
-                    log.warn("Request {} is rejected because the tenant is not ready", requestURI);
-                }                
+            var tenantStatus = tenantContext.getTenantStatus();
+            if (mtProperties.isMultitenancyEnabled() && tenantStatus != TenantStatusValue.READY) {
+                log.debug("Request {} is rejected because the tenant is not ready. Status is {}",
+                        requestURI, tenantStatus.value());
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 httpResponse.reset();
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

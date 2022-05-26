@@ -24,12 +24,12 @@ import {
     PureComponentState,
     RuleList
 } from "../../../../components";
-import {Badge, Button, Flex, FlexItem, Split, SplitItem} from "@patternfly/react-core";
-import {DownloadIcon, EditIcon} from "@patternfly/react-icons";
+import { Badge, Button, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, EmptyStateBody, EmptyStatePrimary, EmptyStateSecondaryActions, Flex, FlexItem, Label, Split, SplitItem } from "@patternfly/react-core";
+import { DownloadIcon, EditIcon } from "@patternfly/react-icons";
 import Moment from "react-moment";
-import {IfFeature} from "../../../../components/common/ifFeature";
-import {If} from "../../../../components/common/if";
-import {ArtifactMetaData, Rule} from "../../../../../models";
+import { IfFeature } from "../../../../components/common/ifFeature";
+import { If } from "../../../../components/common/if";
+import { ArtifactMetaData, Rule } from "../../../../../models";
 
 /**
  * Properties
@@ -75,75 +75,86 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 <IfAuth isDeveloper={true}>
                                     <IfFeature feature="readOnly" isNot={true}>
                                         <Button id="edit-action"
-                                                data-testid="artifact-btn-edit"
-                                                title="Edit artifact metadata"
-                                                onClick={this.props.onEditMetaData}
-                                                variant="plain"><EditIcon /></Button>
+                                            data-testid="artifact-btn-edit"
+                                            title="Edit artifact metadata"
+                                            onClick={this.props.onEditMetaData}
+                                            variant="plain"><EditIcon /></Button>
                                     </IfFeature>
                                 </IfAuth>
                             </SplitItem>
                         </Split>
                     </div>
-                    <div className="metaData">
-                        <div className="metaDataItem">
-                            <span className="label">Name</span>
-                            <span className="value">{this.props.artifact.name}</span>
-                        </div>
-                        <If condition={this.isArtifactInGroup}>
-                            <div className="metaDataItem">
-                                <span className="label">Group</span>
-                                <span className="value">{this.props.artifact.groupId}</span>
-                            </div>
-                        </If>
-                        <div className="metaDataItem">
-                            <span className="label">ID</span>
-                            <span className="value">{this.props.artifact.id}</span>
-                        </div>
-                        <div className="metaDataItem">
-                            <span className="label">Status</span>
-                            <span className="value">{this.props.artifact.state}</span>
-                        </div>
-                        <div className="metaDataItem">
-                            <span className="label">Created</span>
-                            <span className="value"><Moment date={this.props.artifact.createdOn} fromNow={true} /></span>
-                        </div>
-                        <If condition={this.props.isLatest}>
-                            <div className="metaDataItem">
-                                <span className="label">Modified</span>
-                                <span className="value"><Moment date={this.props.artifact.modifiedOn} fromNow={true} /></span>
-                            </div>
-                        </If>
-                        <div className="metaDataItem">
-                            <span className="label">Global ID</span>
-                            <span className="value">{this.props.artifact.globalId}</span>
-                        </div>
-                        <div className="metaDataItem">
-                            <span className="label">Content ID</span>
-                            <span className="value">{this.props.artifact.contentId}</span>
-                        </div>
-                    </div>
-                    <div className="description">{this.description()}</div>
-                    <div className="labels">
-                        {
-                            this.labels().map( label =>
-                                <Badge key={label} isRead={true}>{label}</Badge>
-                            )
-                        }
-                    </div>
+                    <DescriptionList className="metaData">
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Name</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.artifact.name}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>ID</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.artifact.id}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Description</DescriptionListTerm>
+                            <DescriptionListDescription className={this.props.artifact.description == '' ? 'empty-state-text' : ''}>{this.description()}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Status</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.artifact.state}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Created</DescriptionListTerm>
+                            <DescriptionListDescription><Moment date={this.props.artifact.createdOn} fromNow={true} /></DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Modified</DescriptionListTerm>
+                            <DescriptionListDescription>{<Moment date={this.props.artifact.modifiedOn} fromNow={true} />}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Global ID</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.artifact.globalId}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Content ID</DescriptionListTerm>
+                            <DescriptionListDescription>{this.props.artifact.contentId}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Labels</DescriptionListTerm>
+                            {this.labels().length ?
+                                <DescriptionListDescription>{
+                                    this.labels().map((label) =>
+                                        <span key={'label' + label}><Label color="blue">{label}</Label>{' '}</span>
+                                    )
+                                }</DescriptionListDescription> :
+                                <DescriptionListDescription className="empty-state-text">No labels</DescriptionListDescription>
+                            }
+
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Properties</DescriptionListTerm>
+                            {!this.props.artifact.properties || !Object.keys(this.props.artifact.properties).length ?
+                                <DescriptionListDescription className="empty-state-text">No properties</DescriptionListDescription> :
+                                <DescriptionListDescription>{Object.entries(this.props.artifact.properties).map(([key, value]) =>
+                                    <span key={key}><Label color="purple">{key + '=' + value}</Label>{' '}</span>
+                                )}</DescriptionListDescription>
+                            }
+                        </DescriptionListGroup>
+
+                    </DescriptionList>
+
                     <div className="actions">
                         <Button id="download-action"
-                                data-testid="artifact-btn-download"
-                                title="Download artifact content"
-                                onClick={this.props.onDownloadArtifact}
-                                variant="secondary"><DownloadIcon /> Download</Button>
+                            data-testid="artifact-btn-download"
+                            title="Download artifact content"
+                            onClick={this.props.onDownloadArtifact}
+                            variant="secondary"><DownloadIcon /> Download</Button>
                     </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>
                     <RuleList rules={this.props.rules}
-                              onEnableRule={this.props.onEnableRule}
-                              onDisableRule={this.props.onDisableRule}
-                              onConfigureRule={this.props.onConfigureRule}
+                        onEnableRule={this.props.onEnableRule}
+                        onDisableRule={this.props.onDisableRule}
+                        onConfigureRule={this.props.onConfigureRule}
                     />
                 </FlexItem>
             </Flex>
@@ -159,17 +170,15 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
     }
 
     private labels(): string[] {
-        return this.props.artifact.labels ? this.props.artifact.labels : [];
+        return this.props.artifact.labels || [];
     }
 
     private description(): string {
-        return this.props.artifact.description ?
-            this.props.artifact.description :
-            `An artifact of type ${this.props.artifact.type} with no description.`;
+        return this.props.artifact.description || `No description`;
     }
 
     private isArtifactInGroup = (): boolean => {
-        const groupId: string|null = this.props.artifact.groupId;
+        const groupId: string | null = this.props.artifact.groupId;
         return groupId != null && groupId != "default";
     };
 }

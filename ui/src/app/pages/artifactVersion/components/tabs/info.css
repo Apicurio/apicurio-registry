@@ -26,40 +26,8 @@
     display: inline-block;
 }
 
-.artifact-tab-content .artifact-basics .description {
-    font-size: 13px;
-    margin-bottom: 10px;
-}
-
 .artifact-tab-content .artifact-basics .metaData {
-    font-size: 14px;
     margin-bottom: 10px;
-}
-
-.artifact-tab-content .artifact-basics .metaData .metaDataItem {
-    width: 100%;
-}
-
-.artifact-tab-content .artifact-basics .metaData .label {
-    font-weight: bold;
-    padding-right: 8px;
-    text-align: right;
-    display: inline-block;
-    width: 100px;
-}
-.artifact-tab-content .artifact-basics .metaData .value {
-    display: inline-block;
-    white-space: nowrap;
-}
-
-.artifact-tab-content .artifact-basics .labels {
-    margin-bottom: 25px;
-}
-
-.artifact-tab-content .artifact-basics .labels .pf-c-badge {
-    font-size: 14px;
-    margin-right: 5px;
-    background-color: #ccc;
 }
 
 .artifact-tab-content .artifact-basics .actions {

@@ -15,6 +15,9 @@
  */
 package io.apicurio.multitenant.storage.dto;
 
+import io.apicurio.multitenant.api.datamodel.RegistryTenant;
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -22,16 +25,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 
 /**
  * @author Fabian Martinez
@@ -65,7 +65,7 @@ public class RegistryTenantDto {
     @Column(name = "status")
     private String status;
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<RegistryTenantResourceLimitDto> resources = new ArrayList<>();
 
     public RegistryTenantDto() {

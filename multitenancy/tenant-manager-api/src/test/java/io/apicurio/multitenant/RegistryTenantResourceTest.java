@@ -201,7 +201,7 @@ public class RegistryTenantResourceTest {
 
         assertEquals(tenant.getTenantId(), tenant2.getTenantId());
 
-        Awaitility.await("Tenant reaped").atMost(Duration.ofSeconds(5)).until(() -> {
+        Awaitility.await("Tenant reaped").atMost(Duration.ofSeconds(10)).until(() -> {
             var res2 = given()
                     .when().get(TENANTS_PATH + "/" + tenant.getTenantId())
                     .thenReturn();

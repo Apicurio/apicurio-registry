@@ -32,11 +32,13 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.PersistenceException;
+import javax.transaction.Transactional;
 
 /**
  * @author Fabian Martinez
  */
 @ApplicationScoped
+@Transactional
 public class RegistryTenantStorageImpl implements RegistryTenantStorage {
 
     Logger logger = LoggerFactory.getLogger(getClass());

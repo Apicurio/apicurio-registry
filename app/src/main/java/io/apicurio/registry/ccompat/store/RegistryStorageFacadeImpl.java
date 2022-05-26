@@ -91,6 +91,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, 1000)
                 .getArtifacts()
                 .stream()
+                .filter(searchedArtifactDto -> isCcompatManagedType(searchedArtifactDto.getType()))
                 .map(SearchedArtifactDto::getId).collect(Collectors.toList());
     }
 
@@ -374,5 +375,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    private boolean isCcompatManagedType(ArtifactType artifactType) {
+        return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF) || artifactType.equals(ArtifactType.JSON);
     }
 }

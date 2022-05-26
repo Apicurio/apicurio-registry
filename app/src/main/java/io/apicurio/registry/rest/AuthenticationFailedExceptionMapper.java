@@ -1,6 +1,5 @@
-/**
- * @license
- * Copyright 2020 JBoss Inc
+/*
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +14,16 @@
  * limitations under the License.
  */
 
-export * from "./artifactTypeIcon";
-export * from "./ifAuth";
-export * from "./ifFeature";
-export * from "./ifNotEmpty";
+package io.apicurio.registry.rest;
 
+import io.quarkus.security.AuthenticationFailedException;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+
+public class AuthenticationFailedExceptionMapper implements ExceptionMapper<AuthenticationFailedException> {
+    @Override
+    public Response toResponse(AuthenticationFailedException exception) {
+        return Response.status(401).build();
+    }
+}

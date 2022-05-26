@@ -159,12 +159,6 @@
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
 
-        <!-- Kafka Connect -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-kafka-client</artifactId>
-        </dependency>
-
         <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
@@ -194,11 +188,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-test-common</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-apicurio-registry-avro</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -18,6 +18,7 @@ package io.apicurio.registry.util;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ import java.util.Map;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.MediaType;
 
+import com.google.protobuf.DescriptorProtos;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import org.apache.avro.Schema;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -213,7 +216,14 @@ public final class ArtifactTypeUtil {
             ProtobufFile.toProtoFileElement(content.content());
             return ArtifactType.PROTOBUF;
         } catch (Exception e) {
-            // Doesn't seem to be protobuf
+            try {
+                // Attempt to parse binary FileDescriptorProto
+                byte[] bytes = Base64.getDecoder().decode(content.content());
+                FileDescriptorUtils.fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
+                return ArtifactType.PROTOBUF;
+            } catch (Exception pe) {
+                // Doesn't seem to be protobuf
+            }
         }
         return null;
     }

@@ -274,6 +274,9 @@ export abstract class BaseService implements Service {
     }
 
     private axiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
+        if (typeof data === "string") {
+            data = new Blob([data]);
+        }
         return {...{
                 data,
                 method,

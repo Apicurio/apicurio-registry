@@ -8,7 +8,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 {registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
 
-This chapter explains how to use Kafka client SerDe in your producer and consumer client applications:
+This chapter explains how to use Kafka client SerDes in your producer and consumer client applications:
 
 * xref:registry-serdes-concepts-serde_{context}[]
 * xref:registry-serdes-concepts-strategy_{context}[]

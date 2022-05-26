@@ -30,6 +30,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.AuthException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -39,13 +41,10 @@ import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
-import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -105,9 +104,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                 if (null != clientCredentials) {
                     try {
                         return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
-                    } catch (NotAuthorizedException ex) {
-                        //Ignore exception, wrong credentials passed
-                        throw new AuthenticationFailedException();
+                    } catch (AuthException | NotAuthorizedException ex) {
+                        //Ignore exception, wrong credentials passed, trying to authenticate without credentials will result in a 401
+                        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                     }
                 } else {
                     return customAuthentication(context, identityProviderManager);
@@ -132,8 +131,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                 oidcAuth.close();
                 if (jwtToken != null) {
                     //If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-                    return identityProviderManager
-                            .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+                    context.request().headers().set("Authorization", "Bearer " + jwtToken);
+                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
             } else {
                 //If we cannot get a token, then try to authenticate using oidc provider as last resource
@@ -195,7 +194,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         final String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         oidcAuth.close();
-        return identityProviderManager
-                .authenticate(new TokenAuthenticationRequest(new AccessTokenCredential(jwtToken, context)));
+        context.request().headers().set("Authorization", "Bearer " + jwtToken);
+        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
     }
 }

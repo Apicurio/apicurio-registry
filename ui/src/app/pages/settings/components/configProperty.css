@@ -1,16 +1,43 @@
 .configuration-property {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding-top: 15px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #fafafa;
-    margin-bottom: 15px;
+    border-bottom: 2px solid #eee;
 }
 
-.configuration-property > .property-name {
+.configuration-property:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
-.configuration-property > .property-description {
+
+.configuration-property .property-name {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+.configuration-property .property-description {
     color: rgb(106, 110, 115);
     font-size: 14px;
 }
-.configuration-property > .property-value {
-    margin-top: 5px;
-    max-width: 740px;
+
+.configuration-property .property-name .value {
+    margin-left: 8px;
+    text-decoration: underline;
+}
+
+.configuration-property .actions {
+}
+
+.configuration-property .actions .action {
+}
+
+.configuration-property .actions button.action {
+    padding: 0;
+    margin: 0;
+    margin-left: 15px;
+}
+.configuration-property .actions button.action.single {
+    padding-right: 15px;
 }

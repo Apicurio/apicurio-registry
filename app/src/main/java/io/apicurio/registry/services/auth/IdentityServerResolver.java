@@ -25,6 +25,7 @@ import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
+import io.quarkus.oidc.OidcRequestContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.quarkus.oidc.runtime.TenantConfigBean;
@@ -78,16 +79,6 @@ public class IdentityServerResolver implements TenantConfigResolver {
         }
     }
 
-    @Override
-    public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, TenantConfigRequestContext requestContext) {
-        if (resolveIdentityServer) {
-            return Uni.createFrom().item(resolveIdentityServer());
-        }
-
-        //resolve to default configuration
-        return Uni.createFrom().item(tenantConfigBean.getDefaultTenant().getOidcTenantConfig());
-    }
-
     private Supplier<OidcTenantConfig> resolveIdentityServer() {
         final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
         final OidcTenantConfig config = new OidcTenantConfig();
@@ -106,6 +97,16 @@ public class IdentityServerResolver implements TenantConfigResolver {
                 .responseType(new TypeReference<SsoProviders>() {
                 })
                 .build();
+    }
+
+    @Override
+    public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
+        if (resolveIdentityServer) {
+            return Uni.createFrom().item(resolveIdentityServer());
+        }
+
+        //resolve to default configuration
+        return Uni.createFrom().item(tenantConfigBean.getDefaultTenant().getOidcTenantConfig());
     }
 
     private static class SsoProviders {

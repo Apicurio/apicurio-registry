@@ -15,13 +15,14 @@
  */
 package io.apicurio.multitenant.storage;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
+import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
 import io.apicurio.multitenant.storage.dto.RegistryTenantDto;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Fabian Martinez
@@ -38,6 +39,7 @@ public interface RegistryTenantStorage {
 
     void delete(String tenantId);
 
-    public Map<String, Long> getTenantsCountByStatus();
+    List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status);
 
+    Map<String, Long> getTenantsCountByStatus();
 }

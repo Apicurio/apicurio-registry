@@ -142,6 +142,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </DescriptionList>
 
                     <div className="actions">
+                        {/* TODO: Move to the content tab */}
                         <Button id="download-action"
                             data-testid="artifact-btn-download"
                             title="Download artifact content"

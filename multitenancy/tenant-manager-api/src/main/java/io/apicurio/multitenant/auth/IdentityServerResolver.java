@@ -41,6 +41,7 @@ import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
+import io.quarkus.oidc.OidcRequestContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
 import io.quarkus.oidc.runtime.TenantConfigBean;
@@ -95,7 +96,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
     }
 
     @Override
-    public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, TenantConfigRequestContext requestContext) {
+    public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
         if (resolveIdentityServer) {
             return Uni.createFrom().item(resolveIdentityServer());
         }

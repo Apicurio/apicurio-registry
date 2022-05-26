@@ -90,7 +90,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                 onClose={this.props.onClose}
                 className="edit-artifact-metaData pf-m-redhat-font"
                 actions={[
-                    <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={this.doEdit} isDisabled={this.state.formState.hasErrors}>Edit</Button>,
+                    <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={this.doEdit} isDisabled={this.state.formState.hasErrors}>Save</Button>,
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >

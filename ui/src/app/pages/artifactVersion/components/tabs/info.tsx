@@ -87,7 +87,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <DescriptionList className="metaData">
                         <DescriptionListGroup>
                             <DescriptionListTerm>Name</DescriptionListTerm>
-                            <DescriptionListDescription>{this.props.artifact.name}</DescriptionListDescription>
+                            <DescriptionListDescription className={!this.props.artifact.name ? 'empty-state-text' : ''}>{this.artifactName()}</DescriptionListDescription>
                         </DescriptionListGroup>
                         <DescriptionListGroup>
                             <DescriptionListTerm>ID</DescriptionListTerm>
@@ -95,7 +95,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                         </DescriptionListGroup>
                         <DescriptionListGroup>
                             <DescriptionListTerm>Description</DescriptionListTerm>
-                            <DescriptionListDescription className={this.props.artifact.description == '' ? 'empty-state-text' : ''}>{this.description()}</DescriptionListDescription>
+                            <DescriptionListDescription className={!this.props.artifact.description ? 'empty-state-text' : ''}>{this.description()}</DescriptionListDescription>
                         </DescriptionListGroup>
                         <DescriptionListGroup>
                             <DescriptionListTerm>Status</DescriptionListTerm>
@@ -176,6 +176,10 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
 
     private description(): string {
         return this.props.artifact.description || `No description`;
+    }
+
+    private artifactName(): string {
+        return this.props.artifact.name || 'No name';
     }
 
     private isArtifactInGroup = (): boolean => {

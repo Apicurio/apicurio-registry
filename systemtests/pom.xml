@@ -9,7 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>systemtests</artifactId>
+    <artifactId>apicurio-registry-system-tests</artifactId>
+    <name>apicurio-registry-system-tests</name>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>

@@ -933,10 +933,10 @@
 
     <profiles>
         <profile>
-            <id>systemtests</id>
+            <id>system-tests</id>
             <modules>
                 <!-- Operator tests module -->
-                <module>systemtests</module>
+                <module>system-tests</module>
             </modules>
         </profile>
         <profile>

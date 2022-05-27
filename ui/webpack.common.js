@@ -6,7 +6,6 @@ const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const { federatedModuleName, dependencies } = require("./package.json");
 const ChunkMapper = require("@redhat-cloud-services/frontend-components-config/chunk-mapper");
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 
 const cmdArgs = {};
@@ -14,7 +13,7 @@ process.argv.forEach(arg => {
   if (arg && arg.startsWith("--env=")) {
     const idx = arg.indexOf(":");
     const name = arg.substring(6, idx);
-    const value = arg.substring(idx + 1);
+    const value = arg.substring(idx+1);
     cmdArgs[name] = value;
   }
 });
@@ -32,7 +31,6 @@ module.exports = (mode) => {
     },
     plugins: [
       new NodePolyfillPlugin(),
-      new MonacoWebpackPlugin(),
       new HtmlWebpackPlugin({
         template: "./src/index.html"
       }),
@@ -43,8 +41,9 @@ module.exports = (mode) => {
       }),
       new ModuleFederationPlugin({
         name: federatedModuleName,
-        filename: `${federatedModuleName}${(isProduction && !isMtUi) ? ".[chunkhash:8]" : ""
-          }.js`,
+        filename: `${federatedModuleName}${
+            (isProduction && !isMtUi) ? ".[chunkhash:8]" : ""
+        }.js`,
         exposes: {
           "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
           "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
@@ -53,7 +52,7 @@ module.exports = (mode) => {
           "./FederatedRolesPage": "./src/app/pages/roles/roles.federated",
           "./FederatedSettingsPage": "./src/app/pages/settings/settings.federated",
           "./FederatedSchemaMapping": "./src/app/components/schemaMapping/schemaMapping.federated",
-          "./FederatedDownloadArtifacts": "./src/app/components/downloadArtifacts/downloadArtifacts.federated"
+          "./FederatedDownloadArtifacts":"./src/app/components/downloadArtifacts/downloadArtifacts.federated"
         },
         shared: {
           ...dependencies,
@@ -101,20 +100,6 @@ module.exports = (mode) => {
               }
             }
           ]
-        },
-        {
-          test: /\.css$/,
-          include: [
-            path.resolve(__dirname, "src"),
-            path.resolve(__dirname, "node_modules/patternfly"),
-            path.resolve(__dirname, "node_modules/@patternfly/patternfly"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-styles/css"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/base.css"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-code-editor"),
-            path.resolve(__dirname, 'node_modules/monaco-editor'),
-          ],
-          use: ["style-loader", "css-loader"]
         },
         {
           test: /\.(svg|ttf|eot|woff|woff2)$/,

@@ -19,10 +19,10 @@ message Decimal {
 
   // Number of nano (10^9) units of the amount.
   // The value must be between -999,999,999 and +999,999,999 inclusive.
-  // If `units` is positive, `nanos` must be positive or zero.
-  // If `units` is zero, `nanos` can be positive, zero, or negative.
-  // If `units` is negative, `nanos` must be negative or zero.
-  // Ex: -89.5678000 is represented as `units`=-89 and `nanos`=-567,800,000 (-0.567800 * 10^9)
+  // If `units` is positive, `fraction` must be positive or zero.
+  // If `units` is zero, `fraction` can be positive, zero, or negative.
+  // If `units` is negative, `fraction` must be negative or zero.
+  // Ex: -89.5678000 is represented as `units`=-89 and `fraction`=-567,800,000 (-0.567800 * 10^9)
   int32 fraction = 2;
 
   // Represents the precision for the Decimal

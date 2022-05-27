@@ -47,14 +47,6 @@ module.exports = merge(common('development'), {
           path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly")
         ],
         use: ["style-loader", "css-loader"]
-      },
-      {
-        test: /\.(png|jpe?g|gif|svg|ttf)$/i,
-        type: 'asset/resource',
-        include: [
-          path.resolve(__dirname, 'node_modules/@patternfly/react-code-editor/node_modules/@patternfly/react-styles/css/assets/images'),
-          path.resolve(__dirname, 'node_modules/monaco-editor'),
-        ]
       }
     ]
   }

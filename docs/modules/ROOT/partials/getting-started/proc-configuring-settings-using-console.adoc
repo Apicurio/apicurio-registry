@@ -29,30 +29,20 @@ endif::[]
 .Procedure
 
 ifdef::apicurio-registry,rh-service-registry[]
-. In the web console, click the *Settings* page.  
+. In the {registry} web console, click the *Settings* page.  
 endif::[] 
 
 ifdef::rh-openshift-sr[]
-. In the web console, click the {registry} instance that you want to configure, and then click the *Settings* page.  
+. In the {registry} web console, click the {registry} instance that you want to configure, and then click the *Settings* page.  
 endif::[] 
 
 . Select the settings that you want to configure for this {registry} instance: 
 +
-.{registry} instance configuration settings
+.Authentication settings
 [%header,cols="2,4"]
 |===
 |Setting
 |Description
-| *Authenticated read access*
-|
-ifdef::apicurio-registry,rh-service-registry[]
-Displayed only when authentication is already enabled. 
-endif::[]
-When selected, requests from any authenticated user
-ifdef::rh-openshift-sr[]
-in the same organization
-endif::[]
-(regardless of their user role) are granted at least read-only access. Not selected by default. 
 |*HTTP basic authentication*
 |
 ifdef::apicurio-registry,rh-service-registry[]
@@ -65,6 +55,18 @@ endif::[]
 ifdef::rh-openshift-sr[] 
 Selected by default. 
 endif::[]
+|===
++
+.Authorization settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+ifdef::apicurio-registry,rh-service-registry[]
+| *Anonymous read access*
+|Displayed only when authentication is already enabled. 
+When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use this instance to publish schemas or APIs externally. Not selected by default.
+endif::[]
 | *Artifact owner-only authorization*
 | 
 ifdef::apicurio-registry,rh-service-registry[]
@@ -75,19 +77,40 @@ ifdef::apicurio-registry,rh-service-registry[]
 | *Artifact group owner-only authorization*
 |Displayed only when authentication is already enabled and *Artifact owner-only authorization* is selected.
 When selected, {registry} allows only the artifact group owner (creator) to have write access to an artifact group, for example, to add or remove artifacts in the group. Not selected by default. 
-| *Anonymous read access*
-|Displayed only when authentication is already enabled. 
-When selected, requests from anonymous users (requests without any credentials) are granted read-only access. For example, this is useful if you want to use this instance to publish schemas or APIs externally. Not selected by default.
 endif::[]
+| *Authenticated read access*
+|
+ifdef::apicurio-registry,rh-service-registry[]
+Displayed only when authentication is already enabled. 
+endif::[]
+When selected, requests from any authenticated user
+ifdef::rh-openshift-sr[]
+in the same organization
+endif::[]
+(regardless of their user role) are granted at least read-only access. Not selected by default. 
+|===
++
+.Compatibility settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
 | *Legacy ID mode (compatibility API)*
 | When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier. For example, this is useful when migrating from legacy {registry} instances based on the v1 Core Registry API. Not selected by default.
+|===
++
 ifdef::apicurio-registry,rh-service-registry[]
+.Web console settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
 |*Download link expiry*
 | The number of seconds that a generated link to a `.zip` download file is active before expiring for security reasons, for example, when exporting artifact data from the instance. Defaults to 30 seconds.
 | *UI read-only mode*
 | When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
-endif::[]
 |===
+endif::[]
 
 //. Click *Save* to confirm your settings.
 

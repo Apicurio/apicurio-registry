@@ -12,7 +12,6 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
-import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 
@@ -33,13 +32,13 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
 
             LOGGER.info("Using file " + tmpPath + " to load operator resources...");
 
-            setResources(Kubernetes.getClient().load(new FileInputStream(tmpPath.toString())).get());
+            setResources(Kubernetes.loadFromFile(tmpPath));
 
             LOGGER.info("Operator resources loaded from file " + tmpPath + ".");
         } else if (getSource().endsWith(".yaml") || getSource().endsWith(".yml")) {
             LOGGER.info("Using file " + getSource() + " to load operator resources...");
 
-            setResources(Kubernetes.getClient().load(new FileInputStream(getSource())).get());
+            setResources(Kubernetes.loadFromFile(getSource()));
 
             LOGGER.info("Operator resources loaded from file " + getSource() + ".");
         } else {

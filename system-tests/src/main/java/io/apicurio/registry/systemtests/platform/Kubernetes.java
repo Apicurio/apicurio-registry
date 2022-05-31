@@ -67,6 +67,10 @@ public final class Kubernetes {
         }
     }
 
+    public static List<HasMetadata> loadFromFile(String path) {
+        return loadFromFile(Path.of(path));
+    }
+
     public static List<HasMetadata> loadFromDirectory(Path path) {
         List<String> filenames;
 
@@ -524,5 +528,17 @@ public final class Kubernetes {
     public static <T extends HasMetadata> MixedOperation<T, KubernetesResourceList<T>, Resource<T>>
     getResources(Class<T> tClass) {
         return Kubernetes.getClient().resources(tClass);
+    }
+
+    public static boolean namespaceHasAnyOperatorGroup(String name) {
+        int namespaceOperatorGroupsCount = ((OpenShiftClient) getClient())
+                .operatorHub()
+                .operatorGroups()
+                .inNamespace(name)
+                .list()
+                .getItems()
+                .size();
+
+        return namespaceOperatorGroupsCount > 0;
     }
 }

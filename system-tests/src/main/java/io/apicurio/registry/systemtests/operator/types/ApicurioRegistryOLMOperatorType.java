@@ -142,7 +142,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
             catalogName = catalogSource.getMetadata().getName();
         }
 
-        if (!getClusterWide() && !OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+        if (!getClusterWide() && !Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
             setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
         }
 

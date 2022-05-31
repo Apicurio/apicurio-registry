@@ -31,7 +31,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     }
 
     public static MixedOperation<KafkaUser, KubernetesResourceList<KafkaUser>, Resource<KafkaUser>> getOperation() {
-        return Kubernetes.getClient().resources(KafkaUser.class);
+        return Kubernetes.getResources(KafkaUser.class);
     }
 
     @Override

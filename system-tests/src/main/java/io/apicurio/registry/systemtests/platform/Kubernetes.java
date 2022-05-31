@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.platform;
 
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -12,6 +13,8 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
@@ -181,6 +184,18 @@ public final class Kubernetes {
         }
 
         return catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY");
+    }
+
+    public static void createNamespace(Namespace namespace) {
+        Kubernetes.getClient()
+                .namespaces()
+                .create(namespace);
+    }
+
+    public static void createOrReplaceNamespace(Namespace namespace) {
+        Kubernetes.getClient()
+                .namespaces()
+                .createOrReplace(namespace);
     }
 
     public static Namespace getNamespace(String name) {
@@ -504,5 +519,10 @@ public final class Kubernetes {
         }
 
         return status.getReadyReplicas() > 0;
+    }
+
+    public static <T extends HasMetadata> MixedOperation<T, KubernetesResourceList<T>, Resource<T>>
+    getResources(Class<T> tClass) {
+        return Kubernetes.getClient().resources(tClass);
     }
 }

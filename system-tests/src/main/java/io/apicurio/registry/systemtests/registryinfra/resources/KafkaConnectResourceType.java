@@ -36,7 +36,7 @@ public class KafkaConnectResourceType implements ResourceType<KafkaConnect> {
 
     public static MixedOperation<KafkaConnect, KubernetesResourceList<KafkaConnect>, Resource<KafkaConnect>>
     getOperation() {
-        return Kubernetes.getClient().resources(KafkaConnect.class);
+        return Kubernetes.getResources(KafkaConnect.class);
     }
 
     @Override

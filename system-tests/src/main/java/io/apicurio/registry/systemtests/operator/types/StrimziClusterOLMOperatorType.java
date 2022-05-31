@@ -66,7 +66,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
 
-            if (!OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+            if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
                 setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
             }
         }

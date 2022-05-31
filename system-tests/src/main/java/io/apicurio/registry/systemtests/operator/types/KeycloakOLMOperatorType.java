@@ -57,7 +57,7 @@ public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType
         String catalogNamespace = Constants.CATALOG_NAMESPACE;
         String ssoPackage = Environment.SSO_PACKAGE;
 
-        if (OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+        if (Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
             LOGGER.info("Operator group already present in namespace {}.", getNamespace());
         } else {
             setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));

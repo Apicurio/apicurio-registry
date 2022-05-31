@@ -1,6 +1,7 @@
 FROM registry.access.redhat.com/ubi8/openjdk-11:latest
 
-ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
+ENV JAVA_APP_DIR=/deployments \
+    JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
     AB_ENABLED=jmx_exporter
 
 EXPOSE 8080

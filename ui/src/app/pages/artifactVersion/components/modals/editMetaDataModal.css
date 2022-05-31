@@ -1,3 +1,12 @@
 #form-description {
     height: 220px;
 }
+
+.prop-value-group {
+    display: flex;
+    flex-direction: row;
+}
+
+.add-property-button {
+    padding-left: 0;
+}

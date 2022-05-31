@@ -31,7 +31,7 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
     }
 
     public static MixedOperation<KafkaTopic, KubernetesResourceList<KafkaTopic>, Resource<KafkaTopic>> getOperation() {
-        return Kubernetes.getClient().resources(KafkaTopic.class);
+        return Kubernetes.getResources(KafkaTopic.class);
     }
 
     @Override

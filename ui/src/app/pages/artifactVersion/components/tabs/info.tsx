@@ -138,8 +138,14 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 )}</DescriptionListDescription>
                             }
                         </DescriptionListGroup>
-
                     </DescriptionList>
+                    <div className="actions">
+                        <Button id="download-action"
+                                data-testid="artifact-btn-download"
+                                title="Download artifact content"
+                                onClick={this.props.onDownloadArtifact}
+                                variant="secondary"><DownloadIcon /> Download</Button>
+                    </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
                     <div className="rules-label">Content Rules</div>
@@ -175,6 +181,6 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
 
     private isArtifactInGroup = (): boolean => {
         const groupId: string | null = this.props.artifact.groupId;
-        return groupId != null && groupId != "default";
+        return groupId != null && groupId !== "default";
     };
 }

@@ -5,6 +5,7 @@ override DOCKERFILE_LOCATION := ./distro/docker/target/docker
 MEM_DOCKERFILE ?= Dockerfile.jvm
 SQL_DOCKERFILE ?= Dockerfile.sql.jvm
 KAFKASQL_DOCKERFILE ?= Dockerfile.kafkasql.jvm
+TENANT_MANAGER_DOCKERFILE ?= Dockerfile.tenant-manager.jvm
 DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 
 # Special variable that sets the default target
@@ -181,7 +182,7 @@ build-tenant-manager-image:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker build -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) ./multitenancy/tenant-manager-api/
+	docker build -f $(DOCKERFILE_LOCATION)/$(TENANT_MANAGER_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) $(DOCKER_BUILD_WORKSPACE)
 
 
 .PHONY: push-tenant-manager-image ## Pushes docker image for tenant-manager-api. Variables available for override [IMAGE_REPO, IMAGE_TAG]
@@ -262,7 +263,7 @@ tenant-manager-multiarch-images:
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
-	docker buildx build --push -f multitenancy/tenant-manager-api/src/main/docker/Dockerfile.jvm -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) ./multitenancy/tenant-manager-api/
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(TENANT_MANAGER_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-tenant-manager-api:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
 
 
 .PHONY: multiarch-registry-images ## Builds and pushes multi-arch registry images for all variants. Variables available for override [IMAGE_REPO, IMAGE_TAG]

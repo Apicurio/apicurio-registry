@@ -70,7 +70,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <div className="title-and-type">
                         <Split>
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                            <SplitItem className="title" isFilled={true}>Version Metadata</SplitItem>
+                            <SplitItem className="title" isFilled={true}>Version details</SplitItem>
                             <SplitItem className="actions">
                                 <IfAuth isDeveloper={true}>
                                     <IfFeature feature="readOnly" isNot={true}>
@@ -148,7 +148,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
-                    <div className="rules-label">Content Rules</div>
+                    <div className="rules-label">Content rules</div>
                     <RuleList rules={this.props.rules}
                         onEnableRule={this.props.onEnableRule}
                         onDisableRule={this.props.onDisableRule}

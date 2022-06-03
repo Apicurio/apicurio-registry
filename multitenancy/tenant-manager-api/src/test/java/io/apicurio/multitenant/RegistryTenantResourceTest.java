@@ -26,19 +26,17 @@ import io.apicurio.multitenant.client.TenantManagerClientImpl;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Fabian Martinez
@@ -59,8 +57,8 @@ public class RegistryTenantResourceTest {
         });
 
         Response res = given()
-          .when().params("status", "READY").get(TENANTS_PATH)
-          .thenReturn();
+                .when().params("status", "READY").get(TENANTS_PATH)
+                .thenReturn();
 
         assertEquals(200, res.statusCode());
 
@@ -82,11 +80,11 @@ public class RegistryTenantResourceTest {
         req.setResources(List.of(tr));
 
         Response res = given()
-            .when()
-            .contentType(ContentType.JSON)
-            .body(req)
-            .post(TENANTS_PATH)
-            .thenReturn();
+                .when()
+                .contentType(ContentType.JSON)
+                .body(req)
+                .post(TENANTS_PATH)
+                .thenReturn();
 
         assertEquals(201, res.statusCode());
 
@@ -105,6 +103,7 @@ public class RegistryTenantResourceTest {
         testUpdateTenant(tenant.getTenantId());
 
         testDelete(tenant.getTenantId());
+        testTenantReaper(tenant);
     }
 
     @Test
@@ -114,8 +113,8 @@ public class RegistryTenantResourceTest {
 
     private void testGetTenant(String tenantId, NewRegistryTenantRequest req) {
         Response res = given()
-            .when().get(TENANTS_PATH + "/" + tenantId)
-            .thenReturn();
+                .when().get(TENANTS_PATH + "/" + tenantId)
+                .thenReturn();
 
         assertEquals(200, res.statusCode());
 
@@ -152,8 +151,8 @@ public class RegistryTenantResourceTest {
 
     private void testGetTenantUpdated(String tenantId, UpdateRegistryTenantRequest req) {
         Response res = given()
-            .when().get(TENANTS_PATH + "/" + tenantId)
-            .thenReturn();
+                .when().get(TENANTS_PATH + "/" + tenantId)
+                .thenReturn();
 
         assertEquals(200, res.statusCode());
 
@@ -169,9 +168,9 @@ public class RegistryTenantResourceTest {
 
     public void testDelete(String tenantId) {
         given()
-            .when().delete(TENANTS_PATH + "/" + tenantId)
-            .then()
-               .statusCode(204);
+                .when().delete(TENANTS_PATH + "/" + tenantId)
+                .then()
+                .statusCode(204);
 
         Response res = given()
                 .when().get(TENANTS_PATH + "/" + tenantId)
@@ -181,11 +180,41 @@ public class RegistryTenantResourceTest {
         assertEquals(TenantStatusValue.TO_BE_DELETED, tenant.getStatus());
     }
 
+    public void testTenantReaper(RegistryTenant tenant) {
+        UpdateRegistryTenantRequest req = new UpdateRegistryTenantRequest();
+        req.setStatus(TenantStatusValue.DELETED);
+
+        given().when()
+                .contentType(ContentType.JSON)
+                .body(req)
+                .put(TENANTS_PATH + "/" + tenant.getTenantId())
+                .then()
+                .statusCode(204);
+
+        Response res = given()
+                .when().get(TENANTS_PATH + "/" + tenant.getTenantId())
+                .thenReturn();
+
+        assertEquals(200, res.statusCode());
+
+        RegistryTenant tenant2 = res.as(RegistryTenant.class);
+
+        assertEquals(tenant.getTenantId(), tenant2.getTenantId());
+
+        Awaitility.await("Tenant reaped").atMost(Duration.ofSeconds(10)).until(() -> {
+            var res2 = given()
+                    .when().get(TENANTS_PATH + "/" + tenant.getTenantId())
+                    .thenReturn();
+
+            return res2.statusCode() == 404;
+        });
+    }
+
     private void testTenantNotFound(String tenantId) {
         given()
-        .when().get(TENANTS_PATH + "/" + tenantId)
-        .then()
-           .statusCode(404);
+                .when().get(TENANTS_PATH + "/" + tenantId)
+                .then()
+                .statusCode(404);
     }
 
     public static String toString(List<TenantResource> resources) {

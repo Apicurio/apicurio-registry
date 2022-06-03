@@ -60,6 +60,7 @@ export interface EditableMetaData {
     name: string;
     description: string;
     labels: string[];
+    properties: { [key: string]: string };
 }
 
 /**

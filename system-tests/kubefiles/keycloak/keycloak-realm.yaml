@@ -1,0 +1,62 @@
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakRealm
+metadata:
+  name: registry-sso-realm
+spec:
+  instanceSelector:
+    matchLabels:
+      app: sso
+  realm:
+    displayName: Registry
+    enabled: true
+    id: registry
+    realm: registry
+    sslRequired: none
+    roles:
+      realm:
+        - name: sr-admin
+        - name: sr-developer
+        - name: sr-readonly
+    clients:
+      - clientId: registry-client-ui
+        implicitFlowEnabled: true
+        redirectUris:
+          - '*'
+        standardFlowEnabled: true
+        webOrigins:
+          - '*'
+        publicClient: true
+      - clientId: registry-client-api
+        directAccessGrantsEnabled: true
+        implicitFlowEnabled: true
+        redirectUris:
+          - '*'
+        standardFlowEnabled: true
+        webOrigins:
+          - '*'
+        publicClient: true
+    users:
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - sr-admin
+        username: registry-admin
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - sr-developer
+        username: registry-developer
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - sr-readonly
+        username: registry-user

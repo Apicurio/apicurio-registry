@@ -24,3 +24,7 @@
   padding-top: 5px;
   padding-bottom: 0px;
 }
+
+.empty-state-text {
+  color: var(--pf-global--Color--200);
+}

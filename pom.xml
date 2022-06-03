@@ -157,19 +157,19 @@
         <yarn.version>1.22.4</yarn.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>2.7.5.Final</quarkus.version>
+        <quarkus.version>2.7.6.Final</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
 
         <!-- Schema types -->
         <avro.version>1.11.0</avro.version>
-        <json-schema-validator.version>1.0.69</json-schema-validator.version>
+        <json-schema-validator.version>1.0.70</json-schema-validator.version>
         <wire-schema.version>3.7.1</wire-schema.version>
         <wire-compiler.version>3.7.1</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>71.1</icu4j.version>
-        <protobuf.version>3.20.1</protobuf.version>
+        <protobuf.version>3.21.1</protobuf.version>
         <xmlsec.version>3.0.0</xmlsec.version>
         <protobuf.googleapi.types.version>2.8.3</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -244,7 +244,7 @@
         <test-containers.version>1.16.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>18.0.0</keycloak-admin-client.version>
-        <embedded-postgres.version>1.3.1</embedded-postgres.version>
+        <embedded-postgres.version>2.0.0</embedded-postgres.version>
         <strimzi.version>0.101.0</strimzi.version>
         <wiremock-jre8.version>2.33.2</wiremock-jre8.version>
     </properties>
@@ -934,10 +934,10 @@
 
     <profiles>
         <profile>
-            <id>systemtests</id>
+            <id>system-tests</id>
             <modules>
                 <!-- Operator tests module -->
-                <module>systemtests</module>
+                <module>system-tests</module>
             </modules>
         </profile>
         <profile>

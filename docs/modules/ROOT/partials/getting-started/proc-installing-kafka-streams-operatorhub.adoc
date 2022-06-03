@@ -13,7 +13,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 
 * You must have cluster administrator access to an OpenShift cluster 
 ifdef::rh-service-registry[]
-* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/getting-started-str[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
 
 .Procedure

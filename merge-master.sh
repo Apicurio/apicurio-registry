@@ -8,7 +8,7 @@ echo "Merge complete.  Check for conflicts!"
 echo ""
 while [ "x$CONTINUE" != "xyes" ]
 do
-  read -p "Have you fixed all conflicts? [yes]" CONTINUE
+  read -p "Have you fixed all conflicts (and commited them)? [yes]" CONTINUE
   if [[ -z $CONTINUE ]] ; then
     CONTINUE=yes
   fi

@@ -24,11 +24,10 @@ import {
     PureComponentState,
     RuleList
 } from "../../../../components";
-import { Badge, Button, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, EmptyStateBody, EmptyStatePrimary, EmptyStateSecondaryActions, Flex, FlexItem, Label, Split, SplitItem } from "@patternfly/react-core";
-import { DownloadIcon, EditIcon } from "@patternfly/react-icons";
+import { Button, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, Flex, FlexItem, Label, Split, SplitItem } from "@patternfly/react-core";
+import { DownloadIcon, PencilAltIcon } from "@patternfly/react-icons";
 import Moment from "react-moment";
 import { IfFeature } from "../../../../components/common/ifFeature";
-import { If } from "../../../../components/common/if";
 import { ArtifactMetaData, Rule } from "../../../../../models";
 
 /**
@@ -70,7 +69,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     <div className="title-and-type">
                         <Split>
                             <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                            <SplitItem className="title" isFilled={true}>Version Metadata</SplitItem>
+                            <SplitItem className="title" isFilled={true}>Version metadata</SplitItem>
                             <SplitItem className="actions">
                                 <IfAuth isDeveloper={true}>
                                     <IfFeature feature="readOnly" isNot={true}>
@@ -78,7 +77,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                             data-testid="artifact-btn-edit"
                                             title="Edit artifact metadata"
                                             onClick={this.props.onEditMetaData}
-                                            variant="plain"><EditIcon /></Button>
+                                            variant="link"><PencilAltIcon />{' '}Edit</Button>
                                     </IfFeature>
                                 </IfAuth>
                             </SplitItem>
@@ -148,7 +147,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                     </div>
                 </FlexItem>
                 <FlexItem className="artifact-rules">
-                    <div className="rules-label">Content Rules</div>
+                    <div className="rules-label">Content rules</div>
                     <RuleList rules={this.props.rules}
                         onEnableRule={this.props.onEnableRule}
                         onDisableRule={this.props.onDisableRule}

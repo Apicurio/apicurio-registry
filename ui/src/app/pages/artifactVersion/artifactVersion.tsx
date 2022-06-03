@@ -93,7 +93,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     public renderPage(): React.ReactElement {
         const artifact: ArtifactMetaData = this.state.artifact ? this.state.artifact : new ArtifactMetaData();
         const tabs: React.ReactNode[] = [
-            <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
+            <Tab eventKey={0} title="Overview" key="overview" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
                                 isLatest={this.versionParam() === "latest"}
                                 rules={this.rules()}

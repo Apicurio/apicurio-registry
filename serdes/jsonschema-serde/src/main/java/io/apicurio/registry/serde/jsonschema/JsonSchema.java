@@ -238,7 +238,7 @@ public class JsonSchema {
 
             if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
                 for (Map.Entry<String, Schema> schema: ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
-                    if (schema.getValue() instanceof ReferenceSchema) {
+                    if (((ObjectSchema) schemaObj).getRequiredProperties().contains(schema.getKey()) && schema.getValue() instanceof ReferenceSchema) {
                         (resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue())).validate(((JSONObject) jsonObject).get(schema.getKey()));
                     }
                 }

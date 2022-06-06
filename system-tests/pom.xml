@@ -26,8 +26,6 @@
         <version.org.json>20220320</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
         <version.apache.httpcomponents>5.1.3</version.apache.httpcomponents>
-        <version.jackson.core>2.12.6.1</version.jackson.core>
-        <version.jackson.dataformat>2.12.5</version.jackson.dataformat>
     </properties>
 
     <dependencies>
@@ -113,23 +111,19 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${version.jackson.core}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${version.jackson.core}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${version.jackson.core}</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>${version.jackson.dataformat}</version>
         </dependency>
     </dependencies>
 

@@ -17,6 +17,10 @@ import org.slf4j.Logger;
 public class StrimziClusterOLMOperatorType extends OLMOperator implements OperatorType {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
 
+    public StrimziClusterOLMOperatorType() {
+        super(null, Constants.CLUSTER_WIDE_NAMESPACE, true);
+    }
+
     public StrimziClusterOLMOperatorType(boolean isClusterWide) {
         super(
                 null,

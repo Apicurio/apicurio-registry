@@ -136,19 +136,12 @@ public class ArtifactReferenceImpl implements ArtifactReference {
         this.contentId = contentId;
     }
 
+    /**
+     * @see io.apicurio.registry.resolver.strategy.ArtifactReference#hashCode()
+     */
     @Override
     public int hashCode() {
-        int result;
-        if (groupId != null || artifactId != null) {
-            result = groupId != null ? groupId.hashCode() : 0;
-            result = 31 * result + (artifactId != null ? artifactId.hashCode() : 0);
-            result = 31 * result + (version != null ? version.hashCode() : 0);
-        } else {
-            result = 0;
-            result = 31 * result + (globalId != null ? globalId.hashCode() : 0);
-            result = 31 * result + (contentId != null ? contentId.hashCode() : 0);
-        }
-        return result;
+        return globalId == null ? 0 : globalId.hashCode();
     }
 
     /**

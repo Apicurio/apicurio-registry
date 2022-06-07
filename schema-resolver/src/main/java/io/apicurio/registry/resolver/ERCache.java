@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 
@@ -40,17 +41,20 @@ public class ERCache<V> {
      * Long = Global ID
      * String = Content
      * Long = Content ID
+     * ArtifactCoordinates = ArtifactCoordinates
      * V = Schema lookup result
      */
     private final Map<ArtifactReference, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
     private final Map<Long, WrappedValue<V>> index2 = new ConcurrentHashMap<>();
     private final Map<String, WrappedValue<V>> index3 = new ConcurrentHashMap<>();
     private final Map<Long, WrappedValue<V>> index4 = new ConcurrentHashMap<>();
+    private final Map<ArtifactCoordinates, WrappedValue<V>> index5 = new ConcurrentHashMap<>();
 
     private Function<V, ArtifactReference> keyExtractor1;
     private Function<V, Long> keyExtractor2;
     private Function<V, String> keyExtractor3;
     private Function<V, Long> keyExtractor4;
+    private Function<V, ArtifactCoordinates> keyExtractor5;
 
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
@@ -86,9 +90,13 @@ public class ERCache<V> {
         this.keyExtractor4 = keyExtractor;
     }
 
+    public void configureArtifactCoordinatesKeyExtractor(Function<V, ArtifactCoordinates> keyExtractor) {
+        this.keyExtractor5 = keyExtractor;
+    }
+
     public void checkInitialized() {
         boolean initialized = keyExtractor1 != null && keyExtractor2 != null &&
-            keyExtractor3 != null && keyExtractor4 != null;
+            keyExtractor3 != null && keyExtractor4 != null && keyExtractor5 != null;
         initialized = initialized && lifetime != null && backoff != null && retries >= 0;
         if (!initialized)
             throw new IllegalStateException("Not properly initialized!");
@@ -106,6 +114,11 @@ public class ERCache<V> {
         return value != null && !value.isExpired();
     }
 
+    public boolean containsByArtifactCoordinates(ArtifactCoordinates key) {
+        WrappedValue<V> value = this.index5.get(key);
+        return value != null && !value.isExpired();
+    }
+
     public V getByGlobalId(Long key, Function<Long, V> loaderFunction) {
         WrappedValue<V> value = this.index2.get(key);
         return getValue(value, key, loaderFunction);
@@ -118,6 +131,11 @@ public class ERCache<V> {
 
     public V getByContentId(Long key, Function<Long, V> loaderFunction) {
         WrappedValue<V> value = this.index4.get(key);
+        return getValue(value, key, loaderFunction);
+    }
+
+    public V getByArtifactCoordinates(ArtifactCoordinates key, Function<ArtifactCoordinates, V> loaderFunction) {
+        WrappedValue<V> value = this.index5.get(key);
         return getValue(value, key, loaderFunction);
     }
 
@@ -149,6 +167,7 @@ public class ERCache<V> {
         Optional.ofNullable(keyExtractor2.apply(newValue.value)).ifPresent(k -> index2.put(k, newValue));
         Optional.ofNullable(keyExtractor3.apply(newValue.value)).ifPresent(k -> index3.put(k, newValue));
         Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> index4.put(k, newValue));
+        Optional.ofNullable(keyExtractor5.apply(newValue.value)).ifPresent(k -> index5.put(k, newValue));
     }
 
     public void clear() {
@@ -156,6 +175,7 @@ public class ERCache<V> {
         index2.clear();
         index3.clear();
         index4.clear();
+        index5.clear();
     }
 
     // === Util & Other

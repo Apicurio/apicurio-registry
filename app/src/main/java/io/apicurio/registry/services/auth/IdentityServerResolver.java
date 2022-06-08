@@ -19,12 +19,10 @@ package io.apicurio.registry.services.auth;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.apicurio.rest.client.JdkHttpClientProvider;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.oidc.OidcRequestContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
@@ -51,15 +49,6 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @ConfigProperty(name = "registry.identity.server.resolver.request-path")
     String resolverRequestPath;
 
-    @ConfigProperty(name = "registry.identity.server.resolver.auth-server-url")
-    String resolverAuthServerUrl;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.client-id")
-    String resolverClientId;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.client-secret")
-    String resolverClientSecret;
-
     @ConfigProperty(name = "quarkus.oidc.client-id")
     String apiClientId;
 
@@ -73,9 +62,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @PostConstruct
     public void init() {
         if (resolveIdentityServer) {
-            ApicurioHttpClient authHttpClient = ApicurioHttpClientFactory.create(resolverAuthServerUrl, new AuthErrorHandler());
-            OidcAuth oidcAuth = new OidcAuth(authHttpClient, resolverClientId, resolverClientSecret);
-            httpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), oidcAuth, new AuthErrorHandler());
+            httpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
         }
     }
 

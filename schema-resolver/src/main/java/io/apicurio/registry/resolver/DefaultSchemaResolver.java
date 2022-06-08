@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -83,19 +84,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
 
-        if (schemaCache.containsByArtifactReference(artifactReference)) {
-            return resolveSchemaByArtifactReferenceCached(artifactReference);
-        } else {
-            ArtifactCoordinates coordinates = ArtifactCoordinates.builder()
-                    .artifactId(artifactReference.getArtifactId())
-                    .groupId(artifactReference.getGroupId())
-                    .version(artifactReference.getVersion())
-                    .build();
+        return getSchemaFromCache(artifactReference)
+                .orElse(getSchemaFromRegistry(parsedSchema, data, artifactReference));
+    }
 
-            if (schemaCache.containsByArtifactCoordinates(coordinates)) {
-                return resolveSchemaByArtifactCoordinatesCached(coordinates);
-            }
+    private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference) {
+        if (artifactReference.getGlobalId() != null && schemaCache.containsByGlobalId(artifactReference.getGlobalId())) {
+            return Optional.of(resolveSchemaByGlobalId(artifactReference.getGlobalId()));
+        } else if (artifactReference.getContentId() != null && schemaCache.containsByContentId(artifactReference.getContentId())) {
+            return Optional.of(resolveSchemaByContentId(artifactReference.getContentId()));
+        } else if (schemaCache.containsByArtifactCoordinates(ArtifactCoordinates.fromArtifactReference(artifactReference))) {
+            return Optional.of(resolveSchemaByArtifactCoordinatesCached(ArtifactCoordinates.fromArtifactReference(artifactReference)));
         }
+        return Optional.empty();
+    }
+
+
+    private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data, ArtifactReference artifactReference) {
 
         if (autoCreateArtifact && schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
@@ -284,7 +289,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
 
     private SchemaLookupResult<S> resolveSchemaByArtifactReferenceCached(ArtifactReference artifactReference) {
-        return schemaCache.getByArtifactReference(artifactReference, artifactReferenceKey -> resolveByCoordinates(artifactReferenceKey.getGroupId(), artifactReferenceKey.getArtifactId(), artifactReferenceKey.getVersion()));
+        if (artifactReference.getGlobalId() != null) {
+            return schemaCache.getByGlobalId(artifactReference.getGlobalId(), this::resolveSchemaByGlobalId);
+        } else if (artifactReference.getContentId() != null) {
+            return schemaCache.getByContentId(artifactReference.getContentId(), this::resolveSchemaByContentId);
+        } else {
+            return schemaCache.getByArtifactCoordinates(ArtifactCoordinates.fromArtifactReference(artifactReference), artifactReferenceKey -> resolveByCoordinates(artifactReferenceKey.getGroupId(), artifactReferenceKey.getArtifactId(), artifactReferenceKey.getVersion()));
+        }
     }
 
     private SchemaLookupResult<S> resolveByCoordinates(String groupId, String artifactId, String version) {

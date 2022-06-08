@@ -22,17 +22,11 @@ package io.apicurio.registry.resolver.strategy;
  */
 public class ArtifactCoordinates {
 
-    /**
-     * Optional, unless globalId is empty
-     */
+
     private String groupId;
-    /**
-     * Optional, unless globalId is empty
-     */
+
     private String artifactId;
-    /**
-     * Optional
-     */
+
     private String version;
 
     protected ArtifactCoordinates() {
@@ -93,46 +87,41 @@ public class ArtifactCoordinates {
             return false;
         ArtifactCoordinates other = (ArtifactCoordinates) obj;
 
-
-        boolean match1 = false;
         if (groupId != null && other.groupId != null) {
             if (!groupId.equals(other.groupId)) {
                 return false;
-            } else {
-                match1 = true;
             }
         }
 
-        boolean match2 = false;
         if (artifactId != null && other.artifactId != null) {
             if (!artifactId.equals(other.artifactId)) {
                 return false;
-            } else {
-                match2 = true;
             }
         }
 
-        boolean match3 = false;
         if (version != null && other.version != null) {
-            if (!version.equals(other.version)) {
-                return false;
-            } else {
-                match3 = true;
-            }
+            return version.equals(other.version);
         }
 
-        return (match1 && match2 && match3);
+        return true;
     }
 
     /**
-     * @see io.apicurio.registry.resolver.strategy.ArtifactReference#toString()
+     * @see io.apicurio.registry.resolver.strategy.ArtifactCoordinates#toString()
      */
     @Override
     public String toString() {
-        return "ArtifactReference [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version + "]";
+        return "ArtifactCoordinates [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version + "]";
     }
 
-    public static ArtifactCoordinatesBuilder builder(){
+    public static ArtifactCoordinates fromArtifactReference(ArtifactReference artifactReference) {
+        return builder().artifactId(artifactReference.getArtifactId())
+                .groupId(artifactReference.getGroupId())
+                .version(artifactReference.getVersion())
+                .build();
+    }
+
+    public static ArtifactCoordinatesBuilder builder() {
         return new ArtifactCoordinatesBuilder();
     }
 

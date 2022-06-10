@@ -50,8 +50,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
-import java.util.function.Supplier;
 
 @ApplicationScoped
 public class IdentityServerResolver implements TenantConfigResolver {
@@ -75,6 +76,8 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @Inject
     TenantConfigBean tenantConfigBean;
 
+    private WrappedValue<OidcTenantConfig> cachedOidcConfig;
+
     @PostConstruct
     public void init() {
         if (resolveIdentityServer) {
@@ -85,6 +88,9 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @Override
     public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
         if (resolveIdentityServer) {
+            if (cachedOidcConfig == null || cachedOidcConfig.isExpired()){
+                cachedOidcConfig = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), resolveIdentityServer());
+            }
             return Uni.createFrom().item(resolveIdentityServer());
         }
 
@@ -92,7 +98,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
         return Uni.createFrom().item(tenantConfigBean.getDefaultTenant().getOidcTenantConfig());
     }
 
-    private Supplier<OidcTenantConfig> resolveIdentityServer() {
+    private OidcTenantConfig resolveIdentityServer() {
         final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
         final OidcTenantConfig config = new OidcTenantConfig();
 
@@ -100,7 +106,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
         config.setAuthServerUrl(ssoProviders.getValidIssuer());
         config.setClientId(apiClientId);
 
-        return () -> config;
+        return config;
     }
 
     public Request<SsoProviders> getSSOProviders() {

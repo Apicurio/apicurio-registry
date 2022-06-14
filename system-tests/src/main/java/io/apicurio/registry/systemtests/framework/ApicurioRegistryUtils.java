@@ -38,7 +38,10 @@ public class ApicurioRegistryUtils {
         return null;
     }
 
-    public static void deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext, boolean useKeycloak) {
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlNoAuth(
+            ExtensionContext testContext,
+            boolean useKeycloak
+    ) {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
@@ -51,9 +54,11 @@ public class ApicurioRegistryUtils {
 
         // Create Apicurio Registry without authentication
         ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlNoAuth);
+
+        return apicurioRegistryKafkasqlNoAuth;
     }
 
-    public static void deployDefaultApicurioRegistryKafkasqlTLS(
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlTLS(
             ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
@@ -88,9 +93,11 @@ public class ApicurioRegistryUtils {
 
         // Create Apicurio Registry with TLS configuration
         ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlTLS);
+
+        return apicurioRegistryKafkasqlTLS;
     }
 
-    public static void deployDefaultApicurioRegistryKafkasqlSCRAM(
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlSCRAM(
             ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
@@ -117,5 +124,7 @@ public class ApicurioRegistryUtils {
 
         // Create Apicurio Registry with SCRAM configuration
         ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlSCRAM);
+
+        return apicurioRegistryKafkasqlSCRAM;
     }
 }

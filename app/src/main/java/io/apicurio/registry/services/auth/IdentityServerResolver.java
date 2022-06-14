@@ -70,7 +70,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
     }
 
     private OidcTenantConfig resolveIdentityServer() {
-        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
+        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders(resolverRequestPath));
         final OidcTenantConfig config = new OidcTenantConfig();
 
         config.setTenantId(OIDC_RESOLVED_TENANT_ID);
@@ -80,7 +80,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
         return  config;
     }
 
-    public Request<SsoProviders> getSSOProviders() {
+    public static Request<SsoProviders> getSSOProviders(String resolverRequestPath) {
         return new Request.RequestBuilder<SsoProviders>()
                 .operation(Operation.GET)
                 .path(resolverRequestPath)
@@ -102,7 +102,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
         return Uni.createFrom().item(tenantConfigBean.getDefaultTenant().getOidcTenantConfig());
     }
 
-    private static class SsoProviders {
+    public static class SsoProviders {
 
         @JsonProperty("base_url")
         private String baseUrl;

@@ -21,10 +21,8 @@ import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
 import io.apicurio.multitenant.api.datamodel.SortBy;
 import io.apicurio.multitenant.api.datamodel.SortOrder;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.multitenant.client.TenantManagerClient;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.OptionalBean;
 import io.quarkus.scheduler.Scheduled;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -66,9 +64,6 @@ public class TenantReaper {
 
     @Inject
     TenantContext tctx;
-
-    @Inject
-    OptionalBean<TenantManagerClient> tenantManagerClient;
 
     Instant next;
 
@@ -130,7 +125,7 @@ public class TenantReaper {
         List<RegistryTenant> page;
         int tenantsProcessed = 0;
         do {
-            RegistryTenantList tenants = tenantManagerClient.get().listTenants(
+            RegistryTenantList tenants = tenantService.listTenants(
                 TenantStatusValue.TO_BE_DELETED,
                 0, 10, SortOrder.asc, SortBy.tenantId);
             page = tenants.getItems();

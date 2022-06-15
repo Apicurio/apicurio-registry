@@ -50,8 +50,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 
 @ApplicationScoped
@@ -71,12 +69,10 @@ public class IdentityServerResolver implements TenantConfigResolver {
 
     private ApicurioHttpClient httpClient;
 
-    private static final String OIDC_RESOLVED_TENANT_ID = "OIDC_RESOLVED_TENANT_ID";
-
     @Inject
     TenantConfigBean tenantConfigBean;
 
-    private WrappedValue<OidcTenantConfig> cachedOidcConfig;
+    public static String OIDC_DYNAMIC_TENANT_ID = "DYNAMIC_TENANT_ID";
 
     @PostConstruct
     public void init() {
@@ -88,9 +84,6 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @Override
     public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
         if (resolveIdentityServer) {
-            if (cachedOidcConfig == null || cachedOidcConfig.isExpired()){
-                cachedOidcConfig = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), resolveIdentityServer());
-            }
             return Uni.createFrom().item(resolveIdentityServer());
         }
 
@@ -102,8 +95,10 @@ public class IdentityServerResolver implements TenantConfigResolver {
         final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
         final OidcTenantConfig config = new OidcTenantConfig();
 
-        config.setTenantId(OIDC_RESOLVED_TENANT_ID);
+        config.setTenantId(OIDC_DYNAMIC_TENANT_ID);
+        config.setTokenPath(ssoProviders.getTokenUrl());
         config.setAuthServerUrl(ssoProviders.getValidIssuer());
+        config.setJwksPath(ssoProviders.getJwks());
         config.setClientId(apiClientId);
 
         return config;

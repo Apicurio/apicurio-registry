@@ -28,7 +28,6 @@ import io.apicurio.multitenant.client.exception.RegistryTenantForbiddenException
 import io.apicurio.multitenant.client.exception.RegistryTenantNotAuthorizedException;
 import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
 import io.apicurio.registry.services.auth.IdentityServerResolver;
-import io.apicurio.registry.services.auth.WrappedValue;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.rest.client.JdkHttpClientProvider;
@@ -49,7 +48,6 @@ import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,7 +85,6 @@ public class TenantMetadataService {
 
     private ApicurioHttpClient resolverHttpClient;
 
-    private WrappedValue<IdentityServerResolver.SsoProviders> cachedSsoProviders;
 
     @PostConstruct
     public void init() {
@@ -130,7 +127,6 @@ public class TenantMetadataService {
             if (resolveIdentityServer) {
                 resolverHttpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
                 final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-                cachedSsoProviders = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), ssoProviders);
                 if (!tenantManagerAuthServerUrl.equals(ssoProviders.getTokenUrl())) {
                     tenantManagerAuthServerUrl = ssoProviders.getTokenUrl();
                 }
@@ -155,7 +151,7 @@ public class TenantMetadataService {
 
     private TenantManagerClient getClient() {
 
-        if (resolveIdentityServer && cachedSsoProviders.isExpired()) {
+        if (resolveIdentityServer) {
 
             final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
 

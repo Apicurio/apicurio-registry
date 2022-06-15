@@ -93,7 +93,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
     public renderPage(): React.ReactElement {
         const artifact: ArtifactMetaData = this.state.artifact ? this.state.artifact : new ArtifactMetaData();
         const tabs: React.ReactNode[] = [
-            <Tab eventKey={0} title="Info" key="info" tabContentId="tab-info">
+            <Tab eventKey={0} title="Overview" key="overview" tabContentId="tab-info">
                 <InfoTabContent artifact={artifact}
                                 isLatest={this.versionParam() === "latest"}
                                 rules={this.rules()}
@@ -187,6 +187,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                 <EditMetaDataModal name={this.artifactName()}
                                    description={this.artifactDescription()}
                                    labels={this.artifactLabels()}
+                                   properties={this.artifactProperties()}
                                    isOpen={this.state.isEditModalOpen}
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
@@ -391,6 +392,10 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         return this.state.artifact ? (
             this.state.artifact.labels ? this.state.artifact.labels : []
         ) : [];
+    }
+
+    private artifactProperties(): { [key: string]: string } {
+        return this.state.artifact?.properties || {};
     }
 
     private onUploadFormValid = (isValid: boolean): void => {

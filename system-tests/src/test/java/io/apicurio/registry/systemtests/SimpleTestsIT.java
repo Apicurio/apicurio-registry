@@ -12,13 +12,12 @@ import io.apicurio.registry.systemtests.operator.types.StrimziClusterOLMOperator
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
-
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class SimpleTestsIT extends TestBase {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
@@ -66,7 +65,7 @@ public class SimpleTestsIT extends TestBase {
             );
             resourceManager.createResource(testContext, true, registrySql);
             // Apicurio Registry with KafkaSQL (with TLS) persistence
-            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafkasqlTls);
+            ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafkasqlTls, false);
             // Apicurio Registry with PostgreSQL persistence and Keycloak authentication
             ApicurioRegistry registryKeycloak = ApicurioRegistryResourceType.getDefaultSql("registry-keycloak");
             ApicurioRegistryResourceType.updateWithDefaultKeycloak(registryKeycloak);
@@ -75,7 +74,7 @@ public class SimpleTestsIT extends TestBase {
             // Print stack trace of exception
             e.printStackTrace();
             // Fail test
-            fail("Unexpected exception happened.");
+            Assertions.fail("Unexpected exception happened.");
         } finally {
             // Remove Keycloak
             KeycloakUtils.removeKeycloak();

@@ -1,15 +1,8 @@
 package io.apicurio.registry.systemtests;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
-import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
-import io.apicurio.registry.systemtests.framework.DatabaseUtils;
-import io.apicurio.registry.systemtests.framework.KafkaUtils;
-import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
-import io.apicurio.registry.systemtests.operator.types.KeycloakOLMOperatorType;
-import io.apicurio.registry.systemtests.operator.types.StrimziClusterOLMOperatorType;
-import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
-import io.strimzi.api.kafka.model.Kafka;
+import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
+import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -65,124 +58,43 @@ public abstract class Tests extends TestBase {
 
     @Test
     public void testRegistrySqlNoKeycloak(ExtensionContext testContext) {
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        ApicurioRegistry registry = ApicurioRegistryResourceType.getDefaultSql();
-        resourceManager.createResource(testContext, true, registry);
-
-        // TODO: Assert to check that test passed
+        runTest(testContext, PersistenceKind.SQL, null, false, true);
     }
 
     @Test
     public void testRegistrySqlKeycloak(ExtensionContext testContext) {
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-        KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-        operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-        KeycloakUtils.deployKeycloak(testContext);
-
-        ApicurioRegistry registry = ApicurioRegistryResourceType.getDefaultSql();
-        ApicurioRegistryResourceType.updateWithDefaultKeycloak(registry);
-        resourceManager.createResource(testContext, true, registry);
-
-        // TODO: Assert to check that test passed
-
-        KeycloakUtils.removeKeycloak();
+        runTest(testContext, PersistenceKind.SQL, null, true, true);
     }
 
     /* TESTS - KafkaSQL */
 
     @Test
     public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext) {
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        KafkaUtils.deployDefaultKafkaNoAuth(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, false);
-
-        // TODO: Assert to check that test passed
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false, true);
     }
 
     @Test
     public void testRegistryKafkasqlNoAuthKeycloak(ExtensionContext testContext) {
-        KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-        operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-        KeycloakUtils.deployKeycloak(testContext);
-
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        KafkaUtils.deployDefaultKafkaNoAuth(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, true);
-
-        // TODO: Assert to check that test passed
-
-        KeycloakUtils.removeKeycloak();
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlTLSNoKeycloak(ExtensionContext testContext) {
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        Kafka kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafka, false);
-
-        // TODO: Assert to check that test passed
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false, true);
     }
 
     @Test
     public void testRegistryKafkasqlTLSKeycloak(ExtensionContext testContext) {
-        KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-        operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-        KeycloakUtils.deployKeycloak(testContext);
-
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        Kafka kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafka, true);
-
-        // TODO: Assert to check that test passed
-
-        KeycloakUtils.removeKeycloak();
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext) {
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        Kafka kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafka, false);
-
-        // TODO: Assert to check that test passed
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false, true);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMKeycloak(ExtensionContext testContext) {
-        KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-        operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-        KeycloakUtils.deployKeycloak(testContext);
-
-        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-        operatorManager.installOperator(testContext, strimziOperator);
-
-        Kafka kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
-
-        ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafka, true);
-
-        // TODO: Assert to check that test passed
-
-        KeycloakUtils.removeKeycloak();
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true, true);
     }
 }

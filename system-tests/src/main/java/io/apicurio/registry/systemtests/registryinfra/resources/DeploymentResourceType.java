@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DeploymentResourceType implements ResourceType<Deployment> {
@@ -153,5 +154,53 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
 
     public static Deployment getDefaultPostgresql() {
         return getDefaultPostgresql("postgresql", "postgresql");
+    }
+
+    private static Container getDefaultSeleniumContainer(String name) {
+        return new ContainerBuilder()
+                .withName(name)
+                .withImage("quay.io/redhatqe/selenium-standalone")
+                .addNewPort()
+                    .withContainerPort(4444)
+                    .withName("http")
+                    .withProtocol("TCP")
+                .endPort()
+                .withNewReadinessProbe()
+                    .withNewHttpGet()
+                        .withPath("/wd/hub/status")
+                        .withNewPort(4444)
+                    .endHttpGet()
+                    .withInitialDelaySeconds(10)
+                    .withPeriodSeconds(2)
+                .endReadinessProbe()
+                .build();
+    }
+
+    public static Deployment getDefaultSelenium(String name, String namespace) {
+        return new DeploymentBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                    .withLabels(Collections.singletonMap("app", name))
+                .endMetadata()
+                .withNewSpec()
+                    .withReplicas(1)
+                    .withNewSelector()
+                        .addToMatchLabels("app", name)
+                    .endSelector()
+                    .withNewTemplate()
+                        .withNewMetadata()
+                            .addToLabels("app", name)
+                        .endMetadata()
+                        .withNewSpec()
+                            .withContainers(getDefaultSeleniumContainer(name))
+                        .endSpec()
+                    .endTemplate()
+                .endSpec()
+                .build();
+    }
+
+    public static Deployment getDefaultSelenium() {
+        return getDefaultSelenium("selenium-chrome", "selenium");
     }
 }

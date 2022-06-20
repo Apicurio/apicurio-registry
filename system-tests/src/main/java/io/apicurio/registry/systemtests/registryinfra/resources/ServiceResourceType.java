@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 
 public class ServiceResourceType implements ResourceType<Service> {
@@ -121,5 +122,28 @@ public class ServiceResourceType implements ResourceType<Service> {
                     .withType("ClusterIP")
                 .endSpec()
                 .build();
+    }
+
+    public static Service getDefaultSelenium(String name, String namespace) {
+        return new ServiceBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                    .withLabels(Collections.singletonMap("app", name))
+                .endMetadata()
+                .withNewSpec()
+                    .withPorts(new ServicePort() {{
+                        setPort(4444);
+                        setProtocol("TCP");
+                        setName("http");
+                    }})
+                    .withSelector(Collections.singletonMap("app", name))
+                    .withType("ClusterIP")
+                .endSpec()
+                .build();
+    }
+
+    public static Service getDefaultSelenium() {
+        return getDefaultSelenium("selenium-chrome", "selenium");
     }
 }

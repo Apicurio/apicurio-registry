@@ -7,6 +7,7 @@ import io.fabric8.openshift.api.model.RouteBuilder;
 import io.fabric8.openshift.api.model.RouteTargetReference;
 
 import java.time.Duration;
+import java.util.Collections;
 
 public class RouteResourceType implements ResourceType<Route> {
     @Override
@@ -77,5 +78,27 @@ public class RouteResourceType implements ResourceType<Route> {
                     }})
                 .endSpec()
                 .build();
+    }
+
+    public static Route getDefaultSelenium(String name, String namespace) {
+        return new RouteBuilder()
+                .withNewMetadata()
+                    .withName(name)
+                    .withNamespace(namespace)
+                    .withLabels(Collections.singletonMap("app", name))
+                .endMetadata()
+                .withNewSpec()
+                    .withPath("/")
+                    .withTo(new RouteTargetReference() {{
+                        setKind("Service");
+                        setName(name);
+                        setWeight(100);
+                    }})
+                .endSpec()
+                .build();
+    }
+
+    public static Route getDefaultSelenium() {
+        return getDefaultSelenium("selenium-chrome", "selenium");
     }
 }

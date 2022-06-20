@@ -8,6 +8,7 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.CatalogSourceResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.DeploymentResourceType;
+import io.apicurio.registry.systemtests.registryinfra.resources.IngressResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaConnectResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaTopicResourceType;
@@ -61,7 +62,8 @@ public class ResourceManager {
             new SecretResourceType(),
             new OperatorGroupResourceType(),
             new SubscriptionResourceType(),
-            new CatalogSourceResourceType()
+            new CatalogSourceResourceType(),
+            new IngressResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {

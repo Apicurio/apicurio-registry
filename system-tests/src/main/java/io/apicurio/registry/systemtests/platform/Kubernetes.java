@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtests.platform;
 
+import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -32,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -228,6 +230,16 @@ public final class Kubernetes {
                 .get();
     }
 
+    public static Route getRoute(ApicurioRegistry apicurioRegistry) {
+        return ((OpenShiftClient) getClient())
+                .routes()
+                .inNamespace(apicurioRegistry.getMetadata().getNamespace())
+                .withLabels(Collections.singletonMap("app", apicurioRegistry.getMetadata().getName()))
+                .list()
+                .getItems()
+                .get(0);
+    }
+
     public static void createRoute(String namespace, Route route) {
         ((OpenShiftClient) getClient())
                 .routes()
@@ -366,7 +378,13 @@ public final class Kubernetes {
     }
 
     public static String getRouteHost(String namespace, String name) {
-        return getRoute(namespace, name)
+        Route route = getRoute(namespace, name);
+
+        if (route == null || route.getStatus() == null) {
+            return null;
+        }
+
+        return route
                 .getStatus()
                 .getIngress()
                 .get(0)

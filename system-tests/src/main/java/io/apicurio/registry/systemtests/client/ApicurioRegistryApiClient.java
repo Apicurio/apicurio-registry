@@ -17,10 +17,28 @@ public class ApicurioRegistryApiClient {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private String host;
     private int port;
+    private String token;
+
+    public ApicurioRegistryApiClient(String host) {
+        this.host = host;
+        this.port = 80;
+    }
+
+    public ApicurioRegistryApiClient(String host, String token) {
+        this.host = host;
+        this.port = 80;
+        this.token = token;
+    }
 
     public ApicurioRegistryApiClient(String host, int port) {
         this.host = host;
         this.port = port;
+    }
+
+    public ApicurioRegistryApiClient(String host, int port, String token) {
+        this.host = host;
+        this.port = port;
+        this.token = token;
     }
 
     public boolean createArtifact(
@@ -29,20 +47,28 @@ public class ApicurioRegistryApiClient {
         // Get request URI
         URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, groupId));
 
-        // Create request
-        HttpRequest request = HttpRequest.newBuilder()
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
                 .uri(uri)
+                // Set common request headers
                 .header("Content-Type", "application/json")
                 .header("X-Registry-ArtifactId", id)
                 .header("X-Registry-ArtifactType", type.name())
-                .POST(HttpRequest.BodyPublishers.ofString(content))
-                .build();
+                // Set request type and content
+                .POST(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with token when provided
+        if (token != null) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        }
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClient.newHttpClient()
                 .send(request, HttpResponse.BodyHandlers.ofString());
-
-
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -62,15 +88,24 @@ public class ApicurioRegistryApiClient {
                 String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
         );
 
-        // Create request
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
                 .uri(uri)
-                .GET()
-                .build();
+                // Set request type
+                .GET();
+
+        // Set header with token when provided
+        if (token != null) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        }
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                .send(request, HttpResponse.BodyHandlers.ofString());
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -90,15 +125,24 @@ public class ApicurioRegistryApiClient {
                 String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
         );
 
-        // Create request
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
                 .uri(uri)
-                .DELETE()
-                .build();
+                // Set request type
+                .DELETE();
+
+        // Set header with token when provided
+        if (token != null) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        }
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                .send(request, HttpResponse.BodyHandlers.ofString());
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_NO_CONTENT) {
@@ -114,15 +158,24 @@ public class ApicurioRegistryApiClient {
         // Get request URI
         URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/search/artifacts", host, port));
 
-        // Create request
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
                 .uri(uri)
-                .GET()
-                .build();
+                // Set request type
+                .GET();
+
+        // Set header with token when provided
+        if (token != null) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        }
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                .send(request, HttpResponse.BodyHandlers.ofString());
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -148,5 +201,13 @@ public class ApicurioRegistryApiClient {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

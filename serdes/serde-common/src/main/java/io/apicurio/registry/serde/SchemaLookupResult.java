@@ -17,6 +17,7 @@
 package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
@@ -92,6 +93,14 @@ public class SchemaLookupResult<T> {
         return ArtifactReference.builder()
                 .globalId(this.getGlobalId())
                 .contentId(this.getContentId())
+                .groupId(this.getGroupId())
+                .artifactId(this.getArtifactId())
+                .version(this.getVersion())
+                .build();
+    }
+
+    public ArtifactCoordinates toArtifactCoordinates() {
+        return ArtifactCoordinates.builder()
                 .groupId(this.getGroupId())
                 .artifactId(this.getArtifactId())
                 .version(this.getVersion())

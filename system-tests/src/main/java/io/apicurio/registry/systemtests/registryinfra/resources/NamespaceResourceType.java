@@ -19,22 +19,22 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
 
     @Override
     public Namespace get(String namespace, String name) {
-        return Kubernetes.getClient().namespaces().withName(name).get();
+        return Kubernetes.getNamespace(name);
     }
 
     @Override
     public void create(Namespace resource) {
-        Kubernetes.getClient().namespaces().create(resource);
+        Kubernetes.createNamespace(resource);
     }
 
     @Override
     public void createOrReplace(Namespace resource) {
-        Kubernetes.getClient().namespaces().createOrReplace(resource);
+        Kubernetes.createOrReplaceNamespace(resource);
     }
 
     @Override
     public void delete(Namespace resource) {
-        Kubernetes.getClient().namespaces().withName(resource.getMetadata().getName()).delete();
+        Kubernetes.deleteNamespace(resource.getMetadata().getName());
     }
 
     @Override

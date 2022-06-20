@@ -23,6 +23,10 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     protected static final Logger LOGGER = LoggerUtils.getLogger();
     private CatalogSource catalogSource = null;
 
+    public ApicurioRegistryOLMOperatorType() {
+        super(Environment.CATALOG_IMAGE, Constants.CLUSTER_WIDE_NAMESPACE, true);
+    }
+
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
         super(
                 Environment.CATALOG_IMAGE,
@@ -142,7 +146,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
             catalogName = catalogSource.getMetadata().getName();
         }
 
-        if (!getClusterWide() && !OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+        if (!getClusterWide() && !Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
             setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
         }
 

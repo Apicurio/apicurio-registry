@@ -1,16 +1,17 @@
 package io.apicurio.registry.systemtests.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.systemtests.framework.HttpClientUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
+import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import org.apache.hc.core5.http.HttpStatus;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 public class ApicurioRegistryApiClient {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -41,11 +42,71 @@ public class ApicurioRegistryApiClient {
         this.token = token;
     }
 
-    public boolean createArtifact(
-            String groupId, String id, ArtifactType type, String content
-    ) throws URISyntaxException, IOException, InterruptedException {
+    public boolean isServiceAvailable() {
         // Get request URI
-        URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, groupId));
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with token when provided
+        if (token != null) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        }
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        // Check response status code
+        if (response.statusCode() != HttpStatus.SC_OK) {
+            LOGGER.warn("Response: code={}", response.statusCode());
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean waitServiceAvailable() {
+        TimeoutBudget timeout = TimeoutBudget.ofDuration(Duration.ofMinutes(3));
+
+        LOGGER.info("Waiting for API to be ready...");
+
+        while (!timeout.timeoutExpired()) {
+            if (isServiceAvailable()) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        if (!isServiceAvailable()) {
+            LOGGER.error("API failed readiness check.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean createArtifact(String groupId, String id, ArtifactType type, String content) {
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, groupId
+        );
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -67,8 +128,7 @@ public class ApicurioRegistryApiClient {
         HttpRequest request = requestBuilder.build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -80,12 +140,10 @@ public class ApicurioRegistryApiClient {
         return true;
     }
 
-    public String readArtifactContent(
-            String group, String id
-    ) throws URISyntaxException, IOException, InterruptedException {
+    public String readArtifactContent(String group, String id) {
         // Get request URI
-        URI uri = new URI(
-                String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id
         );
 
         // Get request builder
@@ -104,8 +162,7 @@ public class ApicurioRegistryApiClient {
         HttpRequest request = requestBuilder.build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -117,12 +174,10 @@ public class ApicurioRegistryApiClient {
         return response.body();
     }
 
-    public boolean deleteArtifact(
-            String group, String id
-    ) throws URISyntaxException, IOException, InterruptedException {
+    public boolean deleteArtifact(String group, String id) {
         // Get request URL
-        URI uri = new URI(
-                String.format("http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id)
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id
         );
 
         // Get request builder
@@ -141,8 +196,7 @@ public class ApicurioRegistryApiClient {
         HttpRequest request = requestBuilder.build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_NO_CONTENT) {
@@ -154,9 +208,9 @@ public class ApicurioRegistryApiClient {
         return true;
     }
 
-    public ArtifactList listArtifacts() throws URISyntaxException, IOException, InterruptedException {
+    public ArtifactList listArtifacts() {
         // Get request URI
-        URI uri = new URI(String.format("http://%s:%d/apis/registry/v2/search/artifacts", host, port));
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -174,8 +228,7 @@ public class ApicurioRegistryApiClient {
         HttpRequest request = requestBuilder.build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -184,7 +237,41 @@ public class ApicurioRegistryApiClient {
             return null;
         }
 
-        return MAPPER.readValue(response.body(), ArtifactList.class);
+        try {
+            return MAPPER.readValue(response.body(), ArtifactList.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean checkUnauthorized() {
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with fake token
+        requestBuilder.header("Authorization", "Bearer thisShouldNotWork");
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        // Check response status code
+        if (response.statusCode() != HttpStatus.SC_UNAUTHORIZED) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        return true;
     }
 
     public String getHost() {

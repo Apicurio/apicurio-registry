@@ -17,6 +17,10 @@ import org.slf4j.Logger;
 public class StrimziClusterOLMOperatorType extends OLMOperator implements OperatorType {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
 
+    public StrimziClusterOLMOperatorType() {
+        super(null, Constants.CLUSTER_WIDE_NAMESPACE, true);
+    }
+
     public StrimziClusterOLMOperatorType(boolean isClusterWide) {
         super(
                 null,
@@ -66,7 +70,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
 
-            if (!OperatorUtils.namespaceHasAnyOperatorGroup(getNamespace())) {
+            if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
                 setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
             }
         }

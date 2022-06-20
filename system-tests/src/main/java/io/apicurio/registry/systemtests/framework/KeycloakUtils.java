@@ -1,5 +1,6 @@
 package io.apicurio.registry.systemtests.framework;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.executor.Exec;
@@ -11,18 +12,14 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 public class KeycloakUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -48,7 +45,6 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak.yaml")
         );
-        // TODO: Add Keycloak server cleanup
 
         // Wait for Keycloak server to be ready
         ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
@@ -69,7 +65,6 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
-        // TODO: Add Keycloak Realm cleanup, but API model not available
 
         // TODO: Wait for Keycloak Realm readiness, but API model not available
 
@@ -128,16 +123,14 @@ public class KeycloakUtils {
         return HttpRequest.BodyPublishers.ofString(stringBuilder.toString());
     }
 
-    public static String getAccessToken(
-            ApicurioRegistry apicurioRegistry, String username, String password
-    ) throws URISyntaxException, IOException, InterruptedException, ExecutionException {
+    public static String getAccessToken(ApicurioRegistry apicurioRegistry, String username, String password) {
         // Get Keycloak URL of Apicurio Registry
         String keycloakUrl = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getUrl();
         // Get Keycloak Realm of Apicurio Registry
         String keycloakRealm = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getRealm();
         // Construct token API URI of Keycloak Realm
-        URI keycloakRealmUrl = new URI(
-                String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm)
+        URI keycloakRealmUrl = HttpClientUtils.buildURI(
+                "%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm
         );
         // Get Keycloak API client ID of Apicurio Registry
         String clientId = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getApiClientId();
@@ -159,8 +152,7 @@ public class KeycloakUtils {
                 .build();
 
         // Process request
-        HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -170,9 +162,10 @@ public class KeycloakUtils {
         }
 
         // Return access token
-        return MAPPER
-                .readValue(response.body(), Map.class)
-                .get("access_token")
-                .toString();
+        try {
+            return MAPPER.readValue(response.body(), Map.class).get("access_token").toString();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -7,6 +7,7 @@ import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.NamespaceResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.Namespace;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -15,8 +16,6 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class OperatorManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -69,7 +68,7 @@ public class OperatorManager {
         if (waitReady) {
             LOGGER.info("Waiting for operator {} to be ready...", operatorInfo);
 
-            assertTrue(
+            Assertions.assertTrue(
                     waitOperatorReady(operatorType),
                     MessageFormat.format("Timed out waiting for operator {0} to be ready.", operatorInfo)
             );
@@ -99,7 +98,7 @@ public class OperatorManager {
         if (waitRemoved) {
             LOGGER.info("Waiting for operator {} to be uninstalled...", operatorInfo);
 
-            assertTrue(
+            Assertions.assertTrue(
                     waitOperatorRemoved(operatorType),
                     MessageFormat.format("Timed out waiting for operator {0} to be uninstalled.", operatorInfo)
             );

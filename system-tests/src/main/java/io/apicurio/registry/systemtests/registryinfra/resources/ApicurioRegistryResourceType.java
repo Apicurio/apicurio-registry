@@ -113,6 +113,12 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     }
 
     public static ApicurioRegistry getDefaultSql(String name, String namespace) {
+        return getDefaultSql(name, namespace, "postgresql", "postgresql");
+    }
+
+    public static ApicurioRegistry getDefaultSql(String name, String namespace, String sqlName, String sqlNamespace) {
+        String sqlUrl = "jdbc:postgresql://" + sqlName + "." + sqlNamespace + ".svc.cluster.local:5432/postgresdb";
+
         return new ApicurioRegistryBuilder()
                 .withNewMetadata()
                     .withName(name)
@@ -123,7 +129,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("sql")
                         .withNewSql()
                             .withNewDataSource()
-                                .withUrl("jdbc:postgresql://postgresql.postgresql.svc.cluster.local:5432/postgresdb")
+                                .withUrl(sqlUrl)
                                 .withUserName("postgresuser")
                                 .withPassword("postgrespassword")
                             .endDataSource()

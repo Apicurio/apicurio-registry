@@ -23,8 +23,6 @@ public class TenantReaper {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final Random RANDOM = new Random();
-
     @Inject
     RegistryTenantStorage storage;
 
@@ -51,7 +49,7 @@ public class TenantReaper {
         // Only stagger if the reaper period is at least 1 minute (testing support).
         if (getReaperPeriod().compareTo(Duration.ofMinutes(1)) >= 0) {
             // Start with a random stagger, 1-30 minutes, inclusive.
-            stagger = Duration.ofMinutes(RANDOM.nextInt(30) + 1L);
+            stagger = Duration.ofMinutes(new Random().nextInt(30) + 1L); // TODO Reuse RNG in multiple places
             log.info("Staggering tenant manager reaper job by {}", stagger);
         }
         next = Instant.now().plus(stagger);

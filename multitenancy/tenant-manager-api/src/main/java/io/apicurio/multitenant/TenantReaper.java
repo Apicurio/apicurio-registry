@@ -26,10 +26,10 @@ public class TenantReaper {
     @Inject
     RegistryTenantStorage storage;
 
-    @ConfigProperty(name = "tenant-manager.tenant-reaper.max-tenants-reaped", defaultValue = "100")
+    @ConfigProperty(name = "tenant-manager.tenant-reaper.max-tenants-reaped.count", defaultValue = "100")
     int maxTenantsReaped;
 
-    @ConfigProperty(name = "tenant-manager.tenant-reaper.period-seconds", defaultValue = "10800") // 3 * 60 * 60 = 3 hours
+    @ConfigProperty(name = "tenant-manager.tenant-reaper.period.seconds", defaultValue = "10800") // 3 * 60 * 60 = 3 hours
     int reaperPeriodSeconds;
 
     private Duration reaperPeriod;
@@ -55,7 +55,7 @@ public class TenantReaper {
         next = Instant.now().plus(stagger);
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "{tenant-manager.tenant-reaper.every}")
+    @Scheduled(concurrentExecution = SKIP, every = "{tenant-manager.tenant-reaper.check-period.duration-expr}")
     void run() {
         final var now = Instant.now();
         if (now.isAfter(next)) {

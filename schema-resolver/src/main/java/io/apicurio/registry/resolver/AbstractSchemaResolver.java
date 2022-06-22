@@ -100,10 +100,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
         schemaCache.configureRetryCount(config.getRetryCount());
 
-        schemaCache.configureArtifactReferenceKeyExtractor(SchemaLookupResult::toArtifactReference);
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
         schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getParsedSchema().getRawSchema()).map(IoUtil::toString).orElse(null));
         schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
+        schemaCache.configureArtifactCoordinatesKeyExtractor(SchemaLookupResult::toArtifactCoordinates);
         schemaCache.checkInitialized();
 
         String groupIdOverride = config.getExplicitArtifactGroupId();

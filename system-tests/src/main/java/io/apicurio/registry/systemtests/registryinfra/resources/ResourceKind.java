@@ -15,4 +15,5 @@ public final class ResourceKind {
     public static final String OPERATOR_GROUP = "OperatorGroup";
     public static final String SUBSCRIPTION = "Subscription";
     public static final String CATALOG_SOURCE = "CatalogSource";
+    public static final String INGRESS = "Ingress";
 }

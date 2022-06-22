@@ -5,33 +5,30 @@
 = Configuring content rules using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to the registry. Configured artifact rules override any configured global rules. This section shows a simple example of configuring global and artifact rules.
+You can use the {registry} web console to configure optional rules to prevent invalid content from being added to the registry. All configured artifact rules or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact rules override any configured global rules. This section shows a simple example of configuring global and artifact rules.
 
 .Prerequisites
 
 ifdef::apicurio-registry,rh-service-registry[]
-* {registry} is installed and running in your environment
+* {registry} is installed and running in your environment.
 endif::[]
-ifdef::rh-openshift-sr[]
-* You have access to the {registry} web console
-endif::[]
-* Artifacts have been added to the registry using the {registry} web console, REST API, command line, Maven plug-in, or a Java client application. 
+* You are logged in to the {registry} web console:
++ 
+`{registry-url}`
+* Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application. 
 
 .Procedure
 
-. Connect to the {registry} web console on: 
-+
-`{registry-url}`
 ifdef::rh-openshift-sr[]
-. Click your existing {registry} instance. 
+. In the {registry} web console, click your existing {registry} instance. 
 endif::[]
-. For artifact rules, browse the list of artifacts stored in the registry, or enter a search string to find an artifact. You can select to search by a specific artifact *Name*, *Group*, *Description*, or *Labels*.  
+. On the *Artifacts* tab, browse the list of artifacts in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as artifact name, group, labels, or global ID. 
 
-. Click *View artifact* to view the *Artifact Details*.
+. Click an artifact to view its version details and content rules.
 
-. In *Content Rules*, click *Enable* to configure an artifact *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
+. In *Content rules*, click *Enable* to configure an validity rule or compatibility rule for artifact content, and select the appropriate rule configuration from the list, for example, *Full* for the validity rule. 
 +
-.Configure content rules in {registry} web console
+.Artifact content rules in {registry} web console
 ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-web-console-rules.png[Configure rules in Registry web console]
 endif::[]
@@ -39,12 +36,7 @@ ifdef::rh-openshift-sr[]
 image::../_images/user-guide/registry-web-console-rules.png[Configure rules in Registry web console]
 endif::[]
 +
-ifdef::apicurio-registry,rh-service-registry[]
-. For global rules, click *Manage global rules* at the top right of the toolbar, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
-endif::[]
-ifdef::rh-openshift-sr[]
-. For global rules, click the *Global Rules* tab at the top left of your {registry} instance, and click *Enable* to configure a global *Validity Rule* or *Compatibility Rule*, and select the appropriate rule configuration from the drop-down. 
-endif::[]
+. For global rules, click the *Global rules* tab at the top left of your {registry} instance, and click *Enable* to configure a global validity rule or compatibility rule for all artifact content, and select the appropriate rule configuration from the list. 
 
 . To disable an artifact rule or global rule, click the trash icon next to the rule. 
 

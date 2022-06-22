@@ -546,7 +546,12 @@ objects:
               secretKeyRef:
                 name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
                 key: client-id
-
+          - name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR
+            value: ${TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR}
+          - name: TENANT_MANAGER_REAPER_PERIOD_SECONDS
+            value: ${TENANT_MANAGER_REAPER_PERIOD_SECONDS}
+          - name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
+            value: ${TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -840,6 +845,7 @@ parameters:
 - name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
   description: "When true, the 'UI Read Only Mode' dynamic property is exposed to admins."
   value: "true"
+
 - name: IDENTITY_SERVER_RESOLVER_ENABLED
   description: "When true, the identity server will be dynamically resolved."
   value: "false"
@@ -858,3 +864,11 @@ parameters:
 - name: IDENTITY_SERVER_RESOLVER_CLIENT_SECRET
   description: "Client secret to be used with the identity resolver request."
   value: "secret"
+
+  # Tenant Manager Reaper Configuration
+- name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR
+  value: "1m"
+- name: TENANT_MANAGER_REAPER_PERIOD_SECONDS
+  value: "10800" # 3 * 60 * 60 = 3 hours
+- name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
+  value: "100"

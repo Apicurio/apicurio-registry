@@ -116,28 +116,17 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
             return null;
         }
 
-        return Kubernetes.getClient()
-                .apps()
-                .deployments()
-                .inNamespace(getNamespace())
-                .withName(deployment.getMetadata().getName())
-                .get();
+        return Kubernetes.getDeployment(getNamespace(), deployment.getMetadata().getName());
     }
 
     @Override
     public void install(ExtensionContext testContext) {
-        Kubernetes.getClient()
-                .resourceList(getResources())
-                .inNamespace(getNamespace())
-                .createOrReplace();
+        Kubernetes.createOrReplaceResources(getNamespace(), getResources());
     }
 
     @Override
     public void uninstall() {
-        Kubernetes.getClient()
-                .resourceList(getResources())
-                .inNamespace(getNamespace())
-                .delete();
+        Kubernetes.deleteResources(getNamespace(), getResources());
     }
 
     @Override

@@ -1,7 +1,9 @@
 package io.apicurio.registry.systemtests.platform;
 
+import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -12,6 +14,8 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.api.model.operatorhub.lifecyclemanager.v1.PackageManifest;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
@@ -29,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -62,6 +67,10 @@ public final class Kubernetes {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static List<HasMetadata> loadFromFile(String path) {
+        return loadFromFile(Path.of(path));
     }
 
     public static List<HasMetadata> loadFromDirectory(Path path) {
@@ -183,6 +192,18 @@ public final class Kubernetes {
         return catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY");
     }
 
+    public static void createNamespace(Namespace namespace) {
+        Kubernetes.getClient()
+                .namespaces()
+                .create(namespace);
+    }
+
+    public static void createOrReplaceNamespace(Namespace namespace) {
+        Kubernetes.getClient()
+                .namespaces()
+                .createOrReplace(namespace);
+    }
+
     public static Namespace getNamespace(String name) {
         return getClient()
                 .namespaces()
@@ -207,6 +228,16 @@ public final class Kubernetes {
                 .inNamespace(namespace)
                 .withName(name)
                 .get();
+    }
+
+    public static Route getRoute(ApicurioRegistry apicurioRegistry) {
+        return ((OpenShiftClient) getClient())
+                .routes()
+                .inNamespace(apicurioRegistry.getMetadata().getNamespace())
+                .withLabels(Collections.singletonMap("app", apicurioRegistry.getMetadata().getName()))
+                .list()
+                .getItems()
+                .get(0);
     }
 
     public static void createRoute(String namespace, Route route) {
@@ -347,7 +378,13 @@ public final class Kubernetes {
     }
 
     public static String getRouteHost(String namespace, String name) {
-        return getRoute(namespace, name)
+        Route route = getRoute(namespace, name);
+
+        if (route == null || route.getStatus() == null) {
+            return null;
+        }
+
+        return route
                 .getStatus()
                 .getIngress()
                 .get(0)
@@ -504,5 +541,22 @@ public final class Kubernetes {
         }
 
         return status.getReadyReplicas() > 0;
+    }
+
+    public static <T extends HasMetadata> MixedOperation<T, KubernetesResourceList<T>, Resource<T>>
+    getResources(Class<T> tClass) {
+        return Kubernetes.getClient().resources(tClass);
+    }
+
+    public static boolean namespaceHasAnyOperatorGroup(String name) {
+        int namespaceOperatorGroupsCount = ((OpenShiftClient) getClient())
+                .operatorHub()
+                .operatorGroups()
+                .inNamespace(name)
+                .list()
+                .getItems()
+                .size();
+
+        return namespaceOperatorGroupsCount > 0;
     }
 }

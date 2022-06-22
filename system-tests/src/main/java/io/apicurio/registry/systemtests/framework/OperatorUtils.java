@@ -14,7 +14,6 @@ import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionSpec;
-import io.fabric8.openshift.client.OpenShiftClient;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -198,18 +197,6 @@ public class OperatorUtils {
 
     public static boolean waitCatalogSourceReady(String namespace, String name) {
         return waitCatalogSourceReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
-    }
-
-    public static boolean namespaceHasAnyOperatorGroup(String name) {
-        int namespaceOperatorGroupsCount = ((OpenShiftClient) Kubernetes.getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(name)
-                .list()
-                .getItems()
-                .size();
-
-        return namespaceOperatorGroupsCount > 0;
     }
 
     public static OperatorGroup createOperatorGroup(ExtensionContext testContext, String namespace) {

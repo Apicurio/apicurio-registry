@@ -8,6 +8,7 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.CatalogSourceResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.DeploymentResourceType;
+import io.apicurio.registry.systemtests.registryinfra.resources.IngressResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaConnectResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaTopicResourceType;
@@ -22,6 +23,7 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -31,9 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Predicate;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ResourceManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -63,7 +62,8 @@ public class ResourceManager {
             new SecretResourceType(),
             new OperatorGroupResourceType(),
             new SubscriptionResourceType(),
-            new CatalogSourceResourceType()
+            new CatalogSourceResourceType(),
+            new IngressResourceType()
     };
 
     private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
@@ -108,7 +108,7 @@ public class ResourceManager {
         LOGGER.info("Resource {} created.", resourceInfo);
 
         if (waitReady) {
-            assertTrue(
+            Assertions.assertTrue(
                     waitResourceCondition(resource, type::isReady),
                     MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
             );
@@ -133,11 +133,11 @@ public class ResourceManager {
     public final <T extends HasMetadata> boolean waitResourceCondition(
             T resource, Predicate<T> condition, TimeoutBudget timeout
     ) {
-        assertNotNull(resource);
-        assertNotNull(resource.getMetadata());
-        assertNotNull(resource.getMetadata().getName());
+        Assertions.assertNotNull(resource);
+        Assertions.assertNotNull(resource.getMetadata());
+        Assertions.assertNotNull(resource.getMetadata().getName());
         ResourceType<T> type = findResourceType(resource);
-        assertNotNull(type);
+        Assertions.assertNotNull(type);
 
         LOGGER.info("Waiting for resource {} to meet the condition...", resource.getKind());
 
@@ -200,7 +200,7 @@ public class ResourceManager {
             e.printStackTrace();
         }
 
-        assertTrue(
+        Assertions.assertTrue(
                 waitResourceCondition(resource, type::doesNotExist, TimeoutBudget.ofDuration(Duration.ofMinutes(3))),
                 MessageFormat.format("Timed out waiting for resource {0} to be deleted.", resourceInfo)
         );

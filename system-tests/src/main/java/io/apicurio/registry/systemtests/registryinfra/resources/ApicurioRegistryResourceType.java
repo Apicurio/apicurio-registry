@@ -34,7 +34,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     public static MixedOperation<ApicurioRegistry, KubernetesResourceList<ApicurioRegistry>, Resource<ApicurioRegistry>>
     getOperation() {
-        return Kubernetes.getClient().resources(ApicurioRegistry.class);
+        return Kubernetes.getResources(ApicurioRegistry.class);
     }
 
     @Override

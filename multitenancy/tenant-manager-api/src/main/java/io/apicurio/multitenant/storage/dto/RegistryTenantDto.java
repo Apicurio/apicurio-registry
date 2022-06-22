@@ -17,6 +17,7 @@ package io.apicurio.multitenant.storage.dto;
 
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "tenants")
+@ToString
 public class RegistryTenantDto {
 
     @Id
@@ -170,10 +172,10 @@ public class RegistryTenantDto {
         t.setDescription(this.getDescription());
         t.setResources(
                 Optional.ofNullable(this.resources)
-                    .map(Collection::stream)
-                    .orElseGet(Stream::empty)
-                    .map(RegistryTenantResourceLimitDto::toDatamodel)
-                    .collect(Collectors.toList()));
+                        .map(Collection::stream)
+                        .orElseGet(Stream::empty)
+                        .map(RegistryTenantResourceLimitDto::toDatamodel)
+                        .collect(Collectors.toList()));
         t.setStatus(TenantStatusValue.fromValue(this.getStatus()));
         return t;
     }

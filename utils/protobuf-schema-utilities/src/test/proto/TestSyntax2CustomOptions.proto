@@ -31,7 +31,7 @@ message Address {
 
   oneof test_oneof {
     string state = 5;
-    string country = 7;
+    string country = 7 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "country of residence"];
   }
 
   repeated int32 samples = 6 [packed=true];
@@ -42,6 +42,8 @@ message Address {
 message Customer {
 
   required string name = 1;
+
+  optional int32 balance = 3 [(metadata.metadata_key) = "decimal.scale", (metadata.metadata_value) = "10"];
 
   reserved 2, 15, 10 to 11, 800 to 899;
 

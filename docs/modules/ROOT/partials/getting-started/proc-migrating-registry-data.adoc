@@ -18,7 +18,7 @@ ifdef::apicurio-registry[]
 link:https://github.com/Apicurio/apicurio-registry/releases/download/{registry-release}/apicurio-registry-utils-exportV1-{registry-release}.jar[{registry} exportV1 tool] from GitHub. 
 endif::[]
 ifdef::rh-service-registry[]
-link:https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration[{registry} exportV1 tool] from the Red Hat Customer Portal. 
+link:{download-url-registry-distribution}[{registry} exportV1 tool] from the Red Hat Customer Portal. 
 endif::[]
 This is a Java application that you can run on the command line.
 

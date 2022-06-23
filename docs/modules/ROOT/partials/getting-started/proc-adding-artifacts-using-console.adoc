@@ -5,52 +5,58 @@
 = Adding artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to upload event schema and API design artifacts to the registry. 
+You can use the {registry} web console to upload event schema and API artifacts to the registry. 
 This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
 
 .Prerequisites
 
 ifdef::apicurio-registry,rh-service-registry[]
-* {registry} must be installed and running in your environment
+* {registry} is installed and running in your environment.
 endif::[]
-ifdef::rh-openshift-sr[]
-* You must have access to the {registry} web console
-endif::[]
-
-.Procedure
-
-. Connect to the {registry} web console on:
+* You are logged in to the {registry} web console:
 +
 `{registry-url}`
+
+.Procedure
 ifdef::rh-openshift-sr[]
-. Click your existing {registry} instance, or click *Create {registry} instance* to provision a new one. 
+. In the {registry} web console, click your existing {registry} instance, or click *Create {registry} instance* to provision a new one. 
 endif::[]
-. Click *Upload artifact*, and specify the following:
-** *Group & ID*: Use the default empty settings to automatically generate an ID and `default` group, or enter an optional artifact group or ID.
-** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the drop-down, for example, *Avro Schema* or *OpenAPI*.
+. On the *Artifacts* tab, click *Upload artifact*, and specify the following details:
+** *Group & ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group name or ID.
+** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or you can select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*.
 +
 NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
 ** *Artifact*: Drag and drop or click *Browse* to upload a file, for example, `my-schema.json` or `my-openapi.json`.
 
-. Click *Upload* and view the *Artifact Details*. This example shows an Avro schema artifact:
+. Click *Upload* and view the artifact details: 
 +
-.Artifact Details in {registry} web console
-ifdef::apicurio-registry,rh-service-registry[]
-image::images/getting-started/registry-web-console-artifact.png[Artifact Details in Registry web console]
-endif::[]
-ifdef::rh-openshift-sr[]
-image::../_images/user-guide/registry-web-console-artifact.png[Artifact Details in Registry web console]
-endif::[]
-+
-** *Info*: Displays the artifact name and optional group, description, lifecycle status, when created, and last modified. 
-+
-Click the *Edit Artifact Metadata* pencil icon to edit the artifact name and description or add labels, and click *Download* to download the artifact file locally. Also displays artifact *Content Rules* that you can enable and configure.
+** *Overview*: Displays the artifact version metadata such as name, optional group and ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
 ** *Documentation* (OpenAPI artifacts only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content.
++
+The following example shows an example Protobuf schema artifact:
++
+.Artifact details in {registry} web console
+ifdef::apicurio-registry,rh-service-registry[]
+image::images/getting-started/registry-web-console-artifact.png[Artifact details in Registry web console]
+endif::[]
+ifdef::rh-openshift-sr[]
+image::../_images/user-guide/registry-web-console-artifact.png[Artifact details in Registry web console]
+endif::[]
 
-. Click *Upload new version* to add a new artifact version, and drag and drop or click *Browse* to upload the file, for example, `my-schema.json` or `my-openapi.json`.
+. On the *Overview* tab, click the *Edit* pencil icon to edit artifact metadata such as name or description. 
 
-. To delete an artifact, click the delete button next to *Upload new version*.
+. You can also enter an optional comma-separated list of labels for searching, or add key-value pairs of arbitrary properties associated with the artifact. To add properties, perform the following steps:
+.. Enter the key name and the value.
+.. Click *Add property*.
+.. Repeat the first two steps to add multiple properties.
+.. Click *Save*.
+ 
+. Click *Download* at the bottom of the page to save the artifact contents to a local file, for example, `my-protobuf-schema.proto`.
+
+. Click *Upload new version* at the top right of the page to add a new artifact version, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
+
+. To delete an artifact, click *Delete* next to *Upload new version*.
 +
 WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone. Artifact versions are immutable and cannot be deleted individually.
 

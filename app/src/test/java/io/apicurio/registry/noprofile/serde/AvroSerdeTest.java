@@ -96,6 +96,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
         config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        config.put(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1");
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
         config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();

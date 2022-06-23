@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
@@ -81,6 +82,14 @@ public class SchemaLookupResult<T> {
         return ArtifactReference.builder()
                 .globalId(this.getGlobalId())
                 .contentId(this.getContentId())
+                .groupId(this.getGroupId())
+                .artifactId(this.getArtifactId())
+                .version(this.getVersion())
+                .build();
+    }
+
+    public ArtifactCoordinates toArtifactCoordinates() {
+        return ArtifactCoordinates.builder()
                 .groupId(this.getGroupId())
                 .artifactId(this.getArtifactId())
                 .version(this.getVersion())

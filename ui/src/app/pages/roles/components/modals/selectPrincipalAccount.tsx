@@ -84,6 +84,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
             <Select
                 variant={SelectVariant.typeahead}
                 typeAheadAriaLabel={"Select an account"}
+                createText={"Use"}
                 onToggle={this.onToggle}
                 onSelect={this.onSelect}
                 onClear={this.clearSelection}
@@ -91,7 +92,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 isOpen={this.state.isOpen}
                 isInputValuePersisted={true}
                 placeholderText={isUpdateAccess ? defaultRole?.principalId : "Select an account"}
-                isCreatable={false}
+                isCreatable={true}
                 menuAppendTo="parent"
                 maxHeight={400}
                 isGrouped={true}

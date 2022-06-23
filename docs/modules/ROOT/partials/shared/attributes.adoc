@@ -52,7 +52,7 @@ endif::[]
 :context: registry
 
 //integration products
-:amq-version: 2022.q1
+:amq-version: 2021.q3
 :fuse-version: 7.10
 :3scale-version: 2.11
 
@@ -70,7 +70,7 @@ include::attributes-links.adoc[]
 
 // Download URLs
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
-:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2022-Q1
 
 
 // internal links

@@ -42,7 +42,9 @@ module.exports = merge(common('development'), {
           path.resolve(__dirname, "node_modules/@patternfly/patternfly"),
           path.resolve(__dirname, "node_modules/@patternfly/react-styles/css"),
           path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/base.css"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly")
+          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly"),
+          path.resolve(__dirname, "node_modules/@patternfly/react-code-editor"),
+          path.resolve(__dirname, 'node_modules/monaco-editor'),
         ],
         use: ["style-loader", "css-loader"]
       }

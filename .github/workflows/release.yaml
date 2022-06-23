@@ -100,18 +100,13 @@ jobs:
           echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
           echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
       
-      - name: Fetch Latest Commit SHA
-        run: |
-          cd registry
-          echo "latest_commit_sha=$(git log -n 1 --pretty=format:"%H")" >> $GITHUB_ENV
-      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ github.event.inputs.release-version }} 
           tag_name: ${{ github.event.inputs.release-version }} 
           token: ${{ secrets.ACCESS_TOKEN }}
-          target_commitish: ${{ env.latest_commit_sha }} # explicitly passing the commit hash so that the latest commit is tagged and released
+          target_commitish: ${{ github.event.inputs.branch }}
           prerelease: ${{ env.IS_PRE_RELEASE }}
           files: |
             registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.tar.gz

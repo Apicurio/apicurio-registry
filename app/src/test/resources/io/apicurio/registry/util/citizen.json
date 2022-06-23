@@ -20,5 +20,6 @@
     "city": {
       "$ref": "city.json"
     }
-  }
+  },
+  "required": ["city"]
 }

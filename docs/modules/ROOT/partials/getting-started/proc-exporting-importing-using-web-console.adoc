@@ -7,7 +7,7 @@
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to export data from one {registry} instance, and import it into another {registry} instance. You can use this feature to easily migrate data between different instances.
 
-The following example shows how to export and import existing data in .zip format from one Service Registry instance to another instance. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
+The following example shows how to export and import existing data in .zip format from one {registry} instance to another instance. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
 NOTE: You can import only {registry} data that has been exported from another {registry} instance. 
 
@@ -34,7 +34,7 @@ ifdef::rh-openshift-sr[]
 . In the web console, in the list of instances, click the source {registry} instance, and view the *Artifacts* page.  
 endif::[] 
 
-. Next to the *Upload artifact* button, click the options icon (three vertical dots), and select *Download all artifacts (.zip file)* to export the registry data for this instance to a `.zip` download file. 
+. Next to *Upload artifact*, click the options icon (three vertical dots), and select *Download all artifacts (.zip file)* to export the registry data for this instance to a `.zip` download file. 
 
 ifdef::apicurio-registry,rh-service-registry[]
 . In the the web console for the target {registry} instance, view the *Artifacts* page.  
@@ -44,7 +44,7 @@ ifdef::rh-openshift-sr[]
 . Go back to the list of instances, click the target {registry} instance, and view the *Artifacts* page.     
 endif::[]
 
-. Next to the *Upload artifact* button, click the options icon, and select *Upload multiple artifacts*.
+. Next to *Upload artifact*, click the options icon, and select *Upload multiple artifacts*.
 
 . Drag and drop or browse to the `.zip` download file that you exported earlier.
 

@@ -39,6 +39,8 @@ module.exports = merge(common("production"), {
             "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly"
           ),
           path.resolve(__dirname, "node_modules/@patternfly/react-styles/css"),
+          path.resolve(__dirname, "node_modules/@patternfly/react-code-editor"),
+          path.resolve(__dirname, 'node_modules/monaco-editor'),
         ],
         use: [MiniCssExtractPlugin.loader, "css-loader"],
       },

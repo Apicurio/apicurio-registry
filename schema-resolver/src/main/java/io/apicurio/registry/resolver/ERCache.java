@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.resolver;
 
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.rest.client.exception.RateLimitedClientException;
 
 import java.time.Duration;
@@ -40,17 +40,18 @@ public class ERCache<V> {
      * Long = Global ID
      * String = Content
      * Long = Content ID
+     * ArtifactCoordinates = ArtifactCoordinates
      * V = Schema lookup result
      */
-    private final Map<ArtifactReference, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
-    private final Map<Long, WrappedValue<V>> index2 = new ConcurrentHashMap<>();
-    private final Map<String, WrappedValue<V>> index3 = new ConcurrentHashMap<>();
-    private final Map<Long, WrappedValue<V>> index4 = new ConcurrentHashMap<>();
+    private final Map<Long, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
+    private final Map<String, WrappedValue<V>> index2 = new ConcurrentHashMap<>();
+    private final Map<Long, WrappedValue<V>> index3 = new ConcurrentHashMap<>();
+    private final Map<ArtifactCoordinates, WrappedValue<V>> index4 = new ConcurrentHashMap<>();
 
-    private Function<V, ArtifactReference> keyExtractor1;
-    private Function<V, Long> keyExtractor2;
-    private Function<V, String> keyExtractor3;
-    private Function<V, Long> keyExtractor4;
+    private Function<V, Long> keyExtractor1;
+    private Function<V, String> keyExtractor2;
+    private Function<V, Long> keyExtractor3;
+    private Function<V, ArtifactCoordinates> keyExtractor4;
 
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
@@ -70,19 +71,19 @@ public class ERCache<V> {
         this.retries = retries;
     }
 
-    public void configureArtifactReferenceKeyExtractor(Function<V, ArtifactReference> keyExtractor) {
+    public void configureGlobalIdKeyExtractor(Function<V, Long> keyExtractor) {
         this.keyExtractor1 = keyExtractor;
     }
 
-    public void configureGlobalIdKeyExtractor(Function<V, Long> keyExtractor) {
+    public void configureContentKeyExtractor(Function<V, String> keyExtractor) {
         this.keyExtractor2 = keyExtractor;
     }
 
-    public void configureContentKeyExtractor(Function<V, String> keyExtractor) {
+    public void configureContentIdKeyExtractor(Function<V, Long> keyExtractor) {
         this.keyExtractor3 = keyExtractor;
     }
 
-    public void configureContentIdKeyExtractor(Function<V, Long> keyExtractor) {
+    public void configureArtifactCoordinatesKeyExtractor(Function<V, ArtifactCoordinates> keyExtractor) {
         this.keyExtractor4 = keyExtractor;
     }
 
@@ -94,29 +95,38 @@ public class ERCache<V> {
             throw new IllegalStateException("Not properly initialized!");
     }
 
-    // === Specific
 
-    public V getByArtifactReference(ArtifactReference key, Function<ArtifactReference, V> loaderFunction) {
-        WrappedValue<V> value = this.index1.get(key);
-        return getValue(value, key, loaderFunction);
-    }
-
-    public boolean containsByArtifactReference(ArtifactReference key) {
+    public boolean containsByGlobalId(Long key) {
         WrappedValue<V> value = this.index1.get(key);
         return value != null && !value.isExpired();
     }
 
+    public boolean containsByContentId(Long key) {
+        WrappedValue<V> value = this.index3.get(key);
+        return value != null && !value.isExpired();
+    }
+
+    public boolean containsByArtifactCoordinates(ArtifactCoordinates key) {
+        WrappedValue<V> value = this.index4.get(key);
+        return value != null && !value.isExpired();
+    }
+
     public V getByGlobalId(Long key, Function<Long, V> loaderFunction) {
-        WrappedValue<V> value = this.index2.get(key);
+        WrappedValue<V> value = this.index1.get(key);
         return getValue(value, key, loaderFunction);
     }
 
     public V getByContent(String key, Function<String, V> loaderFunction) {
-        WrappedValue<V> value = this.index3.get(key);
+        WrappedValue<V> value = this.index2.get(key);
         return getValue(value, key, loaderFunction);
     }
 
     public V getByContentId(Long key, Function<Long, V> loaderFunction) {
+        WrappedValue<V> value = this.index3.get(key);
+        return getValue(value, key, loaderFunction);
+    }
+
+    public V getByArtifactCoordinates(ArtifactCoordinates key, Function<ArtifactCoordinates, V> loaderFunction) {
         WrappedValue<V> value = this.index4.get(key);
         return getValue(value, key, loaderFunction);
     }

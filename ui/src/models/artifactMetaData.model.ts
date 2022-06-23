@@ -23,6 +23,7 @@ export class ArtifactMetaData {
     public name: string|null;
     public description: string|null;
     public labels: string[]|null;
+    public properties: { [key: string]: string };
     public type: string;
     public version: string;
     public createdBy: string;

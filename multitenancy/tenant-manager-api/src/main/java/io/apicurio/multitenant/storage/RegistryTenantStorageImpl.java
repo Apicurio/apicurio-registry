@@ -70,13 +70,13 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
     @Override
     public void delete(String tenantId) {
         RegistryTenantDto dto = findByTenantId(tenantId)
-            .orElseThrow(() -> TenantNotFoundException.create(tenantId));
+                .orElseThrow(() -> TenantNotFoundException.create(tenantId));
         repo.delete(dto);
     }
 
     @Override
     public List<RegistryTenantDto> queryTenants(String query, Sort sort, Parameters parameters,
-            Integer offset, Integer returnLimit) {
+                                                Integer offset, Integer returnLimit) {
         PanacheQuery<RegistryTenantDto> pq = null;
         if (query == null || query.isEmpty()) {
             pq = repo.findAll(sort);
@@ -92,13 +92,11 @@ public class RegistryTenantStorageImpl implements RegistryTenantStorage {
         return repo.count(query, parameters);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status) {
-        return (List<RegistryTenantDto>) this.repo.getEntityManager()
-                .createQuery("select r from RegistryTenantDto r where r.status = :status")
-                .setParameter("status", status.value())
-                .getResultList();
+    public List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status, int limit) {
+        return repo.find("status", Sort.ascending("createdOn"), status.value())
+                .page(0, limit)
+                .list();
     }
 
     /**

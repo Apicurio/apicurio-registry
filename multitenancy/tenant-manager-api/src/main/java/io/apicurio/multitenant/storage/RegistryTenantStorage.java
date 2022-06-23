@@ -39,7 +39,7 @@ public interface RegistryTenantStorage {
 
     void delete(String tenantId);
 
-    List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status);
+    List<RegistryTenantDto> getTenantsByStatus(TenantStatusValue status, int limit);
 
     Map<String, Long> getTenantsCountByStatus();
 }

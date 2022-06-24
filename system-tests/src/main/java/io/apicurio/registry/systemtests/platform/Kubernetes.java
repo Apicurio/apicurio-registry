@@ -186,7 +186,7 @@ public final class Kubernetes {
         CatalogSource catalogSource = getCatalogSource(namespace, name);
 
         if (catalogSource == null || catalogSource.getStatus() == null) {
-            return  false;
+            return false;
         }
 
         return catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY");

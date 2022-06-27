@@ -190,7 +190,7 @@
         <graphql.version>18.1</graphql.version>
 
         <!-- JSON Schema Validator -->
-        <everit.json.schema.version>1.14.1</everit.json.schema.version><!-- TODO unification -->
+        <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
         <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
         <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
 
@@ -590,9 +590,9 @@
             </dependency>
 
             <dependency>
-                <groupId>com.github.erosb</groupId>
-                <artifactId>everit-json-schema</artifactId>
-                <version>${everit.json.schema.version}</version>
+                <groupId>com.github.everit-org.json-schema</groupId>
+                <artifactId>org.everit.json.schema</artifactId>
+                <version>${org.everit.json.schema.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>

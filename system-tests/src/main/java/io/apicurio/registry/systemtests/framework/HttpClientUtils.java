@@ -24,4 +24,8 @@ public class HttpClientUtils {
             throw new RuntimeException(e);
         }
     }
+
+    public static HttpRequest.Builder newBuilder() {
+        return HttpRequest.newBuilder().version(HttpClient.Version.HTTP_1_1);
+    }
 }

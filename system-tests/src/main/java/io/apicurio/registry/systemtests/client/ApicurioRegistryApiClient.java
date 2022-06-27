@@ -209,8 +209,17 @@ public class ApicurioRegistryApiClient {
     }
 
     public ArtifactList listArtifacts() {
+        return listArtifacts(1000);
+    }
+
+    public ArtifactList listArtifacts(int limit) {
         // Get request URI
-        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/search/artifacts?limit=%d",
+                host,
+                port,
+                limit
+        );
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()

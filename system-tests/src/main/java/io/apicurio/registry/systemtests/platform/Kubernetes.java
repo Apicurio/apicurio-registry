@@ -368,6 +368,24 @@ public final class Kubernetes {
                 .get();
     }
 
+    public static boolean isClusterServiceVersionReady(String namespace, String name) {
+        ClusterServiceVersion csvToBeReady = ((OpenShiftClient) getClient())
+                .operatorHub()
+                .clusterServiceVersions()
+                .inNamespace(namespace)
+                .withName(name)
+                .get();
+
+        if (csvToBeReady == null || csvToBeReady.getStatus() == null) {
+            return false;
+        }
+
+        return csvToBeReady
+                .getStatus()
+                .getPhase()
+                .equals("Succeeded");
+    }
+
     public static void deleteClusterServiceVersion(String namespace, String name) {
         ((OpenShiftClient) getClient())
                 .operatorHub()

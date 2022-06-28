@@ -26,6 +26,7 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.mt.TenantContext;
+import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -995,7 +996,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                     ContentEntity contentEntity = (ContentEntity) entity;
 
                     List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
-                            .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                            .map(V2ApiUtil::referenceToDto)
                             .collect(Collectors.toList());
 
                     if (!preserveContentId) {

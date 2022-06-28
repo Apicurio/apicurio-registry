@@ -18,6 +18,7 @@ package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 

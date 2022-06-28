@@ -41,6 +41,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.utils.impexp.EntityType;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -2493,7 +2494,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     ContentEntity contentEntity = (ContentEntity) entity;
 
                     List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
-                            .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
+                            .map(V2ApiUtil::referenceToDto)
                             .collect(Collectors.toList());
 
                     if (!preserveContentId) {

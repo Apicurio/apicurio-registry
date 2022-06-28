@@ -23,4 +23,21 @@ public class DatabaseUtils {
             e.printStackTrace();
         }
     }
+
+    public static void deployPostgresqlDatabase(ExtensionContext testContext, String name, String namespace) {
+        PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql(
+                name,
+                namespace
+        );
+        Deployment deployment = DeploymentResourceType.getDefaultPostgresql(name, namespace);
+        Service service = ServiceResourceType.getDefaultPostgresql(name, namespace);
+
+        try {
+            ResourceManager.getInstance().createResource(testContext, false, persistentVolumeClaim);
+            ResourceManager.getInstance().createResource(testContext, true, deployment);
+            ResourceManager.getInstance().createResource(testContext, false, service);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

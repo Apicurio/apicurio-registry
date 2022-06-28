@@ -28,13 +28,13 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     private CatalogSource catalogSource = null;
 
     public ApicurioRegistryOLMOperatorType() {
-        super(Environment.CATALOG_IMAGE, Constants.CLUSTER_WIDE_NAMESPACE, true);
+        super(Environment.CATALOG_IMAGE, Environment.CLUSTER_WIDE_NAMESPACE, true);
     }
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
         super(
                 Environment.CATALOG_IMAGE,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
                 isClusterWide
         );
     }
@@ -42,7 +42,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide) {
         super(
                 source,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
                 isClusterWide
         );
     }
@@ -50,7 +50,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide, String operatorNamespace) {
         super(
                 Environment.CATALOG_IMAGE,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
                 isClusterWide
         );
     }
@@ -58,7 +58,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide, String operatorNamespace) {
         super(
                 source,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
                 isClusterWide
         );
     }
@@ -139,7 +139,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
 
         String scope = getClusterWide() ? "cluster wide" : "namespaced";
         String catalogName = Environment.CATALOG;
-        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String catalogNamespace = Environment.CATALOG_NAMESPACE;
         String registryPackage = Environment.REGISTRY_PACKAGE;
 
         LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), getNamespace());

@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtests.platform;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -13,6 +14,7 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -46,7 +48,11 @@ public final class Kubernetes {
                 System.getenv().getOrDefault("TEST_CLUSTER_CONTEXT", null)
         );
 
-        client = new DefaultOpenShiftClient(new OpenShiftConfig(config));
+        /*if (Environment.IS_KIND_CLUSTER) {
+            client = new DefaultKubernetesClient(config);
+        } else {*/
+            client = new DefaultOpenShiftClient(new OpenShiftConfig(config));
+        //}
     }
 
     public static Kubernetes getInstance() {
@@ -574,7 +580,6 @@ public final class Kubernetes {
                 .list()
                 .getItems()
                 .size();
-
         return namespaceOperatorGroupsCount > 0;
     }
 }

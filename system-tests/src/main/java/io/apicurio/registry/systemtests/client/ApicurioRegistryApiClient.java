@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.HttpClientUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
@@ -9,6 +10,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.slf4j.Logger;
 
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -48,6 +50,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -110,6 +113,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set common request headers
@@ -148,6 +152,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -182,6 +187,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -223,6 +229,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -259,6 +266,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
                 // Set request URI
                 .uri(uri)
                 // Set request type

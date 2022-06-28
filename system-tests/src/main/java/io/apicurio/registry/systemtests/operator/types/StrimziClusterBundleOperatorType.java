@@ -68,7 +68,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(Environment.KAFKA_BUNDLE, Constants.TESTSUITE_NAMESPACE);
+        super(Environment.KAFKA_BUNDLE, Environment.NAMESPACE);
 
         try {
             loadOperatorResources();
@@ -78,7 +78,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
     }
 
     public StrimziClusterBundleOperatorType(String source) {
-        super(source, Constants.TESTSUITE_NAMESPACE);
+        super(source, Environment.NAMESPACE);
 
         try {
             loadOperatorResources();

@@ -62,7 +62,7 @@ public abstract class TestBase {
             KafkaKind kafkaKind,
             boolean useKeycloak,
             boolean testAPI
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = null;
 
         if (useKeycloak) {

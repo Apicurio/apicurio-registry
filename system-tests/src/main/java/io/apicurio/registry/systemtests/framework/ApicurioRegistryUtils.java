@@ -54,7 +54,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistrySql = ApicurioRegistryResourceType.getDefaultSql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         if (useKeycloak) {
@@ -74,7 +74,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         if (useKeycloak) {
@@ -95,7 +95,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         // Update Apicurio Registry to have TLS configuration
@@ -134,7 +134,7 @@ public class ApicurioRegistryUtils {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         // Update to have SCRAM configuration
@@ -204,6 +204,7 @@ public class ApicurioRegistryUtils {
         String registryNamespace = apicurioRegistry.getMetadata().getNamespace();
         String defaultRegistryHostname = registryName + "." + registryNamespace;
         // Get Route
+
         Route registryRoute = Kubernetes.getRoute(apicurioRegistry);
 
         if (registryRoute == null) {

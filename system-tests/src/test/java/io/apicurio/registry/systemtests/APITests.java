@@ -6,6 +6,7 @@ import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactList;
 import io.apicurio.registry.systemtests.client.ArtifactType;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import org.junit.jupiter.api.Assertions;
@@ -22,13 +23,14 @@ public class APITests {
         LOGGER.info("Running API tests...");
 
         // Wait for readiness of Apicurio Registry hostname
-        Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
-
+        if (!Environment.IS_KIND_CLUSTER) {
+            Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
+        }
         // Prepare necessary variables
         String artifactGroupId = "registry-test-group";
         String artifactId = "registry-test-id";
         String artifactContent = ArtifactContent.DEFAULT_AVRO;
-        String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
+        String hostname = (Environment.IS_KIND_CLUSTER ? "localhost" : ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry));
 
         LOGGER.info("Hostname: {}", hostname);
 

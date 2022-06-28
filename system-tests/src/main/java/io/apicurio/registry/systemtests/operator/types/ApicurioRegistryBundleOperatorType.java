@@ -49,7 +49,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(Environment.REGISTRY_BUNDLE, Constants.TESTSUITE_NAMESPACE);
+        super(Environment.REGISTRY_BUNDLE, Environment.NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();
@@ -59,7 +59,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     public ApicurioRegistryBundleOperatorType(String source) {
-        super(source, Constants.TESTSUITE_NAMESPACE);
+        super(source, Environment.NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();

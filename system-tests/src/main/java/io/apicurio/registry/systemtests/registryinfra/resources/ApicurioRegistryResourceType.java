@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationSecurityBuilder;
 import io.apicurio.registry.systemtests.framework.Constants;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -98,8 +99,19 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     /** Get default instances **/
 
+    private static ApicurioRegistryBuilder modifyForKind(ApicurioRegistryBuilder builder) {
+        if (Environment.IS_KIND_CLUSTER) {
+            builder = builder.editSpec()
+                        .withNewDeployment()
+                            .withHost("localhost")
+                        .endDeployment()
+                    .endSpec();
+        }
+        return builder;
+    }
+
     public static ApicurioRegistry getDefaultMem(String name, String namespace) {
-        return new ApicurioRegistryBuilder()
+        ApicurioRegistryBuilder builder = new ApicurioRegistryBuilder()
                 .withNewMetadata()
                     .withName(name)
                     .withNamespace(namespace)
@@ -108,8 +120,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                     .withNewConfiguration()
                         .withPersistence("mem")
                     .endConfiguration()
-                .endSpec()
-                .build();
+                .endSpec();
+        return modifyForKind(builder).build();
     }
 
     public static ApicurioRegistry getDefaultSql(String name, String namespace) {
@@ -119,7 +131,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
     public static ApicurioRegistry getDefaultSql(String name, String namespace, String sqlName, String sqlNamespace) {
         String sqlUrl = "jdbc:postgresql://" + sqlName + "." + sqlNamespace + ".svc.cluster.local:5432/postgresdb";
 
-        return new ApicurioRegistryBuilder()
+        ApicurioRegistryBuilder builder = new ApicurioRegistryBuilder()
                 .withNewMetadata()
                     .withName(name)
                     .withNamespace(namespace)
@@ -135,11 +147,12 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                             .endDataSource()
                         .endSql()
                     .endConfiguration()
-                .endSpec()
-                .build();
+                .endSpec();
+        return modifyForKind(builder).build();
+
     }
     public static ApicurioRegistry getDefaultKafkasql(String name, String namespace) {
-        return new ApicurioRegistryBuilder()
+       ApicurioRegistryBuilder builder = new ApicurioRegistryBuilder()
                 .withNewMetadata()
                     .withName(name)
                     .withNamespace(namespace)
@@ -149,25 +162,25 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("kafkasql")
                         .withNewKafkasql()
                             .withBootstrapServers(
-                                    Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                    Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                             ".svc.cluster.local:9092"
                             )
                         .endKafkasql()
                     .endConfiguration()
-                .endSpec()
-                .build();
+                .endSpec();
+       return modifyForKind(builder).build();
     }
 
     public static ApicurioRegistry getDefaultMem(String name) {
-        return getDefaultMem(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultMem(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultSql(String name) {
-        return getDefaultSql(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultSql(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultKafkasql(String name) {
-        return getDefaultKafkasql(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultKafkasql(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultMem() {
@@ -201,7 +214,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }
@@ -226,7 +239,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }

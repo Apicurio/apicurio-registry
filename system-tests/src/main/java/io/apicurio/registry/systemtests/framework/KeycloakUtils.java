@@ -8,11 +8,17 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
+import io.apicurio.registry.systemtests.time.TimeoutBudget;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
+import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -20,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class KeycloakUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -29,50 +36,112 @@ public class KeycloakUtils {
         return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
-    public static void deployKeycloak(ExtensionContext testContext) {
-        deployKeycloak(testContext, Constants.TESTSUITE_NAMESPACE);
+    public static void deployKeycloak(ExtensionContext testContext) throws InterruptedException {
+        deployKeycloak(testContext, Environment.NAMESPACE);
     }
 
-    public static void deployKeycloak(ExtensionContext testContext, String namespace) {
-        LOGGER.info("Deploying Keycloak...");
+    private static void deployKeycloakPostgres(ExtensionContext extensionContext, String namespace) throws URISyntaxException {
+        URL dtb = KeycloakUtils.class.getClassLoader().getResource("postgres.yaml");
 
+        Exec.executeAndCheck(
+                "oc",
+                "apply",
+                "-n", namespace,
+                "-f", Paths.get(dtb.toURI()).toFile().toString()
+        );
+        ResourceUtils.waitStatefulSetReady(namespace, "postgresql-db");
+
+    }
+
+    public static void deployKeycloak(ExtensionContext testContext, String namespace) throws InterruptedException {
+        LOGGER.info("Deploying Keycloak...");
         ResourceManager manager = ResourceManager.getInstance();
 
-        // Deploy Keycloak server
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak.yaml")
-        );
+        if (Environment.IS_KIND_CLUSTER) {
+            try {
+                deployKeycloakPostgres(testContext, namespace);
+            } catch (Exception e) {
+                LOGGER.error("Could not deploy postgres for the keycloak!");
+                throw new RuntimeException(e);
+            }
+            File file = new File("resources/keycloak-kube.yaml");
+            URL keycloak = KeycloakUtils.class.getClassLoader().getResource("keycloak-kube.yaml");
+            try {
+                Exec.executeAndCheck(
+                        "oc",
+                        "apply",
+                        "-n", namespace,
+                        "-f", Paths.get(keycloak.toURI()).toFile().toString()
+                );
+            } catch (Exception e) {
+                LOGGER.error("Could not deploy keycloak!");
+                throw new RuntimeException(e);
+            };
 
-        // Wait for Keycloak server to be ready
-        ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
+            TimeoutBudget budget = new TimeoutBudget(40, TimeUnit.SECONDS);
+            Deployment d;
+            while (!budget.timeoutExpired()) {
+                Thread.sleep(1000);
+                d = Kubernetes.getDeployment(namespace, "keycloak-server");
+                if (d.getStatus() == null || d.getStatus().getAvailableReplicas() == null) continue;
+                if (d.getStatus().getAvailableReplicas() == 1) break;
+            }
+            d = Kubernetes.getDeployment(namespace, "keycloak-server");
+            if (d.getStatus().getAvailableReplicas() != 1) {
+                LOGGER.error("Could not deploy keycloak instance!");
+                throw new RuntimeException();
+            }
+            URL realm = KeycloakUtils.class.getClassLoader().getResource("realm.yaml");
 
-        // Create Keycloak HTTP Service and wait for its readiness
-        manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
+            // Create Keycloak Realm
+            try {
+                Exec.executeAndCheck(
+                        "oc",
+                        "apply",
+                        "-n", namespace,
+                        "-f", Paths.get(realm.toURI()).toFile().toString()
+                );
+            } catch (URISyntaxException e) {
+                LOGGER.error("Could not deploy keycloak!");
+                throw new RuntimeException(e);
+            }
 
-        // Create Keycloak Route and wait for its readiness
-        manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
+        } else {
+            // Deploy Keycloak server
+            Exec.executeAndCheck(
+                    "oc",
+                    "apply",
+                    "-n", namespace,
+                    "-f", getKeycloakFilePath("keycloak.yaml")
+            );
 
-        // Log Keycloak URL
-        LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
+            // Wait for Keycloak server to be ready
+            ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
-        // Create Keycloak Realm
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak-realm.yaml")
-        );
+            // Create Keycloak HTTP Service and wait for its readiness
+            manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
-        // TODO: Wait for Keycloak Realm readiness, but API model not available
+            // Create Keycloak Route and wait for its readiness
+            manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
+
+            // Log Keycloak URL
+            LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
+
+            // TODO: Wait for Keycloak Realm readiness, but API model not available
+            // Create Keycloak Realm
+            Exec.executeAndCheck(
+                    "oc",
+                    "apply",
+                    "-n", namespace,
+                    "-f", getKeycloakFilePath("keycloak-realm.yaml")
+            );
+        }
 
         LOGGER.info("Keycloak should be deployed.");
     }
 
     public static void removeKeycloak() {
-        removeKeycloak(Constants.TESTSUITE_NAMESPACE);
+        removeKeycloak(Environment.NAMESPACE);
     }
 
     public static void removeKeycloak(String namespace) {
@@ -96,11 +165,14 @@ public class KeycloakUtils {
     }
 
     public static String getKeycloakURL(String namespace, String name) {
+        if(Environment.IS_KIND_CLUSTER) {
+            return "http://localhost/auth";
+        }
         return "http://" + Kubernetes.getRouteHost(namespace, name) + "/auth";
     }
 
     public static String getDefaultKeycloakURL() {
-        return getDefaultKeycloakURL(Constants.TESTSUITE_NAMESPACE);
+        return getDefaultKeycloakURL(Environment.NAMESPACE);
     }
 
     public static String getDefaultKeycloakURL(String namespace) {

@@ -19,12 +19,10 @@ package io.apicurio.registry.services.auth;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.apicurio.rest.client.JdkHttpClientProvider;
-import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.request.Operation;
 import io.apicurio.rest.client.request.Request;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
-import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import io.quarkus.oidc.OidcRequestContext;
 import io.quarkus.oidc.OidcTenantConfig;
 import io.quarkus.oidc.TenantConfigResolver;
@@ -37,7 +35,6 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Collections;
-import java.util.function.Supplier;
 
 @ApplicationScoped
 public class IdentityServerResolver implements TenantConfigResolver {
@@ -51,46 +48,37 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @ConfigProperty(name = "registry.identity.server.resolver.request-path")
     String resolverRequestPath;
 
-    @ConfigProperty(name = "registry.identity.server.resolver.auth-server-url")
-    String resolverAuthServerUrl;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.client-id")
-    String resolverClientId;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.client-secret")
-    String resolverClientSecret;
-
     @ConfigProperty(name = "quarkus.oidc.client-id")
     String apiClientId;
 
     private ApicurioHttpClient httpClient;
 
-    private static final String OIDC_RESOLVED_TENANT_ID = "OIDC_RESOLVED_TENANT_ID";
-
     @Inject
     TenantConfigBean tenantConfigBean;
+
+    public static String OIDC_DYNAMIC_TENANT_ID = "DYNAMIC_TENANT_ID";
 
     @PostConstruct
     public void init() {
         if (resolveIdentityServer) {
-            ApicurioHttpClient authHttpClient = ApicurioHttpClientFactory.create(resolverAuthServerUrl, new AuthErrorHandler());
-            OidcAuth oidcAuth = new OidcAuth(authHttpClient, resolverClientId, resolverClientSecret);
-            httpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), oidcAuth, new AuthErrorHandler());
+            httpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
         }
     }
 
-    private Supplier<OidcTenantConfig> resolveIdentityServer() {
-        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
+    private OidcTenantConfig resolveIdentityServer() {
+        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders(resolverRequestPath));
         final OidcTenantConfig config = new OidcTenantConfig();
 
-        config.setTenantId(OIDC_RESOLVED_TENANT_ID);
+        config.setTenantId(OIDC_DYNAMIC_TENANT_ID);
+        config.setTokenPath(ssoProviders.getTokenUrl());
+        config.setJwksPath(ssoProviders.getJwks());
         config.setAuthServerUrl(ssoProviders.getValidIssuer());
         config.setClientId(apiClientId);
 
-        return () -> config;
+        return  config;
     }
 
-    public Request<SsoProviders> getSSOProviders() {
+    public static Request<SsoProviders> getSSOProviders(String resolverRequestPath) {
         return new Request.RequestBuilder<SsoProviders>()
                 .operation(Operation.GET)
                 .path(resolverRequestPath)
@@ -109,7 +97,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
         return Uni.createFrom().item(tenantConfigBean.getDefaultTenant().getOidcTenantConfig());
     }
 
-    private static class SsoProviders {
+    public static class SsoProviders {
 
         @JsonProperty("base_url")
         private String baseUrl;

@@ -9,14 +9,18 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.CatalogSourceResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionResourceType;
+import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
+import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 
 
 public class ApicurioRegistryOLMOperatorType extends OLMOperator implements OperatorType {
@@ -187,6 +191,84 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         }
 
         /* Waiting for operator deployment removal is implemented in OperatorManager. */
+    }
+
+    public boolean waitReady() {
+        TimeoutBudget timeoutBudget = TimeoutBudget.ofDuration(Duration.ofMinutes(7));
+
+        while (!timeoutBudget.timeoutExpired()) {
+            if (isReady()) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        return isReady();
+    }
+
+    public void upgrade(ExtensionContext testContext) {
+        LOGGER.info("Upgrading {} {} operator...", getClusterWide() ? "cluster wide" : "namespaced", getKind());
+
+        // Get current subscription namespace
+        String subNamespace = getSubscription().getMetadata().getNamespace();
+        // Get current subscription name
+        String subName = getSubscription().getMetadata().getName();
+        // Get namespace of current's subscription catalog
+        String catalogNamespace = getSubscription().getSpec().getSourceNamespace();
+
+        LOGGER.info(
+                "CSV before upgrade: {}", Kubernetes.getSubscription(subNamespace, subName).getStatus().getCurrentCSV()
+        );
+
+        // Update operator source (set it to image with catalog)
+        setSource(Environment.CATALOG_IMAGE);
+
+        // Create new catalog source from image
+        createCatalogSource(testContext, catalogNamespace);
+
+        // Update subscription to use newly created catalog source
+        getSubscription().getSpec().setSource(catalogSource.getMetadata().getName());
+
+        // Replace subscription of operator
+        Kubernetes.createOrReplaceSubscription(subNamespace, getSubscription());
+
+        // Wait for update of subscription (it points to CSV from new catalog source)
+        Assertions.assertTrue(
+                waitSubscriptionCurrentCSV(catalogSource.getMetadata().getName()),
+                MessageFormat.format(
+                        "Timed out waiting for subscription {0} to have new current ClusterServiceVersion.",
+                        MessageFormat.format("{0} in namespace {1}", subName, subNamespace)
+                )
+        );
+
+        // Get updated subscription
+        Subscription newSubscription = Kubernetes.getSubscription(subNamespace, subName);
+        // Get CSV of updated subscription
+        String newCSV = newSubscription.getStatus().getCurrentCSV();
+
+        LOGGER.info("CSV after upgrade: {}", newCSV);
+
+        // Update subscription of operator
+        setSubscription(newSubscription);
+
+        // Update CSV of operator
+        setClusterServiceVersion(newCSV);
+
+        // Wait for creation of new CSV and its readiness
+        Assertions.assertTrue(
+                waitClusterServiceVersionReady(),
+                MessageFormat.format("New CSV {0} failed readiness check.", newCSV)
+        );
+
+        // Wait for operator readiness
+        Assertions.assertTrue(waitReady(), "Operator failed readiness check after upgrade.");
     }
 
     @Override

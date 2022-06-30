@@ -218,4 +218,25 @@ public class ApicurioRegistryUtils {
                 && !defaultRegistryHostname.equals(Kubernetes.getRouteHost(registryRouteNamespace, registryRouteName))
         );
     }
+
+    public static boolean waitApicurioRegistryReady(ApicurioRegistry apicurioRegistry) {
+        ApicurioRegistryResourceType registryResourceType = new ApicurioRegistryResourceType();
+        TimeoutBudget timeoutBudget = TimeoutBudget.ofDuration(registryResourceType.getTimeout());
+
+        while (!timeoutBudget.timeoutExpired()) {
+            if (registryResourceType.isReady(apicurioRegistry)) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        return registryResourceType.isReady(apicurioRegistry);
+    }
 }

@@ -47,7 +47,7 @@ public class ApicurioRegistryApiClient {
         URI uri = HttpClientUtils.buildURI("http://%s:%d/", host, port);
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -109,7 +109,7 @@ public class ApicurioRegistryApiClient {
         );
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set common request headers
@@ -147,7 +147,7 @@ public class ApicurioRegistryApiClient {
         );
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -181,7 +181,7 @@ public class ApicurioRegistryApiClient {
         );
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -209,11 +209,20 @@ public class ApicurioRegistryApiClient {
     }
 
     public ArtifactList listArtifacts() {
+        return listArtifacts(1000);
+    }
+
+    public ArtifactList listArtifacts(int limit) {
         // Get request URI
-        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/search/artifacts?limit=%d",
+                host,
+                port,
+                limit
+        );
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -249,7 +258,7 @@ public class ApicurioRegistryApiClient {
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
 
         // Get request builder
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
                 // Set request URI
                 .uri(uri)
                 // Set request type

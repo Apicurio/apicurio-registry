@@ -42,7 +42,7 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
         Subscription subscription = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
 
         if (subscription == null || subscription.getStatus() == null) {
-            return  false;
+            return false;
         }
 
         return subscription

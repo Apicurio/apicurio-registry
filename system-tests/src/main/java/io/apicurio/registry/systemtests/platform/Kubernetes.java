@@ -186,7 +186,7 @@ public final class Kubernetes {
         CatalogSource catalogSource = getCatalogSource(namespace, name);
 
         if (catalogSource == null || catalogSource.getStatus() == null) {
-            return  false;
+            return false;
         }
 
         return catalogSource.getStatus().getConnectionState().getLastObservedState().equals("READY");
@@ -366,6 +366,24 @@ public final class Kubernetes {
                 .inNamespace(namespace)
                 .withName(name)
                 .get();
+    }
+
+    public static boolean isClusterServiceVersionReady(String namespace, String name) {
+        ClusterServiceVersion csvToBeReady = ((OpenShiftClient) getClient())
+                .operatorHub()
+                .clusterServiceVersions()
+                .inNamespace(namespace)
+                .withName(name)
+                .get();
+
+        if (csvToBeReady == null || csvToBeReady.getStatus() == null) {
+            return false;
+        }
+
+        return csvToBeReady
+                .getStatus()
+                .getPhase()
+                .equals("Succeeded");
     }
 
     public static void deleteClusterServiceVersion(String namespace, String name) {

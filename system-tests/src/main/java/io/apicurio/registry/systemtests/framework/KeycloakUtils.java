@@ -145,7 +145,7 @@ public class KeycloakUtils {
         LOGGER.info("Requesting access token from {}...", keycloakRealmUrl);
 
         // Create request
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest request = HttpClientUtils.newBuilder()
                 .uri(keycloakRealmUrl)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(ofFormData(data))

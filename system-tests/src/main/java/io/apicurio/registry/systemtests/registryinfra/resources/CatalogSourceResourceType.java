@@ -40,7 +40,7 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
     @Override
     public boolean isReady(CatalogSource resource) {
         if (resource == null || resource.getStatus() == null) {
-            return  false;
+            return false;
         }
 
         return resource.getStatus().getConnectionState().getLastObservedState().equals("READY");

@@ -31,6 +31,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -41,6 +43,10 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     System system;
+
+    @Inject
+    @ConfigProperty(name = "registry.build-number")
+    String buildNumber;
 
     @Inject
     TenantContext tctx;
@@ -56,6 +62,7 @@ public class SystemResourceImpl implements SystemResource {
         info.setDescription(system.getDescription());
         info.setVersion(system.getVersion());
         info.setBuiltOn(system.getDate());
+        info.setBuildNumber(buildNumber);
         return info;
     }
 

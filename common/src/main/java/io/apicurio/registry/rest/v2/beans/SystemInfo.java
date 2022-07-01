@@ -12,15 +12,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * Root Type for SystemInfo
  * <p>
- * 
- * 
+ *
+ *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "name",
     "description",
     "version",
-    "builtOn"
+    "builtOn",
+    "buildNumber"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -36,6 +37,8 @@ public class SystemInfo {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     @JsonProperty("builtOn")
     private Date builtOn;
+    @JsonProperty("buildNumber")
+    private String buildNumber;
 
     @JsonProperty("name")
     public String getName() {
@@ -75,6 +78,16 @@ public class SystemInfo {
     @JsonProperty("builtOn")
     public void setBuiltOn(Date builtOn) {
         this.builtOn = builtOn;
+    }
+
+    @JsonProperty("buildNumber")
+    public String getBuildNumber() {
+        return buildNumber;
+    }
+
+    @JsonProperty("buildNumber")
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
     }
 
 }

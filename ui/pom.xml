@@ -77,6 +77,17 @@
                             <npmRegistryURL>${npmRegistryURL2}</npmRegistryURL>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>yarn lint</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>yarn</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>lint</arguments>
+                            <yarnInheritsProxyConfigFromMaven>false</yarnInheritsProxyConfigFromMaven>
+                        </configuration>
+                    </execution>
                     <!-- Build the app -->
                     <execution>
                         <id>yarn build</id>

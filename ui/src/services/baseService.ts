@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * @license
  * Copyright 2020 JBoss Inc
@@ -16,11 +17,11 @@
  */
 
 
-import {LoggerService} from "./logger";
-import {ConfigService} from "./config";
+import { LoggerService } from "./logger";
+import { ConfigService } from "./config";
 import axios, { AxiosRequestConfig } from "axios";
-import {AuthService} from "./auth";
-import {ContentTypes} from "../models";
+import { AuthService } from "./auth";
+import { ContentTypes } from "../models";
 
 const AXIOS = axios.create();
 
@@ -31,13 +32,15 @@ export interface Service {
     init(): void;
 }
 
+type Param = { [key: string]: string };
+
 /**
  * Base class for all services.
  */
 export abstract class BaseService implements Service {
 
     // @ts-ignore
-    protected logger: LoggerService = null;
+    protected logger: LoggerService;
     // @ts-ignore
     protected config: ConfigService = null;
     // @ts-ignore
@@ -57,7 +60,7 @@ export abstract class BaseService implements Service {
      * @param params
      * @param queryParams
      */
-    protected endpoint(path: string, params?: any, queryParams?: any): string {
+    protected endpoint(path: string, params?: Param, queryParams?: Param): string {
         if (params) {
             Object.keys(params).forEach(key => {
                 const value: string = encodeURIComponent(params[key]);
@@ -66,7 +69,7 @@ export abstract class BaseService implements Service {
         }
         let rval: string = this.apiBaseHref() + path;
         if (queryParams) {
-            let first: boolean = true;
+            let first = true;
             for (const key in queryParams) {
                 if (queryParams[key]) {
                     const value: string = encodeURIComponent(queryParams[key]);
@@ -90,8 +93,8 @@ export abstract class BaseService implements Service {
      * Creates the request options used by the HTTP service when making API calls.
      * @param headers
      */
-    protected options(headers: {[header: string]: string}): AxiosRequestConfig {
-        const options: AxiosRequestConfig = {headers};
+    protected options(headers: { [header: string]: string }): AxiosRequestConfig {
+        const options: AxiosRequestConfig = { headers };
         return options;
     }
 
@@ -99,6 +102,7 @@ export abstract class BaseService implements Service {
      * Performs an HTTP GET operation to the given URL with the given options.  Returns
      * a Promise to the HTTP response data.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected httpGet<T>(url: string, options?: AxiosRequestConfig, successCallback?: (value: any) => T): Promise<T> {
         this.logger.info("[BaseService] Making a GET request to: ", url);
 
@@ -130,7 +134,8 @@ export abstract class BaseService implements Service {
      * @param progressCallback
      */
     protected httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void,
-                          progressCallback?: (progressEvent: any) => void): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        progressCallback?: (progressEvent: any) => void): Promise<void> {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
         if (!options) {
@@ -163,6 +168,7 @@ export abstract class BaseService implements Service {
      * @param body
      * @param options
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected httpPostWithReturn<I, O>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: (data: any) => O): Promise<O> {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
@@ -273,44 +279,46 @@ export abstract class BaseService implements Service {
         return artifactsUrl;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private axiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
         if (typeof data === "string") {
             data = new Blob([data]);
         }
-        return {...{
-                data,
-                method,
-                url,
-                validateStatus: (status) => {
-                    return status >= 200 && status < 300;
-                }
-            }, ...options};
+        return { ...{
+            data,
+            method,
+            url,
+            validateStatus: (status) => {
+                return status >= 200 && status < 300;
+            }
+        }, ...options };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private unwrapErrorData(error: any): any {
         if (error && error.response && error.response.data) {
             return {
                 message: error.message,
                 ...error.response.data,
                 status: error.response.status
-            }
+            };
         } else if (error && error.response) {
             return {
                 message: error.message,
                 status: error.response.status
-            }
+            };
         } else if (error) {
             console.error("Unknown error detected: ", error);
             return {
                 message: error.message,
                 status: 500
-            }
+            };
         } else {
             console.error("Unknown error detected: ", error);
             return {
                 message: "Unknown error",
                 status: 500
-            }
+            };
         }
     }
 }

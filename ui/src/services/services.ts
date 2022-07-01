@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {GroupsService} from "./groups";
-import {ConfigService} from "./config";
-import {LoggerService} from "./logger";
-import {AdminService} from "./admin";
-import {Service} from "./baseService";
-import {DownloaderService} from "./downloader";
-import {AuthService} from "./auth";
-import {UsersService} from "./users";
+import { GroupsService } from "./groups";
+import { ConfigService } from "./config";
+import { LoggerService } from "./logger";
+import { AdminService } from "./admin";
+import { Service } from "./baseService";
+import { DownloaderService } from "./downloader";
+import { AuthService } from "./auth";
+import { UsersService } from "./users";
 
 /**
  * Class that provides access to all of the services in the application.
  */
 export class Services {
 
-    static _isInit: boolean = false;
+    static _isInit = false;
 
     public static getGroupsService(): GroupsService {
         return Services.all.groups;
@@ -58,7 +58,8 @@ export class Services {
         return Services.all.users;
     }
 
-    private static all: any = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private static all: { [key: string]: any } = {
         groups: new GroupsService(),
         users: new UsersService(),
         config: new ConfigService(),
@@ -78,12 +79,12 @@ export class Services {
         console.info("[Services] Actually initializing Services!!!");
         // First perform simple service-service injection.
         Object.keys(Services.all).forEach( svcToInjectIntoName => {
-            const svcToInjectInto: any = Services.all[svcToInjectIntoName];
+            const svcToInjectInto = Services.all[svcToInjectIntoName];
             Object.keys(Services.all).filter(key => key !== svcToInjectIntoName).forEach(injectableSvcKey => {
                 if (svcToInjectInto[injectableSvcKey] !== undefined && svcToInjectInto[injectableSvcKey] === null) {
                     svcToInjectInto[injectableSvcKey] = Services.all[injectableSvcKey];
                 }
-            })
+            });
         });
         // Once that's done, init() all the services
         Object.keys(Services.all).forEach( svcToInjectIntoName => {

@@ -17,9 +17,9 @@
 
 
 export class RoleTypes {
-    public static READ_ONLY: string = "READ_ONLY";
-    public static DEVELOPER: string = "DEVELOPER";
-    public static ADMIN: string = "ADMIN";
+    public static READ_ONLY = "READ_ONLY";
+    public static DEVELOPER = "DEVELOPER";
+    public static ADMIN = "ADMIN";
 }
 
 

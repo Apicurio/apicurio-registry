@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.services.auth;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,6 +75,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.identity.server.resolver.request-path")
     String resolverRequestPath;
 
+    @ConfigProperty(name = "registry.identity.server.resolver.cache-expiration")
+    Integer resolverCacheExpiration;
+
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
 
@@ -98,6 +103,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     TenantConfigBean tenantConfigBean;
 
+    private WrappedValue<IdentityServerResolver.SsoProviders> cachedSSoProviders;
+
     private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
@@ -109,6 +116,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             if (resolveIdentityServer) {
                 resolverHttpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
                 final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
+                cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), ssoProviders);
                 if (!authServerUrl.equals(ssoProviders.getTokenUrl())) {
                     this.authServerUrl = ssoProviders.getTokenUrl();
                 }
@@ -218,9 +226,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
 
         OidcAuth oidcAuth;
-        if (resolveIdentityServer) {
+        if (resolveIdentityServer && cachedSSoProviders.isExpired()) {
             final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-
+            cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(resolverCacheExpiration), Instant.now(), ssoProviders);
             if (!ssoProviders.getTokenUrl().equals(authServerUrl)) {
                 this.authServerUrl = ssoProviders.getTokenUrl();
                 httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());

@@ -242,6 +242,8 @@ objects:
             value: ${IDENTITY_SERVER_RESOLVER_REQUEST_PATH}
           - name: IDENTITY_SERVER_RESOLVER_ENABLED
             value: ${IDENTITY_SERVER_RESOLVER_ENABLED}
+          - name: IDENTITY_SERVER_RESOLVER_CACHE_EXPIRATION
+            value: ${IDENTITY_SERVER_RESOLVER_CACHE_EXPIRATION}
 
           - name: CORS_ALLOWED_ORIGINS
             value: ${CORS_ALLOWED_ORIGINS}
@@ -552,6 +554,8 @@ objects:
             value: ${IDENTITY_SERVER_RESOLVER_REQUEST_PATH}
           - name: IDENTITY_SERVER_RESOLVER_ENABLED
             value: ${IDENTITY_SERVER_RESOLVER_ENABLED}
+          - name: IDENTITY_SERVER_RESOLVER_CACHE_EXPIRATION
+            value: ${IDENTITY_SERVER_RESOLVER_CACHE_EXPIRATION}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -855,15 +859,9 @@ parameters:
 - name: IDENTITY_SERVER_RESOLVER_REQUEST_PATH
   description: "Request path for resolving the identity server."
   value: "api/kafkas_mgmt/v1/sso_providers"
-- name: IDENTITY_SERVER_RESOLVER_AUTH_SERVER_URL
-  description: "Identity server to be used with the identity resolver request."
-  value: "http://localhost:8090/auth"
-- name: IDENTITY_SERVER_RESOLVER_CLIENT_ID
-  description: "Client id to be used with the identity resolver request."
-  value: "registry-api"
-- name: IDENTITY_SERVER_RESOLVER_CLIENT_SECRET
-  description: "Client secret to be used with the identity resolver request."
-  value: "secret"
+- name: IDENTITY_SERVER_RESOLVER_CACHE_EXPIRATION
+  description: "Cache expiration time for the identity resolver."
+  value: "10"
 
   # Tenant Manager Reaper Configuration
 - name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR

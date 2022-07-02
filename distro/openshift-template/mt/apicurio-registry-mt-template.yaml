@@ -546,6 +546,12 @@ objects:
             value: ${TENANT_MANAGER_REAPER_PERIOD_SECONDS}
           - name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
             value: ${TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT}
+          - name: IDENTITY_SERVER_RESOLVER_PATH
+            value: ${IDENTITY_SERVER_RESOLVER_PATH}
+          - name: IDENTITY_SERVER_RESOLVER_REQUEST_PATH
+            value: ${IDENTITY_SERVER_RESOLVER_REQUEST_PATH}
+          - name: IDENTITY_SERVER_RESOLVER_ENABLED
+            value: ${IDENTITY_SERVER_RESOLVER_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:

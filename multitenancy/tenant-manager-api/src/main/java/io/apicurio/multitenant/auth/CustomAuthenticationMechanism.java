@@ -16,20 +16,6 @@
 
 package io.apicurio.multitenant.auth;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
-
-import io.quarkus.oidc.runtime.TenantConfigBean;
-import org.slf4j.Logger;
-
 import io.apicurio.multitenant.logging.audit.AuditHttpRequestContext;
 import io.apicurio.multitenant.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.multitenant.logging.audit.AuditLogService;
@@ -45,6 +31,17 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
+
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 /**
  * Custom HttpAuthenticationMechanism that simply wraps OidcAuthenticationMechanism.
@@ -66,15 +63,10 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     AuditLogService auditLog;
 
-
-    @Inject
-    TenantConfigBean tenantConfigBean;
-
     private final BearerAuthenticationMechanism bearerAuth = new BearerAuthenticationMechanism();;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        tenantConfigBean.getDynamicTenantsConfig().clear();
         BiConsumer<RoutingContext, Throwable> failureHandler = context.get(QuarkusHttpUser.AUTH_FAILURE_HANDLER);
         BiConsumer<RoutingContext, Throwable> auditWrapper = (ctx, ex) -> {
             //this sends the http response

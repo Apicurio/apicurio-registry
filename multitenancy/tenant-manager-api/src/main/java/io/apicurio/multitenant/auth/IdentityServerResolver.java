@@ -90,7 +90,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
 
     @Override
     public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
-        if (resolveIdentityServer && (cachedSsoProviders == null || cachedSsoProviders.isExpired())) {
+        if (resolveIdentityServer) {
             return Uni.createFrom().item(resolveIdentityServer());
         }
 
@@ -99,17 +99,20 @@ public class IdentityServerResolver implements TenantConfigResolver {
     }
 
     private OidcTenantConfig resolveIdentityServer() {
-        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
-        cachedSsoProviders = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), ssoProviders);
-        final OidcTenantConfig config = new OidcTenantConfig();
+        if (cachedSsoProviders == null || cachedSsoProviders.isExpired()) {
+            final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
+            cachedSsoProviders = new WrappedValue<>(Duration.ofMinutes(resolverCacheExpiration), Instant.now(), ssoProviders);
+        }
 
+        final OidcTenantConfig config = new OidcTenantConfig();
+        final SsoProviders cachedProviders = cachedSsoProviders.getValue();
         config.setTenantId(OIDC_DYNAMIC_TENANT_ID);
-        config.setTokenPath(ssoProviders.getTokenUrl());
-        config.setAuthServerUrl(ssoProviders.getValidIssuer());
-        config.setJwksPath(ssoProviders.getJwks());
+        config.setTokenPath(cachedProviders.getTokenUrl());
+        config.setJwksPath(cachedProviders.getJwks());
+        config.setAuthServerUrl(cachedProviders.getValidIssuer());
         config.setClientId(apiClientId);
 
-        return config;
+        return  config;
     }
 
     public Request<SsoProviders> getSSOProviders() {

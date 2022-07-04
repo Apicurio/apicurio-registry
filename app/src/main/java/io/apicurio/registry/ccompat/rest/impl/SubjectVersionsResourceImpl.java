@@ -98,7 +98,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public List<Integer> getSchemasReferencedBy(String subject, Integer version) throws Exception {
-        return facade.getVersions(subject);
+    public List<Long> getSchemasReferencedBy(String subject, String version) throws Exception {
+        return facade.getContentIdsReferencingArtifact(subject, version);
     }
 }

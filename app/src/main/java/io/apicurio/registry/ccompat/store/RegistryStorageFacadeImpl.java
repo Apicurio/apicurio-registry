@@ -335,6 +335,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return storage.getArtifactRule(null, subject, ruleType);
     }
 
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String subject, String versionString) {
+        return parseVersionString(subject, versionString,
+                version -> storage.getContentIdsReferencingArtifact(null, subject, version));
+    }
+
 
     private boolean doesArtifactExist(String artifactId) {
         try {

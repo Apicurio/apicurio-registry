@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests;
 
-import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.AfterAll;
@@ -11,23 +10,10 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.slf4j.Logger;
 
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class Tests extends TestBase {
-    protected static Logger LOGGER = LoggerUtils.getLogger();
-
-    /* Function to set all necessary variables for test subclasses */
-
-    public abstract void setupTestClass();
-
-    /* Constructor for all test subclasses */
-
-    public Tests() {
-        setupTestClass();
-    }
-
     /* Functions for all tests */
 
     @BeforeAll

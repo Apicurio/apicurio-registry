@@ -16,38 +16,19 @@
 
 package io.apicurio.registry.services.auth;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
-
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.AuthException;
-import io.quarkus.oidc.runtime.TenantConfigBean;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.AuthException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
+import io.quarkus.oidc.runtime.TenantConfigBean;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -58,6 +39,21 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import static io.apicurio.registry.services.auth.IdentityServerResolver.getSSOProviders;
 
@@ -74,9 +70,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
 
     @ConfigProperty(name = "registry.identity.server.resolver.request-path")
     String resolverRequestPath;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.cache-expiration")
-    Integer resolverCacheExpiration;
 
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
@@ -103,8 +96,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     TenantConfigBean tenantConfigBean;
 
-    private WrappedValue<IdentityServerResolver.SsoProviders> cachedSSoProviders;
-
     private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
@@ -116,7 +107,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             if (resolveIdentityServer) {
                 resolverHttpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
                 final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-                cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), ssoProviders);
                 if (!authServerUrl.equals(ssoProviders.getTokenUrl())) {
                     this.authServerUrl = ssoProviders.getTokenUrl();
                 }
@@ -226,9 +216,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
 
         OidcAuth oidcAuth;
-        if (resolveIdentityServer && cachedSSoProviders.isExpired()) {
+        if (resolveIdentityServer) {
             final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-            cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(resolverCacheExpiration), Instant.now(), ssoProviders);
             if (!ssoProviders.getTokenUrl().equals(authServerUrl)) {
                 this.authServerUrl = ssoProviders.getTokenUrl();
                 httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());

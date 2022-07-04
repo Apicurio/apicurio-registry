@@ -50,8 +50,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 
 @ApplicationScoped
@@ -66,9 +64,6 @@ public class IdentityServerResolver implements TenantConfigResolver {
     @ConfigProperty(name = "tenant-manager.identity.server.resolver.request-path")
     String resolverRequestPath;
 
-    @ConfigProperty(name = "tenant-manager.identity.server.resolver.cache-expiration", defaultValue = "10")
-    Integer resolverCacheExpiration;
-
     @ConfigProperty(name = "quarkus.oidc.client-id")
     String apiClientId;
 
@@ -78,8 +73,6 @@ public class IdentityServerResolver implements TenantConfigResolver {
     TenantConfigBean tenantConfigBean;
 
     public static String OIDC_DYNAMIC_TENANT_ID = "DYNAMIC_TENANT_ID";
-
-    private WrappedValue<IdentityServerResolver.SsoProviders> cachedSsoProviders;
 
     @PostConstruct
     public void init() {
@@ -99,17 +92,12 @@ public class IdentityServerResolver implements TenantConfigResolver {
     }
 
     private OidcTenantConfig resolveIdentityServer() {
-        if (cachedSsoProviders == null || cachedSsoProviders.isExpired()) {
-            final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
-            cachedSsoProviders = new WrappedValue<>(Duration.ofMinutes(resolverCacheExpiration), Instant.now(), ssoProviders);
-        }
-
+        final SsoProviders ssoProviders = httpClient.sendRequest(getSSOProviders());
         final OidcTenantConfig config = new OidcTenantConfig();
-        final SsoProviders cachedProviders = cachedSsoProviders.getValue();
         config.setTenantId(OIDC_DYNAMIC_TENANT_ID);
-        config.setTokenPath(cachedProviders.getTokenUrl());
-        config.setJwksPath(cachedProviders.getJwks());
-        config.setAuthServerUrl(cachedProviders.getValidIssuer());
+        config.setTokenPath(ssoProviders.getTokenUrl());
+        config.setJwksPath(ssoProviders.getJwks());
+        config.setAuthServerUrl(ssoProviders.getValidIssuer());
         config.setClientId(apiClientId);
 
         return  config;

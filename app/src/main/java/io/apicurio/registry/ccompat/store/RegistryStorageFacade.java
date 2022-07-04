@@ -94,4 +94,6 @@ public interface RegistryStorageFacade {
     void deleteArtifactRule(String subject, RuleType ruleType);
 
     RuleConfigurationDto getArtifactRule(String subject, RuleType ruleType);
+
+    List<Long> getContentIdsReferencingArtifact(String subject, String version);
 }

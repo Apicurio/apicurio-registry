@@ -99,7 +99,7 @@ public class IdentityServerResolver implements TenantConfigResolver {
 
     @Override
     public Uni<OidcTenantConfig> resolve(RoutingContext routingContext, OidcRequestContext<OidcTenantConfig> requestContext) {
-        if (resolveIdentityServer && (cachedSsoProviders == null || cachedSsoProviders.isExpired())) {
+        if (resolveIdentityServer) {
             return Uni.createFrom().item(resolveIdentityServer());
         }
 

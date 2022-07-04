@@ -71,12 +71,18 @@ public class UsersResourceImpl implements UsersResource {
             info.setDeveloper(rbac.isDeveloper());
             info.setViewer(rbac.isReadOnly());
         } else {
-            info.setAdmin(false);
+            info.setAdmin(true);
             info.setDeveloper(false);
             info.setViewer(false);
         }
         if (authConfig.isAdminOverrideEnabled() && adminOverride.isAdmin()) {
             info.setAdmin(true);
+        }
+        if (securityIdentity.isAnonymous() && authConfig.isAnonymousReadsEnabled()) {
+            info.setViewer(true);
+        }
+        if (!securityIdentity.isAnonymous() && authConfig.isAuthenticatedReadsEnabled()) {
+            info.setViewer(true);
         }
         return info;
     }

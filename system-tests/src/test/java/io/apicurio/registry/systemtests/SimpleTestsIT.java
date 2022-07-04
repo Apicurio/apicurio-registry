@@ -17,10 +17,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.slf4j.Logger;
 
 public class SimpleTestsIT extends TestBase {
-    protected static final Logger LOGGER = LoggerUtils.getLogger();
+    @Override
+    public void setupTestClass() {
+        LOGGER = LoggerUtils.getLogger();
+    }
 
     @BeforeAll
     public static void prepareInfra() {

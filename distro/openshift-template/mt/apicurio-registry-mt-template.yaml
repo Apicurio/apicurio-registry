@@ -872,3 +872,7 @@ parameters:
   value: "10800" # 3 * 60 * 60 = 3 hours
 - name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
   value: "100"
+
+- name: ORGANIZATION_ID_CLAIM
+  value: "rh-org-id,org_id"
+

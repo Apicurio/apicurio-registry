@@ -63,7 +63,7 @@ ifdef::apicurio-registry,rh-service-registry[]
 . If authentication is required, you can specify your authentication server and client credentials.
 endif::[]
 ifdef::rh-openshift-sr[]
-. Specify your service account ID and secret and the OpenShift Application Services authentication server: `\https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token`
+. Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
 endif::[]
 . Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
 . You can register multiple artifacts using the specified group ID, artifact ID, and location.

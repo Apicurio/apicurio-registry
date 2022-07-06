@@ -15,12 +15,71 @@
  * limitations under the License.
  */
 
+import React from "react";
+
+export declare enum AlertVariant {
+    success = "success",
+    danger = "danger",
+    warning = "warning",
+    info = "info",
+    default = "default"
+}
+
+export declare type AlertProps = {
+    /**
+     * Unique key
+     */
+    id?: string;
+    /**
+     * Flag to automatically call `onDismiss` after `dismissDelay` runs out.
+     */
+    autoDismiss?: boolean;
+    /**
+     * Flag to show/hide notification close button.
+     */
+    dismissable?: boolean;
+    /**
+     * Alert variant
+     */
+    variant: AlertVariant;
+    /**
+     * Alert title
+     */
+    title: string;
+    /**
+     * Alert description
+     */
+    description?: string | React.ReactElement;
+    /**
+     * Time period after which `onDismiss` is called.
+     */
+    dismissDelay?: number;
+    /**
+     * Unique request ID.
+     */
+    requestId?: string;
+    /**
+     * Unique sentry error ID.
+     */
+    sentryId?: string;
+    /**
+     * data-testid attribute
+     */
+    dataTestId?: string;
+};
+
+export declare type Alerts = {
+    addAlert: ({ id, title, variant, description, dataTestId, autoDismiss, dismissable, dismissDelay, requestId, sentryId }: AlertProps) => void;
+};
+
+
 export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
     multiTenant?: boolean;
     roleManagement?: boolean;
     settings?: boolean;
+    alerts?: Alerts;
 }
 
 export interface ArtifactsConfig {

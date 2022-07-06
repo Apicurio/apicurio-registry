@@ -233,6 +233,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
             // The property was updated successfully.  Update the UI to display all config
             // properties (the list may have changed by changing one of the values).
             this.createLoaders();
+            Services.getAlertsService().settingChanged(property, newValue);
         }).catch(error => {
             // Failed to set the property... report the error somehow.
             this.handleServerError(error, "Error setting configuration property");

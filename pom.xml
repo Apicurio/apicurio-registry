@@ -207,7 +207,7 @@
         <kafka-clients.version>2.8.1</kafka-clients.version>
 
         <!-- Kafka Connect -->
-        <connect.version>2.8.1</connect.version>
+        <connect.version>7.1.2-ce</connect.version>
 
         <!-- Specifications -->
         <annotation-api.version>1.3.5</annotation-api.version>

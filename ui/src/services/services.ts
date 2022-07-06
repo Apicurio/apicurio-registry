@@ -22,6 +22,7 @@ import {Service} from "./baseService";
 import {DownloaderService} from "./downloader";
 import {AuthService} from "./auth";
 import {UsersService} from "./users";
+import {AlertsService} from "./alerts";
 
 /**
  * Class that provides access to all of the services in the application.
@@ -58,6 +59,10 @@ export class Services {
         return Services.all.users;
     }
 
+    public static getAlertsService(): AlertsService {
+        return Services.all.alerts;
+    }
+
     private static all: any = {
         groups: new GroupsService(),
         users: new UsersService(),
@@ -65,7 +70,8 @@ export class Services {
         downloader: new DownloaderService(),
         admin: new AdminService(),
         logger: new LoggerService(),
-        auth: new AuthService()
+        auth: new AuthService(),
+        alerts: new AlertsService(),
     };
 
     // tslint:disable-next-line:member-ordering member-access

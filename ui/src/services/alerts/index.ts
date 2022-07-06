@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,4 @@
  * limitations under the License.
  */
 
-export * from "./admin";
-export * from "./alerts";
-export * from "./baseService";
-export * from "./config";
-export * from "./downloader";
-export * from "./groups";
-export * from "./logger";
-export * from "./services";
-export * from "./users";
+export * from "./alerts.service";

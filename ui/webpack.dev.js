@@ -5,9 +5,33 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || "8888";
+const PROTOCOL = process.env.PROTOCOL || "http";
 
-module.exports = merge(common('development'), {
+module.exports = merge(common("development"), {
+  mode: "development",
   devtool: "eval-source-map",
+  devServer: {
+    static: {
+      directory: "./dist",
+    },
+    host: HOST,
+    port: PORT,
+    compress: true,
+    //inline: true,
+    historyApiFallback: true,
+    allowedHosts: "all",
+    hot: true,
+    client: {
+      overlay: true,
+    },
+    open: true,
+    https: PROTOCOL === "https",
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
+    },
+  },
   plugins: [
     new CopyWebpackPlugin({
       patterns: [
@@ -15,39 +39,5 @@ module.exports = merge(common('development'), {
         {from: "./src/config.js"},
         {from: "./src/favicon.ico"},
       ]})
-  ],
-  devServer: {
-    contentBase: "./dist",
-    host: HOST,
-    port: PORT,
-    compress: true,
-    inline: true,
-    historyApiFallback: true,
-    hot: true,
-    overlay: true,
-    open: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
-    },
-  },
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        include: [
-          path.resolve(__dirname, "src"),
-          path.resolve(__dirname, "node_modules/patternfly"),
-          path.resolve(__dirname, "node_modules/@patternfly/patternfly"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-styles/css"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/base.css"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/esm/@patternfly/patternfly"),
-          path.resolve(__dirname, "node_modules/@patternfly/react-code-editor"),
-          path.resolve(__dirname, 'node_modules/monaco-editor'),
-        ],
-        use: ["style-loader", "css-loader"]
-      }
-    ]
-  }
+  ]
 });

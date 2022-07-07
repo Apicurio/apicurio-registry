@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {ConfigType, FeaturesConfig, GetTokenAuthConfig, KeycloakJsAuthConfig} from './config.type';
+import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, KeycloakJsAuthConfig} from './config.type';
 import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -123,6 +123,10 @@ export class ConfigService implements Service {
 
     public featureSettings(): boolean {
         return this.features().settings || false;
+    }
+
+    public featureAlertsService(): Alerts | undefined {
+        return this.features().alerts;
     }
 
     public authType(): string {

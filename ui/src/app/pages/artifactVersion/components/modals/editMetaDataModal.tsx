@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./editMetaDataModal.css";
-import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
-import { Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput, TextInputProps } from "@patternfly/react-core";
-import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { EditableMetaData } from '../../../../../services';
+import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput} from "@patternfly/react-core";
+import {EditableMetaData} from "../../../../../services";
+import {ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList} from "./propertiesFormGroup";
 
 
 /**
@@ -29,47 +29,20 @@ export interface EditMetaDataModalProps extends PureComponentProps {
     name: string;
     description: string;
     labels: string[];
-    properties: { [key: string]: string };
+    properties: { [key: string]: string|undefined };
     isOpen: boolean;
     onClose: () => void;
     onEditMetaData: (metaData: EditableMetaData) => void;
 }
-
-type ValidatedValue = "error" | "default" | "warning" | "success" | undefined;
-
-const initialFormState = {
-    hasErrors: false,
-    newPropertyKey: {
-        value: "",
-        validated: 'default' as ValidatedValue,
-        errorMessage: ""
-    },
-    newArtifactPropertyValue: {
-        value: "",
-        validated: 'default' as ValidatedValue,
-        errorMessage: ""
-    }
-};
 
 /**
  * State
  */
 export interface EditMetaDataModalState extends PureComponentState {
     labels: string;
-    formState: {
-        newPropertyKey: {
-            value: string;
-            errorMessage: string;
-            validated: ValidatedValue;
-        }
-        newArtifactPropertyValue: {
-            value: string;
-            errorMessage: string;
-            validated: ValidatedValue;
-        }
-        hasErrors: boolean;
-    }
+    properties: ArtifactProperty[];
     metaData: EditableMetaData;
+    isValid: boolean;
 }
 
 /**
@@ -90,7 +63,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                 onClose={this.props.onClose}
                 className="edit-artifact-metaData pf-m-redhat-font"
                 actions={[
-                    <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={this.doEdit} isDisabled={this.state.formState.hasErrors}>Save</Button>,
+                    <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={this.doEdit} isDisabled={!this.state.isValid}>Save</Button>,
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
@@ -153,46 +126,10 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                                 />
                             </FormGroup>
                         </GridItem>
-                        {this.renderExistingArtifactPropertiesInForm()}
-                        <FormGroup
-                            fieldId="form-properties-key"
-                            validated={this.state.formState.newPropertyKey.validated}
-                            helperTextInvalid={this.state.formState.newPropertyKey.errorMessage}
-                            label={Object.keys(this.state.metaData.properties).length == 0 ? 'Key' : ''}>
-                            <TextInput
-                                type="text"
-                                placeholder='Enter key'
-                                id="form-properties-key"
-                                name="form-properties-key"
-                                validated={this.state.formState.newPropertyKey.validated}
-                                value={this.state.formState.newPropertyKey.value}
-                                onChange={(newVal) => this.updateArtifactPropertyFormKey(newVal)}
-                            />
-                        </FormGroup>
-                        <FormGroup
-                            fieldId="form-properties-value"
-                            label={Object.keys(this.state.metaData.properties).length == 0 ? 'Value' : ''}
-                            validated={this.state.formState.newArtifactPropertyValue.validated}
-                            helperTextInvalid={this.state.formState.newArtifactPropertyValue.errorMessage}
-                        >
-                            <div className='prop-value-group'>
-                                <TextInput
-                                    type="text"
-                                    id="form-properties-value"
-                                    placeholder="Enter value"
-                                    name="form-properties-value"
-                                    validated={this.state.formState.newArtifactPropertyValue.validated}
-                                    value={this.state.formState.newArtifactPropertyValue.value}
-                                    onChange={(newVal) => this.updateArtifactPropertyFormValue(newVal)}
-                                />
-                                <Button key={'remove-button-new'} variant="link" icon={<MinusCircleIcon />} iconPosition="right" className='pf-m-plain' isDisabled />
-                            </div>
-                        </FormGroup>
-                        <GridItem span={12}>
-                            <Button variant="link" icon={<PlusCircleIcon />} className="add-property-button" onClick={() => this.addArtifactProperty(this.state.formState.newPropertyKey.value, this.state.formState.newArtifactPropertyValue.value)}>
-                                Add property
-                            </Button>{' '}
-                        </GridItem>
+                        <PropertiesFormGroup properties={this.state.properties}
+                                             onChange={(properties) => {
+                                                 this.setSingleState("properties", properties);
+                                             }} />
                     </Grid>
                 </Form>
             </Modal>
@@ -203,12 +140,14 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         if (this.props.isOpen && !prevProps.isOpen) {
             this.setMultiState({
                 labels: this.props.labels.join(", "),
+                properties: propertiesToList(this.props.properties),
                 metaData: {
                     description: this.props.description,
                     labels: this.props.labels,
                     properties: this.props.properties,
                     name: this.props.name
-                }
+                },
+                isValid: true
             });
         }
     }
@@ -216,7 +155,8 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
     protected initializeState(): EditMetaDataModalState {
         return {
             labels: "",
-            formState: initialFormState,
+            properties: [],
+            isValid: true,
             metaData: {
                 description: "",
                 labels: [],
@@ -226,16 +166,12 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         };
     }
 
-    private labels(): string {
-        if (this.state.metaData.labels) {
-            return this.state.metaData.labels.join(", ");
-        } else {
-            return "";
-        }
-    }
-
     private doEdit = (): void => {
-        this.props.onEditMetaData(this.state.metaData);
+        const metaData: EditableMetaData = {
+            ...this.state.metaData,
+            properties: listToProperties(this.state.properties)
+        }
+        this.props.onEditMetaData(metaData);
     };
 
     private onNameChange = (value: string): void => {
@@ -266,135 +202,4 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         });
     };
 
-    private renderExistingArtifactPropertiesInForm = () => {
-        const rows = Object.keys(this.state.metaData.properties).map((k: string, i: number) => {
-            return <React.Fragment key={k}>
-                <FormGroup fieldId={'form-properties-key' + k} label={i == 0 ? 'Key' : ''}>
-                    <TextInput
-                        type="text"
-                        isDisabled
-                        placeholder='Enter key'
-                        id={'form-properties-key' + k}
-                        name={'form-properties-key' + k}
-                        value={k}
-                    />
-                </FormGroup>
-                <FormGroup fieldId={'form-properties-value' + k} label={i == 0 ? 'Value' : ''}>
-                    <div className='prop-value-group'>
-
-                        <TextInput
-                            type="text"
-                            id={'form-properties-value' + k}
-                            placeholder="Enter value"
-                            name={'form-properties-value' + k}
-                            value={this.state.metaData.properties[k]}
-                            onChange={(newVal) => this.updateArtifactPropertyValue(k, newVal)}
-                        />
-                        <Button key={'remove-button-' + k} variant="link" icon={<MinusCircleIcon />} iconPosition="right" className='pf-m-plain' onClick={() => this.removeArtifactProperty(k)} />
-                    </div>
-                </FormGroup>
-            </React.Fragment>
-        });
-
-        return rows;
-    }
-
-    /**
-     * Update the form value for the artifact property key
-     * @param key 
-     */
-    private updateArtifactPropertyFormKey(key: string) {
-        let validated: ValidatedValue = 'default';
-        let errorMessage: string = '';
-        if (this.state.metaData.properties[key]) {
-            errorMessage = `Key '${key}' is already in use`;
-            validated = 'error';
-        } else {
-            errorMessage = '';
-        }
-
-        const propertyValueErrorData = this.getPropertyValueErrorInfo(this.state.formState.newArtifactPropertyValue.value, key);
-
-        this.setMultiState({
-            ...this.state,
-            formState: {
-                ...this.state.formState,
-                hasErrors: errorMessage != '',
-                newPropertyKey: {
-                    ...this.state.formState.newPropertyKey,
-                    errorMessage: errorMessage,
-                    value: key,
-                    validated,
-                },
-                newArtifactPropertyValue: {
-                    value: this.state.formState.newArtifactPropertyValue.value,
-                    errorMessage: propertyValueErrorData.errorMessage,
-                    validated: propertyValueErrorData.validated
-                }
-            }
-        })
-    }
-
-    /**
-     * Update the form value for the artifact property value
-     * @param value 
-     */
-    private updateArtifactPropertyFormValue(value: string = '') {
-        const errorData = this.getPropertyValueErrorInfo(value, this.state.formState.newPropertyKey.value);
-
-        this.setMultiState({
-            ...this.state,
-            formState: {
-                ...this.state.formState,
-                hasErrors: errorData.errorMessage != '',
-                newArtifactPropertyValue: {
-                    ...this.state.formState.newArtifactPropertyValue,
-                    value,
-                    errorMessage: errorData.errorMessage,
-                    validated: errorData.validated,
-                }
-            }
-        })
-    }
-
-    private updateArtifactPropertyValue(key: string, value: string) {
-        const metadata: EditableMetaData = { ...this.state.metaData };
-        metadata.properties[key] = value;
-        this.setSingleState('metaData', metadata);
-    }
-
-    private removeArtifactProperty(key: string) {
-        const metadata = Object.assign({}, this.state.metaData);
-        delete metadata.properties[key];
-        this.setSingleState('metaData', metadata);
-    }
-
-    private addArtifactProperty(key: string, value: string) {
-        const metadata = Object.assign({}, this.state.metaData);
-        metadata.properties[key] = value;
-        this.setMultiState({
-            ...this.state,
-            metaData: metadata,
-            formState: initialFormState,
-        })
-    }
-
-    /**
-     * Calculate the error values for the artifact property form value
-     * @param value 
-     * @param key 
-     * @returns 
-     */
-    private getPropertyValueErrorInfo(value: string, key: string): { errorMessage: string, validated: ValidatedValue } {
-        if (value === '' && key !== '') {
-            return {
-                errorMessage: `Key '${key}' must have a corresponding value`,
-                validated: 'error'
-            }
-        }
-        return {
-            errorMessage: '',
-            validated: 'default'
-        }
-    }
 }

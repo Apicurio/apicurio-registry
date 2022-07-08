@@ -33,12 +33,14 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests that the REST API exposed at endpoint "/ccompat/v6" follows the
@@ -71,6 +73,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private static final String SCHEMA_2_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
             "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
             "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\"}\"";
+
+    private static final String SCHEMA_3_WRAPPED_TEMPLATE = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test2\\\", " +
+            "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
+            "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\", \"references\": [{\"name\": \"testname\", \"subject\": \"%s\", \"version\": %d}]}";
 
     private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
@@ -490,35 +496,41 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
      */
     @Test
     public void testGetSchemaReferencedVersions() throws Exception {
-        final String SUBJECT = "testGetSchemaReferencedVersions";
+        final String SUBJECT_1 = "testGetSchemaReferencedVersions1";
+        final String SUBJECT_2 = "testGetSchemaReferencedVersions2";
 
-        //Create two versions of the same artifact
+        // Create first artifact
         // POST
-        final Integer globalId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_1_WRAPPED).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT).then()
+        final Integer contentId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_1_WRAPPED).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT_1).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId1);
+        Assertions.assertNotNull(contentId1);
 
-        this.waitForArtifact(SUBJECT);
+        this.waitForArtifact(SUBJECT_1);
+        this.waitForContentId(contentId1);
 
+        // Create artifact that references the first one
         // POST
-        final Integer globalId2 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_2_WRAPPED).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT).then()
+        System.out.printf((SCHEMA_3_WRAPPED_TEMPLATE) + "%n", SUBJECT_1, 1);
+        final Integer contentId2 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(String.format(SCHEMA_3_WRAPPED_TEMPLATE, SUBJECT_1, 1)).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT_2).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
                 .extract().body().jsonPath().get("id");
-        Assertions.assertNotNull(globalId2);
+        Assertions.assertNotNull(contentId2);
 
-        this.waitForContentId(globalId2);
+        this.waitForArtifact(SUBJECT_2);
+        this.waitForContentId(contentId2);
 
         //Verify
         Integer[] versions = given().when()
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}/referencedby", SUBJECT, 1L).then().statusCode(200)
+                .get("/ccompat/v6/subjects/{subject}/versions/{version}/referencedby", SUBJECT_1, 1L).then().statusCode(200)
                 .extract().as(Integer[].class);
 
-        assertEquals(2, versions.length);
+        assertEquals(1, versions.length);
+        assertTrue(Arrays.asList(versions).contains(contentId2));
     }
 
     /**

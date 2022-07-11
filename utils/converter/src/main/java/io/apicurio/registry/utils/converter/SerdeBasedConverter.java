@@ -22,6 +22,7 @@ import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
 
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -127,6 +128,15 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
     @Override
     public SchemaAndValue toConnectData(String topic, byte[] bytes) {
         T result = deserializer.deserialize(topic, bytes);
+        if (result == null) {
+            return SchemaAndValue.NULL;
+        }
+        return toSchemaAndValue(result);
+    }
+
+    @Override
+    public SchemaAndValue toConnectData(String topic, Headers headers, byte[] bytes) {
+        T result = deserializer.deserialize(topic, headers, bytes);
         if (result == null) {
             return SchemaAndValue.NULL;
         }

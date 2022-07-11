@@ -24,10 +24,13 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import org.jboss.logging.Logger;
 import java.util.zip.ZipOutputStream;
 
@@ -67,6 +70,9 @@ public class Export implements QuarkusApplication {
     @Inject
     Logger log;
 
+    @Inject
+    ArtifactReferenceMapper artifactReferenceMapper;
+
     /**
      * @see QuarkusApplication#run(String[])
      */
@@ -98,7 +104,7 @@ public class Export implements QuarkusApplication {
             System.out.println("Exporting confluent schema registry data to " + output.getName());
 
             ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
-            EntityWriter writer = new EntityWriter(zip);
+            ExportContext context = new ExportContext(new EntityWriter(zip), restService, client);
 
             // Add a basic Manifest to the export
             ManifestEntity manifest = new ManifestEntity();
@@ -107,65 +113,18 @@ public class Export implements QuarkusApplication {
             manifest.systemDescription = "Unknown remote confluent schema registry (export created using apicurio confluent schema registry export utility).";
             manifest.systemName = "Remote Confluent Schema Registry";
             manifest.systemVersion = "n/a";
-            writer.writeEntity(manifest);
+            context.getWriter().writeEntity(manifest);
 
-            Map<String, Long> contentIndex = new HashMap<>();
+            Collection<String> subjects = client.getAllSubjects();
 
-            Collection<String> subjects = restService.getAllSubjects();
+            // Export all subjects
             for (String subject : subjects) {
-                List<Integer> versions = restService.getAllVersions(subject);
-
+                List<Integer> versions = client.getAllVersions(subject);
                 versions.sort(Comparator.naturalOrder());
 
-                for (int i = 0; i < versions.size(); i++) {
-                    Integer version = versions.get(i);
-                    boolean isLatest = (versions.size() - 1) == i;
-
-                    Schema metadata = restService.getVersion(subject, version);
-
-                    SchemaString schemaString = restService.getId(metadata.getId());
-
-                    String content = schemaString.getSchemaString();
-                    byte[] contentBytes = IoUtil.toBytes(content);
-                    String contentHash = DigestUtils.sha256Hex(contentBytes);
-
-                    ArtifactType artifactType = ArtifactType.fromValue(metadata.getSchemaType().toUpperCase(Locale.ROOT));
-
-                    Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
-                        ContentEntity contentEntity = new ContentEntity();
-                        contentEntity.contentId = metadata.getId();
-                        contentEntity.contentHash = contentHash;
-                        contentEntity.canonicalHash = null;
-                        contentEntity.contentBytes = contentBytes;
-                        contentEntity.artifactType = artifactType;
-
-                        try {
-                            writer.writeEntity(contentEntity);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        return contentEntity.contentId;
-                    });
-
-                    ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
-                    versionEntity.artifactId = subject;
-                    versionEntity.artifactType = artifactType;
-                    versionEntity.contentId = contentId;
-                    versionEntity.createdBy = "export-confluent-utility";
-                    versionEntity.createdOn = System.currentTimeMillis();
-                    versionEntity.description = null;
-                    versionEntity.globalId = -1;
-                    versionEntity.groupId = null;
-                    versionEntity.isLatest = isLatest;
-                    versionEntity.labels = null;
-                    versionEntity.name = null;
-                    versionEntity.properties = null;
-                    versionEntity.state = ArtifactState.ENABLED;
-                    versionEntity.version = String.valueOf(metadata.getVersion());
-                    versionEntity.versionId = metadata.getVersion();
-
-                    writer.writeEntity(versionEntity);
+                // Export all versions of the subject
+                for (Integer version : versions) {
+                    exportSubjectVersionWithRefs(context, subject, version);
                 }
 
                 try {
@@ -177,11 +136,12 @@ public class Export implements QuarkusApplication {
                     ruleEntity.groupId = null;
                     ruleEntity.type = RuleType.COMPATIBILITY;
 
-                    writer.writeEntity(ruleEntity);
+                    context.getWriter().writeEntity(ruleEntity);
                 } catch (RestClientException ex) {
-                    //Subject does not have specific compatibility rule
+                    // Subject does not have specific compatibility rule
                 }
             }
+
 
             String globalCompatibility = client.getCompatibility(null);
 
@@ -189,14 +149,14 @@ public class Export implements QuarkusApplication {
             ruleEntity.configuration = globalCompatibility;
             ruleEntity.ruleType = RuleType.COMPATIBILITY;
 
-            writer.writeEntity(ruleEntity);
+            context.getWriter().writeEntity(ruleEntity);
 
-            //Enable Global Validation rule bcs it is confluent default behavior
+            // Enable Global Validation rule bcs it is confluent default behavior
             GlobalRuleEntity ruleEntity2 = new GlobalRuleEntity();
             ruleEntity2.configuration = "SYNTAX_ONLY";
             ruleEntity2.ruleType = RuleType.VALIDITY;
 
-            writer.writeEntity(ruleEntity2);
+            context.getWriter().writeEntity(ruleEntity2);
 
             zip.flush();
             zip.close();
@@ -220,6 +180,72 @@ public class Export implements QuarkusApplication {
             log.error("Could not create Insecure SSL Socket Factory", ex);
         }
         return null;
+    }
+
+    public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version) throws RestClientException, IOException {
+        if (context.getExportedSubjectVersions().stream().anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
+            return;
+        }
+        context.getExportedSubjectVersions().add(new SubjectVersionPair(subject, version));
+
+        List<Integer> versions = context.getSchemaRegistryClient().getAllVersions(subject);
+        versions.sort(Comparator.reverseOrder());
+
+        boolean isLatest = (versions.get(0)).intValue() == version.intValue();
+
+        Schema metadata = context.getSchemaRegistryClient().getByVersion(subject, version, false);
+
+        SchemaString schemaString = context.getRestService().getId(metadata.getId());
+
+        String content = schemaString.getSchemaString();
+        byte[] contentBytes = IoUtil.toBytes(content);
+        String contentHash = DigestUtils.sha256Hex(contentBytes);
+
+        // Export all references first
+        for (SchemaReference ref : metadata.getReferences()) {
+            exportSubjectVersionWithRefs(context, ref.getSubject(), ref.getVersion());
+        }
+
+        List<ArtifactReference> references = artifactReferenceMapper.map(metadata.getReferences());
+
+        ArtifactType artifactType = ArtifactType.fromValue(metadata.getSchemaType().toUpperCase(Locale.ROOT));
+
+        Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
+            ContentEntity contentEntity = new ContentEntity();
+            contentEntity.contentId = metadata.getId();
+            contentEntity.contentHash = contentHash;
+            contentEntity.canonicalHash = null;
+            contentEntity.contentBytes = contentBytes;
+            contentEntity.artifactType = artifactType;
+            contentEntity.references = references.toArray(ArtifactReference[]::new);
+            try {
+                context.getWriter().writeEntity(contentEntity);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return contentEntity.contentId;
+        });
+
+        ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
+        versionEntity.artifactId = subject;
+        versionEntity.artifactType = artifactType;
+        versionEntity.contentId = contentId;
+        versionEntity.createdBy = "export-confluent-utility";
+        versionEntity.createdOn = System.currentTimeMillis();
+        versionEntity.description = null;
+        versionEntity.globalId = -1;
+        versionEntity.groupId = null;
+        versionEntity.isLatest = isLatest;
+        versionEntity.labels = null;
+        versionEntity.name = null;
+        versionEntity.properties = null;
+        versionEntity.state = ArtifactState.ENABLED;
+        versionEntity.version = String.valueOf(metadata.getVersion());
+        versionEntity.versionId = metadata.getVersion();
+
+        context.getWriter().writeEntity(versionEntity);
+
     }
 
 }

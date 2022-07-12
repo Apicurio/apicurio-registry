@@ -201,7 +201,7 @@
         <commons-codec.version>1.15</commons-codec.version>
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <apicurio-common-rest-client.version>0.1.11.Final</apicurio-common-rest-client.version>
+        <apicurio-common-rest-client.version>0.1.12.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.1.10.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.10.0</kafka-oauth-client.version>
@@ -228,7 +228,7 @@
         <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
         <version.properties.plugin>1.1.0</version.properties.plugin>
         <version.dependency.plugin>3.3.0</version.dependency.plugin>
-        <version.assembly.plugin>3.4.0</version.assembly.plugin>
+        <version.assembly.plugin>3.4.1</version.assembly.plugin>
         <version.resources.plugin>3.2.0</version.resources.plugin>
         <version.clean.plugin>3.2.0</version.clean.plugin>
         <version.frontend-maven.plugin>1.12.1</version.frontend-maven.plugin>

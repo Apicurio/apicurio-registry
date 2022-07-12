@@ -16,38 +16,19 @@
 
 package io.apicurio.registry.services.auth;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Priority;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.inject.Inject;
-
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.AuthException;
-import io.quarkus.oidc.runtime.TenantConfigBean;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
 import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
+import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
+import io.apicurio.rest.client.auth.exception.AuthException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
+import io.quarkus.oidc.runtime.TenantConfigBean;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -58,6 +39,25 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.Priority;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
+import javax.inject.Inject;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import static io.apicurio.registry.services.auth.IdentityServerResolver.getSSOProviders;
 
@@ -110,6 +110,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private ApicurioHttpClient httpClient;
     private ApicurioHttpClient resolverHttpClient;
 
+    private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
+
     @PostConstruct
     public void init() {
         if (authEnabled) {
@@ -121,6 +123,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     this.authServerUrl = ssoProviders.getTokenUrl();
                 }
             }
+
+            cachedAccessTokens = new ConcurrentHashMap<>();
 
             httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
@@ -223,6 +227,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return new HttpCredentialTransport(HttpCredentialTransport.Type.AUTHORIZATION, "bearer");
     }
 
+
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
 
         OidcAuth oidcAuth;
@@ -236,10 +241,20 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         }
 
         oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
+        String jwtToken;
+        String credentialsHash = getCredentialsHash(clientCredentials.getLeft() + clientCredentials.getRight());
+        if (cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired()) {
+            jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
+        } else {
+            jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+            cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(5), Instant.now(), jwtToken));
+        }
 
-        final String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-        oidcAuth.close();
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+    }
+
+    private String getCredentialsHash(String credentials) {
+        return DigestUtils.sha256Hex(credentials);
     }
 }

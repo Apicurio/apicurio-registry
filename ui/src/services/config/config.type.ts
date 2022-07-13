@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2022 Red Hat Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-import React from "react";
-
-export declare enum AlertVariant {
+export enum AlertVariant {
     success = "success",
     danger = "danger",
     warning = "warning",
@@ -25,7 +23,7 @@ export declare enum AlertVariant {
     default = "default"
 }
 
-export declare type AlertProps = {
+export type AlertProps = {
     /**
      * Unique key
      */
@@ -49,7 +47,7 @@ export declare type AlertProps = {
     /**
      * Alert description
      */
-    description?: string | React.ReactElement;
+    description?: string;
     /**
      * Time period after which `onDismiss` is called.
      */

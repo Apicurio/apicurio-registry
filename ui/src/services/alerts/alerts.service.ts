@@ -21,14 +21,15 @@ export class AlertsService implements Service {
         if (newValue === "true" || newValue === "false") {
             title = `${property.label} turned ${newValue === "true" ? "on" : "off"}`;
         }
-        if (alerts) {
+        if (alerts && alerts.addAlert) {
             alerts.addAlert({
                 title,
                 variant: AlertVariant.success,
                 dataTestId: "toast-setting-changed"
             });
         } else {
-            this.logger.info("[AlertsService] Alerts (toast) not available: ", title);
+            this.logger.info("[AlertsService] Alerts (toast) service not available: ", title);
+            this.logger.debug("[AlertsService] Alerts config is: ", alerts);
         }
     }
 }

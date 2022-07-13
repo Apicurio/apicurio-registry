@@ -179,6 +179,9 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
 
     return (
         <React.Fragment>
+            <GridItem span={12}>
+                <label className="pf-c-form__label"><span className="pf-c-form__label-text">Properties</span></label>
+            </GridItem>
             {
                 properties.map((property, idx) => (
                     <React.Fragment>

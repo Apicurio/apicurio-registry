@@ -26,7 +26,6 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.mt.TenantContext;
-import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.ArtifactStateExt;
@@ -69,15 +68,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.util.DataImporter;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -95,8 +93,6 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -110,7 +106,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
@@ -347,12 +342,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
 
-        Map<String, ContentHandle> resolvedReferences = this.resolveReferences(references);
-
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, resolvedReferences);
+            ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, references);
             byte[] canonicalContentBytes = canonicalContent.bytes();
             String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
 
@@ -364,23 +357,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return contentHash;
     }
 
-    private long ensureContentAndGetContentId(ContentHandle content, ArtifactType artifactType, List<ArtifactReferenceDto> references) {
-        Map<String, ContentHandle> resolvedReferences = this.resolveReferences(references);
-
-        ContentHandle canonicalContent = this.canonicalizeContent(artifactType, content, resolvedReferences);
-        byte[] canonicalContentBytes = canonicalContent.bytes();
-        String canonicalContentHash = DigestUtils.sha256Hex(canonicalContentBytes);
-        return ensureContentAndGetContentId(content, canonicalContentHash);
-    }
-
-    private long ensureContentAndGetContentId(ContentHandle content, String canonicalContentHash) {
+    protected long ensureContentAndGetContentId(ContentHandle content, String canonicalContentHash, List<ArtifactReferenceDto> references) {
         byte[] contentBytes = content.bytes();
         String contentHash = DigestUtils.sha256Hex(contentBytes);
 
         if (!sqlStore.isContentExists(contentHash)) {
             long contentId = nextClusterContentId();
 
-            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, "");
+            CompletableFuture<UUID> future = submitter.submitContent(tenantContext.tenantId(), contentId, contentHash, ActionType.CREATE, canonicalContentHash, content, SqlUtil.serializeReferences(references));
             UUID uuid = ConcurrentUtil.get(future);
             coordinator.waitForResponse(uuid);
             return contentId;
@@ -986,68 +970,17 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      */
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
-        Map<Long, Long> contentIdMapping = new HashMap<>();
-        // To handle issue, when we do not know new content id before importing the actual content
-        ArrayList<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
         try {
-            Entity entity = null;
-            while ((entity = entities.nextEntity()) != null) {
-                if (entity.getEntityType() == EntityType.Content) {
-                    ContentEntity contentEntity = (ContentEntity) entity;
-
-                    List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
-                            .map(V2ApiUtil::referenceToDto)
-                            .collect(Collectors.toList());
-
-                    if (!preserveContentId) {
-                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
-                        // It makes sure there won't be any conflicts
-                        long newContentId;
-                        if (contentEntity.artifactType != null) {
-                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.artifactType, references);
-                        } else {
-                            if (contentEntity.canonicalHash == null) {
-                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
-                            }
-                            newContentId = ensureContentAndGetContentId(ContentHandle.create(contentEntity.contentBytes), contentEntity.canonicalHash);
-                        }
-                        contentIdMapping.put(contentEntity.contentId, newContentId);
-                        continue;
-                    }
-
-                    // We do not need canonicalHash if we have artifactType
-                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), this.resolveReferences(references));
-                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
-                    }
-                } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
-                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
-                    if (!preserveGlobalId) {
-                        artifactVersionEntity.globalId = -1;
-                    }
-                    if (!preserveContentId) {
-                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
-                            // Add to the queue waiting for content imported
-                            waitingForContent.add(artifactVersionEntity);
-                            continue;
-                        }
-                        // Content of the artifact was already imported we can use the new contentId
-                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    }
-                }
-                importEntity(entity);
+            DataImporter dataImporter;
+            if (preserveContentId) {
+                dataImporter = new KafkaSqlDataImporter(log, this, preserveGlobalId);
+            } else {
+                dataImporter = new ContentIdNotPreserveKafkaSqlDataImporter(log, this, preserveGlobalId);
             }
 
-            if (!preserveContentId) {
-                // Import artifact versions which were waiting for the content import
-                for (ArtifactVersionEntity artifactVersionEntity : waitingForContent) {
-                    if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
-                        // Content for this artifact was not included in the imported file -> skip and warn user
-                        continue;
-                    }
-                    artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    importEntity(artifactVersionEntity);
-                }
+            Entity entity = null;
+            while ((entity = entities.nextEntity()) != null) {
+                dataImporter.importEntity(entity);
             }
 
             // Because importing just pushes a bunch of Kafka messages, we may need to
@@ -1247,37 +1180,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.isArtifactExists(groupId, artifactId);
     }
 
-    protected void importEntity(Entity entity) throws RegistryStorageException {
-        switch (entity.getEntityType()) {
-            case ArtifactRule:
-                importArtifactRule((ArtifactRuleEntity) entity);
-                break;
-            case ArtifactVersion:
-                importArtifactVersion((ArtifactVersionEntity) entity);
-                break;
-            case Content:
-                importContent((ContentEntity) entity);
-                break;
-            case GlobalRule:
-                importGlobalRule((GlobalRuleEntity) entity);
-                break;
-            case Group:
-                importGroup((GroupEntity) entity);
-                break;
-            case Manifest:
-                ManifestEntity manifest = (ManifestEntity) entity;
-                log.info("---------- Import Info ----------");
-                log.info("System Name:    {}", manifest.systemName);
-                log.info("System Desc:    {}", manifest.systemDescription);
-                log.info("System Version: {}", manifest.systemVersion);
-                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
-                log.info("---------- ----------- ----------");
-                // Ignore the manifest for now.
-                break;
-            default:
-                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
-        }
-    }
     protected void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
@@ -1294,13 +1196,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
                 entity.state, entity.contentId, entity.isLatest);
     }
     protected void importContent(ContentEntity entity) {
-        List<ArtifactReferenceDto> references = Arrays.stream(entity.references)
-                .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
-                .collect(Collectors.toList());
-
-        String referencesSerialized = SqlUtil.serializeReferences(references);
-
-        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), referencesSerialized);
+        submitter.submitContent(tenantContext.tenantId(), entity.contentId, entity.contentHash, ActionType.IMPORT, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
     }
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
@@ -1334,7 +1230,7 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param content
      */
     protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content) {
-        return canonicalizeContent(artifactType, content, Collections.emptyMap());
+        return canonicalizeContent(artifactType, content, Collections.emptyList());
     }
 
     /**
@@ -1342,11 +1238,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
      * @param artifactType
      * @param content
      */
-    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+    protected ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, resolvedReferences);
+            ContentHandle canonicalContent = canonicalizer.canonicalize(content, this.resolveReferences(references));
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType.name());

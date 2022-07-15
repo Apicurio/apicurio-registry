@@ -723,7 +723,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportContent() {
-        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.content FROM content c "
+        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.content, c.artifactreferences FROM content c "
                 + "WHERE c.tenantId = ?";
     }
 

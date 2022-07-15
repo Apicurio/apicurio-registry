@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
@@ -73,6 +75,8 @@ public class Export implements QuarkusApplication {
     @Inject
     ArtifactReferenceMapper artifactReferenceMapper;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * @see QuarkusApplication#run(String[])
      */
@@ -115,11 +119,11 @@ public class Export implements QuarkusApplication {
             manifest.systemVersion = "n/a";
             context.getWriter().writeEntity(manifest);
 
-            Collection<String> subjects = client.getAllSubjects();
+            Collection<String> subjects = context.getSchemaRegistryClient().getAllSubjects();
 
             // Export all subjects
             for (String subject : subjects) {
-                List<Integer> versions = client.getAllVersions(subject);
+                List<Integer> versions = context.getSchemaRegistryClient().getAllVersions(subject);
                 versions.sort(Comparator.naturalOrder());
 
                 // Export all versions of the subject
@@ -128,7 +132,7 @@ public class Export implements QuarkusApplication {
                 }
 
                 try {
-                    String compatibility = client.getCompatibility(subject);
+                    String compatibility = context.getSchemaRegistryClient().getCompatibility(subject);
 
                     ArtifactRuleEntity ruleEntity = new ArtifactRuleEntity();
                     ruleEntity.artifactId = subject;
@@ -217,7 +221,7 @@ public class Export implements QuarkusApplication {
             contentEntity.canonicalHash = null;
             contentEntity.contentBytes = contentBytes;
             contentEntity.artifactType = artifactType;
-            contentEntity.references = references.toArray(ArtifactReference[]::new);
+            contentEntity.serializedReferences = serializeReferences(references);
             try {
                 context.getWriter().writeEntity(contentEntity);
             } catch (IOException e) {
@@ -245,7 +249,21 @@ public class Export implements QuarkusApplication {
         versionEntity.versionId = metadata.getVersion();
 
         context.getWriter().writeEntity(versionEntity);
+    }
 
+    /**
+     * Serializes the given collection of references to a string
+     * @param references
+     */
+    private String serializeReferences(List<ArtifactReference> references) {
+        try {
+            if (references == null || references.isEmpty()) {
+                return null;
+            }
+            return objectMapper.writeValueAsString(references);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

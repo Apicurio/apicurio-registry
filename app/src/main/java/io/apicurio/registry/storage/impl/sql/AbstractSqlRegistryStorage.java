@@ -22,10 +22,7 @@ import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +38,8 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import io.apicurio.registry.rest.v2.V2ApiUtil;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -2483,69 +2479,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     @Override
     @Transactional
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
-        Map<Long, Long> contentIdMapping = new HashMap<>();
-        // To handle issue, when we do not know new content id before importing the actual content
-        ArrayList<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
-
         handles.withHandleNoException(handle -> {
-            Entity entity = null;
-            while ((entity = entities.nextEntity()) != null) {
-                if (entity.getEntityType() == EntityType.Content) {
-                    ContentEntity contentEntity = (ContentEntity) entity;
-
-                    List<ArtifactReferenceDto> references = Arrays.stream(contentEntity.references)
-                            .map(V2ApiUtil::referenceToDto)
-                            .collect(Collectors.toList());
-
-                    if (!preserveContentId) {
-                        // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
-                        // It makes sure there won't be any conflicts
-                        long newContentId = -1;
-                        if (contentEntity.artifactType != null) {
-                            newContentId = createOrUpdateContent(handle, contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), references);
-                        } else {
-                            if(contentEntity.canonicalHash == null) {
-                                throw new RegistryStorageException("There is not enough information about content. Artifact Type and CanonicalHash are both missing.");
-                            }
-                            newContentId = createOrUpdateContent(handle, ContentHandle.create(contentEntity.contentBytes), contentEntity.contentHash, contentEntity.canonicalHash, references);
-                        }
-                        contentIdMapping.put(contentEntity.contentId, newContentId);
-                        continue;
-                    }
-
-                    // We do not need canonicalHash if we have artifactType
-                    if (contentEntity.canonicalHash == null && contentEntity.artifactType != null) {
-                        ContentHandle canonicalContent = this.canonicalizeContent(contentEntity.artifactType, ContentHandle.create(contentEntity.contentBytes), references);
-                        contentEntity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.bytes());
-                    }
-                } else if (entity.getEntityType() == EntityType.ArtifactVersion) {
-                    ArtifactVersionEntity artifactVersionEntity = (ArtifactVersionEntity) entity;
-                    if (!preserveGlobalId) {
-                        artifactVersionEntity.globalId = -1;
-                    }
-                    if (!preserveContentId) {
-                        if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
-                            // Add to the queue waiting for content imported
-                            waitingForContent.add(artifactVersionEntity);
-                            continue;
-                        }
-                        // Content of the artifact was already imported we can use the new contentId
-                        artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    }
-                }
-                importEntity(handle, entity);
+            DataImporter dataImporter;
+            if (preserveContentId) {
+                dataImporter = new SqlDataImporter(log, handle, this, preserveGlobalId);
+            } else {
+                dataImporter = new ContentIdNotPreserveSqlDataImporter(log, handle, this, preserveGlobalId);
             }
 
-            if (!preserveContentId) {
-                // Import artifact versions which were waiting for the content import
-                for (ArtifactVersionEntity artifactVersionEntity : waitingForContent) {
-                    if (!contentIdMapping.containsKey(artifactVersionEntity.contentId)) {
-                        // Content for this artifact was not included in the imported file -> skip and warn user
-                        continue;
-                    }
-                    artifactVersionEntity.contentId = contentIdMapping.get(artifactVersionEntity.contentId);
-                    importEntity(handle, artifactVersionEntity);
-                }
+            Entity entity = null;
+            while ((entity = entities.nextEntity()) != null) {
+                dataImporter.importEntity(entity);
             }
 
             // Make sure the contentId sequence is set high enough
@@ -3027,37 +2971,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
-    protected void importEntity(Handle handle, Entity entity) throws RegistryStorageException {
-        switch (entity.getEntityType()) {
-            case ArtifactRule:
-                importArtifactRule(handle, (ArtifactRuleEntity) entity);
-                break;
-            case ArtifactVersion:
-                importArtifactVersion(handle, (ArtifactVersionEntity) entity);
-                break;
-            case Content:
-                importContent(handle, (ContentEntity) entity);
-                break;
-            case GlobalRule:
-                importGlobalRule(handle, (GlobalRuleEntity) entity);
-                break;
-            case Group:
-                importGroup(handle, (GroupEntity) entity);
-                break;
-            case Manifest:
-                ManifestEntity manifest = (ManifestEntity) entity;
-                log.info("---------- Import Info ----------");
-                log.info("System Name:    {}", manifest.systemName);
-                log.info("System Desc:    {}", manifest.systemDescription);
-                log.info("System Version: {}", manifest.systemVersion);
-                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
-                log.info("---------- ----------- ----------");
-                // Ignore the manifest for now.
-                break;
-            default:
-                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
-        }
-    }
     protected void importArtifactRule(Handle handle, ArtifactRuleEntity entity) {
         if (isArtifactExists(entity.groupId, entity.artifactId)) {
             try {

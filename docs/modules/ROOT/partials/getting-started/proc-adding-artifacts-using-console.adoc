@@ -45,10 +45,11 @@ image::../_images/user-guide/registry-web-console-artifact.png[Artifact details 
 endif::[]
 
 . On the *Overview* tab, click the *Edit* pencil icon to edit artifact metadata such as name or description. 
-
-. You can also enter an optional comma-separated list of labels for searching, or add key-value pairs of arbitrary properties associated with the artifact. To add properties, perform the following steps:
-.. Enter the key name and the value.
++
+You can also enter an optional comma-separated list of labels for searching, or add key-value pairs of arbitrary properties associated with the artifact. To add properties, perform the following steps:
++
 .. Click *Add property*.
+.. Enter the key name and the value.
 .. Repeat the first two steps to add multiple properties.
 .. Click *Save*.
  

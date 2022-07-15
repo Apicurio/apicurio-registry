@@ -23,7 +23,7 @@ The {registry} Java client includes the following configuration options, based o
 | Registry client that accepts a map containing custom configuration. For example, this is useful to add custom headers to the calls. 
 You must also provide an authentication server to authenticate the requests. 
 ifdef::rh-openshift-sr[]
-The {org-name} Single Sign-On authentication server is `{sso-url}`.
+The {org-name} Single Sign-On authentication server is `{sso-token-url}`.
 endif::[]
 |`baseUrl, Map<String Object> configs, Auth auth`
 |===

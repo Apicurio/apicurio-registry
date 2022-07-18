@@ -26,23 +26,33 @@ import org.slf4j.Logger;
 @DisplayNameGeneration(TestNameGenerator.class)
 @ExtendWith(ExtensionContextParameterResolver.class)
 public abstract class TestBase {
-    protected final Logger BASE_LOGGER = LoggerUtils.getLogger();
+    protected static Logger LOGGER = LoggerUtils.getLogger();
     protected final ResourceManager resourceManager = ResourceManager.getInstance();
     protected final OperatorManager operatorManager = OperatorManager.getInstance();
+
+    /* Function to set all necessary variables for test subclasses */
+
+    public abstract void setupTestClass();
+
+    /* Constructor for all test subclasses */
+
+    public TestBase() {
+        setupTestClass();
+    }
 
     @BeforeEach
     protected void beforeEachTest(TestInfo testInfo) {
         LoggerUtils.logDelimiter("#");
-        BASE_LOGGER.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
-        BASE_LOGGER.info("");
+        LOGGER.info("");
     }
 
     @AfterEach
     protected void afterEachTest(TestInfo testInfo) {
-        BASE_LOGGER.info("");
+        LOGGER.info("");
         LoggerUtils.logDelimiter("#");
-        BASE_LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
     }
 
@@ -106,12 +116,12 @@ public abstract class TestBase {
                         useKeycloak
                 );
             } else {
-                BASE_LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
+                LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
             }
         } else if (persistenceKind.equals(PersistenceKind.MEM)) {
             // TODO: Deploy mem with/without Keycloak
         } else {
-            BASE_LOGGER.error("Unrecognized PersistenceKind: {}.", persistenceKind);
+            LOGGER.error("Unrecognized PersistenceKind: {}.", persistenceKind);
         }
 
         if (registry != null && testAPI) {

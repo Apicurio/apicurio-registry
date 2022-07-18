@@ -146,4 +146,12 @@ public class AuthConfig {
         return this.roleBasedAuthorizationEnabled && "application".equals(getRoleSource());
     }
 
+    public boolean isAnonymousReadsEnabled() {
+        return anonymousReadAccessEnabled.get();
+    }
+
+    public boolean isAuthenticatedReadsEnabled() {
+        return authenticatedReadAccessEnabled.get();
+    }
+
 }

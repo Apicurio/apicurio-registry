@@ -344,6 +344,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
             return contentIds.stream()
                     .flatMap(contentId -> storage.getArtifactVersionsByContentId(contentId).stream())
                     .map(ArtifactMetaDataDto::getGlobalId)
+                    .distinct()
                     .collect(Collectors.toList());
         }
 

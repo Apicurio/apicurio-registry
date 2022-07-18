@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 JBoss Inc
+ * Copyright 2022 Red Hat Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,69 @@
  * limitations under the License.
  */
 
+export enum AlertVariant {
+    success = "success",
+    danger = "danger",
+    warning = "warning",
+    info = "info",
+    default = "default"
+}
+
+export type AlertProps = {
+    /**
+     * Unique key
+     */
+    id?: string;
+    /**
+     * Flag to automatically call `onDismiss` after `dismissDelay` runs out.
+     */
+    autoDismiss?: boolean;
+    /**
+     * Flag to show/hide notification close button.
+     */
+    dismissable?: boolean;
+    /**
+     * Alert variant
+     */
+    variant: AlertVariant;
+    /**
+     * Alert title
+     */
+    title: string;
+    /**
+     * Alert description
+     */
+    description?: string;
+    /**
+     * Time period after which `onDismiss` is called.
+     */
+    dismissDelay?: number;
+    /**
+     * Unique request ID.
+     */
+    requestId?: string;
+    /**
+     * Unique sentry error ID.
+     */
+    sentryId?: string;
+    /**
+     * data-testid attribute
+     */
+    dataTestId?: string;
+};
+
+export declare type Alerts = {
+    addAlert: ({ id, title, variant, description, dataTestId, autoDismiss, dismissable, dismissDelay, requestId, sentryId }: AlertProps) => void;
+};
+
+
 export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
     multiTenant?: boolean;
     roleManagement?: boolean;
     settings?: boolean;
+    alerts?: Alerts;
 }
 
 export interface ArtifactsConfig {

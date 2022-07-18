@@ -20,10 +20,11 @@ The {registry} Java client includes the following configuration options, based o
 |Registry client using the configuration provided by the user. 
 |`baseUrl`, `Map<String Object> configs`
 |Client with custom configuration and authentication
-| Registry client that accepts a map containing custom configuration. This is useful, for example, to add custom headers to the calls. This also requires providing an `auth` instance used to authenticate requests. 
-
-The OpenShift Application Services authentication server is `\https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token`
-
+| Registry client that accepts a map containing custom configuration. For example, this is useful to add custom headers to the calls. 
+You must also provide an authentication server to authenticate the requests. 
+ifdef::rh-openshift-sr[]
+The {org-name} Single Sign-On authentication server is `{sso-url}`.
+endif::[]
 |`baseUrl, Map<String Object> configs, Auth auth`
 |===
 

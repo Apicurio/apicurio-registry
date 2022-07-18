@@ -26,12 +26,11 @@ https://console.redhat.com/application-services/service-accounts
 
 . Create an OAuth Bearer token using your service account client ID and client secret:  
 +
-[source,bash]
+[source,bash, subs="+quotes,attributes"]
 ----
 $ curl -X POST \
   -d "grant_type=client_credentials&client_id=MY-CLIENT-ID&client_secret=MY-CLIENT-SECRET" \ 
-  https://identity.api.openshift.com/auth/realms/rhoas/protocol/openid-connect/token
-----
+  {sso-token-url}
 +
 .  Copy the access token generated in the response to a secure location:
 +

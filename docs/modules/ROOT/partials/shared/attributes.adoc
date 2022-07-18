@@ -32,24 +32,26 @@ endif::[]
 // downstream
 ifdef::service-registry-downstream[]
 :rh-service-registry:
+:org-name: Red Hat
 :registry: Service Registry
-:registry-version: 2.2
+:registry-version: 2.1
 :registry-v1: 1.1
 :operator-version: 1.0.0.redhat.x
 :kafka-streams: AMQ Streams
 :registry-streams-version: 1.8
-:keycloak: Red Hat Single Sign-On
+:keycloak: {org-name} Single Sign-On
 :keycloak-version: 7.4
+:sso-token-url: \https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
 endif::[]
 
 //common
+:context: registry
 :version: 2022.Q1
 :attachmentsdir: files
 :registry-release: 2.2.1.Final
 :registry-ocp-version: 4.6
 :registry-db-version: 12
 :registry-url: \http://MY_REGISTRY_URL/ui
-:context: registry
 
 //integration products
 :amq-version: 2021.q3

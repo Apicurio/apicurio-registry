@@ -1,11 +1,15 @@
 const path = require("path");
-const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-// webpack 5 stop handling node polyfills by itself, this plugin re-enables the feature
-const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
-const { ModuleFederationPlugin } = require("webpack").container;
-const { federatedModuleName, dependencies } = require("./package.json");
+const CopyPlugin = require("copy-webpack-plugin");
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
+const {dependencies, federatedModuleName} = require("./package.json");
+delete dependencies.serve; // Needed for nodeshift bug
+const webpack = require("webpack");
 const ChunkMapper = require("@redhat-cloud-services/frontend-components-config/chunk-mapper");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
+const isPatternflyStyles = (stylesheet) => stylesheet.includes("@patternfly/react-styles/css/") || stylesheet.includes("@patternfly/react-core/");
 
 
 const cmdArgs = {};
@@ -19,27 +23,97 @@ process.argv.forEach(arg => {
 });
 
 
-module.exports = (mode) => {
-  const isProduction = mode === "production";
+module.exports = (env, argv) => {
+  const isProduction = argv && argv.mode === "production";
   const isMtUi = cmdArgs.target === "mtui" ? true : false;
   console.info("Is production build? %o", isProduction);
   console.info("Is Multi-Tenant UI build? %o", isMtUi);
   return {
-    mode,
     entry: {
-      app: "./src/index.tsx"
+      app: path.resolve(__dirname, "src", "index.tsx")
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(tsx|ts|jsx)?$/,
+          use: [
+            {
+              loader: "ts-loader",
+              options: {
+                transpileOnly: true,
+                experimentalWatchApi: true,
+              }
+            }
+          ]
+        },
+        {
+          test: /\.css$/,
+          use: [MiniCssExtractPlugin.loader, "css-loader"],
+          include: (stylesheet => !isPatternflyStyles(stylesheet)),
+          sideEffects: true
+        },
+        {
+          test: /\.css$/,
+          include: isPatternflyStyles,
+          use: ["null-loader"],
+          sideEffects: true
+        },
+        {
+          test: /\.(ttf|eot|woff|woff2)$/,
+          use: {
+            loader: "file-loader",
+            options: {
+              limit: 5000,
+              name: "[contenthash:8].[ext]",
+            }
+          }
+        },
+        {
+          test: /\.(svg|jpg|jpeg|png|gif)$/i,
+          use: [
+            {
+              loader: "url-loader",
+              options: {
+                limit: 5000,
+                name: isProduction ? "[contenthash:8].[ext]" : "[name].[ext]",
+              }
+            }
+          ]
+        }
+      ]
+    },
+    output: {
+      filename: "[name].bundle.js",
+      path: path.resolve(__dirname, "dist"),
+      publicPath: "auto"
     },
     plugins: [
-      new NodePolyfillPlugin(),
       new HtmlWebpackPlugin({
         template: "./src/index.html"
+      }),
+      new Dotenv({
+        systemvars: true,
+        silent: true
+      }),
+      new MiniCssExtractPlugin({
+        filename: "[name].[contenthash:8].css",
+        chunkFilename: "[contenthash:8].css",
+        ignoreOrder: true,
+        insert: (linkTag) => {
+          const preloadLinkTag = document.createElement("link")
+          preloadLinkTag.rel = "preload"
+          preloadLinkTag.as = "style"
+          preloadLinkTag.href = linkTag.href
+          document.head.appendChild(preloadLinkTag)
+          document.head.appendChild(linkTag)
+        }
       }),
       new ChunkMapper({
         modules: [
           federatedModuleName
         ]
       }),
-      new ModuleFederationPlugin({
+      new webpack.container.ModuleFederationPlugin({
         name: federatedModuleName,
         filename: `${federatedModuleName}${
             (isProduction && !isMtUi) ? ".[chunkhash:8]" : ""
@@ -57,144 +131,32 @@ module.exports = (mode) => {
         shared: {
           ...dependencies,
           react: {
-            eager: true,
             singleton: true,
             requiredVersion: dependencies["react"],
           },
           "react-dom": {
-            eager: true,
             singleton: true,
             requiredVersion: dependencies["react-dom"],
           },
           "react-router-dom": {
             singleton: true,
-            eager: true,
             requiredVersion: dependencies["react-router-dom"],
           },
         }
       })
     ],
-    module: {
-      rules: [
-        // fixes issue with babel dependencies not declaring the package correctly for webpack 5
-        {
-          test: /\.m?js/,
-          resolve: {
-            fullySpecified: false
-          }
-        },
-        // fixes issue with yaml dependency not declaring the package correctly for webpack 5
-        {
-          test: /node_modules[\\\/]yaml[\\\/]browser[\\\/]dist[\\\/].*/,
-          type: "javascript/auto"
-        },
-        {
-          test: /\.(tsx|ts)?$/,
-          include: path.resolve(__dirname, "src"),
-          use: [
-            {
-              loader: "ts-loader",
-              options: {
-                transpileOnly: true,
-                experimentalWatchApi: true,
-              }
-            }
-          ]
-        },
-        {
-          test: /\.(svg|ttf|eot|woff|woff2)$/,
-          // only process modules with this loader
-          // if they live under a "fonts" or "pficon" directory
-          include: [
-            path.resolve(__dirname, "node_modules/patternfly/dist/fonts"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/fonts"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/pficon"),
-          ],
-          use: {
-            loader: "file-loader",
-            options: {
-              // Limit at 50k. larger files emited into separate files
-              limit: 5000,
-              outputPath: "fonts",
-              name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
-            }
-          }
-        },
-        {
-          test: /\.svg$/,
-          include: input => input.indexOf("background-filter.svg") > 1,
-          use: [
-            {
-              loader: "url-loader",
-              options: {
-                limit: 5000,
-                outputPath: "svgs",
-                name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
-              }
-            }
-          ]
-        },
-        {
-          test: /\.svg$/,
-          // only process SVG modules with this loader if they live under a "bgimages" directory
-          // this is primarily useful when applying a CSS background using an SVG
-          include: input => input.indexOf("bgimages") > -1,
-          use: {
-            loader: "svg-url-loader",
-            options: {}
-          }
-        },
-        {
-          test: /\.svg$/,
-          // only process SVG modules with this loader when they don"t live under a "bgimages",
-          // "fonts", or "pficon" directory, those are handled with other loaders
-          include: input => (
-            (input.indexOf("bgimages") === -1) &&
-            (input.indexOf("fonts") === -1) &&
-            (input.indexOf("background-filter") === -1) &&
-            (input.indexOf("pficon") === -1)
-          ),
-          use: {
-            loader: "raw-loader",
-            options: {}
-          }
-        },
-        {
-          test: /\.(jpg|jpeg|png|gif)$/i,
-          include: [
-            path.resolve(__dirname, "src"),
-            path.resolve(__dirname, "node_modules/patternfly"),
-            path.resolve(__dirname, "node_modules/@patternfly/patternfly/assets"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-core/dist/styles/assets/images"),
-            path.resolve(__dirname, "node_modules/@patternfly/react-styles/css/assets/images")
-          ],
-          use: [
-            {
-              loader: "url-loader",
-              options: {
-                limit: 5000,
-                outputPath: "images",
-                name: isProduction ? '[contenthash:8].[ext]' : '[name].[ext]',
-              }
-            }
-          ]
-        }
-      ]
-    },
     resolve: {
-      extensions: [".ts", ".tsx", ".js"],
+      extensions: [".js", ".ts", ".tsx", ".jsx"],
       plugins: [
         new TsconfigPathsPlugin({
           configFile: path.resolve(__dirname, "./tsconfig.json")
         })
       ],
+      fallback: {
+        tty: require.resolve("tty-browserify")
+      },
       symlinks: false,
       cacheWithContext: false
-    },
-    output: {
-      filename: "[name].bundle.js",
-      path: path.resolve(__dirname, "dist"),
-      publicPath: "auto"
     },
     performance: {
       hints: false,

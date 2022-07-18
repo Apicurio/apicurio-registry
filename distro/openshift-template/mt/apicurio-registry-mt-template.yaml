@@ -221,6 +221,9 @@ objects:
           - name: ORGANIZATION_ID_CLAIM
             value: ${ORGANIZATION_ID_CLAIM}
 
+          - name: BASIC_ACCESS_TOKEN_CACHE_EXPIRATION
+            value: ${BASIC_ACCESS_TOKEN_CACHE_EXPIRATION}
+
           - name: REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW
             value: ${REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW}
           - name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW
@@ -845,3 +848,7 @@ parameters:
 
 - name: ORGANIZATION_ID_CLAIM
   value: "rh-org-id,org_id"
+
+- name: BASIC_ACCESS_TOKEN_CACHE_EXPIRATION
+  description: "Expiration time for the access token in the basic authentication feature."
+  value: "10"

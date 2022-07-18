@@ -9,6 +9,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ContentIdNotPreserveKafkaSqlDataImporter extends KafkaSqlDataImporter {
 
@@ -36,13 +37,12 @@ public class ContentIdNotPreserveKafkaSqlDataImporter extends KafkaSqlDataImport
 
         getContentIdMapping().put(entity.contentId, newContentId);
 
-        getRegistryStorage().importContent(entity);
-
         // Import artifact versions that were waiting for this content
-        getWaitingForContent().stream()
+        var artifactsToImport = getWaitingForContent().stream()
                 .filter(artifactVersion -> artifactVersion.contentId == entity.contentId)
-                .forEach(this::importArtifactVersion);
+                .collect(Collectors.toList());
 
-        getWaitingForContent().removeIf(artifactVersion -> artifactVersion.contentId == entity.contentId);
+        artifactsToImport.forEach(this::importArtifactVersion);
+        getWaitingForContent().removeAll(artifactsToImport);
     }
 }

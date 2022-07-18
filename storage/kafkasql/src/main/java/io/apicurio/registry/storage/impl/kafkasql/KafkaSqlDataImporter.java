@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class KafkaSqlDataImporter extends AbstractDataImporter {
     private final KafkaSqlRegistryStorage registryStorage;
@@ -46,6 +47,8 @@ public class KafkaSqlDataImporter extends AbstractDataImporter {
             return;
         }
 
+        entity.contentId = contentIdMapping.get(entity.contentId);
+
         if(!preserveGlobalId) {
             entity.globalId = -1;
         }
@@ -68,11 +71,12 @@ public class KafkaSqlDataImporter extends AbstractDataImporter {
         registryStorage.importContent(entity);
 
         // Import artifact versions that were waiting for this content
-        waitingForContent.stream()
+        var artifactsToImport = waitingForContent.stream()
                 .filter(artifactVersion -> artifactVersion.contentId == entity.contentId)
-                .forEach(this::importArtifactVersion);
+                .collect(Collectors.toList());
 
-        waitingForContent.removeIf(artifactVersion -> artifactVersion.contentId == entity.contentId);
+        artifactsToImport.forEach(this::importArtifactVersion);
+        waitingForContent.removeAll(artifactsToImport);
     }
 
     @Override

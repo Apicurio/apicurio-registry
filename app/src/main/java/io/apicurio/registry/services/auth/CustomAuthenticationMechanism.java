@@ -28,7 +28,6 @@ import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
-import io.quarkus.oidc.runtime.TenantConfigBean;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -59,24 +58,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import static io.apicurio.registry.services.auth.IdentityServerResolver.getSSOProviders;
-
 @Alternative
 @Priority(1)
 @ApplicationScoped
 public class CustomAuthenticationMechanism implements HttpAuthenticationMechanism {
-
-    @ConfigProperty(name = "registry.identity.server.resolver.enabled")
-    Boolean resolveIdentityServer;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.request-base-path")
-    String resolverRequestBasePath;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.request-path")
-    String resolverRequestPath;
-
-    @ConfigProperty(name = "registry.identity.server.resolver.cache-expiration")
-    Integer resolverCacheExpiration;
 
     @ConfigProperty(name = "registry.auth.enabled")
     boolean authEnabled;
@@ -100,32 +85,16 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     AuditLogService auditLog;
 
-    @Inject
-    TenantConfigBean tenantConfigBean;
-
-    private WrappedValue<IdentityServerResolver.SsoProviders> cachedSSoProviders;
-
     private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
-    private ApicurioHttpClient resolverHttpClient;
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
 
     @PostConstruct
     public void init() {
         if (authEnabled) {
-            if (resolveIdentityServer) {
-                resolverHttpClient = new JdkHttpClientProvider().create(resolverRequestBasePath, Collections.emptyMap(), null, new AuthErrorHandler());
-                final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-                cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(10), Instant.now(), ssoProviders);
-                if (!authServerUrl.equals(ssoProviders.getTokenUrl())) {
-                    this.authServerUrl = ssoProviders.getTokenUrl();
-                }
-            }
-
             cachedAccessTokens = new ConcurrentHashMap<>();
-
             httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
         }
@@ -133,7 +102,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context, IdentityProviderManager identityProviderManager) {
-        tenantConfigBean.getDynamicTenantsConfig().clear();
         if (authEnabled) {
             setAuditLogger(context);
             if (fakeBasicAuthEnabled.get()) {
@@ -227,20 +195,8 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return new HttpCredentialTransport(HttpCredentialTransport.Type.AUTHORIZATION, "bearer");
     }
 
-
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-
-        OidcAuth oidcAuth;
-        if (resolveIdentityServer && cachedSSoProviders.isExpired()) {
-            final IdentityServerResolver.SsoProviders ssoProviders = resolverHttpClient.sendRequest(getSSOProviders(resolverRequestPath));
-            cachedSSoProviders = new WrappedValue<>(Duration.ofMinutes(resolverCacheExpiration), Instant.now(), ssoProviders);
-            if (!ssoProviders.getTokenUrl().equals(authServerUrl)) {
-                this.authServerUrl = ssoProviders.getTokenUrl();
-                httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
-            }
-        }
-
-        oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
+        OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         String jwtToken;
         String credentialsHash = getCredentialsHash(clientCredentials.getLeft() + clientCredentials.getRight());
         if (cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired()) {
@@ -249,7 +205,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
             cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(5), Instant.now(), jwtToken));
         }
-
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
     }

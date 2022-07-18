@@ -3076,11 +3076,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
     protected void importContent(Handle handle, ContentEntity entity) {
         try {
-            List<ArtifactReferenceDto> references = Arrays.stream(entity.references)
-                    .map(ref -> new ArtifactReferenceDto(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), ref.getName()))
-                    .collect(Collectors.toList());
-
-            String referencesSerialized = SqlUtil.serializeReferences(references);
+            List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
 
             if (!isContentExists(entity.contentId)) {
                 String sql = sqlStatements.importContent();
@@ -3090,7 +3086,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, entity.canonicalHash)
                     .bind(3, entity.contentHash)
                     .bind(4, entity.contentBytes)
-                    .bind(5, referencesSerialized)
+                    .bind(5, entity.serializedReferences)
                     .execute();
 
                 insertReferences(handle, entity.contentId, references);

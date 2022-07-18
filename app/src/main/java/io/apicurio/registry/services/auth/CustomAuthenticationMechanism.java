@@ -70,6 +70,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled", defaultValue = "false")
     Supplier<Boolean> fakeBasicAuthEnabled;
 
+    @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.cache-expiration", defaultValue = "10")
+    Integer accessTokenExpiration;
+
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrl;
 
@@ -203,7 +206,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
             jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
         } else {
             jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-            cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(5), Instant.now(), jwtToken));
+            cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
         }
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);

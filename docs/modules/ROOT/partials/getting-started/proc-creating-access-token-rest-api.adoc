@@ -31,20 +31,23 @@ https://console.redhat.com/application-services/service-accounts
 $ curl -X POST \
   -d "grant_type=client_credentials&client_id=MY-CLIENT-ID&client_secret=MY-CLIENT-SECRET" \ 
   {sso-token-url}
+---- 
 +
-.  Copy the access token generated in the response to a secure location:
+.  Copy the contents of the access token generated in the response to a secure location:
 +
 [source,bash]
 ----
-{"access_token":"eyJhbG........a3BQ","expires_in":300,"refresh_expires_in":0,"token_type":"bearer","not-before-policy":0,"scope":"profile email"}
+{"access_token":"eyJhbG...a3BQ",...}
 ----
 
-. Set an `ACCESS_TOKEN` environment variable to the contents of this generated access token:
+. Set an `ACCESS_TOKEN` environment variable to the contents of the generated access token:
 +
 [source,bash]
 ----
 export ACCESS_TOKEN=VALUE
 ----
++ 
+In the example access token shown in the previous step, the `VALUE` is `eyJhbG...a3BQ`. 
 
 //[role="_additional-resources"]
 //.Additional resources

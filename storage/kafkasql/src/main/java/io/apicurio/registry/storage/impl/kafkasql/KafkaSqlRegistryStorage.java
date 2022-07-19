@@ -1245,6 +1245,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.getContentIdsReferencingArtifact(groupId, artifactId, version);
     }
 
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
     protected void importEntity(Entity entity) throws RegistryStorageException {
         switch (entity.getEntityType()) {
             case ArtifactRule:

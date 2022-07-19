@@ -2940,6 +2940,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
+    /**
+     * @see RegistryStorage#getGlobalIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectGlobalIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
+
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {

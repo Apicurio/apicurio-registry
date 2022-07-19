@@ -337,18 +337,13 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public List<Long> getContentIdsReferencingArtifact(String subject, String versionString) {
-        List<Long> contentIds = parseVersionString(subject, versionString,
-                version -> storage.getContentIdsReferencingArtifact(null, subject, version));
-
         if (cconfig.legacyIdModeEnabled.get()) {
-            return contentIds.stream()
-                    .flatMap(contentId -> storage.getArtifactVersionsByContentId(contentId).stream())
-                    .map(ArtifactMetaDataDto::getGlobalId)
-                    .distinct()
-                    .collect(Collectors.toList());
+            return parseVersionString(subject, versionString,
+                    version -> storage.getGlobalIdsReferencingArtifact(null, subject, version));
         }
 
-        return contentIds;
+        return parseVersionString(subject, versionString,
+                version -> storage.getContentIdsReferencingArtifact(null, subject, version));
     }
 
 

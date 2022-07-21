@@ -15,6 +15,9 @@ endif::[]
 * You are logged in to the {registry} web console:
 + 
 `{registry-url}`
+ifdef::rh-openshift-sr[]
+* You have access to a running {registry} instance.
+endif::[]
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application. 
 
 .Procedure
@@ -36,7 +39,7 @@ ifdef::rh-openshift-sr[]
 image::../_images/user-guide/registry-web-console-rules.png[Configure rules in Registry web console]
 endif::[]
 +
-. For global rules, click the *Global rules* tab at the top left of your {registry} instance, and click *Enable* to configure a global validity rule or compatibility rule for all artifact content, and select the appropriate rule configuration from the list. 
+. To access global rules, click the {registry} instance, and click the *Global rules* tab. Click *Enable* to configure a global validity rule or compatibility rule for all artifact content, and select the appropriate rule configuration from the list. 
 
 . To disable an artifact rule or global rule, click the trash icon next to the rule. 
 

@@ -41,6 +41,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Priority;
@@ -88,6 +89,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     @Inject
     AuditLogService auditLog;
 
+    @Inject
+    Logger log;
+
     private BearerAuthenticationMechanism bearerAuth;
 
     private ApicurioHttpClient httpClient;
@@ -113,7 +117,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     try {
                         return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
                     } catch (AuthException | NotAuthorizedException ex) {
-                        //Ignore exception, wrong credentials passed, trying to authenticate without credentials will result in a 401
+                        log.warn("Exception trying to get an access token with client credentials", ex);
                         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                     }
                 } else {

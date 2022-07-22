@@ -31,7 +31,7 @@ endif::[]
             <goal>register</goal>  <1>
         </goals>
         <configuration>
-            <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
             <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
             <clientId>MY-CLIENT-ID</clientId>
             <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>

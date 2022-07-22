@@ -32,7 +32,7 @@ ifdef::rh-openshift-sr[]
 {registry-url}
 
 . For the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. This is the registry API endpoint that you need for connecting to this {registry} instance. 
+. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this registry API endpoint to connect to the {registry} instance. 
 endif::[]
 
 . Export the registry data from your existing source {registry} instance:

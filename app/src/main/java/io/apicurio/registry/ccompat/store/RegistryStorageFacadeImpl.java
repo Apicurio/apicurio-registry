@@ -163,6 +163,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
         // Don't canonicalize the content when getting it - Confluent does not.
+        if (schema.getSchema() == null) {
+            throw new ArtifactNotFoundException(subject);
+        }
         ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()));
         StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, amd.getVersion());
         return converter.convert(subject, storedArtifact);

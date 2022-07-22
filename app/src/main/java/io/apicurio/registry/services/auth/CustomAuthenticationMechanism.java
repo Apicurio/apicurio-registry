@@ -55,10 +55,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -101,15 +99,12 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
 
-    private AtomicLong counter;
-
     @PostConstruct
     public void init() {
         if (authEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
-            counter = new AtomicLong(0);
         }
     }
 
@@ -225,7 +220,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
-        log.info("Retry: {}", counter.getAndIncrement());
         return jwtToken;
     }
 

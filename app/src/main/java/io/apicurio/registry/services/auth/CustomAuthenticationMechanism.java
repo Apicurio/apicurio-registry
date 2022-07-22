@@ -55,8 +55,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -99,12 +101,15 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
 
+    private AtomicLong counter;
+
     @PostConstruct
     public void init() {
         if (authEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
+            counter = new AtomicLong(0);
         }
     }
 
@@ -118,7 +123,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
                     try {
                         return authenticateWithClientCredentials(clientCredentials, context, identityProviderManager);
                     } catch (AuthException | NotAuthorizedException ex) {
-                        log.warn("Exception trying to get an access token with client credentials", ex);
+                        log.warn(String.format("Exception trying to get an access token with client credentials with client id: %s", clientCredentials.getLeft()), ex);
                         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                     }
                 } else {
@@ -216,12 +221,14 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     }
 
     @Retry(retryOn = AuthException.class, maxRetries = 4)
-    private String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
+    public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
         cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
+        log.info("Retry: {}", counter.getAndIncrement());
         return jwtToken;
     }
+
 
     private String getCredentialsHash(String credentials) {
         return DigestUtils.sha256Hex(credentials);

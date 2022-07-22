@@ -41,6 +41,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -203,17 +204,23 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
-        OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
         String jwtToken;
         String credentialsHash = getCredentialsHash(clientCredentials.getLeft() + clientCredentials.getRight());
         if (cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired()) {
             jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
         } else {
-            jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-            cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
+            jwtToken = getAccessToken(clientCredentials, credentialsHash);
         }
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+    }
+
+    @Retry(retryOn = AuthException.class, maxRetries = 4)
+    private String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
+        OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
+        String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+        cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
+        return jwtToken;
     }
 
     private String getCredentialsHash(String credentials) {

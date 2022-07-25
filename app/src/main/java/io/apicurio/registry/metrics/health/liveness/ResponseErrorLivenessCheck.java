@@ -5,6 +5,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
@@ -29,6 +30,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
+    @Info( category = "health", description = "Error Threshold of response liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**
@@ -38,15 +40,18 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @Info( category = "health", description = "Counter reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the liveness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @Info( category = "health", description = "Status reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.disableLogging", defaultValue = "false")
+    @Info( category = "health", description = "Disable logging of response liveness check", availableSince = "2.0.0.Final")
     Boolean disableLogging;
 
     @PostConstruct

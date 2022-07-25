@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 
 /**
@@ -39,6 +40,7 @@ public class LivenessUtil {
 
     @Inject
     @ConfigProperty(name = "registry.liveness.errors.ignored")
+    @Info( category = "health", description = "Ignored liveness errors", availableSince = "1.2.3.Final")
     Optional<List<String>> ignored;
 
     public boolean isIgnoreError(Throwable ex) {

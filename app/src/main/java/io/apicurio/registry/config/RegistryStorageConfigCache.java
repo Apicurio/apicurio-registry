@@ -30,6 +30,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
@@ -50,6 +51,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecorator {
     TenantContext tenantContext;
 
     @ConfigProperty(name = "registry.config.cache.enabled", defaultValue = "true")
+    @Info( category = "cache", description = "Registry cache enabled", availableSince = "2.2.2.Final")
     boolean enabled;
 
     private Map<String, Map<String, DynamicConfigPropertyDto>> configCache = new ConcurrentHashMap<>();

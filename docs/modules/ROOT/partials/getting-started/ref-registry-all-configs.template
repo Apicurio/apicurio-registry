@@ -1,0 +1,17 @@
+[id="all-registry-configs_{context}"]
+= All the available {registry} configuration options
+
+This section contains a list of the configuration options available for {registry}.
+
+[discrete]
+== All configuration options
+
+.All {registry} configuration options
+[.table-expandable,width="100%",cols="5,2,3,5,3,4",options="header"]
+|===
+|Name
+|Category
+|Type
+|Default
+|Available from
+|Description

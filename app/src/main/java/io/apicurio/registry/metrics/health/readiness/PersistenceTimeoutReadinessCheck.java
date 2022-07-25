@@ -7,6 +7,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
@@ -32,6 +33,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "5")
+    @Info( category = "health", description = "Error Threshold of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**
@@ -41,18 +43,21 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @Info( category = "health", description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @Info( category = "health", description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
     /**
      * Set the operation duration in seconds, after which it's considered an error.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec", defaultValue = "15")
+    @Info( category = "health", description = "Timeout of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configTimeoutSec;
 
     private Duration timeoutSec;

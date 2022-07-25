@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -45,9 +46,11 @@ import java.io.IOException;
 public class MojoAuthTest extends RegistryMojoTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
+    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
+    @Info( category = "auth", description = "OIDC tenant enabled", availableSince = "2.0.0.Final")
     Boolean authEnabled;
 
     String clientSecret = "test1";

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.mt;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.multitenant.api.datamodel.RegistryTenant;
 import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
 import io.apicurio.multitenant.api.datamodel.SortBy;
@@ -73,6 +74,7 @@ public class TenantReaper {
     Instant next;
 
     @ConfigProperty(name = "registry.multitenancy.reaper.max-tenants-reaped", defaultValue = "100")
+    @Info( category = "mt", description = "Multitenancy reaper max tenants reaped", availableSince = "2.1.0.Final")
     int maxTenantsReaped;
 
     @PostConstruct

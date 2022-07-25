@@ -1,0 +1,605 @@
+[id="all-registry-configs_{context}"]
+= All the available {registry} configuration options
+
+This section contains a list of the configuration options available for {registry}.
+
+[discrete]
+== All configuration options
+
+.All {registry} configuration options
+[.table-expandable,width="100%",cols="5,2,3,5,3,4",options="header"]
+|===
+|Name
+|Category
+|Type
+|Default
+|Available from
+|Description|`registry.api.errors.include-stack-in-response`
+|`api`
+|`boolean`
+|`false`
+|`2.1.4.Final`
+|Include stack trace in errors responses
+|`registry.disable.apis`
+|`api`
+|`optional<list<string>>`
+|
+|`2.0.0.Final`
+|Disable apis
+|`quarkus.oidc.client-id`
+|`auth`
+|`string`
+|
+|`2.0.0.Final`
+|OIDC client id
+|`registry.auth.admin-override.claim`
+|`auth`
+|`string`
+|`org-admin`
+|`2.1.0.Final`
+|Auth admin override claim
+|`registry.auth.admin-override.claim-value`
+|`auth`
+|`string`
+|`true`
+|`2.1.0.Final`
+|Auth admin override claim value
+|`registry.auth.admin-override.enabled`
+|`auth`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Auth admin override enabled
+|`registry.auth.admin-override.from`
+|`auth`
+|`string`
+|`token`
+|`2.1.0.Final`
+|Auth admin override from
+|`registry.auth.admin-override.role`
+|`auth`
+|`string`
+|`sr-admin`
+|`2.1.0.Final`
+|Auth admin override role
+|`registry.auth.admin-override.type`
+|`auth`
+|`string`
+|`role`
+|`2.1.0.Final`
+|Auth admin override type
+|`registry.auth.anonymous-read-access.enabled`
+|`auth`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Anonymous read access
+|`registry.auth.authenticated-read-access.enabled`
+|`auth`
+|`boolean [dynamic]`
+|`false`
+|`2.1.4.Final`
+|Authenticated read access
+|`registry.auth.basic-auth-client-credentials.enabled`
+|`auth`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Enable basic auth client credentials
+|`registry.auth.client-secret`
+|`auth`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Auth client secret
+|`registry.auth.enabled`
+|`auth`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Enable auth
+|`registry.auth.owner-only-authorization`
+|`auth`
+|`boolean [dynamic]`
+|`false`
+|`2.0.0.Final`
+|Artifact owner-only authorization
+|`registry.auth.owner-only-authorization.limit-group-access`
+|`auth`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Artifact group owner-only authorization
+|`registry.auth.role-based-authorization`
+|`auth`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Enable role based authorization
+|`registry.auth.role-source`
+|`auth`
+|`string`
+|`token`
+|`2.1.0.Final`
+|Auth roles source
+|`registry.auth.roles.admin`
+|`auth`
+|`string`
+|`sr-admin`
+|`2.0.0.Final`
+|Auth roles admin
+|`registry.auth.roles.developer`
+|`auth`
+|`string`
+|`sr-developer`
+|`2.1.0.Final`
+|Auth roles developer
+|`registry.auth.roles.readonly`
+|`auth`
+|`string`
+|`sr-readonly`
+|`2.1.0.Final`
+|Auth roles readonly
+|`registry.auth.tenant-owner-is-admin.enabled`
+|`auth`
+|`boolean`
+|`true`
+|`2.1.0.Final`
+|Auth tenant owner admin enabled
+|`registry.auth.token.endpoint`
+|`auth`
+|`string`
+|
+|`2.1.0.Final`
+|Auth token endpoint
+|`registry.config.cache.enabled`
+|`cache`
+|`boolean`
+|`true`
+|`2.2.2.Final`
+|Registry cache enabled
+|`registry.ccompat.legacy-id-mode.enabled`
+|`ccompat`
+|`boolean [dynamic]`
+|`false`
+|`2.0.2.Final`
+|Legacy ID mode (compatibility API)
+|`registry.download.href.ttl`
+|`download`
+|`long [dynamic]`
+|`30`
+|`2.1.2.Final`
+|Download link expiry
+|`registry.events.ksink`
+|`events`
+|`optional<string>`
+|
+|`2.0.0.Final`
+|Events ksink enabled
+|`registry.liveness.errors.ignored`
+|`health`
+|`optional<list<string>>`
+|
+|`1.2.3.Final`
+|Ignored liveness errors
+|`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|`health`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence liveness check
+|`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
+|`health`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of persistence liveness check
+|`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|`health`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error Threshold of persistence liveness check
+|`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|`health`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence liveness check
+|`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`health`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence readiness check
+|`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|`health`
+|`integer`
+|`5`
+|`1.0.2.Final`
+|Error Threshold of persistence readiness check
+|`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`health`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
+|`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|`health`
+|`integer`
+|`15`
+|`1.0.2.Final`
+|Timeout of persistence readiness check
+|`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|`health`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of response liveness check
+|`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
+|`health`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of response liveness check
+|`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|`health`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error Threshold of response liveness check
+|`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|`health`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response liveness check
+|`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`health`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of response readiness check
+|`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|`health`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error Threshold of response readiness check
+|`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`health`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
+|`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|`health`
+|`integer`
+|`10`
+|`1.0.2.Final`
+|Timeout of response readiness check
+|`registry.storage.metrics.cache.check-period`
+|`health`
+|`long`
+|`30000`
+|`2.1.0.Final`
+|Storage metrics cache check period
+|`registry.import.url`
+|`import`
+|`optional<url>`
+|
+|`2.1.0.Final`
+|The import URL
+|`registry.events.kafka.topic`
+|`kafka`
+|`optional<string>`
+|
+|`2.0.0.Final`
+|Events Kafka topic
+|`registry.events.kafka.topic-partition`
+|`kafka`
+|`optional<integer>`
+|
+|`2.0.0.Final`
+|Events Kafka topic partition
+|`registry.limits.config.cache.check-period`
+|`limits`
+|`long`
+|`30000`
+|`2.1.0.Final`
+|Cache check period limit
+|`registry.limits.config.max-artifact-labels`
+|`limits`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max artifact labels
+|`registry.limits.config.max-artifact-properties`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact properties
+|`registry.limits.config.max-artifacts`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifacts
+|`registry.limits.config.max-description-length`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact max description length
+|`registry.limits.config.max-label-size`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact max label size
+|`registry.limits.config.max-name-length`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact max name length
+|`registry.limits.config.max-property-key-size`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact property key size
+|`registry.limits.config.max-property-value-size`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact property value size
+|`registry.limits.config.max-requests-per-second`
+|`limits`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max artifact max requests per second
+|`registry.limits.config.max-schema-size-bytes`
+|`limits`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max schema size (bytes)
+|`registry.limits.config.max-total-schemas`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max total schemas
+|`registry.limits.config.max-versions-per-artifact`
+|`limits`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max versions per artifacts
+|`quarkus.log.level`
+|`log`
+|`string`
+|
+|`2.0.0.Final`
+|Log level
+|`registry.enable.multitenancy`
+|`mt`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Enable multitenancy
+|`registry.multitenancy.authorization.enabled`
+|`mt`
+|`boolean`
+|`true`
+|`2.1.0.Final`
+|Enable multitenancy authorization
+|`registry.multitenancy.reaper.every`
+|`mt`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Multitenancy reaper every
+|`registry.multitenancy.reaper.max-tenants-reaped`
+|`mt`
+|`int`
+|`100`
+|`2.1.0.Final`
+|Multitenancy reaper max tenants reaped
+|`registry.multitenancy.reaper.period-seconds`
+|`mt`
+|`long`
+|`10800`
+|`2.1.0.Final`
+|Multitenancy reaper period seconds
+|`registry.multitenancy.types.context-path.base-path`
+|`mt`
+|`string`
+|`t`
+|`2.1.0.Final`
+|Multitenancy context path type base path
+|`registry.multitenancy.types.context-path.enabled`
+|`mt`
+|`boolean`
+|`true`
+|`2.1.0.Final`
+|Enable multitenancy context path type
+|`registry.multitenancy.types.request-header.enabled`
+|`mt`
+|`boolean`
+|`true`
+|`2.1.0.Final`
+|Enable multitenancy request header type
+|`registry.multitenancy.types.request-header.name`
+|`mt`
+|`string`
+|`X-Registry-Tenant-Id`
+|`2.1.0.Final`
+|Multitenancy request header type name
+|`registry.multitenancy.types.subdomain.enabled`
+|`mt`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Enable multitenancy subdomain type
+|`registry.multitenancy.types.subdomain.header-name`
+|`mt`
+|`string`
+|`Host`
+|`2.1.0.Final`
+|Multitenancy subdomain type header name
+|`registry.multitenancy.types.subdomain.location`
+|`mt`
+|`string`
+|`header`
+|`2.1.0.Final`
+|Multitenancy subdomain type location
+|`registry.multitenancy.types.subdomain.pattern`
+|`mt`
+|`string`
+|`(\w[\w\d\-]*)\.localhost\.local`
+|`2.1.0.Final`
+|Multitenancy subdomain type pattern
+|`registry.organization-id.claim-name`
+|`mt`
+|`list<string>`
+|
+|`2.1.0.Final`
+|Organization Id claim name
+|`registry.tenant.manager.auth.client-id`
+|`mt`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Tenant manager auth client id
+|`registry.tenant.manager.auth.client-secret`
+|`mt`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Tenant manager auth client secret
+|`registry.tenant.manager.auth.enabled`
+|`mt`
+|`optional<boolean>`
+|
+|`2.1.0.Final`
+|Tenant manager auth enabled
+|`registry.tenant.manager.auth.token.expiration.reduction.ms`
+|`mt`
+|`optional<long>`
+|
+|`2.2.0.Final`
+|Tenant manager auth token expiration reduction ms
+|`registry.tenant.manager.auth.url.configured`
+|`mt`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Tenant manager auth url configured
+|`registry.tenant.manager.ssl.ca.path`
+|`mt`
+|`optional<string>`
+|
+|`2.2.0.Final`
+|Tenant manager SSL ca path
+|`registry.tenant.manager.url`
+|`mt`
+|`optional<string>`
+|
+|`2.0.0.Final`
+|Tenant manager URL
+|`registry.tenants.context.cache.check-period`
+|`mt`
+|`long`
+|`60000`
+|`2.1.0.Final`
+|Tenants context cache check period
+|`registry.enable-redirects`
+|`redirects`
+|`boolean`
+|
+|`2.1.2.Final`
+|Enable redirects
+|`registry.redirects`
+|`redirects`
+|`map<string, string>`
+|
+|`2.1.2.Final`
+|Registry redirects
+|`quarkus.datasource.db-kind`
+|`store`
+|`string`
+|`postgresql`
+|`2.0.0.Final`
+|Datasource Db kind
+|`quarkus.datasource.jdbc.url`
+|`store`
+|`string`
+|
+|`2.1.0.Final`
+|Datasource jdbc URL
+|`registry.sql.init`
+|`store`
+|`boolean`
+|`true`
+|`2.0.0.Final`
+|SQL init
+|`quarkus.oidc.tenant-enabled`
+|`ui`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|UI OIDC tenant enabled
+|`registry.ui.config.apiUrl`
+|`ui`
+|`string`
+|
+|`1.3.0.Final`
+|UI api URL
+|`registry.ui.config.auth.oidc.client-id`
+|`ui`
+|`string`
+|`none`
+|`2.2.6.Final`
+|UI auth OIDC client ID
+|`registry.ui.config.auth.oidc.redirect-url`
+|`ui`
+|`string`
+|`none`
+|`2.2.6.Final`
+|UI auth OIDC redirect URL
+|`registry.ui.config.auth.oidc.url`
+|`ui`
+|`string`
+|`none`
+|`2.2.6.Final`
+|UI auth OIDC URL
+|`registry.ui.config.auth.type`
+|`ui`
+|`string`
+|`none`
+|`2.2.6.Final`
+|UI auth type
+|`registry.ui.config.uiContextPath`
+|`ui`
+|`string`
+|`/ui/`
+|`2.1.0.Final`
+|UI context path
+|`registry.ui.features.readOnly`
+|`ui`
+|`boolean [dynamic]`
+|`false`
+|`1.2.0.Final`
+|UI read-only mode
+|`registry.ui.features.settings`
+|`ui`
+|`boolean`
+|`false`
+|`2.2.2.Final`
+|UI features settings
+|===

@@ -108,7 +108,7 @@ public class ConfigJsServlet extends HttpServlet {
                 config.auth.options = new HashMap<>();
                 config.auth.options.put("clientId", uiConfig.getOidcClientId());
                 config.auth.options.put("url", uiConfig.getOidcUrl());
-                config.auth.options.put("redirectUrl", uiConfig.getOidcRedirectUrl());
+                config.auth.options.put("redirectUri", uiConfig.getOidcRedirectUrl());
             }
 
             config.auth.rbacEnabled = authConfig.isRbacEnabled();

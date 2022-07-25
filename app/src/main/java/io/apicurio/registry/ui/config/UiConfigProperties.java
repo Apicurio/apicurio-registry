@@ -76,7 +76,7 @@ public class UiConfigProperties {
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.auth.oidc.redirect-url", defaultValue = "none")
-    String oidcRedirectUrl;
+    String oidcRedirectUri;
 
     private final Map<String, Object> keycloakConfig;
 
@@ -136,6 +136,6 @@ public class UiConfigProperties {
     }
 
     public String getOidcRedirectUrl() {
-        return oidcRedirectUrl;
+        return oidcRedirectUri;
     }
 }

@@ -4,10 +4,9 @@ import {Service} from "../baseService";
 import {AxiosRequestConfig} from "axios";
 import {LoggerService} from "../logger";
 import {UsersService} from "../users";
-import {Services} from "../services";
 import {User, UserManager, UserManagerSettings} from "oidc-client-ts";
 
-const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId, redirectUri"];
+const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId", "redirectUri"];
 const KC_INIT_OPTIONS: string[] = [
     "useNonce", "adapter", "onLoad", "token", "refreshToken", "idToken", "timeSkew", "checkLoginIframe",
     "checkLoginIframeInterval", "responseMode", "redirectUri", "silentCheckSsoRedirectUri", "flow",
@@ -72,7 +71,8 @@ export class AuthService implements Service {
                 this.doLogin();
             }
 
-        }).catch(() => {
+        }).catch((error) => {
+            console.log(error)
             this.user = this.fakeUser();
             onAuthenticatedCallback();
         })
@@ -188,14 +188,19 @@ export class AuthService implements Service {
                 redirectUri: window.location.href
             });
         } else if (this.config.authType() === "oidc") {
-            this.userManager.signoutRedirect();
+            this.userManager.signoutRedirect(
+                {
+                   post_logout_redirect_uri: window.location.href
+                }
+            );
         }
     }
 
     public getToken = () => this.keycloak.token;
 
-    public getOidcToken = () => this.oidcUser.access_token;
-
+    public getOidcToken = () => {
+        return this.oidcUser.id_token;
+    }
 
     public isAuthenticationEnabled(): boolean {
         return this.enabled;
@@ -261,7 +266,7 @@ export class AuthService implements Service {
 
     public getAuthInterceptor(): (config: AxiosRequestConfig) => Promise<any> {
         const self: AuthService = this;
-        const interceptor = (config: AxiosRequestConfig) => {
+        return (config: AxiosRequestConfig) => {
             if (self.config.authType() === "keycloakjs") {
                 return self.updateKeycloakToken(() => {
                     config.headers.Authorization = `Bearer ${this.getToken()}`;
@@ -284,7 +289,6 @@ export class AuthService implements Service {
                 return Promise.resolve(config);
             }
         };
-        return interceptor;
     }
 
     // @ts-ignore

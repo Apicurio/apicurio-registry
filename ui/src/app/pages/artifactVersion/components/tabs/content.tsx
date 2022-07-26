@@ -18,12 +18,16 @@
 import React from "react";
 import "./content.css";
 import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import {ToggleGroup, ToggleGroupItem} from "@patternfly/react-core";
+import {Services} from "../../../../../services";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/mode-yaml";
 import "ace-builds/src-noconflict/mode-protobuf";
 import "ace-builds/src-noconflict/mode-xml";
 import "ace-builds/src-noconflict/mode-graphqlschema";
 import "ace-builds/src-noconflict/theme-monokai";
+import YAML from "yaml";
 
 
 /**
@@ -41,6 +45,7 @@ export interface ContentTabContentProps extends PureComponentProps {
 // tslint:disable-next-line:no-empty-interface
 export interface ContentTabContentState extends PureComponentState {
     content: string;
+    editorMode: string;
     editorWidth: string;
     editorHeight: string;
 }
@@ -66,12 +71,69 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
         }
     }
 
+    public compactYamlJson(): boolean {
+        // TODO do this again whenever the browser is resized!
+        const elem: HTMLElement|null = document.getElementById("ace-wrapper");
+        if (elem) {
+            const width: number|null = elem.clientWidth;
+            if (width && width > 500) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private switchJsonYaml = (mode: string): (() => void) => {
+        return () => {
+            if (mode === this.state.editorMode) {
+                return;
+            } else {
+                let content: string = `Error formatting code to: ${mode}`;
+                try {
+                    if (mode === "yaml") {
+                        content = YAML.stringify(JSON.parse(this.props.artifactContent), null, 4);
+                    } else {
+                        content = JSON.stringify(YAML.parse(this.props.artifactContent), null, 2);
+                    }
+                } catch (e) {
+                    this.handleInvalidContentError(e);
+                }
+                this.setState({
+                    editorMode: mode,
+                    content: content
+                });
+            }
+        };
+    };
+
+    private handleInvalidContentError(error: any): void {
+        Services.getLoggerService().info("[Content] Invalid content error:", error);
+    }
+
     public render(): React.ReactElement {
         return (
             <div className="ace-wrapper" id="ace-wrapper">
+                { !(this.state.editorMode === "json" || this.state.editorMode === "yaml") ? null :
+                    <ToggleGroup aria-label="Switch Json to Yaml" isCompact={this.compactYamlJson()} className="formatting-buttons">
+                        <ToggleGroupItem
+                            text="JSON"
+                            buttonId="json"
+                            isSelected={this.state.editorMode === "json"}
+                            onChange={this.switchJsonYaml("json")}
+                            isDisabled={this.state.editorMode === "json"}
+                        />
+                        <ToggleGroupItem
+                            text="YAML"
+                            buttonId="yaml"
+                            isSelected={this.state.editorMode === "yaml"}
+                            onChange={this.switchJsonYaml("yaml")}
+                            isDisabled={this.state.editorMode === "yaml"}
+                        />
+                    </ToggleGroup>
+                }
                 <AceEditor
                     data-testid="ace-content"
-                    mode={this.editorMode()}
+                    mode={this.state.editorMode}
                     theme="monokai"
                     name="artifactContent"
                     className="artifactContent"
@@ -99,6 +161,7 @@ export class ContentTabContent extends PureComponent<ContentTabContentProps, Con
     protected initializeState(): ContentTabContentState {
         return {
             content: this.formatContent(),
+            editorMode: this.editorMode(),
             editorHeight: "500px",
             editorWidth: "100%"
         };

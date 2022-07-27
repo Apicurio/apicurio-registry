@@ -30,6 +30,7 @@ public interface Headers {
     String VERSION = "X-Registry-Version";
     String TENANT_ID = "X-Registry-Tenant-Id";
     String ARTIFACT_TYPE = "X-Registry-ArtifactType";
+    String ARTIFACT_SHA = "X-Registry-ArtifactSHA";
     String DEPRECATED = "X-Registry-Deprecated";
     String NAME = "X-Registry-Name";
     String NAME_ENCODED = "X-Registry-Name-Encoded";

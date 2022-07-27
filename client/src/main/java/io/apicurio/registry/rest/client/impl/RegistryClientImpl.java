@@ -219,7 +219,7 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -230,6 +230,9 @@ public class RegistryClientImpl implements RegistryClient {
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
+        if (artifactSHA != null) {
+            headers.put(Headers.ARTIFACT_SHA, artifactSHA);
+        }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
@@ -237,11 +240,15 @@ public class RegistryClientImpl implements RegistryClient {
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
+        if (fromURL != null) {
+            queryParams.put(Parameters.FROM_URL, Collections.singletonList(fromURL));
+        }
+
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -252,12 +259,18 @@ public class RegistryClientImpl implements RegistryClient {
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
+        if (artifactSHA != null) {
+            headers.put(Headers.ARTIFACT_SHA, artifactSHA);
+        }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
         }
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+        }
+        if (fromURL != null) {
+            queryParams.put(Parameters.FROM_URL, Collections.singletonList(fromURL));
         }
 
         final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();

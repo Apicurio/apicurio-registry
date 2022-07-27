@@ -2175,6 +2175,24 @@
                             "$ref": "#/components/schemas/EncodedArtifactName"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "fromURL",
+                        "description": "Instead of uploading the artifact from the body download it from the specified URL.\n\nNOTE: when this parameter is defined the content of the body is discarded.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "required": false
+                    },
+                    {
+                        "name": "X-Registry-ArtifactSHA",
+                        "description": "Specifies the SHA-256 of the artifact to be verified.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header",
+                        "required": false
                     }
                 ],
                 "responses": {

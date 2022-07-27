@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.v2;
 
+import com.google.common.hash.Hashing;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -27,6 +28,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -69,6 +71,7 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.JAXRSClientUtil;
 import org.jose4j.base64url.Base64;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -76,10 +79,15 @@ import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -94,12 +102,14 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONI
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
 
@@ -130,6 +140,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    RestConfig restConfig;
 
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
@@ -585,30 +598,31 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                           String xRegistryName, String xRegistryNameEncoded, InputStream data) {
-
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, data, Collections.emptyList());
+                                           String xRegistryName, String xRegistryNameEncoded,
+                                           String fromURL, String xRegistryArtifactSHA, InputStream data) {
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, fromURL, xRegistryArtifactSHA, data, Collections.emptyList());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.ContentCreateRequest)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, ContentCreateRequest)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType,
-                                           String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical,
-                                           String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryName,
-                                           String xRegistryNameEncoded, ContentCreateRequest data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
+    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+                                           String xRegistryVersion, IfExists ifExists, Boolean canonical,
+                                           String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                           String xRegistryName, String xRegistryNameEncoded,
+                                           String fromURL, String xRegistryArtifactSHA, ContentCreateRequest data) {
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, fromURL, xRegistryArtifactSHA, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
     /**
@@ -623,13 +637,17 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param xRegistryDescriptionEncoded
      * @param xRegistryName
      * @param xRegistryNameEncoded
+     * @param fromURL
+     * @param xRegistryArtifactSHA
      * @param data
      * @param references
      */
     private ArtifactMetaData createArtifactWithRefs(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                                    String xRegistryName, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
+                                                    String xRegistryName, String xRegistryNameEncoded,
+                                                    String fromURL, String xRegistryArtifactSHA,
+                                                    InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);
 
@@ -645,10 +663,58 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // TODO do something with the optional user-provided Version
 
+        if (fromURL != null) {
+            Client client = null;
+            try {
+                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
+            } catch (KeyManagementException kme) {
+                throw new RuntimeException(kme);
+            } catch (NoSuchAlgorithmException nsae) {
+                throw new RuntimeException(nsae);
+            }
+
+            // 1. Registry issues HTTP HEAD request to the target URL.
+            List<Object> contentLengthHeaders = client
+                    .target(fromURL)
+                    .request()
+                    .head()
+                    .getHeaders()
+                    .get("Content-Length");
+
+            if (contentLengthHeaders.size() < 1) {
+                throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
+            }
+
+            // 2. According to HTTP specification, target server must return Content-Length header.
+            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
+
+            // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
+            if (contentLength > restConfig.getDownloadMaxSize()) {
+                throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
+            }
+
+            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
+            data = new BufferedInputStream(client
+                    .target(fromURL)
+                    .request()
+                    .get()
+                    .readEntity(InputStream.class), contentLength);
+        }
+
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
+
+        // Mitigation for MITM attacks, verify that the artifact is the expected one
+        if (xRegistryArtifactSHA != null) {
+            String calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
+
+            if (!calculatedSha.equals(xRegistryArtifactSHA)) {
+                throw new BadRequestException("Provided Artifact SHA doesn't match with the content");
+            }
+        }
+
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();

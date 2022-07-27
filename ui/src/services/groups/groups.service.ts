@@ -30,7 +30,9 @@ export interface CreateArtifactData {
     groupId: string;
     id: string|null;
     type: string;
-    content: string;
+    fromURL: string|null;
+    sha: string|null;
+    content: string|null;
 }
 
 export interface CreateVersionData {
@@ -70,7 +72,15 @@ export interface EditableMetaData {
 export class GroupsService extends BaseService {
 
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId });
+        // TODO: verify functionality and shape it better
+        let queryParams: any = {}
+        if (data.fromURL) {
+            queryParams = {
+                fromURL: data.fromURL
+            };
+        }
+
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId }, queryParams);
         const headers: any = {};
         if (data.id) {
             headers["X-Registry-ArtifactId"] = data.id;
@@ -78,7 +88,12 @@ export class GroupsService extends BaseService {
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
         }
-        headers["Content-Type"] = this.contentType(data.type, data.content);
+        if (data.sha) {
+            headers["X-Registry-ArtifactSHA"] = data.sha;
+        }
+        
+        headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
+        
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 

@@ -31,14 +31,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-integration-tests-
+          cache: 'maven'
 
       - name: Build api-model
         run: |

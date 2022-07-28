@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.*;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.hash.Hashing;
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
@@ -2125,6 +2127,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(400)
                 .body("message", containsString("SHA doesn't match"));
 
+        // Calculate the SHA on the fly to avoid mismatches on update
+        String content = given()
+                .get("http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .body()
+                .print();
+        String artifactSHA = Hashing.sha256().hashString(content, StandardCharsets.UTF_8).toString();
+
         // Create Artifact from URL should eventually succeed
         given()
             .when()
@@ -2132,7 +2141,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi3")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
-                .header("X-Registry-ArtifactSHA", "1283f7b4ccc66c22de160bcdb0c8a69443a5616fb358973ae0a9483bd144ef11")
+                .header("X-Registry-ArtifactSHA", artifactSHA)
                 .queryParam("fromURL", "http://localhost:8081/api-specifications/registry/v2/openapi.json")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()

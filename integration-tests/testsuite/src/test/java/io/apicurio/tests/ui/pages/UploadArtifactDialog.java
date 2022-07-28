@@ -59,6 +59,14 @@ public class UploadArtifactDialog extends BasePage {
                 .findElement(By.xpath("//textarea[@aria-label='File upload']"));
     }
 
+    public WebElement getArtifactURL() {
+        return getUploadArtifactDialog().findElement(byDataTestId("form-url"));
+    }
+
+    public WebElement getArtifactSHA() {
+        return getUploadArtifactDialog().findElement(byDataTestId("form-sha"));
+    }
+
     public WebElement getUploadButton() {
         return getUploadArtifactDialog().findElement(byDataTestId("modal-btn-upload"));
     }

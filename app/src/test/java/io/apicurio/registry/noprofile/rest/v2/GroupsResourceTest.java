@@ -19,12 +19,7 @@ package io.apicurio.registry.noprofile.rest.v2;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -2099,6 +2094,49 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create the same artifact
         createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent);
 
+    }
+
+    @Test
+    public void testCreateArtifactFromURL() throws Exception {
+        // Create Artifact from URL should support `HEAD`
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/Empty")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .queryParam("fromURL", "http://localhost:8081/health/group")
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(400)
+                .body("message", containsString("Content-Length"));
+
+        // Create Artifact from URL should check the SHA
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi2")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .header("X-Registry-ArtifactSHA", "123")
+                .queryParam("fromURL", "http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(400)
+                .body("message", containsString("SHA doesn't match"));
+
+        // Create Artifact from URL should eventually succeed
+        given()
+            .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi3")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .header("X-Registry-ArtifactSHA", "1283f7b4ccc66c22de160bcdb0c8a69443a5616fb358973ae0a9483bd144ef11")
+                .queryParam("fromURL", "http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(200);
     }
 
 }

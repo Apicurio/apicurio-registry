@@ -682,7 +682,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     .getHeaders()
                     .get("Content-Length");
 
-            if (contentLengthHeaders.size() < 1) {
+            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
                 throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
             }
 

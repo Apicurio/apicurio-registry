@@ -34,6 +34,7 @@ jobs:
         with:
           java-version: ${{ matrix.jdk-version }}
           distribution: 'temurin'
+          cache: 'maven'
 
       # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
       - name: Set up QEMU
@@ -54,14 +55,6 @@ jobs:
           echo "Status:    ${{ steps.buildx.outputs.status }}"
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
-
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-verify-
 
       - name: Build api-model
         run: |
@@ -102,14 +95,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-verify-
+          cache: 'maven'
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2

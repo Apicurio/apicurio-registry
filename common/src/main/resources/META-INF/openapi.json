@@ -1277,6 +1277,17 @@
                 "tags": [
                     "Admin"
                 ],
+                "parameters": [
+                    {
+                        "name": "principalId",
+                        "description": "Unique ID of a principal (typically either a user or service account).",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -1297,7 +1308,7 @@
                 },
                 "operationId": "getRoleMapping",
                 "summary": "Return a single role mapping",
-                "description": "Gets the details of a single role mapping (by principalId).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the principalId exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Gets the details of a single role mapping (by `principalId`).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the `principalId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
                 "requestBody": {
@@ -1461,7 +1472,7 @@
                     }
                 },
                 "operationId": "referencesByContentHash",
-                "summary": "Returns a list with all the references for the artifact with the given hash",
+                "summary": "List artifact references by hash",
                 "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
@@ -1497,8 +1508,8 @@
                     }
                 },
                 "operationId": "referencesByContentId",
-                "summary": "Returns a list with all the references for the artifact with the given content id.",
-                "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "summary": "List artifact references by content ID",
+                "description": "Returns a list containing all the artifact references using the artifact content ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1534,8 +1545,8 @@
                     }
                 },
                 "operationId": "referencesByGlobalId",
-                "summary": "Returns a list with all the references for the artifact with the given global id.",
-                "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "summary": "List artifact references by global ID",
+                "description": "Returns a list containing all the artifact references using the artifact global ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1665,7 +1676,7 @@
                     }
                 },
                 "operationId": "getConfigProperty",
-                "summary": "Get the value of a configuration property",
+                "summary": "Get configuration property value",
                 "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
@@ -2215,7 +2226,7 @@
                     }
                 },
                 "operationId": "deleteArtifactsInGroup",
-                "summary": "Deletes all artifacts in a group",
+                "summary": "Delete artifacts in group",
                 "description": "Deletes all of the artifacts that exist in a given group."
             },
             "parameters": [

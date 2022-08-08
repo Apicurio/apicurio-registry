@@ -6,7 +6,7 @@ on:
       branch:
         description: 'Branch to run tests on'
         required: true
-        default: 'master'
+        default: 'main'
       apicurio-tests-profile:
         description: 'Apicurio Tests Profile to be used, determines what tests are executed from tests module'
         required: true
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build All Variants
         run: make SKIP_TESTS=true build-all
-        
+
       - name: Build The Tagged Docker Images
         run: |
           make IMAGE_TAG=latest-snapshot build-mem-image

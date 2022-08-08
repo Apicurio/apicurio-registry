@@ -11,7 +11,7 @@ content:
 
 ui:
   bundle:
-    url: https://raw.githubusercontent.com/Apicurio/apicurio-docs-ui/master/dist/ui-bundle.zip
+    url: https://raw.githubusercontent.com/Apicurio/apicurio-docs-ui/main/dist/ui-bundle.zip
     snapshot: true
 
 runtime:

@@ -91,7 +91,7 @@ java \
 This will start up the registry with the persistence managed by the external kafka cluster.
 
 ## Docker containers
-Every time a commit is pushed to `master` an updated set of docker images are built and pushed to Docker 
+Every time a commit is pushed to `main` an updated set of docker images are built and pushed to Docker 
 Hub.  There are several docker images to choose from, one for each storage option.  The images include:
 
 * [apicurio-registry-mem](https://hub.docker.com/r/apicurio/apicurio-registry-mem)
@@ -111,7 +111,7 @@ There are a variety of docker image tags to choose from when running the registr
 release of the project has a specific tag associated with it.  So release `1.2.0.Final` has an equivalent
 docker tag specific to that release.  We also support the following moving tags:
 
-* `latest-snapshot` : represents the most recent docker image produced whenever the `master` branch is updated
+* `latest-snapshot` : represents the most recent docker image produced whenever the `main` branch is updated
 * `latest-release` : represents the latest stable (released) build of Apicurio Registry
 * `latest` : represents the absolute newest build - essentially the newer of `latest-release` or `latest-snapshot`
 

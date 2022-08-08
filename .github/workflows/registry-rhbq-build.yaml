@@ -5,7 +5,7 @@ on:
       branch:
         description: 'Branch to checkout'
         required: true
-        default: 'master'
+        default: 'main'
       maven-profiles:
         description: 'Comma separated list of profiles to be activated'
         required: true
@@ -26,23 +26,23 @@ on:
 jobs:
   build:
     name: Build Project
-    runs-on: ubuntu-18.04    
-    if: github.repository_owner == 'Apicurio' 
+    runs-on: ubuntu-18.04
+    if: github.repository_owner == 'Apicurio'
     steps:
-            
+
         - name: Set up JDK 11
           uses: actions/setup-java@v3
           with:
             java-version: '11'
             distribution: 'temurin'
-            
+
         - name: Configure Red Hat Repository
           run: |
            pwd
            mkdir -p /home/runner/.m2
            chmod 755 /home/runner/.m2
-           echo "<settings><profiles><profile><id>public-repositories</id><repositories><repository><id>central</id><name>Maven Central</name><url>https://repo1.maven.org/maven2</url><releases><enabled>true</enabled></releases><snapshots><enabled>false</enabled></snapshots></repository></repositories><pluginRepositories><pluginRepository><id>central</id><name>Maven Central</name><url>https://repo1.maven.org/maven2</url><releases><enabled>true</enabled></releases><snapshots><enabled>false</enabled></snapshots></pluginRepository></pluginRepositories></profile><profile><id>redhat-repository</id><repositories><repository><id>redhat-repository</id><name>Red Hat repository</name><url>http://maven.repository.redhat.com/ga/</url><layout>default</layout><releases><enabled>true</enabled><updatePolicy>never</updatePolicy></releases><snapshots><enabled>false</enabled><updatePolicy>never</updatePolicy></snapshots></repository></repositories><pluginRepositories><pluginRepository><id>redhat-repository</id><name>Red Hat repository</name><url>http://maven.repository.redhat.com/ga/</url><layout>default</layout><releases><enabled>true</enabled><updatePolicy>never</updatePolicy></releases><snapshots><enabled>false</enabled><updatePolicy>never</updatePolicy></snapshots></pluginRepository></pluginRepositories></profile></profiles><activeProfiles><activeProfile>public-repositories</activeProfile><activeProfile>redhat-repository</activeProfile></activeProfiles></settings>" > /home/runner/.m2/settings.xml     
-        
+           echo "<settings><profiles><profile><id>public-repositories</id><repositories><repository><id>central</id><name>Maven Central</name><url>https://repo1.maven.org/maven2</url><releases><enabled>true</enabled></releases><snapshots><enabled>false</enabled></snapshots></repository></repositories><pluginRepositories><pluginRepository><id>central</id><name>Maven Central</name><url>https://repo1.maven.org/maven2</url><releases><enabled>true</enabled></releases><snapshots><enabled>false</enabled></snapshots></pluginRepository></pluginRepositories></profile><profile><id>redhat-repository</id><repositories><repository><id>redhat-repository</id><name>Red Hat repository</name><url>http://maven.repository.redhat.com/ga/</url><layout>default</layout><releases><enabled>true</enabled><updatePolicy>never</updatePolicy></releases><snapshots><enabled>false</enabled><updatePolicy>never</updatePolicy></snapshots></repository></repositories><pluginRepositories><pluginRepository><id>redhat-repository</id><name>Red Hat repository</name><url>http://maven.repository.redhat.com/ga/</url><layout>default</layout><releases><enabled>true</enabled><updatePolicy>never</updatePolicy></releases><snapshots><enabled>false</enabled><updatePolicy>never</updatePolicy></snapshots></pluginRepository></pluginRepositories></profile></profiles><activeProfiles><activeProfile>public-repositories</activeProfile><activeProfile>redhat-repository</activeProfile></activeProfiles></settings>" > /home/runner/.m2/settings.xml
+
         - name: Apicurio Registry Checkout
           run: |
            mkdir registry
@@ -54,12 +54,12 @@ jobs:
            git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
            git pull
 
-        - name: Download PME 
+        - name: Download PME
           run: mvn dependency:get -Dartifact=org.commonjava.maven.ext:pom-manipulation-cli:LATEST:jar -Ddest=/home/runner/.m2/pom-manipulation-cli.jar
-           
+
         - name: Run PME
           run: cd registry && java -jar /home/runner/.m2/pom-manipulation-cli.jar -DgroovyScripts=${{ github.event.inputs.script-url }}
-            
+
         - name: Build Registry
           run: pwd && cd registry && ./mvnw clean install -P${{ github.event.inputs.maven-profiles }} -DskipTests=${{ github.event.inputs.skip-tests }} ${{ github.event.inputs.extra-params }}
 
@@ -70,7 +70,7 @@ jobs:
           if: github.event.inputs.skip-tests == 'false'
           run: cd registry && ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
 
-        - name: Run Integration Tests - sql          
+        - name: Run Integration Tests - sql
           if: github.event.inputs.skip-tests == 'false'
           run: cd registry && ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress
 

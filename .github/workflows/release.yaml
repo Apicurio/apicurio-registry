@@ -11,7 +11,7 @@ on:
       branch:
         description: 'Branch to release from'
         required: true
-        default: 'master'
+        default: 'main'
 jobs:
   release:
     runs-on: ubuntu-18.04
@@ -77,7 +77,7 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
- 
+
       - name: Maven Deploy
         run: |
           cd registry
@@ -86,7 +86,7 @@ jobs:
           (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
           (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pmultitenancy -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
-          
+
       - name: Commit Release Version Change
         run: |
           cd registry
@@ -99,12 +99,12 @@ jobs:
         run: |
           echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
           echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
-      
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: ${{ github.event.inputs.release-version }} 
-          tag_name: ${{ github.event.inputs.release-version }} 
+          name: ${{ github.event.inputs.release-version }}
+          tag_name: ${{ github.event.inputs.release-version }}
           token: ${{ secrets.ACCESS_TOKEN }}
           target_commitish: ${{ github.event.inputs.branch }}
           prerelease: ${{ env.IS_PRE_RELEASE }}
@@ -117,13 +117,13 @@ jobs:
       - name: Generate Release Notes
         run: |
           cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override      
+          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
 
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          sed -i  "s/version\:\s.*/version: \'master\'/g" docs/antora.yml
+          sed -i  "s/version\:\s.*/version: \'main\'/g" docs/antora.yml
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

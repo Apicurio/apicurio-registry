@@ -7,7 +7,7 @@ on:
 jobs:
   update-website:
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-18.04 
+    runs-on: ubuntu-18.04
     steps:
 
       - name: Apicurio Website Checkout
@@ -19,8 +19,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout main
+          git branch --set-upstream-to=origin/main
           git pull
 
       - name: Apicurio Playbook Checkout
@@ -32,8 +32,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-docs-playbook.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout main
+          git branch --set-upstream-to=origin/main
           git pull
 
       - name: Generate Project Documentation for Website
@@ -55,7 +55,7 @@ jobs:
           cd _data/registry
           rm latestRelease.json
           touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
-          
+
           echo "********** Saving a copy in the archieve **********"
           cp latestRelease.json releases/${RELEASE_VERSION}.json
 

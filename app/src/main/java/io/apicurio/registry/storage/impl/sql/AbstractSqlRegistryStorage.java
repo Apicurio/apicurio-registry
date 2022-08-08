@@ -2067,7 +2067,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperties()
      */
-    @Override
+    @Override @Transactional
     public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
         log.debug("Getting all config properties.");
         return handles.withHandleNoException( handle -> {
@@ -2086,7 +2086,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#getConfigProperty(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
         return this.getRawConfigProperty(propertyName);
     }
@@ -2094,7 +2094,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#getRawConfigProperty(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
         log.debug("Selecting a single config property: {}", propertyName);
         try {
@@ -2160,7 +2160,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
      */
-    @Override
+    @Override @Transactional
     public List<String> getTenantsWithStaleConfigProperties(Instant lastRefresh) throws RegistryStorageException {
         log.debug("Getting all tenant IDs with stale config properties.");
         return handles.withHandleNoException( handle -> {
@@ -2175,7 +2175,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getLogConfiguration(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public LogConfigurationDto getLogConfiguration(String logger) throws RegistryStorageException, LogConfigurationNotFoundException {
         log.debug("Selecting a single log configuration: {}", logger);
         try {
@@ -2236,7 +2236,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#listLogConfigurations()
      */
-    @Override
+    @Override @Transactional
     public List<LogConfigurationDto> listLogConfigurations() throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements.selectAllLogConfigurations();
@@ -2249,7 +2249,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
-    @Override
+    @Override @Transactional
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
         try {
             this.handles.withHandle( handle -> {
@@ -2279,7 +2279,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
-    @Override
+    @Override @Transactional
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
         handles.withHandleNoException(handle -> {
             String sql = sqlStatements.updateGroup();
@@ -2302,7 +2302,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#deleteGroup(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
         handles.withHandleNoException(handle -> {
             String sql = sqlStatements.deleteGroup();
@@ -2321,7 +2321,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getGroupIds(java.lang.Integer)
      */
-    @Override
+    @Override @Transactional
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements.selectGroups();
@@ -2342,7 +2342,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getGroupMetaData(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
         try {
             return this.handles.withHandle(handle -> {
@@ -2554,7 +2554,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#countArtifacts()
      */
-    @Override
+    @Override @Transactional
     public long countArtifacts() throws RegistryStorageException {
         return handles.withHandle(handle -> {
             String sql = sqlStatements.selectAllArtifactCount();
@@ -2569,7 +2569,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#countArtifactVersions(java.lang.String, java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
         if (!isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -2590,7 +2590,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#countTotalArtifactVersions()
      */
-    @Override
+    @Override @Transactional
     public long countTotalArtifactVersions() throws RegistryStorageException {
         return handles.withHandle(handle -> {
             String sql = sqlStatements.selectTotalArtifactVersionsCount();
@@ -2605,7 +2605,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
         log.debug("Inserting a role mapping row for: {}", principalId);
         try {
@@ -2630,7 +2630,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#deleteRoleMapping(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
         log.debug("Deleting a role mapping row for: {}", principalId);
         try {
@@ -2655,7 +2655,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getRoleMapping(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
         log.debug("Selecting a single role mapping for: {}", principalId);
         try {
@@ -2678,7 +2678,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getRoleForPrincipal(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
         log.debug("Selecting the role for: {}", principalId);
         try {
@@ -2699,7 +2699,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getRoleMappings()
      */
-    @Override
+    @Override @Transactional
     public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
         log.debug("Getting a list of all role mappings.");
         return handles.withHandleNoException( handle -> {
@@ -2714,7 +2714,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
         log.debug("Updating a role mapping: {}::{}", principalId, role);
         try {
@@ -2820,7 +2820,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
-    @Override
+    @Override @Transactional
     public void deleteAllUserData() {
         log.debug("Deleting all user data");
 
@@ -2896,7 +2896,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#resolveReferences(java.util.List)
      */
-    @Override
+    @Override @Transactional
     public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
         if (references == null || references.isEmpty()) {
             return Collections.emptyMap();
@@ -2910,7 +2910,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#isArtifactExists(String, String)
      */
-    @Override
+    @Override @Transactional
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectArtifactCountById();
@@ -2942,7 +2942,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
-        return getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        return getArtifactVersionMetaDataInternal(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     protected void deleteAllOrphanedContent() {
@@ -3207,6 +3207,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         }
     }
 
+    @Transactional
     public boolean isContentExists(long contentId) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectContentExists();
@@ -3218,6 +3219,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
+    @Transactional
     protected boolean isGlobalIdExists(long globalId) throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements().selectGlobalIdExists();

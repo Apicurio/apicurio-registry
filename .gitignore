@@ -3,6 +3,7 @@ target/
 .settings
 .classpath
 .DS_Store
+.checkstyle
 
 # VS Code
 .vscode/

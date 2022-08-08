@@ -4,9 +4,9 @@ import {Service} from "../baseService";
 import {AxiosRequestConfig} from "axios";
 import {LoggerService} from "../logger";
 import {UsersService} from "../users";
-import {Services} from "../services";
+import {User, UserManager, UserManagerSettings} from "oidc-client-ts";
 
-const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId"];
+const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId", "redirectUri"];
 const KC_INIT_OPTIONS: string[] = [
     "useNonce", "adapter", "onLoad", "token", "refreshToken", "idToken", "timeSkew", "checkLoginIframe",
     "checkLoginIframeInterval", "responseMode", "redirectUri", "silentCheckSsoRedirectUri", "flow",
@@ -49,9 +49,33 @@ export class AuthService implements Service {
     private keycloak: Keycloak.KeycloakInstance;
     // @ts-ignore
     private user: AuthenticatedUser;
+    // @ts-ignore
+    private userManager: UserManager;
+    // @ts-ignore
+    private oidcUser: User;
 
     public init = () => {
-        // no init?
+        if (this.config.authType() === "oidc") {
+            this.userManager = new UserManager(this.getClientSettings());
+        }
+    }
+
+    public authenticateUsingOidc = (onAuthenticatedCallback: () => void) => {
+        this.userManager.getUser().then((authenticatedUser) => {
+            if (authenticatedUser) {
+                this.oidcUser = authenticatedUser;
+                this.userManager.startSilentRenew()
+                onAuthenticatedCallback();
+            } else {
+                console.warn("Not authenticated!");
+                this.doLogin();
+            }
+
+        }).catch((error) => {
+            console.log(error)
+            this.user = this.fakeUser();
+            onAuthenticatedCallback();
+        })
     }
 
     public authenticateUsingKeycloak = (onAuthenticatedCallback: () => void) => {
@@ -72,15 +96,6 @@ export class AuthService implements Service {
             this.logger.info("----------------");
         };
 
-        const fakeUser: (() => AuthenticatedUser) = () => {
-            return {
-                displayName: "User",
-                fullName: "User",
-                roles: [],
-                username: "User"
-            };
-        };
-
         const infoToUser: (() => AuthenticatedUser) = () => {
             const ui: any = this.keycloak.userInfo;
             return {
@@ -99,7 +114,7 @@ export class AuthService implements Service {
                         addRoles(this.user);
                         onAuthenticatedCallback();
                     }).catch(() => {
-                        this.user = fakeUser();
+                        this.user = this.fakeUser();
                         addRoles(this.user);
                         onAuthenticatedCallback();
                     })
@@ -110,17 +125,82 @@ export class AuthService implements Service {
             })
     };
 
-    public isAuthenticated = () => this.keycloak != null && this.keycloak.authenticated;
+    public getClientSettings(): UserManagerSettings {
+        const configOptions: any = only(KC_CONFIG_OPTIONS, this.config.authOptions());
 
-    public doLogin = () => this.keycloak.login;
+        return {
+            authority: configOptions.url,
+            client_id: configOptions.clientId,
+            redirect_uri: configOptions.redirectUri,
+            response_type: "code",
+            scope: "openid profile api1",
+            filterProtocolClaims: true,
+            loadUserInfo: true
+        };
+    }
 
-    public doLogout = () =>  {
-        this.keycloak.logout({
-            redirectUri: window.location.href
-        });
+    public fakeUser: (() => AuthenticatedUser) = () => {
+        return {
+            displayName: "User",
+            fullName: "User",
+            roles: [],
+            username: "User"
+        };
+    };
+
+    public oidcInfoToUser(user: User): AuthenticatedUser {
+        // @ts-ignore
+        return {
+            displayName: user.profile.given_name != undefined ? user.profile.given_name : "User",
+            fullName: user.profile.preferred_username != undefined ? user.profile.preferred_username : "User",
+            username: user.profile.name != undefined ? user.profile.name : "User"
+        };
+    }
+
+    public oidcAddRoles(user: User): void {
+
+    }
+
+    public isAuthenticated(): boolean {
+        return (this.isKeycloakAuthenticated() || this.isOidcAuthenticated())
+    }
+
+    public isKeycloakAuthenticated = () => (this.keycloak != null && this.keycloak.authenticated);
+
+    private isOidcAuthenticated(): boolean {
+        return this.userManager != null && this.oidcUser != null && !this.oidcUser.expired;
+    }
+
+    public doLogin = () => {
+        if (this.config.authType() === "keycloakjs") {
+            this.keycloak.login();
+        } else if (this.config.authType() === "oidc") {
+            this.userManager.signinRedirect()
+                .catch(reason => {
+                console.log(reason)
+            });
+        }
+    }
+
+    public doLogout = () => {
+        if (this.config.authType() === "keycloakjs") {
+            this.keycloak.logout({
+                redirectUri: window.location.href
+            });
+        } else if (this.config.authType() === "oidc") {
+            this.userManager.signoutRedirect(
+                {
+                   post_logout_redirect_uri: window.location.href
+                }
+            );
+        }
     }
 
     public getToken = () => this.keycloak.token;
+
+    public getOidcToken = () => {
+        return this.oidcUser.id_token;
+    }
 
     public isAuthenticationEnabled(): boolean {
         return this.enabled;
@@ -167,6 +247,17 @@ export class AuthService implements Service {
         if (this.config.authType() === "keycloakjs") {
             this.enabled = true;
             this.authenticateUsingKeycloak(render);
+        } else if (this.config.authType() === "oidc") {
+            this.enabled = true;
+            let url = new URL(window.location.href);
+            if (url.searchParams.get('state')) {
+                this.userManager.signinRedirectCallback().then(user => {
+                    this.oidcUser = user;
+                    render();
+                })
+            } else {
+                this.authenticateUsingOidc(render);
+            }
         } else {
             this.enabled = false;
             render();
@@ -175,7 +266,7 @@ export class AuthService implements Service {
 
     public getAuthInterceptor(): (config: AxiosRequestConfig) => Promise<any> {
         const self: AuthService = this;
-        const interceptor = (config: AxiosRequestConfig) => {
+        return (config: AxiosRequestConfig) => {
             if (self.config.authType() === "keycloakjs") {
                 return self.updateKeycloakToken(() => {
                     config.headers.Authorization = `Bearer ${this.getToken()}`;
@@ -191,11 +282,13 @@ export class AuthService implements Service {
                     this.logger.info("[AuthService] Failed to acquire token: ", error);
                     return Promise.reject(error);
                 });
+            } else if (self.config.authType() === "oidc") {
+                config.headers.Authorization = `Bearer ${this.getOidcToken()}`;
+                return Promise.resolve(config);
             } else {
                 return Promise.resolve(config);
             }
         };
-        return interceptor;
     }
 
     // @ts-ignore

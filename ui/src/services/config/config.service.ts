@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, KeycloakJsAuthConfig} from './config.type';
+import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig} from './config.type';
 import {Service} from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -152,7 +152,7 @@ export class ConfigService implements Service {
 
     public authOptions(): any {
         if (this.config.auth) {
-            const auth: KeycloakJsAuthConfig = this.config.auth as KeycloakJsAuthConfig;
+            const auth: OidcJsAuthConfig = this.config.auth as OidcJsAuthConfig;
             return auth.options;
         }
         return {};

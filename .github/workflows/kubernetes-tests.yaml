@@ -35,6 +35,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
@@ -86,6 +87,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Build api-model
         run: |

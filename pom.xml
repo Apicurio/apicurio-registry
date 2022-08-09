@@ -186,7 +186,7 @@
         <apicurio-data-models.version>1.1.26</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>18.2</graphql.version>
+        <graphql.version>19.0</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
@@ -217,7 +217,7 @@
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.10.1</version.compiler.plugin>
-        <version.deploy.plugin>2.8.2</version.deploy.plugin>
+        <version.deploy.plugin>3.0.0</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
@@ -241,7 +241,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.16.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>18.0.2</keycloak-admin-client.version>
+        <keycloak-admin-client.version>19.0.1</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.0</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.33.2</wiremock-jre8.version>

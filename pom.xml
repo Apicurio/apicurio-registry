@@ -218,7 +218,7 @@
 
         <!-- Plugin Versions -->
         <version.compiler.plugin>3.10.1</version.compiler.plugin>
-        <version.deploy.plugin>2.8.2</version.deploy.plugin>
+        <version.deploy.plugin>3.0.0</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
         <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>

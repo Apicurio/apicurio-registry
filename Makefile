@@ -275,7 +275,7 @@ multiarch-registry-images: mem-multiarch-images sql-multiarch-images kafkasql-mu
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
 pr-check:
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	./scripts/clean-postgres.sh
 	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Pmultitenancy -Psql -am -pl integration-tests/testsuite \
@@ -284,9 +284,9 @@ pr-check:
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
 build-project:
 # run unit tests for app module
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.yarn -Pprod -Psql -Pmultitenancy -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -Pmultitenancy -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 # build everything without running tests in order to be able to build container images
-	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.yarn -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
+	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
 .PHONY: build-integration-tests-common ## Builds integration-tests-common
 build-integration-tests-common:

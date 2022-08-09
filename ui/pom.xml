@@ -53,24 +53,23 @@
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <executions>
-                    <!-- Install Node and Yarn -->
+                    <!-- Install Node -->
                     <execution>
-                        <id>install node and yarn</id>
+                        <id>install node</id>
                         <phase>initialize</phase>
                         <goals>
-                            <goal>install-node-and-yarn</goal>
+                            <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
                             <nodeVersion>v${node.version}</nodeVersion>
-                            <yarnVersion>v${yarn.version}</yarnVersion>
                         </configuration>
                     </execution>
-                    <!-- Install npm/yarn dependencies -->
+                    <!-- Install npm dependencies -->
                     <execution>
-                        <id>yarn install</id>
+                        <id>npm install</id>
                         <phase>compile</phase>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
                             <arguments>install</arguments>
@@ -79,14 +78,13 @@
                     </execution>
                     <!-- Build the app -->
                     <execution>
-                        <id>yarn build</id>
+                        <id>npm build</id>
                         <phase>compile</phase>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>build</arguments>
-                            <yarnInheritsProxyConfigFromMaven>false</yarnInheritsProxyConfigFromMaven>
+                            <arguments>run build</arguments>
                         </configuration>
                     </execution>
                 </executions>
@@ -129,9 +127,6 @@
                     <name>proxy-server</name>
                 </property>
             </activation>
-            <properties>
-                <yarn-install-args>--network-concurrency=30 --child-concurrency=1 --network-timeout=100000</yarn-install-args>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -167,7 +162,7 @@
                                 <id>set https proxy</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set https-proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
@@ -177,7 +172,7 @@
                                 <id>set http proxy</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set proxy http://${proxy-user}:${proxy-password}@${proxy-server}:${proxy-port}</arguments>
@@ -187,7 +182,7 @@
                                 <id>set maxconn</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set maxsockets 30</arguments>
@@ -212,10 +207,10 @@
                         <artifactId>frontend-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>yarn set registry</id>
+                                <id>npm set registry</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set registry ${custom-registry}</arguments>
@@ -240,10 +235,10 @@
                         <artifactId>frontend-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>yarn set cafile</id>
+                                <id>npm set cafile</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set cafile ${custom-cafile}</arguments>
@@ -263,10 +258,10 @@
                         <artifactId>frontend-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>yarn set no-strict ssl</id>
+                                <id>npm set no-strict ssl</id>
                                 <phase>generate-sources</phase>
                                 <goals>
-                                    <goal>yarn</goal>
+                                    <goal>npm</goal>
                                 </goals>
                                 <configuration>
                                     <arguments>config set strict-ssl false</arguments>
@@ -280,7 +275,6 @@
         <profile>
             <id>verbose</id>
             <properties>
-                <yarn-verbose>--verbose</yarn-verbose>
                 <npm-verbose>--loglevel=silly</npm-verbose>
             </properties>
         </profile>

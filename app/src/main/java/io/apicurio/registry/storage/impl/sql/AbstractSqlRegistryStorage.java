@@ -699,7 +699,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 handle.createUpdate(sqli)
                         .bind(0, tenantContext.tenantId())
                         .bind(1, contentId)
-                        .bind(2, reference.getGroupId())
+                        .bind(2, normalizeGroupId(reference.getGroupId()))
                         .bind(3, reference.getArtifactId())
                         .bind(4, reference.getVersion())
                         .bind(5, reference.getName())
@@ -2916,6 +2916,40 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(2, artifactId)
                     .mapTo(Integer.class)
                     .one() > 0;
+        });
+    }
+
+    /**
+     * @see RegistryStorage#getContentIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectContentIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    /**
+     * @see RegistryStorage#getGlobalIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectGlobalIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .mapTo(Long.class)
+                    .list();
         });
     }
 

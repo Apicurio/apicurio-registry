@@ -87,18 +87,23 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
     @AfterEach
     void cleanArtifacts() throws Exception {
         logger.info("Removing all artifacts");
-        ArtifactSearchResults artifacts = registryClient.searchArtifacts(null, null, null, null, null, null, null, null, null);
-        for (SearchedArtifact artifact : artifacts.getArtifacts()) {
-            try {
-                registryClient.deleteArtifact(artifact.getGroupId(), artifact.getId());
-            } catch (ArtifactNotFoundException e) {
-                //because of async storage artifact may be already deleted but listed anyway
-                logger.info(e.getMessage());
-            } catch (Exception e) {
-                logger.error("", e);
+        // Retrying to delete artifacts can solve the problem with bad order caused by artifacts references
+        // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning artifacts after IT
+        TestUtils.retry(() -> {
+            ArtifactSearchResults artifacts = registryClient.searchArtifacts(null, null, null, null, null, null, null, null, null);
+            for (SearchedArtifact artifact : artifacts.getArtifacts()) {
+                try {
+                    registryClient.deleteArtifact(artifact.getGroupId(), artifact.getId());
+                    registryClient.deleteArtifactsInGroup(null);
+                } catch (ArtifactNotFoundException e) {
+                    //because of async storage artifact may be already deleted but listed anyway
+                    logger.info(e.getMessage());
+                } catch (Exception e) {
+                    logger.error("", e);
+                }
             }
-        }
-        ensureClusterSync(client -> assertTrue(client.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount() == 0));
+            ensureClusterSync(client -> assertTrue(client.searchArtifacts(null, null, null, null, null, null, null, null, null).getCount() == 0));
+        }, "CleanArtifacts", 5);
     }
 
     protected ArtifactMetaData createArtifact(String groupId, String artifactId, ArtifactType artifactType, InputStream artifact) throws Exception {

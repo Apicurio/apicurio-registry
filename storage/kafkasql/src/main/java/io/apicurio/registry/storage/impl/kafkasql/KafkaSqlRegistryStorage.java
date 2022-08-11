@@ -1237,6 +1237,19 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.isArtifactExists(groupId, artifactId);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getContentIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return sqlStore.getContentIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
     protected void importEntity(Entity entity) throws RegistryStorageException {
         switch (entity.getEntityType()) {
             case ArtifactRule:

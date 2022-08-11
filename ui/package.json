@@ -80,6 +80,9 @@
     "tty-browserify": "0.0.1",
     "yaml": "2.1.1"
   },
+  "overrides": {
+    "colorette": "2.0.19"
+  },
   "resolutions": {
     "redoc/**/colorette": "2.0.19"
   }

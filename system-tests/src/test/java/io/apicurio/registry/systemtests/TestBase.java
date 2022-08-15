@@ -81,7 +81,7 @@ public abstract class TestBase {
         }
 
         if (persistenceKind.equals(PersistenceKind.SQL)) {
-            // Deploy PostreSQL with/without Keycloak
+            // Deploy PostgreSQL with/without Keycloak
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
             registry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, useKeycloak);

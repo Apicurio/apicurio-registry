@@ -5,6 +5,8 @@ import {MinusCircleIcon, PlusCircleIcon} from "@patternfly/react-icons";
 export type ArtifactProperty = {
     name: string;
     value: string | undefined;
+    nameValidated: 'success' | 'warning' | 'error' | 'default';
+    valueValidated: 'success' | 'warning' | 'error' | 'default';
 }
 
 /**
@@ -17,157 +19,33 @@ export type PropertiesFormGroupProps = {
 
 
 export function propertiesToList(properties: { [key: string]: string|undefined }): ArtifactProperty[] {
-    let rval: ArtifactProperty[] = Object.keys(properties).sort().map(key => {
+    const rval: ArtifactProperty[] = Object.keys(properties).map(key => {
         return {
             name: key,
-            value: properties[key]
+            value: properties[key],
+            nameValidated: "default",
+            valueValidated: "default"
         };
     });
     return rval;
 }
 
 export function listToProperties(properties: ArtifactProperty[]): { [key: string]: string|undefined } {
-    let rval: { [key: string]: string|undefined } = {};
+    const rval: { [key: string]: string|undefined } = {};
     properties.forEach(property => {
         rval[property.name] = property.value;
     });
     return rval;
 }
 
-
-/**
-         private renderExistingArtifactPropertiesInForm = () => {
-                const rows = Object.keys(this.state.metaData.properties).map((k: string, i: number) => {
-                    return <React.Fragment key={k}>
-                        <FormGroup isRequired={true} fieldId={"form-properties-key" + k} label={i == 0 ? "Key" : ""}>
-                            <TextInput
-                                type="text"
-                                placeholder="Enter key"
-                                id={"form-properties-key" + k}
-                                name={"form-properties-key" + k}
-                                value={k}
-                                onChange={newVal => this.updateArtifactPropertyKey(k, newVal)}
-                            />
-                        </FormGroup>
-                        <FormGroup fieldId={"form-properties-value" + k} label={i == 0 ? "Value" : ""}>
-                            <div className="prop-value-group">
-                                <TextInput
-                                    type="text"
-                                    id={"form-properties-value" + k}
-                                    placeholder="Enter value"
-                                    name={"form-properties-value" + k}
-                                    value={this.state.metaData.properties[k]}
-                                    onChange={(newVal) => this.updateArtifactPropertyValue(k, newVal)}
-                                />
-                                <Button key={"remove-button-" + k} variant="link" icon={<MinusCircleIcon />} iconPosition="right" className="pf-m-plain" onClick={() => this.removeArtifactProperty(k)} />
-                            </div>
-                        </FormGroup>
-                    </React.Fragment>
-                });
-
-                return rows;
-            }
-
-        private updateArtifactPropertyFormKey(key: string) {
-            let validated: ValidatedValue = "default";
-            let errorMessage: string = "";
-            if (this.state.metaData.properties[key]) {
-                errorMessage = `Key "${key}" is already in use`;
-                validated = "error";
-            } else {
-                errorMessage = "";
-            }
-
-            const propertyValueErrorData = this.getPropertyValueErrorInfo(this.state.formState.newArtifactPropertyValue.value, key);
-
-            this.setMultiState({
-                ...this.state,
-                formState: {
-                    ...this.state.formState,
-                    hasErrors: errorMessage != "",
-                    newPropertyKey: {
-                        ...this.state.formState.newPropertyKey,
-                        errorMessage: errorMessage,
-                        value: key,
-                        validated,
-                    },
-                    newArtifactPropertyValue: {
-                        value: this.state.formState.newArtifactPropertyValue.value,
-                        errorMessage: propertyValueErrorData.errorMessage,
-                        validated: propertyValueErrorData.validated
-                    }
-                }
-            })
-        }
-
-        private updateArtifactPropertyFormValue(value: string = "") {
-            const errorData = this.getPropertyValueErrorInfo(value, this.state.formState.newPropertyKey.value);
-
-            this.setMultiState({
-                ...this.state,
-                formState: {
-                    ...this.state.formState,
-                    hasErrors: errorData.errorMessage != "",
-                    newArtifactPropertyValue: {
-                        ...this.state.formState.newArtifactPropertyValue,
-                        value,
-                        errorMessage: errorData.errorMessage,
-                        validated: errorData.validated,
-                    }
-                }
-            })
-        }
-
-        private updateArtifactPropertyKey(key: string, value: string) {
-            const metadata: EditableMetaData = { ...this.state.metaData };
-            metadata.properties[key] = value;
-            this.setSingleState("metaData", metadata);
-        }
-
-        private updateArtifactPropertyValue(key: string, value: string) {
-            const metadata: EditableMetaData = { ...this.state.metaData };
-            metadata.properties[key] = value;
-            this.setSingleState("metaData", metadata);
-        }
-
-        private removeArtifactProperty(key: string) {
-            const metadata = Object.assign({}, this.state.metaData);
-            delete metadata.properties[key];
-            this.setSingleState("metaData", metadata);
-        }
-
-        private addArtifactProperty(key: string, value: string) {
-            const metadata = Object.assign({}, this.state.metaData);
-            metadata.properties[key] = value;
-            this.setMultiState({
-                ...this.state,
-                metaData: metadata,
-                formState: initialFormState,
-            })
-        }
-
-        private getPropertyValueErrorInfo(value: string, key: string): { errorMessage: string, validated: ValidatedValue } {
-            if (value === "" && key !== "") {
-                return {
-                    errorMessage: `Key "${key}" must have a corresponding value`,
-                    validated: "error"
-                }
-            }
-            return {
-                errorMessage: "",
-                validated: "default"
-            }
-        }
- */
-
-
-
 export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = ({properties, onChange}: PropertiesFormGroupProps) => {
 
     const addArtifactProperty = (): void => {
         const newProps: ArtifactProperty[] = [...properties, {
             name: "",
-            value: ""
+            value: "",
+            nameValidated: "default",
+            valueValidated: "default"
         }];
         onChange(newProps);
     };
@@ -184,18 +62,17 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
             </GridItem>
             {
                 properties.map((property, idx) => (
-                    <React.Fragment>
+                    <React.Fragment key={idx}>
                         <FormGroup
-                            fieldId="form-properties-key"
-                            validated={"default"}
-                            helperTextInvalid={""}
+                            fieldId={`form-properties-key-${idx}`}
+                            isRequired={true}
                             label={idx === 0 ? "Key" : ""}>
                             <TextInput
                                 type="text"
                                 placeholder="Enter key"
-                                id="form-properties-key"
-                                name="form-properties-key"
-                                validated={"default"}
+                                id={`form-properties-key-${idx}`}
+                                name={`form-properties-key-${idx}`}
+                                validated={property.nameValidated}
                                 value={property.name}
                                 onChange={(newVal) => {
                                     property.name = newVal;
@@ -204,17 +81,17 @@ export const PropertiesFormGroup: FunctionComponent<PropertiesFormGroupProps> = 
                             />
                         </FormGroup>
                         <FormGroup
-                            fieldId="form-properties-value"
+                            fieldId={`form-properties-value-${idx}`}
                             label={idx === 0 ? "Value" : ""}
-                            validated={"default"}
+                            validated={property.valueValidated}
                             helperTextInvalid={""}>
                             <div className="prop-value-group">
                                 <TextInput
                                     type="text"
-                                    id="form-properties-value"
+                                    id={`form-properties-value-${idx}`}
                                     placeholder="Enter value"
-                                    name="form-properties-value"
-                                    validated={"default"}
+                                    name={`form-properties-value-${idx}`}
+                                    validated={property.valueValidated}
                                     value={property.value}
                                     onChange={(newVal) => {
                                         property.value = newVal;

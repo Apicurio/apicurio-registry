@@ -161,7 +161,7 @@ export class RuleList extends PureComponent<RuleListProps, RuleListState> {
             classes.push("validity-rule");
         }
         if (!this.isRuleEnabled(ruleType)) {
-            classes.push("disabled");
+            classes.push("disabled-state-text");
         }
         return classes.join(' ');
     }

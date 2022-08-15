@@ -44,7 +44,7 @@ public class ApicurioRegistryApiClient {
 
     public boolean isServiceAvailable() {
         // Get request URI
-        URI uri = HttpClientUtils.buildURI("http://%s:%d/", host, port);
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis", host, port);
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
@@ -254,6 +254,10 @@ public class ApicurioRegistryApiClient {
     }
 
     public boolean checkUnauthorized() {
+        return checkUnauthorized(false);
+    }
+
+    public boolean checkUnauthorized(boolean setToken) {
         // Get request URI
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
 
@@ -264,8 +268,11 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .GET();
 
-        // Set header with fake token
-        requestBuilder.header("Authorization", "Bearer thisShouldNotWork");
+        // If we want to set fake token
+        if (setToken) {
+            // Set header with fake token
+            requestBuilder.header("Authorization", "Bearer thisShouldNotWork");
+        }
 
         // Build request
         HttpRequest request = requestBuilder.build();

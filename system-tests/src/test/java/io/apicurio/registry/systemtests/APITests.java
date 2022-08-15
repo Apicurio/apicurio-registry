@@ -76,7 +76,7 @@ public class APITests {
         if (useToken) {
             // Check unauthorized API call
             LOGGER.info("Checking unauthorized API call...");
-            Assertions.assertTrue(client.checkUnauthorized());
+            Assertions.assertTrue(client.checkUnauthorized(true));
         }
     }
 }

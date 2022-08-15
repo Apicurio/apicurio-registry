@@ -24,9 +24,11 @@
 
 .configuration-property .property-name .value {
     margin-left: 8px;
+    font-weight: normal;
 }
 
 .configuration-property .actions {
+    padding-left: 24px;
 }
 
 .configuration-property .actions .action {

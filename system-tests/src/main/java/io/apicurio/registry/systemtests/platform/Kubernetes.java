@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Config;
@@ -581,4 +582,23 @@ public final class Kubernetes {
                 .size();
         return namespaceOperatorGroupsCount > 0;
     }
+
+    public static boolean isDeploymentReady(String namespace, String name) {
+        Deployment deployment = Kubernetes.getDeployment(namespace, name);
+
+        if (deployment == null || deployment.getStatus() == null) {
+            return false;
+        }
+
+        DeploymentStatus status = deployment.getStatus();
+
+        return status
+                .getConditions()
+                .stream()
+                .filter(condition -> condition.getType().equals("Available"))
+                .map(condition -> condition.getStatus().equals("True"))
+                .findFirst()
+                .orElse(false);
+    }
+
 }

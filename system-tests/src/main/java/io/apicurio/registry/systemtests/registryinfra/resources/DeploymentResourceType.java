@@ -48,20 +48,7 @@ public class DeploymentResourceType implements ResourceType<Deployment> {
 
     @Override
     public boolean isReady(Deployment resource) {
-        Deployment deployment = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
-
-        if (deployment == null || deployment.getStatus() == null) {
-            return false;
-        }
-
-        return deployment
-                .getStatus()
-                .getConditions()
-                .stream()
-                .filter(condition -> condition.getType().equals("Available"))
-                .map(condition -> condition.getStatus().equals("True"))
-                .findFirst()
-                .orElse(false);
+        return Kubernetes.isDeploymentReady(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
     }
 
     @Override

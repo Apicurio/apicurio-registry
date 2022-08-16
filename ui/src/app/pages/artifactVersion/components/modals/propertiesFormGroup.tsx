@@ -19,7 +19,7 @@ export type PropertiesFormGroupProps = {
 
 
 export function propertiesToList(properties: { [key: string]: string|undefined }): ArtifactProperty[] {
-    const rval: ArtifactProperty[] = Object.keys(properties).map(key => {
+    const rval: ArtifactProperty[] = Object.keys(properties).filter((key) => key !== undefined).map(key => {
         return {
             name: key,
             value: properties[key],
@@ -33,7 +33,9 @@ export function propertiesToList(properties: { [key: string]: string|undefined }
 export function listToProperties(properties: ArtifactProperty[]): { [key: string]: string|undefined } {
     const rval: { [key: string]: string|undefined } = {};
     properties.forEach(property => {
-        rval[property.name] = property.value;
+        if (property.name) {
+            rval[property.name] = property.value;
+        }
     });
     return rval;
 }

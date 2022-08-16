@@ -46,43 +46,43 @@ public abstract class Tests extends TestBase {
 
     @Test
     public void testRegistrySqlNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.SQL, null, false, true);
+        runTest(testContext, PersistenceKind.SQL, null, false, true, true);
     }
 
     @Test
     public void testRegistrySqlKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.SQL, null, true, true);
+        runTest(testContext, PersistenceKind.SQL, null, true, true, true);
     }
 
     /* TESTS - KafkaSQL */
 
     @Test
     public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlNoAuthKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlTLSNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlTLSKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false, true, true);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true, true, true);
     }
 }

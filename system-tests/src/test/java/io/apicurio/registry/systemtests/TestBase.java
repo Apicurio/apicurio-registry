@@ -152,11 +152,22 @@ public abstract class TestBase {
             LOGGER.error("Unrecognized PersistenceKind: {}.", persistenceKind);
         }
 
-        if (registry != null && testAPI) {
-            // Run API tests
-            APITests.run(registry, "registry-admin", "changeme", useKeycloak);
+        if (registry != null && (testAPI || testAuth)) {
+            String username = "registry-admin";
+            String password = "changeme";
 
             // TODO: Add more users to check API
+
+            if (testAPI) {
+                // Run API tests
+                APITests.run(registry, username, password, useKeycloak);
+            }
+
+            if (testAuth) {
+                // Run auth tests
+                LOGGER.info("Running auth tests...");
+                AuthTests.testAnonymousReadAccess(registry, username, password, useKeycloak);
+            }
         }
     }
 }

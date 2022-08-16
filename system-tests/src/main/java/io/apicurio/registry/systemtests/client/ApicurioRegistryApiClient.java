@@ -43,6 +43,9 @@ public class ApicurioRegistryApiClient {
     }
 
     public boolean isServiceAvailable() {
+        // Log information about current action
+        LOGGER.info("Checking if API is available...");
+
         // Get request URI
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis", host, port);
 
@@ -70,6 +73,8 @@ public class ApicurioRegistryApiClient {
 
             return false;
         }
+
+        LOGGER.info("Response: code={}", response.statusCode());
 
         return true;
     }
@@ -99,10 +104,19 @@ public class ApicurioRegistryApiClient {
             return false;
         }
 
+        LOGGER.info("API is ready.");
+
         return true;
     }
 
     public boolean createArtifact(String groupId, String id, ArtifactType type, String content) {
+        return createArtifact(groupId, id, type, content, HttpStatus.SC_OK);
+    }
+
+    public boolean createArtifact(String groupId, String id, ArtifactType type, String content, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Creating artifact: groupId={}, id={}, type={}.", groupId, id, type);
+
         // Get request URI
         URI uri = HttpClientUtils.buildURI(
                 "http://%s:%d/apis/registry/v2/groups/%s/artifacts", host, port, groupId
@@ -131,19 +145,24 @@ public class ApicurioRegistryApiClient {
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_OK) {
+        if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
             return false;
         }
 
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
         return true;
     }
 
-    public String readArtifactContent(String group, String id) {
+    public String readArtifactContent(String groupId, String id) {
+        // Log information about current action
+        LOGGER.info("Reading artifact content: groupId={}, id={}.", groupId, id);
+
         // Get request URI
         URI uri = HttpClientUtils.buildURI(
-                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, groupId, id
         );
 
         // Get request builder
@@ -171,13 +190,22 @@ public class ApicurioRegistryApiClient {
             return null;
         }
 
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
         return response.body();
     }
 
     public boolean deleteArtifact(String group, String id) {
+        return deleteArtifact(group, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean deleteArtifact(String groupId, String id, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Deleting artifact: groupId={}, id={}.", groupId, id);
+
         // Get request URL
         URI uri = HttpClientUtils.buildURI(
-                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, group, id
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, groupId, id
         );
 
         // Get request builder
@@ -199,11 +227,13 @@ public class ApicurioRegistryApiClient {
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_NO_CONTENT) {
+        if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
             return false;
         }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
         return true;
     }
@@ -213,6 +243,9 @@ public class ApicurioRegistryApiClient {
     }
 
     public ArtifactList listArtifacts(int limit) {
+        // Log information about current action
+        LOGGER.info("Listing all artifacts.");
+
         // Get request URI
         URI uri = HttpClientUtils.buildURI(
                 "http://%s:%d/apis/registry/v2/search/artifacts?limit=%d",
@@ -246,6 +279,8 @@ public class ApicurioRegistryApiClient {
             return null;
         }
 
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
         try {
             return MAPPER.readValue(response.body(), ArtifactList.class);
         } catch (JsonProcessingException e) {
@@ -258,6 +293,9 @@ public class ApicurioRegistryApiClient {
     }
 
     public boolean checkUnauthorized(boolean setToken) {
+        // Log information about current action
+        LOGGER.info("Trying unauthorized access with{} token...", setToken ? "" : "out");
+
         // Get request URI
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
 
@@ -286,6 +324,8 @@ public class ApicurioRegistryApiClient {
 
             return false;
         }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
         return true;
     }

@@ -4,7 +4,3 @@
 .rule .rule-icon {
     margin-right: 5px;
 }
-
-.rule.disabled .pf-c-data-list__item-content {
-    color: #aaa;
-}

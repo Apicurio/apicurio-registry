@@ -26,11 +26,11 @@ import {
 } from "../../../../components";
 import {
     Button,
-    Card, CardBody,
+    Card, CardBody, CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
-    DescriptionListTerm,
+    DescriptionListTerm, Divider,
     Label,
     Split,
     SplitItem, Truncate
@@ -77,17 +77,16 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
             <div className="artifact-tab-content">
                 <div className="artifact-basics">
                     <Card>
-                        <CardBody>
+                        <CardTitle>
                             <div className="title-and-type">
                                 <Split>
                                     <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                                    <SplitItem className="title" isFilled={true}>Version details</SplitItem>
+                                    <SplitItem className="title" isFilled={true}>Version metadata</SplitItem>
                                     <SplitItem className="actions">
                                         <IfAuth isDeveloper={true}>
                                             <IfFeature feature="readOnly" isNot={true}>
                                                 <Button id="edit-action"
                                                         data-testid="artifact-btn-edit"
-                                                        title="Edit artifact version metadata"
                                                         onClick={this.props.onEditMetaData}
                                                         variant="link"><PencilAltIcon />{' '}Edit</Button>
                                             </IfFeature>
@@ -95,6 +94,9 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                     </SplitItem>
                                 </Split>
                             </div>
+                        </CardTitle>
+                        <Divider />
+                        <CardBody>
                             <DescriptionList className="metaData" isCompact={true}>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Name</DescriptionListTerm>
@@ -166,8 +168,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                 </div>
                 <div className="artifact-rules">
                     <Card>
-                        <CardBody>
+                        <CardTitle>
                             <div className="rules-label">Content rules</div>
+                        </CardTitle>
+                        <Divider />
+                        <CardBody>
                             <RuleList rules={this.props.rules}
                                       onEnableRule={this.props.onEnableRule}
                                       onDisableRule={this.props.onDisableRule}

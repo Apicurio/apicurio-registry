@@ -67,8 +67,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({property
 
     const renderBooleanProp = (): React.ReactElement => {
         return (
-            <Flex className="configuration-property boolean-property">
-                <FlexItem>
+            <Flex className="configuration-property boolean-property" flexWrap={{default: "nowrap"}}>
+                <FlexItem grow={{default: "grow"}}>
                     <div className="property-name">
                         <span className="name">{property.label}</span>
                         <span className="sep">:</span>
@@ -88,8 +88,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({property
 
     const renderStringProp = (type: 'text' | 'number'): React.ReactElement => {
         return (
-            <Flex className="configuration-property string-property">
-                <FlexItem>
+            <Flex className="configuration-property string-property" flexWrap={{default: "nowrap"}}>
+                <FlexItem grow={{default: "grow"}}>
                     <div className="property-name">
                         <span className="name">{property.label}</span>
                     </div>

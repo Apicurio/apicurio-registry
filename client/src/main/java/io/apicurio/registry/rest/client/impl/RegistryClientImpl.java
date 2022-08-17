@@ -55,6 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.io.StringBufferInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -231,17 +232,15 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
         if (artifactSHA != null) {
-            headers.put(Headers.ARTIFACT_SHA, artifactSHA);
+            headers.put(Headers.HASH_ALGO, "SHA256");
+            headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+        }
+        if (fromURL != null) {
+            data = new StringBufferInputStream(" { \"content\" : \"" + fromURL + "\"");
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
-        }
-        if (ifExists != null) {
-            queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
-        }
-        if (fromURL != null) {
-            queryParams.put(Parameters.FROM_URL, Collections.singletonList(fromURL));
         }
 
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
@@ -260,7 +259,11 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
         }
         if (artifactSHA != null) {
-            headers.put(Headers.ARTIFACT_SHA, artifactSHA);
+            headers.put(Headers.HASH_ALGO, "SHA256");
+            headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+        }
+        if (fromURL != null) {
+            data = new StringBufferInputStream(" { \"content\" : \"" + fromURL + "\"");
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -268,9 +271,6 @@ public class RegistryClientImpl implements RegistryClient {
         }
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
-        }
-        if (fromURL != null) {
-            queryParams.put(Parameters.FROM_URL, Collections.singletonList(fromURL));
         }
 
         final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();

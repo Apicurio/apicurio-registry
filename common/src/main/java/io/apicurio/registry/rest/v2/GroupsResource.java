@@ -430,8 +430,8 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      @QueryParam("fromURL") String fromURL,
-      @HeaderParam("X-Registry-ArtifactSHA") String xRegistryArtifactSHA,
+      @HeaderParam("X-Registry-Content-Hash") String xRegistryContentHash,
+      @HeaderParam("X-Registry-Hash-Algorithm") String xRegistryHashAlgorithm,
       ContentCreateRequest data);
 
   /**
@@ -501,8 +501,8 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
-      @QueryParam("fromURL") String fromURL,
-      @HeaderParam("X-Registry-ArtifactSHA") String xRegistryArtifactSHA, InputStream data);
+      @HeaderParam("X-Registry-Content-Hash") String xRegistryContentHash,
+      @HeaderParam("X-Registry-Hash-Algorithm") String xRegistryHashAlgorithm, InputStream data);
 
   /**
    * Deletes all of the artifacts that exist in a given group.

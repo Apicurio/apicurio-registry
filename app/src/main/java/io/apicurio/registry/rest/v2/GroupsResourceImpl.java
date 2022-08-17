@@ -85,6 +85,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -607,8 +611,8 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
-                                           String fromURL, String xRegistryArtifactSHA, InputStream data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, fromURL, xRegistryArtifactSHA, data, Collections.emptyList());
+                                           String xRegistryContentHash, String xRegistryHashAlgorithm, InputStream data) {
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, data, Collections.emptyList());
     }
 
     /**
@@ -621,8 +625,63 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
-                                           String fromURL, String xRegistryArtifactSHA, ContentCreateRequest data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, fromURL, xRegistryArtifactSHA, IoUtil.toStream(data.getContent()), data.getReferences());
+                                           String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
+        InputStream content = null;
+        try {
+            URL url = new URL(data.getContent());
+            content = fetchContentFromURL(url.toURI());
+        } catch (MalformedURLException | URISyntaxException e) {
+            content = IoUtil.toStream(data.getContent());
+        }
+
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+    }
+
+    public enum RegistryHashAlgorithm {
+        SHA256,
+        MD5
+    }
+
+    /**
+     * Return an InputStream for the resource to be downloaded
+     * @param url
+     */
+    private InputStream fetchContentFromURL(URI url) {
+        Client client = null;
+        try {
+            client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
+        } catch (KeyManagementException kme) {
+            throw new RuntimeException(kme);
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new RuntimeException(nsae);
+        }
+
+        // 1. Registry issues HTTP HEAD request to the target URL.
+        List<Object> contentLengthHeaders = client
+                .target(url)
+                .request()
+                .head()
+                .getHeaders()
+                .get("Content-Length");
+
+        if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
+            throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
+        }
+
+        // 2. According to HTTP specification, target server must return Content-Length header.
+        int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
+
+        // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
+        if (contentLength > restConfig.getDownloadMaxSize()) {
+            throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
+        }
+
+        // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
+        return new BufferedInputStream(client
+                .target(url)
+                .request()
+                .get()
+                .readEntity(InputStream.class), contentLength);
     }
 
     /**
@@ -637,8 +696,8 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param xRegistryDescriptionEncoded
      * @param xRegistryName
      * @param xRegistryNameEncoded
-     * @param fromURL
-     * @param xRegistryArtifactSHA
+     * @param xRegistryContentHash
+     * @param xRegistryHashAlgorithm
      * @param data
      * @param references
      */
@@ -646,7 +705,7 @@ public class GroupsResourceImpl implements GroupsResource {
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                     String xRegistryName, String xRegistryNameEncoded,
-                                                    String fromURL, String xRegistryArtifactSHA,
+                                                    String xRegistryContentHash, String xRegistryHashAlgorithm,
                                                     InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);
@@ -663,55 +722,26 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // TODO do something with the optional user-provided Version
 
-        if (fromURL != null) {
-            Client client = null;
-            try {
-                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
-            } catch (KeyManagementException kme) {
-                throw new RuntimeException(kme);
-            } catch (NoSuchAlgorithmException nsae) {
-                throw new RuntimeException(nsae);
-            }
-
-            // 1. Registry issues HTTP HEAD request to the target URL.
-            List<Object> contentLengthHeaders = client
-                    .target(fromURL)
-                    .request()
-                    .head()
-                    .getHeaders()
-                    .get("Content-Length");
-
-            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-                throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
-            }
-
-            // 2. According to HTTP specification, target server must return Content-Length header.
-            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
-
-            // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
-            if (contentLength > restConfig.getDownloadMaxSize()) {
-                throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-            }
-
-            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
-            data = new BufferedInputStream(client
-                    .target(fromURL)
-                    .request()
-                    .get()
-                    .readEntity(InputStream.class), contentLength);
-        }
-
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
 
         // Mitigation for MITM attacks, verify that the artifact is the expected one
-        if (xRegistryArtifactSHA != null) {
-            String calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
+        if (xRegistryContentHash != null) {
+            String calculatedSha = null;
+            RegistryHashAlgorithm algorithm = (xRegistryHashAlgorithm == null) ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
+            switch (algorithm) {
+                case MD5:
+                    calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                    break;
+                case SHA256:
+                    calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                    break;
+            }
 
-            if (!calculatedSha.equals(xRegistryArtifactSHA)) {
-                throw new BadRequestException("Provided Artifact SHA doesn't match with the content");
+            if (!calculatedSha.equals(xRegistryContentHash.trim())) {
+                throw new BadRequestException("Provided Artifact Hash doesn't match with the content");
             }
         }
 
@@ -726,9 +756,7 @@ public class GroupsResourceImpl implements GroupsResource {
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
-            if (ContentTypeUtil.isApplicationYaml(ct)) {
-                content = ContentTypeUtil.yamlToJson(content);
-            }
+            content = ContentTypeUtil.yamlToJson(content);
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
 

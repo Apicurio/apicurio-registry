@@ -72,15 +72,7 @@ export interface EditableMetaData {
 export class GroupsService extends BaseService {
 
     public createArtifact(data: CreateArtifactData): Promise<ArtifactMetaData> {
-        // TODO: verify functionality and shape it better
-        let queryParams: any = {}
-        if (data.fromURL) {
-            queryParams = {
-                fromURL: data.fromURL
-            };
-        }
-
-        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId }, queryParams);
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts", { groupId: data.groupId });
         const headers: any = {};
         if (data.id) {
             headers["X-Registry-ArtifactId"] = data.id;
@@ -89,10 +81,16 @@ export class GroupsService extends BaseService {
             headers["X-Registry-ArtifactType"] = data.type;
         }
         if (data.sha) {
-            headers["X-Registry-ArtifactSHA"] = data.sha;
+            headers["X-Registry-Hash-Algorithm"] = "SHA256";
+            headers["X-Registry-Content-Hash"] = data.sha;
         }
         
-        headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
+        if (data.fromURL) {
+            headers["Content-Type"] = "application/create.extended+json"
+            data.content = `{ \"content\": \"${data.fromURL}\" }`;
+        } else {
+            headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
+        }
         
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }

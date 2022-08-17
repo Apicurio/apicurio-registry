@@ -2102,11 +2102,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create Artifact from URL should support `HEAD`
         given()
             .when()
-                .contentType(CT_JSON)
+                .contentType(CT_JSON_EXTENDED)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/Empty")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
-                .queryParam("fromURL", "http://localhost:8081/health/group")
+                .body("{ \"content\" : \"http://localhost:8081/health/group\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400)
@@ -2115,16 +2115,30 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create Artifact from URL should check the SHA
         given()
             .when()
-                .contentType(CT_JSON)
+                .contentType(CT_JSON_EXTENDED)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi2")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
-                .header("X-Registry-ArtifactSHA", "123")
-                .queryParam("fromURL", "http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .header("X-Registry-Content-Hash", "123")
+                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(400)
-                .body("message", containsString("SHA doesn't match"));
+                .body("message", containsString("Hash doesn't match"));
+
+        // Create Artifact from URL should fail if the algorithm is unsupported
+        given()
+                .when()
+                .contentType(CT_JSON_EXTENDED)
+                .pathParam("groupId", GROUP)
+                .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi2")
+                .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
+                .header("X-Registry-Hash-Algorithm", "ASH652")
+                .header("X-Registry-Content-Hash", "123")
+                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
+                .post("/registry/v2/groups/{groupId}/artifacts")
+            .then()
+                .statusCode(500);
 
         // Calculate the SHA on the fly to avoid mismatches on update
         String content = given()
@@ -2136,12 +2150,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create Artifact from URL should eventually succeed
         given()
             .when()
-                .contentType(CT_JSON)
+                .contentType(CT_JSON_EXTENDED)
                 .pathParam("groupId", GROUP)
                 .header("X-Registry-ArtifactId", "testCreateArtifactFromURL/OpenApi3")
                 .header("X-Registry-ArtifactType", ArtifactType.JSON.name())
-                .header("X-Registry-ArtifactSHA", artifactSHA)
-                .queryParam("fromURL", "http://localhost:8081/api-specifications/registry/v2/openapi.json")
+                .header("X-Registry-Content-Hash", artifactSHA)
+                .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
                 .statusCode(200);

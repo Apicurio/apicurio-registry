@@ -1091,6 +1091,10 @@
                     <id>jitpack.io</id>
                     <url>https://jitpack.io</url>
                 </repository>
+                <repository>
+                    <id>jsweet-release</id>
+                    <url>https://repository.jsweet.org/artifactory/libs-release-local</url>
+                </repository>
             </repositories>
         </profile>
     </profiles>

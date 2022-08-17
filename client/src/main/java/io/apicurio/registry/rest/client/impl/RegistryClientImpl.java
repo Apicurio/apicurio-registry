@@ -46,6 +46,7 @@ import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
@@ -236,7 +237,8 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_HASH, artifactSHA);
         }
         if (fromURL != null) {
-            data = new StringBufferInputStream(" { \"content\" : \"" + fromURL + "\"");
+            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+            data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -263,6 +265,7 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.ARTIFACT_HASH, artifactSHA);
         }
         if (fromURL != null) {
+            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
             data = new StringBufferInputStream(" { \"content\" : \"" + fromURL + "\"");
         }
         final Map<String, List<String>> queryParams = new HashMap<>();

@@ -756,10 +756,10 @@ public class GroupsResourceImpl implements GroupsResource {
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
-            if (ContentTypeUtil.isApplicationYaml(ct) || ContentTypeUtil.isParsableYaml(content)) {
+            if (ContentTypeUtil.isApplicationYaml(ct) ||
+                    (ContentTypeUtil.isApplicationCreateExtended(ct) && ContentTypeUtil.isParsableYaml(content))) {
                 content = ContentTypeUtil.yamlToJson(content);
             }
-            content = ContentTypeUtil.yamlToJson(content);
 
             ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(content, xRegistryArtifactType, ct);
 

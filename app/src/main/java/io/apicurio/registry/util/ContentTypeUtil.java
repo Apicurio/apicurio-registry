@@ -63,6 +63,11 @@ public final class ContentTypeUtil {
      */
     public static boolean isParsableYaml(ContentHandle yaml) {
         try {
+            String content = yaml.content().trim();
+            // it's Json or Xml
+            if (content.startsWith("{") || content.startsWith("<")) {
+                return false;
+            }
             JsonNode root = yamlMapper.readTree(yaml.stream());
             return root != null;
         } catch (Throwable t) {

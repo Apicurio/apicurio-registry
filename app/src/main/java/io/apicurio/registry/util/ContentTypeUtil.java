@@ -82,7 +82,7 @@ public final class ContentTypeUtil {
                 return false;
             }
             JsonNode root = yamlMapper.readTree(yaml.stream());
-            return root != null;
+            return root != null && root.elements().hasNext();
         } catch (Throwable t) {
             return false;
         }

@@ -264,9 +264,10 @@ public class RegistryClientImpl implements RegistryClient {
             headers.put(Headers.HASH_ALGO, "SHA256");
             headers.put(Headers.ARTIFACT_HASH, artifactSHA);
         }
+        String content = IoUtil.toString(data);
         if (fromURL != null) {
             headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
-            data = new StringBufferInputStream(" { \"content\" : \"" + fromURL + "\"");
+            content = " { \"content\" : \"" + fromURL + "\" }";
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -277,7 +278,7 @@ public class RegistryClientImpl implements RegistryClient {
         }
 
         final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(IoUtil.toString(data));
+        contentCreateRequest.setContent(content);
         contentCreateRequest.setReferences(artifactReferences);
 
         try {

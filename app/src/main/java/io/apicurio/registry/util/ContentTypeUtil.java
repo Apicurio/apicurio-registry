@@ -57,6 +57,19 @@ public final class ContentTypeUtil {
         return ct.contains(CT_APPLICATION_YAML);
     }
 
+    /**
+     * Returns true if the content can be parsed as yaml.
+     *
+     */
+    public static boolean isParsableYaml(ContentHandle yaml) {
+        try {
+            JsonNode root = yamlMapper.readTree(yaml.stream());
+            return root != null;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public static ContentHandle yamlToJson(ContentHandle yaml) {
         try {
             JsonNode root = yamlMapper.readTree(yaml.stream());

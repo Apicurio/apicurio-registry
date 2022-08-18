@@ -1,0 +1,17 @@
+name: Trivy Image Scan - Implementation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  # TODO: calling reusable workflows works across organizations, decide where to store them and re-use in fleet-manager
+  call-image-scan-registry:
+    uses: ./.github/workflows/image-scan-reusable.yaml
+    with:
+      image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+  call-image-scan-tenant-manager:
+    uses: ./.github/workflows/image-scan-reusable.yaml
+    with:
+      image: quay.io/apicurio/apicurio-registry-tenant-manager-api:latest-snapshot

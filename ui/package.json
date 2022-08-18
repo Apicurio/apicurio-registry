@@ -11,7 +11,6 @@
     "postinstall": "node .fix_yaml.js",
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
-    "build-mtui": "webpack --config webpack.prod.js --env=target:mtui",
     "start": "webpack serve --hot --color --progress --config webpack.dev.js"
   },
   "devDependencies": {

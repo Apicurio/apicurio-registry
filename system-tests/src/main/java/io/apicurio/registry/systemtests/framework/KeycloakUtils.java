@@ -60,7 +60,7 @@ public class KeycloakUtils {
         );
 
         // Wait for Keycloak server to be ready
-        ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
+        Assertions.assertTrue(ResourceUtils.waitStatefulSetReady(namespace, "keycloak"));
 
         // Create Keycloak HTTP Service and wait for its readiness
         manager.createSharedResource( true, ServiceResourceType.getDefaultKeycloakHttp(namespace));

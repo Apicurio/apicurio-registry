@@ -9,6 +9,7 @@ import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
 import org.apache.hc.core5.http.HttpStatus;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
@@ -47,7 +48,7 @@ public class KeycloakUtils {
         );
 
         // Wait for Keycloak server to be ready
-        ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
+        Assertions.assertTrue(ResourceUtils.waitStatefulSetReady(namespace, "keycloak"));
 
         // Create Keycloak HTTP Service and wait for its readiness
         manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));

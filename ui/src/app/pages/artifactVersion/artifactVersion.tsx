@@ -25,18 +25,18 @@ import {
     PageSectionVariants,
     Tab,
     Tabs
-} from '@patternfly/react-core';
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {ContentTabContent, DocumentationTabContent, InfoTabContent} from "./components/tabs";
-import {ArtifactVersionPageHeader} from "./components/pageheader";
-import {UploadVersionForm} from "./components/uploadForm";
-import {Link} from "react-router-dom";
-import {EditMetaDataModal} from "./components/modals";
-import {InvalidContentModal} from "../../components/modals";
-import {IfFeature} from "../../components";
-import {ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion} from "../../../models";
-import {CreateVersionData, EditableMetaData, Services} from "../../../services";
-import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
+} from "@patternfly/react-core";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { ContentTabContent, DocumentationTabContent, InfoTabContent } from "./components/tabs";
+import { ArtifactVersionPageHeader } from "./components/pageheader";
+import { UploadVersionForm } from "./components/uploadForm";
+import { Link } from "react-router-dom";
+import { EditMetaDataModal } from "./components/modals";
+import { InvalidContentModal } from "../../components/modals";
+import { IfFeature } from "../../components";
+import { ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion } from "../../../models";
+import { CreateVersionData, EditableMetaData, Services } from "../../../services";
+import { PleaseWaitModal } from "../../components/modals/pleaseWaitModal";
 
 
 /**

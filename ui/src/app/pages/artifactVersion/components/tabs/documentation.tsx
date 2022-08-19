@@ -17,8 +17,8 @@
 
 import React from "react";
 import "./documentation.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {RedocStandalone} from "redoc";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { RedocStandalone } from "redoc";
 import { ErrorTabContent } from "./errorTab";
 import { Services } from "src/services";
 
@@ -82,7 +82,7 @@ export class DocumentationTabContent extends PureComponent<DocumentationTabConte
                 error: ex
             };
         }
-        
+
     }
 
     private isError() : boolean {

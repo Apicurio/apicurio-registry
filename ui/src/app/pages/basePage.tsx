@@ -16,11 +16,11 @@
  */
 
 import React from "react";
-import {ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState} from "../components";
-import {Services} from "../../services";
-import {Flex, FlexItem, PageSection, PageSectionVariants, Spinner} from "@patternfly/react-core";
-import {AccessErrorPage} from "../components/errorPage/accessErrorPage";
-import {RateLimitErrorPage} from "../components/errorPage/rateLimitErrorPage";
+import { ErrorPage, PageError, PureComponent, PureComponentProps, PureComponentState } from "../components";
+import { Services } from "../../services";
+import { Flex, FlexItem, PageSection, PageSectionVariants, Spinner } from "@patternfly/react-core";
+import { AccessErrorPage } from "../components/errorPage/accessErrorPage";
+import { RateLimitErrorPage } from "../components/errorPage/rateLimitErrorPage";
 
 // TODO this should be configurable via standard UI config settings
 const MAX_RETRIES: number = 1;

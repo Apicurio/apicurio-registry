@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import "./ruleList.css"
+import React from "react";
+import "./ruleList.css";
 import {
     Button,
     DataList,
@@ -24,15 +24,15 @@ import {
     DataListCell,
     DataListItem,
     DataListItemCells,
-    DataListItemRow, EmptyStateBody
-} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {CodeBranchIcon, OkIcon, TrashIcon} from "@patternfly/react-icons";
-import {CompatibilityDropdown} from "./compatibility-dropdown";
-import {ValidityDropdown} from "./validity-dropdown";
-import {IfFeature} from "../common/ifFeature";
-import {IfAuth} from "../common";
-import {Rule} from "../../../models";
+    DataListItemRow
+} from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
+import { CompatibilityDropdown } from "./compatibility-dropdown";
+import { ValidityDropdown } from "./validity-dropdown";
+import { IfFeature } from "../common/ifFeature";
+import { IfAuth } from "../common";
+import { Rule } from "../../../models";
 
 
 export interface RuleListProps extends PureComponentProps {

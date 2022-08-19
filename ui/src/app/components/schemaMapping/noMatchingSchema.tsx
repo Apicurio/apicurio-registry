@@ -18,17 +18,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Split,
-  SplitItem,
-  Alert,
-  AlertVariant,
-  DescriptionListDescription,
-  Popover,
-  ClipboardCopy,
-  Button,
-  ButtonVariant,
-  Stack,
-  StackItem,
+    Alert,
+    AlertVariant,
+    ClipboardCopy,
+    DescriptionListDescription,
+    Popover,
+    Split,
+    SplitItem,
+    Stack,
+    StackItem,
 } from "@patternfly/react-core";
 import ArrowRightIcon from "@patternfly/react-icons/dist/js/icons/arrow-icon";
 import HelpIcon from "@patternfly/react-icons/dist/js/icons/help-icon";

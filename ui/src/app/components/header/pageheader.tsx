@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 import React from "react";
-import {Tab, Tabs, TabTitleText} from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText } from "@patternfly/react-core";
 import "./pageheader.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {IfAuth, IfFeature} from "../common";
-import {Services} from "../../../services";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { IfAuth } from "../common";
+import { Services } from "../../../services";
 
 
 /**

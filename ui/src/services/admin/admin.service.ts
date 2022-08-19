@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import {BaseService} from "../baseService";
-import {DownloadRef, RoleMapping, Rule} from "../../models";
-import {ConfigurationProperty} from "../../models/configurationProperty.model";
-import {UpdateConfigurationProperty} from "../../models/updateConfigurationProperty.model";
+import { BaseService } from "../baseService";
+import { DownloadRef, RoleMapping, Rule } from "../../models";
+import { ConfigurationProperty } from "../../models/configurationProperty.model";
+import { UpdateConfigurationProperty } from "../../models/updateConfigurationProperty.model";
 
 /**
  * The Admin service.  Used to get global/settings information from the back-end, like global

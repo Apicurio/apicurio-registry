@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {SchemaMapping, SchemaMappingProps} from "./schemaMapping";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { SchemaMapping, SchemaMappingProps } from "./schemaMapping";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 export interface FederatedSchemaMappingProps extends SchemaMappingProps, FederatedComponentProps {
 }

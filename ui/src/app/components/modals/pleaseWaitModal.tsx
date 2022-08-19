@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./pleaseWaitModal.css";
-import {Modal, Spinner} from "@patternfly/react-core";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
+import { Modal, Spinner } from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
 
 
 /**

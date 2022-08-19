@@ -19,19 +19,19 @@ import React from "react";
 import "./settings.css";
 import {
     Card,
-    CardBody, CardFooter,
+    CardBody,
     CardTitle,
     PageSection,
     PageSectionVariants,
     SearchInput,
     TextContent
-} from '@patternfly/react-core';
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {Services} from "../../../services";
-import {IfNotEmpty, RootPageHeader} from "../../components";
-import {ConfigurationProperty} from "../../../models/configurationProperty.model";
-import {ConfigProperty} from "./components";
-import {If} from "../../components/common/if";
+} from "@patternfly/react-core";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { Services } from "../../../services";
+import { IfNotEmpty, RootPageHeader } from "../../components";
+import { ConfigurationProperty } from "../../../models/configurationProperty.model";
+import { ConfigProperty } from "./components";
+import { If } from "../../components/common/if";
 
 
 interface PropertyGroup {

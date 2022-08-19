@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./uploadForm.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import {
     debounce,
     Dropdown,
@@ -29,9 +29,9 @@ import {
     FormHelperText,
     TextInput
 } from "@patternfly/react-core";
-import {CaretDownIcon} from "@patternfly/react-icons";
-import {ArtifactTypes} from "../../../../../models";
-import {CreateArtifactData} from "../../../../../services";
+import { CaretDownIcon } from "@patternfly/react-icons";
+import { ArtifactTypes } from "../../../../../models";
+import { CreateArtifactData } from "../../../../../services";
 
 
 const artifactTypes: any[] = [

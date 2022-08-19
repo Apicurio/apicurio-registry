@@ -16,9 +16,8 @@
  */
 import React from "react";
 import "./configProperty.css";
-import {Button, InputGroup, TextInput} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../components";
-import {CheckIcon, TimesIcon} from "@patternfly/react-icons";
+import { InputGroup, TextInput } from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../components";
 
 /**
  * Properties

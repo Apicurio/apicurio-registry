@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-export * from "./grantAccessModal"
-export * from "./selectPrincipalAccount"
+export * from "./grantAccessModal";
+export * from "./selectPrincipalAccount";

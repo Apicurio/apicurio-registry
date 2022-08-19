@@ -17,8 +17,8 @@
 
 import React from "react";
 import "./rules.css";
-import {RulesPage, RulesPageProps} from "./rules";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { RulesPage, RulesPageProps } from "./rules";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 
 /**

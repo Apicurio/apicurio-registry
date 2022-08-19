@@ -33,14 +33,14 @@ import {
     ToolbarFilter,
     ToolbarGroup,
     ToolbarItem
-} from '@patternfly/react-core';
+} from "@patternfly/react-core";
 import { SearchIcon } from "@patternfly/react-icons";
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {RoleMapping} from "../../../models";
-import {Principal, Services} from "../../../services";
-import {GrantAccessModal, RoleList, RoleMappingsEmptyState} from "./components";
-import {PleaseWaitModal, RootPageHeader} from "../../components";
-import {If} from "../../components/common/if";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { RoleMapping } from "../../../models";
+import { Principal, Services } from "../../../services";
+import { GrantAccessModal, RoleList, RoleMappingsEmptyState } from "./components";
+import { PleaseWaitModal, RootPageHeader } from "../../components";
+import { If } from "../../components/common/if";
 
 
 /**

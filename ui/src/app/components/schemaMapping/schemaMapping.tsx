@@ -16,16 +16,12 @@
  */
 
 import React from "react";
-import { Spinner, Bullseye } from "@patternfly/react-core";
+import { Bullseye, Spinner } from "@patternfly/react-core";
 import { SchemaCard, SchemaCardProps } from "./schemaCard";
 import { Services } from "src/services";
 import { SchemaEmptyState } from "./emptyState";
 import { PermissionDenied } from "./permissionDenied";
-import {
-  PureComponent,
-  PureComponentProps,
-  PureComponentState,
-} from "../baseComponent";
+import { PureComponent, PureComponentProps, PureComponentState, } from "../baseComponent";
 
 /**
  * Properties

@@ -16,11 +16,11 @@
  */
 
 
-import {LoggerService} from "./logger";
-import {ConfigService} from "./config";
+import { LoggerService } from "./logger";
+import { ConfigService } from "./config";
 import axios, { AxiosRequestConfig } from "axios";
-import {AuthService} from "./auth";
-import {ContentTypes} from "../models";
+import { AuthService } from "./auth";
+import { ContentTypes } from "../models";
 
 const AXIOS = axios.create();
 
@@ -36,11 +36,8 @@ export interface Service {
  */
 export abstract class BaseService implements Service {
 
-    // @ts-ignore
     protected logger: LoggerService = null;
-    // @ts-ignore
     protected config: ConfigService = null;
-    // @ts-ignore
     protected auth: AuthService = null;
 
     public init(): void {
@@ -91,7 +88,7 @@ export abstract class BaseService implements Service {
      * @param headers
      */
     protected options(headers: {[header: string]: string}): AxiosRequestConfig {
-        const options: AxiosRequestConfig = {headers};
+        const options: AxiosRequestConfig = { headers };
         return options;
     }
 
@@ -130,7 +127,8 @@ export abstract class BaseService implements Service {
      * @param progressCallback
      */
     protected httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void,
-                          progressCallback?: (progressEvent: any) => void): Promise<void> {
+        progressCallback?: (progressEvent: any) => void): Promise<void>
+    {
         this.logger.info("[BaseService] Making a POST request to: ", url);
 
         if (!options) {
@@ -252,7 +250,6 @@ export abstract class BaseService implements Service {
         }
 
         const config: AxiosRequestConfig = this.axiosConfig("delete", url, options);
-        // @ts-ignore
         return AXIOS.request(config)
             .then(() => {
                 return successCallback ? successCallback() : null;
@@ -277,14 +274,15 @@ export abstract class BaseService implements Service {
         if (typeof data === "string") {
             data = new Blob([data]);
         }
-        return {...{
-                data,
-                method,
-                url,
-                validateStatus: (status) => {
-                    return status >= 200 && status < 300;
-                }
-            }, ...options};
+        const c: any = {
+            data,
+            method,
+            url,
+            validateStatus: (status) => {
+                return status >= 200 && status < 300;
+            }
+        };
+        return { ...c, ...options };
     }
 
     private unwrapErrorData(error: any): any {
@@ -293,24 +291,24 @@ export abstract class BaseService implements Service {
                 message: error.message,
                 ...error.response.data,
                 status: error.response.status
-            }
+            };
         } else if (error && error.response) {
             return {
                 message: error.message,
                 status: error.response.status
-            }
+            };
         } else if (error) {
             console.error("Unknown error detected: ", error);
             return {
                 message: error.message,
                 status: 500
-            }
+            };
         } else {
             console.error("Unknown error detected: ", error);
             return {
                 message: "Unknown error",
                 status: 500
-            }
+            };
         }
     }
 }

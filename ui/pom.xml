@@ -76,6 +76,17 @@
                             <npmRegistryURL>${npmRegistryURL2}</npmRegistryURL>
                         </configuration>
                     </execution>
+                    <!-- Lint the app -->
+                    <execution>
+                        <id>npm run lint</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run lint</arguments>
+                        </configuration>
+                    </execution>
                     <!-- Build the app -->
                     <execution>
                         <id>npm build</id>

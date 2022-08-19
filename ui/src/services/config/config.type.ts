@@ -101,9 +101,8 @@ export interface OidcJsAuthConfig extends AuthConfig {
 }
 
 // Used when `type=none`
-export interface NoneAuthConfig extends AuthConfig {
+export type NoneAuthConfig = AuthConfig;
 
-}
 
 // Used when `type=gettoken`
 export interface GetTokenAuthConfig extends AuthConfig {

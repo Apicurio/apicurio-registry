@@ -3,23 +3,5 @@
   "env": {
     "browser": true,
     "es2021": true
-  },
-  "rules": {
-    "quotes": ["error", "double"],
-    "semi": ["error", "always"],
-    "indent": ["error", 4, {
-      "FunctionDeclaration": {
-        "parameters": "first"
-      },
-      "SwitchCase": 1
-    }],
-    "key-spacing": ["error", {
-      "afterColon": true
-    }
-    ],
-    "object-curly-spacing": ["error", "always"],
-    "linebreak-style": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-inferrable-types": "off"
   }
 }

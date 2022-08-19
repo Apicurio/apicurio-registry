@@ -16,15 +16,12 @@
  */
 import React from "react";
 import "./roleList.css";
-import {
-    Button,
-    Modal
-} from '@patternfly/react-core';
-import { TableComposable, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Button, Modal } from "@patternfly/react-core";
+import { TableComposable, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import { RoleMapping, RoleTypes } from "../../../../../models";
-import { RoleMappingsEmptyState } from '../empty';
-import {Services} from "../../../../../services";
+import { RoleMappingsEmptyState } from "../empty";
+import { Services } from "../../../../../services";
 
 /**
  * Properties

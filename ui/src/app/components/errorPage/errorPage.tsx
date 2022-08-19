@@ -15,24 +15,26 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React from "react";
 import "./errorPage.css";
 import {
-    Button, DropdownItem,
-    EmptyState, EmptyStateBody,
-    EmptyStateIcon, EmptyStateSecondaryActions,
+    Button,
+    EmptyState,
+    EmptyStateBody,
+    EmptyStateIcon,
+    EmptyStateSecondaryActions,
     EmptyStateVariant,
     PageSection,
     PageSectionVariants,
     Title
-} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {PageErrorType} from "../../pages/basePage";
-import {ExclamationTriangleIcon} from "@patternfly/react-icons";
+} from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { PageErrorType } from "../../pages/basePage";
+import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-tomorrow";
-import {Services} from "../../../services";
+import { Services } from "../../../services";
 
 
 export interface PageError {

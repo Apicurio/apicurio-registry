@@ -1,6 +1,6 @@
-import React, {FunctionComponent} from "react";
-import {Button, FormGroup, GridItem, TextInput} from "@patternfly/react-core";
-import {MinusCircleIcon, PlusCircleIcon} from "@patternfly/react-icons";
+import React, { FunctionComponent } from "react";
+import { Button, FormGroup, GridItem, TextInput } from "@patternfly/react-core";
+import { MinusCircleIcon, PlusCircleIcon } from "@patternfly/react-icons";
 
 export type ArtifactProperty = {
     name: string;

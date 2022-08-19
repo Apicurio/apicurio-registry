@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {ConfigType, Services} from "../../services";
-import {PureComponent} from "../components";
+import { ConfigType, Services } from "../../services";
+import { PureComponent } from "../components";
 
 /**
  * Component properties shared by all federated pages.

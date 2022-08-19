@@ -17,11 +17,7 @@
 
 import React from "react";
 import { Button, ButtonVariant } from "@patternfly/react-core";
-import {
-  PureComponent,
-  PureComponentProps,
-  PureComponentState,
-} from "../baseComponent";
+import { PureComponent, PureComponentProps, PureComponentState, } from "../baseComponent";
 import { Services } from "../../../services";
 
 /**

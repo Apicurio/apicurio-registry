@@ -18,7 +18,8 @@
 import React from "react";
 import "./info.css";
 import {
-    ArtifactTypeIcon, IfAuth,
+    ArtifactTypeIcon,
+    IfAuth,
     PureComponent,
     PureComponentProps,
     PureComponentState,
@@ -26,14 +27,18 @@ import {
 } from "../../../../components";
 import {
     Button,
-    Card, CardBody, CardTitle,
+    Card,
+    CardBody,
+    CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
-    DescriptionListTerm, Divider,
+    DescriptionListTerm,
+    Divider,
     Label,
     Split,
-    SplitItem, Truncate
+    SplitItem,
+    Truncate
 } from "@patternfly/react-core";
 import { DownloadIcon, PencilAltIcon } from "@patternfly/react-icons";
 import Moment from "react-moment";

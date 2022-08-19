@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import "./header.css"
-import {Brand, PageHeader, PageHeaderTools, PageHeaderToolsGroup, PageHeaderToolsItem} from '@patternfly/react-core';
+import React from "react";
+import "./header.css";
+import { Brand, PageHeader, PageHeaderTools, PageHeaderToolsGroup, PageHeaderToolsItem } from "@patternfly/react-core";
 import brandImg from "./apicurio_logo_darkbkg_350px.png";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {IfAuth} from "../common/ifAuth";
-import {AvatarDropdown} from "./avatarDropdown";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { IfAuth } from "../common/ifAuth";
+import { AvatarDropdown } from "./avatarDropdown";
 
 
 // tslint:disable-next-line:no-empty-interface

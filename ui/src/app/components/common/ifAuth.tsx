@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 import React from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {Services} from "../../../services";
-import {AuthService} from "../../../services/auth";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { Services } from "../../../services";
+import { AuthService } from "../../../services/auth";
 
 /**
  * Properties

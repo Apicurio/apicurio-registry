@@ -16,7 +16,7 @@
  */
 import React from "react";
 import "./artifactList.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 
 /**
  * Properties

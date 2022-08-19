@@ -16,10 +16,10 @@
  */
 import React from "react";
 import "./editMetaDataModal.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput} from "@patternfly/react-core";
-import {EditableMetaData} from "../../../../../services";
-import {ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList} from "./propertiesFormGroup";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput } from "@patternfly/react-core";
+import { EditableMetaData } from "../../../../../services";
+import { ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList } from "./propertiesFormGroup";
 
 
 /**

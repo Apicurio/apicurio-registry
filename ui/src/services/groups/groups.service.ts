@@ -15,15 +15,8 @@
  * limitations under the License.
  */
 
-import {
-    SearchedArtifact,
-    SearchedVersion,
-    ArtifactMetaData,
-    Rule,
-    VersionMetaData,
-    ContentTypes
-} from "../../models";
-import {BaseService} from "../baseService";
+import { ArtifactMetaData, ContentTypes, Rule, SearchedArtifact, SearchedVersion, VersionMetaData } from "../../models";
+import { BaseService } from "../baseService";
 import YAML from "yaml";
 
 export interface CreateArtifactData {

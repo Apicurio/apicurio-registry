@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig} from './config.type';
-import {Service} from "../baseService";
+import { Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig } from "./config.type";
+import { Service } from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
     artifacts: {
@@ -24,10 +24,10 @@ const DEFAULT_CONFIG: ConfigType = {
     },
     auth: {
         options: {
-            clientId: 'registry-ui',
-            onLoad: 'login-required',
-            realm: 'registry',
-            url: 'http://localhost:8090/auth'
+            clientId: "registry-ui",
+            onLoad: "login-required",
+            realm: "registry",
+            url: "http://localhost:8090/auth"
         },
         type: "keycloakjs",
         rbacEnabled: true,

@@ -16,8 +16,8 @@
  */
 
 import React from "react";
-import {ArtifactRedirectPage, ArtifactRedirectPageProps} from "./artifact";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { ArtifactRedirectPage, ArtifactRedirectPageProps } from "./artifact";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 export interface FederatedArtifactRedirectPageProps extends ArtifactRedirectPageProps, FederatedComponentProps {
     groupId: string;

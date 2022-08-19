@@ -17,19 +17,11 @@
 
 import React from "react";
 import "./pageheader.css";
-import {
-    Button,
-    Flex,
-    FlexItem,
-    Text,
-    TextContent,
-    TextVariants
-} from '@patternfly/react-core';
-import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {VersionSelector} from "./version-selector";
-import {TrashIcon} from "@patternfly/react-icons";
-import {IfFeature} from "../../../../components/common/ifFeature";
-import {SearchedVersion} from "../../../../../models";
+import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
+import { IfAuth, PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { VersionSelector } from "./version-selector";
+import { IfFeature } from "../../../../components/common/ifFeature";
+import { SearchedVersion } from "../../../../../models";
 
 
 /**

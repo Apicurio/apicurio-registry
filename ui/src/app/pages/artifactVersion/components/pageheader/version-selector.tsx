@@ -17,13 +17,13 @@
 
 import React from "react";
 import "./version-selector.css";
-import {Button, ButtonVariant, Dropdown, DropdownToggle, InputGroup, TextInput} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {SearchIcon} from "@patternfly/react-icons";
+import { Button, ButtonVariant, Dropdown, DropdownToggle, InputGroup, TextInput } from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { SearchIcon } from "@patternfly/react-icons";
 import Moment from "react-moment";
-import {Link} from "react-router-dom";
-import {SearchedVersion} from "../../../../../models";
-import {Services} from "../../../../../services";
+import { Link } from "react-router-dom";
+import { SearchedVersion } from "../../../../../models";
+import { Services } from "../../../../../services";
 
 
 /**

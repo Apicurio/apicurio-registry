@@ -17,9 +17,9 @@
 
 import React from "react";
 import "./content.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {ToggleGroup, ToggleGroupItem} from "@patternfly/react-core";
-import {Services} from "../../../../../services";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
+import { Services } from "../../../../../services";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/mode-yaml";

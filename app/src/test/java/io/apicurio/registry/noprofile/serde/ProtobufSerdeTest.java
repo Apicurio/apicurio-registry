@@ -55,7 +55,9 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     private String groupId = "protobuf-serde-test";
 
     @BeforeEach
-    public void createIsolatedClient() { restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl()); }
+    public void createIsolatedClient() {
+        restClient = RegistryClientFactory.create(TestUtils.getRegistryV2ApiUrl());
+    }
 
     //FIXME
     //test not working because of getArtifactVersionMetaDataByContent does not find the schema for somereason

@@ -77,14 +77,14 @@ export class GroupsService extends BaseService {
             headers["X-Registry-Hash-Algorithm"] = "SHA256";
             headers["X-Registry-Content-Hash"] = data.sha;
         }
-        
+
         if (data.fromURL) {
-            headers["Content-Type"] = "application/create.extended+json"
-            data.content = `{ \"content\": \"${data.fromURL}\" }`;
+            headers["Content-Type"] = "application/create.extended+json";
+            data.content = `{ "content": "${data.fromURL}" }`;
         } else {
             headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
         }
-        
+
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 

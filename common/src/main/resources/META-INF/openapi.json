@@ -2175,6 +2175,28 @@
                             "$ref": "#/components/schemas/EncodedArtifactName"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Content-Hash",
+                        "description": "Specifies the SHA-256 of the artifact to be verified.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header",
+                        "required": false
+                    },
+                    {
+                        "name": "X-Registry-Hash-Algorithm",
+                        "description": "The algorithm to use when checking the content validity. (available: SHA256,MD5; default: SHA256)",
+                        "schema": {
+                            "enum": [
+                                "SHA256",
+                                "MD5"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header",
+                        "required": false
                     }
                 ],
                 "responses": {

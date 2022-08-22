@@ -121,7 +121,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         Boolean canonicalize = artifact.getCanonicalize();
         String contentType = contentType(artifact);
         InputStream data = new FileInputStream(artifact.getFile());
-        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, data, references);
+        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, data, references);
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
         return amd;

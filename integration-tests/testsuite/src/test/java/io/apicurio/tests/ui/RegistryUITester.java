@@ -89,6 +89,44 @@ public class RegistryUITester {
 
     }
 
+    public String uploadArtifactFromURL(String groupId, String artifactId, ArtifactType type, String url, String artifactSHA) throws UnsupportedEncodingException {
+
+        UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
+
+        if (groupId != null) {
+            uploadDialog.fillGroupId(groupId);
+        }
+
+        if (artifactId != null) {
+            uploadDialog.fillArtifactId(artifactId);
+        }
+
+        selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownToggle());
+        selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownItem(type));
+
+        selenium.fillInputItem(uploadDialog.getArtifactURL(), url);
+        if (artifactSHA != null) {
+            selenium.fillInputItem(uploadDialog.getArtifactSHA(), artifactSHA);
+        }
+
+        try {
+            selenium.clickOnItem(uploadDialog.getUploadButton());
+        } finally {
+            selenium.takeScreenShot();
+        }
+
+        try {
+            selenium.getDriverWait().withTimeout(Duration.ofSeconds(10)).until(
+                    ExpectedConditions.urlContains("/versions/latest"));
+            String[] slices = selenium.getDriver().getCurrentUrl().split("/");
+            String aid = slices[slices.length - 3 ];
+            return URLDecoder.decode(aid, StandardCharsets.UTF_8.name());
+        } finally {
+            selenium.takeScreenShot();
+        }
+
+    }
+
     public UploadArtifactDialog openUploadArtifactDialog() {
         var btn = artifactsListPage.getEmptyUploadArtifactOpenDialogButton();
         if (btn == null) {

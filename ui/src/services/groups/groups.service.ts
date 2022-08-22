@@ -23,7 +23,9 @@ export interface CreateArtifactData {
     groupId: string;
     id: string|null;
     type: string;
-    content: string;
+    fromURL: string|null;
+    sha: string|null;
+    content: string|null;
 }
 
 export interface CreateVersionData {
@@ -71,7 +73,18 @@ export class GroupsService extends BaseService {
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
         }
-        headers["Content-Type"] = this.contentType(data.type, data.content);
+        if (data.sha) {
+            headers["X-Registry-Hash-Algorithm"] = "SHA256";
+            headers["X-Registry-Content-Hash"] = data.sha;
+        }
+        
+        if (data.fromURL) {
+            headers["Content-Type"] = "application/create.extended+json"
+            data.content = `{ \"content\": \"${data.fromURL}\" }`;
+        } else {
+            headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
+        }
+        
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 

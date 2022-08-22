@@ -50,6 +50,9 @@ import io.quarkus.test.junit.QuarkusTest;
 public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
+    // Isolating this test in it's own groupId:
+    // io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException: An artifact with ID 'google/protobuf/timestamp.proto' in group 'default' already exists.
+    private String groupId = "protobuf-serde-test";
 
     @BeforeEach
     public void createIsolatedClient() {
@@ -126,6 +129,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
             serializer.configure(config, false);
             deserializer.configure(config, false);
 
@@ -137,7 +142,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(globalId -> {
                 if (restClient.getContentByGlobalId(globalId) != null) {
-                    ArtifactMetaData artifactMetadata = restClient.getArtifactMetaData(null, topic);
+                    ArtifactMetaData artifactMetadata = restClient.getArtifactMetaData(groupId, topic);
                     assertEquals(globalId, artifactMetadata.getGlobalId());
                     return true;
                 }
@@ -159,6 +164,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
             serializer.configure(config, false);
             deserializer.configure(config, false);
 

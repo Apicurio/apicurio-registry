@@ -61,8 +61,10 @@ export interface UploadArtifactFormState extends PureComponentState {
     id: string;
     group: string;
     type: string;
+    sha: string|null;
+    fromURL: string|null;
     typeIsExpanded: boolean;
-    content: string;
+    content: string|null;
     contentFilename: string;
     contentIsLoading: boolean;
     formValid: boolean;
@@ -158,13 +160,46 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                         data-testid="form-upload"
                         type="text"
                         filename={this.state.contentFilename}
-                        value={this.state.content}
-                        isRequired={true}
+                        value={this.state.content!}
+                        isRequired={false}
                         allowEditingUploadedText={true}
                         onChange={this.onContentChange}
                         onReadStarted={this.onFileReadStarted}
                         onReadFinished={this.onFileReadFinished}
                         isLoading={this.state.contentIsLoading}
+                        isDisabled={!!this.state.fromURL}
+                    />
+                    <span>or:</span>
+                    <TextInput
+                        className="artifact-url"
+                        isRequired={false}
+                        type="text"
+                        id="form-url"
+                        data-testid="form-url"
+                        name="form-url"
+                        aria-describedby="form-url-helper"
+                        value={this.state.fromURL ? this.state.fromURL : ""}
+                        placeholder="URL of the artifact"
+                        onChange={this.onURLChange}
+                        isDisabled={!!this.state.content}
+                    />
+                </FormGroup>
+                <FormGroup
+                    label="Artifact SHA"
+                    isRequired={false}
+                    fieldId="form-artifact-sha"
+                >
+                    <TextInput
+                        className="artifact-sha"
+                        isRequired={false}
+                        type="text"
+                        id="form-sha"
+                        data-testid="form-sha"
+                        name="form-sha"
+                        aria-describedby="form-sha-helper"
+                        value={this.state.sha ? this.state.sha : ""}
+                        placeholder="SHA256 of the artifact"
+                        onChange={this.onShaChange}
                     />
                 </FormGroup>
             </Form>
@@ -173,7 +208,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
 
     protected initializeState(): UploadArtifactFormState {
         return {
-            content: "",
+            fromURL: null,
+            sha: null,
+            content: null,
             contentFilename: "",
             contentIsLoading: false,
             debouncedOnChange: debounce(this.props.onChange, 200),
@@ -229,6 +266,20 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         });
     };
 
+    private onURLChange = (value: any): void => {
+        this.setSingleState("fromURL", value, () => {
+            this.fireOnChange();
+            this.checkFormValid();
+        });
+    };
+
+    private onShaChange = (value: any): void => {
+        this.setSingleState("sha", value, () => {
+            this.fireOnChange();
+            this.checkFormValid();
+        });
+    };
+
     private onFileReadStarted = (): void => {
         this.setSingleState("contentIsLoading", true);
     };
@@ -252,7 +303,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
     }
 
     private isFormValid(data: CreateArtifactData): boolean {
-        return !!data.content && this.isIdValid(data.id) && this.isIdValid(data.groupId);
+        return (!!data.content || !!data.fromURL) && this.isIdValid(data.id) && this.isIdValid(data.groupId);
     }
 
     private isIdValid(id: string|null): boolean {
@@ -278,7 +329,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             content: this.state.content,
             groupId: this.state.group,
             id: this.state.id,
-            type: this.state.type
+            type: this.state.type,
+            fromURL: this.state.fromURL,
+            sha: this.state.sha
         };
     }
 

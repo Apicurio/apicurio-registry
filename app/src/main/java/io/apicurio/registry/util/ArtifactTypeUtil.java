@@ -64,7 +64,7 @@ public final class ArtifactTypeUtil {
      *
      * @param content       the content
      * @param xArtifactType the artifact type
-     * @param ct            content type from request API
+     * @param contentType   content type from request API
      */
     //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
     public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {

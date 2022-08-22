@@ -168,18 +168,19 @@ public interface AdminResource {
       InputStream data);
 
   /**
-   * Gets the details of a single role mapping (by principalId).
+   * Gets the details of a single role mapping (by `principalId`).
    *
    * This operation can fail for the following reasons:
    *
-   * * No role mapping for the principalId exists (HTTP error `404`)
+   * * No role mapping for the `principalId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */
   @Path("/roleMappings/{principalId}")
   @GET
   @Produces("application/json")
-  RoleMapping getRoleMapping(@PathParam("principalId") String principalId);
+  RoleMapping getRoleMapping(@PathParam("principalId") String principalId,
+      @PathParam("principalId") String principalId);
 
   /**
    * Updates a single role mapping for one user/principal.

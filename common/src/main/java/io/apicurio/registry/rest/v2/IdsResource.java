@@ -76,7 +76,7 @@ public interface IdsResource {
   List<ArtifactReference> referencesByContentHash(@PathParam("contentHash") String contentHash);
 
   /**
-   * Returns a list containing all the artifact references using the artifact contentId.
+   * Returns a list containing all the artifact references using the artifact content ID.
    *
    * This operation may fail for one of the following reasons:
    *
@@ -88,7 +88,7 @@ public interface IdsResource {
   List<ArtifactReference> referencesByContentId(@PathParam("contentId") long contentId);
 
   /**
-   * Returns a list containing all the artifact references using the artifact global id.
+   * Returns a list containing all the artifact references using the artifact global ID.
    *
    * This operation may fail for one of the following reasons:
    *

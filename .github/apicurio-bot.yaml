@@ -8,6 +8,8 @@ triage:
     - carlesarnal
     - EricWittmann
     - jsenko
+    - andreaTP
+
   rules:
     # Dependabot
     # TODO Do not notify?
@@ -80,6 +82,8 @@ triage:
           - 'serdes'
         files:
           - '^serdes'
+      notify:
+        - carlesarnal
 
 # TODO:
 # Add negative/NOT rules

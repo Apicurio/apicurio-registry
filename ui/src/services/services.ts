@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {GroupsService} from "./groups";
-import {ConfigService} from "./config";
-import {LoggerService} from "./logger";
-import {AdminService} from "./admin";
-import {Service} from "./baseService";
-import {DownloaderService} from "./downloader";
-import {AuthService} from "./auth";
-import {UsersService} from "./users";
-import {AlertsService} from "./alerts";
+import { GroupsService } from "./groups";
+import { ConfigService } from "./config";
+import { LoggerService } from "./logger";
+import { AdminService } from "./admin";
+import { Service } from "./baseService";
+import { DownloaderService } from "./downloader";
+import { AuthService } from "./auth";
+import { UsersService } from "./users";
+import { AlertsService } from "./alerts";
 
 /**
  * Class that provides access to all of the services in the application.
@@ -89,7 +89,7 @@ export class Services {
                 if (svcToInjectInto[injectableSvcKey] !== undefined && svcToInjectInto[injectableSvcKey] === null) {
                     svcToInjectInto[injectableSvcKey] = Services.all[injectableSvcKey];
                 }
-            })
+            });
         });
         // Once that's done, init() all the services
         Object.keys(Services.all).forEach( svcToInjectIntoName => {

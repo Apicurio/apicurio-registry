@@ -16,14 +16,13 @@
  */
 
 
-import {Service} from "../baseService";
-import {ConfigService} from "../config";
+import { Service } from "../baseService";
+import { ConfigService } from "../config";
 
 /**
  * A simple logger service.
  */
 export class LoggerService implements Service {
-    // @ts-ignore
     protected config: ConfigService = null;
 
     public init(): void {

@@ -390,13 +390,13 @@ public class LoadBalanceRegistryClient implements RegistryClient {
      */
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, String version,
-            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, String contentType, InputStream data) {
-        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, contentType, data);
+            ArtifactType artifactType, IfExists ifExists, Boolean canonical, String name, String description, String contentType, String fromURL, String artifactSHA, InputStream data) {
+        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, name, description, contentType, fromURL, artifactSHA, data);
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences) {
-        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, contentType, data, artifactReferences);
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
+        return getTarget().createArtifact(groupId, artifactId, version, artifactType, ifExists, canonical, artifactName, artifactDescription, contentType, fromURL, artifactSHA, data, artifactReferences);
     }
 
     /**

@@ -28,3 +28,7 @@
 .empty-state-text {
   color: var(--pf-global--Color--200);
 }
+
+.disabled-state-text {
+  color: var(--pf-global--disabled-color--100);
+}

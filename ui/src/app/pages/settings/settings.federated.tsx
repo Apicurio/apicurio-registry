@@ -17,8 +17,8 @@
 
 import React from "react";
 import "./settings.css";
-import {SettingsPage, SettingsPageProps} from "./settings";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { SettingsPage, SettingsPageProps } from "./settings";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 
 /**

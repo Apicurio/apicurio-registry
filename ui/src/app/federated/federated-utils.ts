@@ -15,22 +15,28 @@
  * limitations under the License.
  */
 
-import {ConfigType, Services} from "../../services";
-import {PureComponent} from "../components";
+import { ConfigType, Services } from "../../services";
+import { PureComponent } from "../components";
 
 /**
  * Component properties shared by all federated pages.
  */
 export interface FederatedComponentProps {
-    config: ConfigType;
+    config: ConfigType | (() => ConfigType);
     history: any;
 }
 
 export class FederatedUtils {
 
-    static updateConfiguration(props: FederatedComponentProps): void {
-        Services.getLoggerService().info("[FederatedUtils] Updating config: %o", props.config);
-        Services.getConfigService().updateConfig(props.config);
+    public static updateConfiguration(props: FederatedComponentProps): void {
+        let c: ConfigType;
+        if (typeof props.config === "object") {
+            c = props.config as ConfigType;
+        } else {
+            c = props.config();
+        }
+        Services.getLoggerService().info("[FederatedUtils] Updating config using: %o", c);
+        Services.getConfigService().updateConfig(c);
         PureComponent.setHistory(props.history);
     }
 

@@ -16,7 +16,7 @@ This topic explains how to use the Kafka client serializer and deserializer (Ser
 You can configure the Avro serializer class with the following:
 
 * {registry} URL
-* Artifact resolver strategy 
+* Artifact resolver strategy
 * ID location
 * ID encoding
 * Avro datum provider
@@ -53,7 +53,7 @@ You can set the following configuration options:
 * `apicurio.registry.use-specific-avro-reader`: Set to `true` to use a specific type when using `DefaultAvroDatumProvider`
 
 .Avro encoding
-When using Avro to serialize data, you can use the Avro binary encoding format to ensure the data is encoded in as efficient a format as possible. Avro also supports encoding the data as JSON, which makes it easier to inspect the payload of each message, for example, for logging or debugging. 
+When using Avro to serialize data, you can use the Avro binary encoding format to ensure the data is encoded in as efficient a format as possible. Avro also supports encoding the data as JSON, which makes it easier to inspect the payload of each message, for example, for logging or debugging.
 
 You can set the Avro encoding by configuring the `apicurio.registry.avro.encoding` property with a value of `JSON` or `BINARY`. The default is `BINARY`.
 
@@ -67,15 +67,15 @@ You must configure the Avro deserializer class to match the following configurat
 
 See the serializer section for these configuration options. The property names and values are the same.
 
-[NOTE] 
+[NOTE]
 ====
 The following options are not required when configuring the deserializer:
 
-* Artifact resolver strategy 
+* Artifact resolver strategy
 * ID location
 ====
 
-The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message. 
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message.
 
 The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
 
@@ -84,7 +84,7 @@ When working with Avro messages and a schema with nested records, a new artifact
 
 .TradeKey schema with nested Exchange schema
 [source,json]
----- 
+----
 {
   "namespace": "com.kubetrade.schema.trade",
   "type": "record",
@@ -99,18 +99,18 @@ When working with Avro messages and a schema with nested records, a new artifact
       "type": "string"
     }
   ]
-} 
+}
 ----
 
 .Exchange schema
 [source,json]
----- 
+----
 {
   "namespace": "com.kubetrade.schema.common",
   "type": "enum",
   "name": "Exchange",
   "symbols" : ["GEMINI"]
-} 
+}
 ----
 
 When using these schemas with Avro SerDes, two artifacts are created in {registry}, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message using the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
@@ -119,7 +119,7 @@ When using these schemas with Avro SerDes, two artifacts are created in {registr
 [role="_additional-resources"]
 .Additional resources
 
-* For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/master/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroKafkaSerdeConfig.java[AvroKafkaSerdeConfig Java class]
-* For Java example applications, see: 
+* For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroKafkaSerdeConfig.java[AvroKafkaSerdeConfig Java class]
+* For Java example applications, see:
 ** link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]
 ** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example]

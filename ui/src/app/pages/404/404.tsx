@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import {PageComponent, PageProps, PageState} from "../basePage";
+import { PageComponent, PageProps, PageState } from "../basePage";
 import {
     Button,
     EmptyState,
@@ -27,7 +27,7 @@ import {
     PageSectionVariants,
     Title
 } from "@patternfly/react-core";
-import {ExclamationCircleIcon} from "@patternfly/react-icons";
+import { ExclamationCircleIcon } from "@patternfly/react-icons";
 
 
 /**

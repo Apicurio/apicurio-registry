@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import { Divider, Select, SelectGroup, SelectOption, SelectVariant, } from '@patternfly/react-core';
+import React from "react";
+import { Divider, Select, SelectGroup, SelectOption, SelectVariant, } from "@patternfly/react-core";
 import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
-import { Principal } from '../../../../../services/config';
-import {RoleMapping} from "../../../../../models";
+import { Principal } from "../../../../../services/config";
+import { RoleMapping } from "../../../../../models";
 
 export interface SelectPrincipalAccountProps extends PureComponentProps {
     id: string | undefined;

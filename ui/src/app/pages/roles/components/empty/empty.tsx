@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 import React from "react";
-import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title} from '@patternfly/react-core';
-import {PlusCircleIcon} from "@patternfly/react-icons";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {If} from "../../../../components/common/if";
-import {Services} from "../../../../../services";
+import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title } from "@patternfly/react-core";
+import { PlusCircleIcon } from "@patternfly/react-icons";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { If } from "../../../../components/common/if";
+import { Services } from "../../../../../services";
 
 /**
  * Properties

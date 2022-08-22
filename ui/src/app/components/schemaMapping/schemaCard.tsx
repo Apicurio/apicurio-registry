@@ -16,13 +16,7 @@
  */
 
 import React from "react";
-import {
-  Card,
-  CardTitle,
-  CardBody,
-  DescriptionList,
-  DescriptionListTerm,
-} from "@patternfly/react-core";
+import { Card, CardBody, CardTitle, DescriptionList, DescriptionListTerm, } from "@patternfly/react-core";
 import { MatchingSchemaCard } from "./matchingSchemaCard";
 import { NoMatchingSchema } from "./noMatchingSchema";
 

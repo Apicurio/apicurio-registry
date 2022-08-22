@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - 'common/src/main/resources/META-INF/openapi.json'
-    branches: [master]
+    branches: [main]
 
 jobs:
   update-openapi:
@@ -20,8 +20,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
-          git checkout master
-          git branch --set-upstream-to=origin/master
+          git checkout main
+          git branch --set-upstream-to=origin/main
           git pull
 
       - name: Set up JDK 11

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import "./avatarDropdown.css"
+import React from "react";
+import "./avatarDropdown.css";
 import avatarImg from "./avatar.png";
-import {Avatar, Button, Dropdown, DropdownItem, DropdownToggle} from '@patternfly/react-core';
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {Services} from "../../../services";
+import { Avatar, Button, Dropdown, DropdownItem, DropdownToggle } from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { Services } from "../../../services";
 
 
 // tslint:disable-next-line:no-empty-interface

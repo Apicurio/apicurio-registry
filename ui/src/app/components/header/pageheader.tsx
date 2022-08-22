@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 import React from "react";
-import {Tab, Tabs, TabTitleText} from '@patternfly/react-core';
+import { Tab, Tabs, TabTitleText } from "@patternfly/react-core";
 import "./pageheader.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {IfAuth, IfFeature} from "../common";
-import {Services} from "../../../services";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { IfAuth } from "../common";
+import { Services } from "../../../services";
 
 
 /**
@@ -48,18 +48,18 @@ export class RootPageHeader extends PureComponent<RootPageHeaderProps, RootPageH
     }
 
     public render(): React.ReactElement {
-        let tabs: any[] = [
-            <Tab eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
-            <Tab eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
+        const tabs: any[] = [
+            <Tab key={0} eventKey={0} title={<TabTitleText>Artifacts</TabTitleText>} />,
+            <Tab key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
         ];
         if (Services.getConfigService().featureRoleManagement()) {
             tabs.push(
-                <Tab eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
+                <Tab key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
             );
         }
         if (Services.getConfigService().featureSettings()) {
             tabs.push(
-                <Tab eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
+                <Tab key={3} eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
             );
         }
         return (
@@ -76,20 +76,20 @@ export class RootPageHeader extends PureComponent<RootPageHeaderProps, RootPageH
     }
 
     private handleTabClick = (event: React.MouseEvent<HTMLElement, MouseEvent>, eventKey: number | string): void => {
-        if (eventKey != this.props.tabKey) {
-            if (eventKey == 0) {
+        if (eventKey !== this.props.tabKey) {
+            if (eventKey === 0) {
                 // navigate to artifacts
                 this.navigateTo(this.linkTo("/artifacts"))();
             }
-            if (eventKey == 1) {
+            if (eventKey === 1) {
                 // navigate to global rules
                 this.navigateTo(this.linkTo("/rules"))();
             }
-            if (eventKey == 2) {
+            if (eventKey === 2) {
                 // navigate to permissions page
                 this.navigateTo(this.linkTo("/roles"))();
             }
-            if (eventKey == 3) {
+            if (eventKey === 3) {
                 // navigate to settings page
                 this.navigateTo(this.linkTo("/settings"))();
             }

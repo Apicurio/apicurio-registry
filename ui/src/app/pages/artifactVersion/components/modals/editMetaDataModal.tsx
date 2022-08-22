@@ -16,10 +16,10 @@
  */
 import React from "react";
 import "./editMetaDataModal.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput} from "@patternfly/react-core";
-import {EditableMetaData} from "../../../../../services";
-import {ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList} from "./propertiesFormGroup";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { Button, Form, FormGroup, Grid, GridItem, Modal, TextArea, TextInput } from "@patternfly/react-core";
+import { EditableMetaData } from "../../../../../services";
+import { ArtifactProperty, listToProperties, PropertiesFormGroup, propertiesToList } from "./propertiesFormGroup";
 
 
 /**
@@ -67,7 +67,6 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                     <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={this.props.onClose}>Cancel</Button>
                 ]}
             >
-                <p>Use the form below to update the Name and Description of the artifact.</p>
                 <Form>
                     <Grid hasGutter md={6}>
                         <GridItem span={12}>
@@ -127,9 +126,7 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                             </FormGroup>
                         </GridItem>
                         <PropertiesFormGroup properties={this.state.properties}
-                                             onChange={(properties) => {
-                                                 this.setSingleState("properties", properties);
-                                             }} />
+                                             onChange={this.onPropertiesChange} />
                     </Grid>
                 </Form>
             </Modal>
@@ -178,6 +175,8 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         this.setSingleState("metaData", {
             ...this.state.metaData,
             name: value
+        }, () => {
+            this.validate();
         });
     };
 
@@ -192,6 +191,8 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
                 ...this.state.metaData,
                 labels
             }
+        }, () => {
+            this.validate();
         });
     };
 
@@ -199,6 +200,39 @@ export class EditMetaDataModal extends PureComponent<EditMetaDataModalProps, Edi
         this.setSingleState("metaData", {
             ...this.state.metaData,
             description: value
+        }, () => {
+            this.validate();
+        });
+    };
+
+    private onPropertiesChange = (properties: ArtifactProperty[]): void => {
+        this.setSingleState("properties", properties, () => {
+            this.validate();
+        });
+    };
+
+    private validate = (): void => {
+        const properties: ArtifactProperty[] = [...this.state.properties];
+        let isValid: boolean = true;
+        if (properties) {
+            let propertyKeys: string[] = [];
+            properties.forEach(property => {
+                property.nameValidated = "default";
+                if ((property.name === "" || property.name === undefined) && property.value !== "") {
+                    property.nameValidated = "error";
+                    isValid = false;
+                } else if (property.name !== "" && property.name !== undefined) {
+                    if (propertyKeys.includes(property.name)) {
+                        property.nameValidated = "error";
+                        isValid = false;
+                    }
+                    propertyKeys.push(property.name);
+                }
+            });
+        }
+        this.setMultiState({
+            isValid,
+            properties
         });
     };
 

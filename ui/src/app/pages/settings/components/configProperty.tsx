@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {FunctionComponent, useState} from "react";
+import React, { FunctionComponent, useState } from "react";
 import "./configProperty.css";
-import {Button, Flex, FlexItem, Switch} from '@patternfly/react-core';
-import {ConfigurationProperty} from "../../../../models/configurationProperty.model";
-import {PropertyInput} from "./propertyInput";
-import {If} from "../../../components/common/if";
-import {CheckIcon, CloseIcon, PencilAltIcon} from "@patternfly/react-icons";
+import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
+import { ConfigurationProperty } from "../../../../models/configurationProperty.model";
+import { PropertyInput } from "./propertyInput";
+import { If } from "../../../components/common/if";
+import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 
 /**
  * Properties
@@ -67,8 +67,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({property
 
     const renderBooleanProp = (): React.ReactElement => {
         return (
-            <Flex className="configuration-property boolean-property">
-                <FlexItem>
+            <Flex className="configuration-property boolean-property" flexWrap={{default: "nowrap"}}>
+                <FlexItem grow={{default: "grow"}}>
                     <div className="property-name">
                         <span className="name">{property.label}</span>
                         <span className="sep">:</span>
@@ -88,8 +88,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({property
 
     const renderStringProp = (type: 'text' | 'number'): React.ReactElement => {
         return (
-            <Flex className="configuration-property string-property">
-                <FlexItem>
+            <Flex className="configuration-property string-property" flexWrap={{default: "nowrap"}}>
+                <FlexItem grow={{default: "grow"}}>
                     <div className="property-name">
                         <span className="name">{property.label}</span>
                     </div>

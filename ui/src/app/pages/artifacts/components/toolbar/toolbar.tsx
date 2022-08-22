@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./toolbar.css";
 import {
     Button,
@@ -23,18 +23,18 @@ import {
     DropdownItem,
     DropdownToggle,
     Form,
-    InputGroup, KebabToggle,
+    InputGroup,
+    KebabToggle,
     Pagination,
     TextInput,
     Toolbar,
     ToolbarContent,
     ToolbarItem
-} from '@patternfly/react-core';
-import {SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon} from "@patternfly/react-icons";
-import {IfAuth, IfFeature, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {OnPerPageSelect, OnSetPage} from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import {ArtifactsSearchResults, GetArtifactsCriteria, Paging, Services} from "../../../../../services";
-import {SelectPrincipalAccountProps} from "../../../roles";
+} from "@patternfly/react-core";
+import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
+import { IfAuth, IfFeature, PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
+import { ArtifactsSearchResults, Paging, Services } from "../../../../../services";
 
 export interface ArtifactsPageToolbarFilterCriteria {
     filterSelection: string;

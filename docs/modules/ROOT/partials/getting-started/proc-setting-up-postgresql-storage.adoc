@@ -17,13 +17,13 @@ This section explains how to configure storage for {registry} on OpenShift using
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
-. Change to the OpenShift project in which {registry} and your PostgreSQL Operator are installed. For example, from the *Project* drop-down, select `my-project`. 
+. Change to the OpenShift project in which {registry} and your PostgreSQL Operator are installed. For example, from the *Project* drop-down, select `my-project`.
 
-. Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators*, *PostgreSQL Operator by Dev4Ddevs.com*, and then *Create database*. 
+. Create a PostgreSQL database for your {registry} storage. For example, click *Installed Operators*, *PostgreSQL Operator by Dev4Ddevs.com*, and then *Create database*.
 
 . Click *YAML* and edit the database settings as follows:
 ** `name`: Change the value to `registry`
-** `image`: Change the value to `centos/postgresql-12-centos7` 
+** `image`: Change the value to `centos/postgresql-12-centos7`
 
 . Edit any other database settings as needed depending on your environment, for example:
 +
@@ -48,18 +48,18 @@ spec:
   databaseUserKeyEnvVar: POSTGRESQL_USER
   image: centos/postgresql-12-centos7
   size: 1
-----  
+----
 
 . Click *Create*, and wait until the database is created.
 
 ifdef::apicurio-registry[]
-. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 ifdef::rh-service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*. 
+. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 
-. Paste in the following custom resource definition, and edit the values for the database `url` and credentials to match your environment: 
+. Paste in the following custom resource definition, and edit the values for the database `url` and credentials to match your environment:
 +
 [source,yaml]
 ----
@@ -77,18 +77,18 @@ spec:
         userName: 'postgres'
         password: '<password>' # Optional
 ----
-      
+
 . Click *Create* and wait for the {registry} route to be created on OpenShift.
 
 . Click *Networking* > *Route* to access the new route for the {registry} web console. For example:
 +
 [source]
 ----
-http://example-apicurioregistry-sql.my-project.my-domain-name.com/   
+http://example-apicurioregistry-sql.my-project.my-domain-name.com/
 ----
 
 [role="_additional-resources"]
 .Additional resources
 
  * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
- * https://github.com/Apicurio/apicurio-registry-operator/blob/master/docs/minikube-quickstart.md[Apicurio Registry Operator QuickStart]
+ * https://github.com/Apicurio/apicurio-registry-operator/blob/main/docs/minikube-quickstart.md[Apicurio Registry Operator QuickStart]

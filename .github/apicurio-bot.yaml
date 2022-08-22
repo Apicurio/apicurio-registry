@@ -1,0 +1,90 @@
+---
+labels:
+  areaLabelColor: "FBCA04"
+  triageLabelColor: "D93F0B"
+triage:
+  needsTriageLabel: "triage/needs-triage"
+  defaultNotify:
+    - carlesarnal
+    - EricWittmann
+    - jsenko
+    - andreaTP
+
+  rules:
+    # Dependabot
+    # TODO Do not notify?
+    - labels:
+        - area/dependencies
+      expressions:
+        - 'title.startsWith("build(deps)")'
+
+    # Rules
+    - labels:
+        - area/rules
+      patterns:
+        anywhere:
+          - 'rules'
+    - labels:
+        - area/compatibility
+      patterns:
+        anywhere:
+          - 'compatibility'
+      notify:
+        - jsenko
+
+    # REST
+    - labels:
+        - area/rest-api
+      patterns:
+        anywhere:
+          - 'rest +(api|API)'
+        files:
+          - '^app/src/main/java/io/apicurio/registry/rest'
+    - labels:
+        - area/rest-client
+      patterns:
+        anywhere:
+          - 'rest +client'
+        files:
+          - '^client'
+      notify:
+        - carlesarnal
+
+    # Storage
+    - labels:
+        - area/storage
+      patterns:
+        anywhere:
+          - 'storage'
+          - 'persistence'
+          - 'database'
+          - '(sql|SQL)'
+          - 'kafka ?(sql|SQL)'
+        files:
+          - '^storage'
+
+    # UI
+    - labels:
+        - area/ui
+      patterns:
+        title:
+          - '(ui|UI)'
+        files:
+          - '^ui'
+      notify:
+        - EricWittmann
+
+    # SerDes
+    - labels:
+        - area/serdes
+      patterns:
+        title:
+          - 'serdes'
+        files:
+          - '^serdes'
+      notify:
+        - carlesarnal
+
+# TODO:
+# Add negative/NOT rules
+# Specify which labels are area labels, to avoid updating label colors

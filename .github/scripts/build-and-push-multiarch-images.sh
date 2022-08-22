@@ -16,7 +16,7 @@ RELEASE_VERSION=${4:-$defvalue}   # Release version (Pass the release version if
 if [[ ($RELEASE_TYPE != "release") &&  ($RELEASE_TYPE != "snapshot") &&  ($RELEASE_TYPE != "pre-release") ]]
 then
     echo "ERROR: Illegal value '${RELEASE_TYPE}' for variable 'RELEASE_TYPE'. Values can only be [release, snapshot, pre-release]"
-    exit 1	  
+    exit 1
 fi
 
 # Check if image repository is either 'docker.io' or 'quay.io'
@@ -48,13 +48,13 @@ fi
 
 case $BRANCH_NAME in
 
-  "master")
-       # if master branch, build images with tag "latest-${RELEASE_TYPE}"
+  "main")
+       # if main branch, build images with tag "latest-${RELEASE_TYPE}"
        make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} multiarch-registry-images
        ;;
 
    *)
-       # if other than master, build images with tag "${BRANCH_NAME}-${RELEASE_TYPE}"
+       # if other than main, build images with tag "${BRANCH_NAME}-${RELEASE_TYPE}"
        make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} multiarch-registry-images
-       ;; 
+       ;;
 esac

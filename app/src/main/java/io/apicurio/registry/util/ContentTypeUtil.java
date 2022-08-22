@@ -27,6 +27,7 @@ import io.apicurio.registry.content.ContentHandle;
 public final class ContentTypeUtil {
     
     public static final String CT_APPLICATION_JSON = "application/json";
+    public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
     public static final String CT_APPLICATION_YAML = "application/x-yaml";
     public static final String CT_APPLICATION_XML = "application/xml";
 
@@ -55,6 +56,36 @@ public final class ContentTypeUtil {
             return false;
         }
         return ct.contains(CT_APPLICATION_YAML);
+    }
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/create.extended+json".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationCreateExtended(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_CREATE_EXTENDED);
+    }
+
+    /**
+     * Returns true if the content can be parsed as yaml.
+     *
+     */
+    public static boolean isParsableYaml(ContentHandle yaml) {
+        try {
+            String content = yaml.content().trim();
+            // it's Json or Xml
+            if (content.startsWith("{") || content.startsWith("<")) {
+                return false;
+            }
+            JsonNode root = yamlMapper.readTree(yaml.stream());
+            return root != null && root.elements().hasNext();
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public static ContentHandle yamlToJson(ContentHandle yaml) {

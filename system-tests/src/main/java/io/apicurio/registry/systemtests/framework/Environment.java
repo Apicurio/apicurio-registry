@@ -25,7 +25,7 @@ public final class Environment {
     public static final String KAFKA_DEPLOYMENT_DEFAULT = "strimzi-cluster-operator"; // Default from catalog
     public static final String KAFKA_PACKAGE_DEFAULT = "strimzi-kafka-operator"; // Default from catalog
     public static final String REGISTRY_BUNDLE_DEFAULT =
-            "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/master/install/" +
+            "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/main/install/" +
                     "apicurio-registry-operator-1.0.0-v2.0.0.final.yaml";
     public static final String REGISTRY_PACKAGE_DEFAULT = "apicurio-registry"; // Default from catalog
     public static final String SSO_PACKAGE_DEFAULT = "keycloak-operator"; // Default from catalog

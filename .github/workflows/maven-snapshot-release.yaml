@@ -1,6 +1,6 @@
 name: Maven Snapshot Release Workflow
 on: workflow_dispatch
-  
+
 jobs:
   deploy:
     runs-on: ubuntu-18.04
@@ -16,7 +16,7 @@ jobs:
 
       - name: Set up settings.xml
         run: echo "<settings><servers><server><id>github</id><username>${{ github.repository_owner }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > /home/runner/.m2/settings.xml
-    
+
       - name: Maven Deploy
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         run: mvn deploy --batch-mode -Pprod -Psql -Pmultitenancy -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml

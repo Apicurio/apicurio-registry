@@ -16,7 +16,7 @@
  */
 
 
-import {Service} from "../baseService";
+import { Service } from "../baseService";
 
 
 function _window(): Window {
@@ -46,7 +46,7 @@ export class DownloaderService implements Service {
 
         if (this.window.chrome !== undefined) {
             // Chrome version
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             const blob: Blob = new Blob([content], { type: contentType });
             link.href = window.URL.createObjectURL(blob);
             link.download = filename;

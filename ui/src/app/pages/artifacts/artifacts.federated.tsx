@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {ArtifactsPage, ArtifactsPageProps} from "./artifacts";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { ArtifactsPage, ArtifactsPageProps } from "./artifacts";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 export interface FederatedArtifactsPageProps extends ArtifactsPageProps, FederatedComponentProps {
 }

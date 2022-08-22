@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 import javax.inject.Inject;
 import javax.servlet.ServletException;
@@ -98,9 +99,18 @@ public class ConfigJsServlet extends HttpServlet {
      * @param config
      */
     private void configureAuth(ConfigJs config) {
-        if (uiConfig.isKeycloakAuthEnabled()) {
-            config.auth.type = "keycloakjs";
-            config.auth.options = uiConfig.getKeycloakProperties();
+        if (uiConfig.isAuthenticationEnabled()) {
+            if (uiConfig.getUiAuthType().equals("keycloakjs")) {
+                config.auth.type = "keycloakjs";
+                config.auth.options = uiConfig.getKeycloakProperties();
+            } else if (uiConfig.getUiAuthType().equals("oidc")) {
+                config.auth.type = "oidc";
+                config.auth.options = new HashMap<>();
+                config.auth.options.put("clientId", uiConfig.getOidcClientId());
+                config.auth.options.put("url", uiConfig.getOidcUrl());
+                config.auth.options.put("redirectUri", uiConfig.getOidcRedirectUrl());
+            }
+
             config.auth.rbacEnabled = authConfig.isRbacEnabled();
             config.auth.obacEnabled = authConfig.isObacEnabled();
             config.features.roleManagement = authConfig.isApplicationRbacEnabled();

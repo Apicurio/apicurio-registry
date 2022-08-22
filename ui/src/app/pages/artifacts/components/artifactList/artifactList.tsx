@@ -16,11 +16,11 @@
  */
 import React from "react";
 import "./artifactList.css";
-import {Badge, DataList, DataListCell, DataListItemCells, DataListItemRow} from '@patternfly/react-core';
-import {ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {ArtifactName} from "./artifactName";
-import {ArtifactGroup} from "./artifactGroup";
-import {SearchedArtifact} from "../../../../../models";
+import { Badge, DataList, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
+import { ArtifactTypeIcon, PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { ArtifactName } from "./artifactName";
+import { ArtifactGroup } from "./artifactGroup";
+import { SearchedArtifact } from "../../../../../models";
 
 /**
  * Properties

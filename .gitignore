@@ -3,6 +3,7 @@ target/
 .settings
 .classpath
 .DS_Store
+.checkstyle
 
 # VS Code
 .vscode/
@@ -26,3 +27,4 @@ pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
+apicurio-codegen

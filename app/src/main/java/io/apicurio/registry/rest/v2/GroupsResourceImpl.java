@@ -977,7 +977,9 @@ public class GroupsResourceImpl implements GroupsResource {
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
 
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);

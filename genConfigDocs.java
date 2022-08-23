@@ -31,28 +31,27 @@ public class genConfigDocs {
 
     static class Option {
         final String name;
+        final String category;
         final String description;
         final String type;
         final String defaultValue;
-        String availableFrom;
+        String availableSince;
 
-        public Option(String name, String description, String type, String defaultValue) {
+        public Option(String name, String category, String description, String type, String defaultValue, String availableSince) {
             this.name = name;
+            this.category = category;
             this.description = description;
             this.type = type;
             this.defaultValue = defaultValue;
-        }
-
-        public Option(String name, String description, String type, String defaultValue, String availableFrom) {
-            this.name = name;
-            this.description = description;
-            this.type = type;
-            this.defaultValue = defaultValue;
-            this.availableFrom = availableFrom;
+            this.availableSince = availableSince;
         }
 
         public String getName() {
             return name;
+        }
+
+        public String getCategory() {
+            return category;
         }
 
         public String getDescription() {
@@ -68,26 +67,28 @@ public class genConfigDocs {
         }
 
         public void setAvailableFrom(String af) {
-            availableFrom = af;
+            availableSince = af;
         }
 
         public String getAvailableFrom() {
-            return availableFrom;
+            return availableSince;
         }
 
         @Override
         public String toString() {
             return "Option{" +
                     "name='" + name + '\'' +
+                    ", category='" + category + '\'' +
                     ", description='" + description + '\'' +
                     ", type='" + type + '\'' +
                     ", defaultValue='" + defaultValue + '\'' +
+                    ", availableSince='" + availableSince + '\'' +
                     '}';
         }
 
         public String toMDLine() {
-            String af = availableFrom == null ?  " " :  " `" + availableFrom + "` ";
-            return "| `" + name + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
+            String af = availableSince == null ?  " " :  " `" + availableSince + "` ";
+            return "| `" + name +  "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
         }
     }
 
@@ -153,23 +154,31 @@ public class genConfigDocs {
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
                     var type = annotation.target().asField().type();
 
-                    // Extract description if available:
-                    var extractedDescription = annotation
-                            .target()
-                            .asField()
-                            .annotations()
-                            .stream()
-                            .filter(a -> a.name().toString().equals("io.apicurio.common.apps.config.Dynamic"))
-                            .findFirst()
-                            .map(d -> Optional.ofNullable(d.value("description")).map(v -> v.value().toString()).orElse(""));
+                    // Extract more infos if available:
+                    var info = annotation
+                        .target()
+                        .asField()
+                        .annotations()
+                        .stream()
+                        .filter(a -> a.name().toString().equals("io.apicurio.common.apps.config.Info"))
+                        .findFirst();
 
-                    var description = extractedDescription.isPresent() ? extractedDescription.get() : "";
+                    var category = "";
+                    var description = "";
+                    var availableSince = "";
+                    if (info.isPresent()) {
+                        category = Optional.ofNullable(info.get().value("category")).map(v -> v.value().toString()).orElse("");
+                        description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+                        availableSince = Optional.ofNullable(info.get().value("availableSince")).map(v -> v.value().toString()).orElse("");
+                    }
 
                     allConfiguration.put(configName, new Option(
                             configName,
+                            category,
                             description,
                             resolveTypeName(type),
-                            defaultValue
+                            defaultValue,
+                            availableSince
                     ));
                     break;
             }
@@ -190,23 +199,23 @@ public class genConfigDocs {
 
     public static void main(String... args) throws Exception {
         // Download from repo1 maven old artifacts
-        String repo1 = "https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-app/";
-        Document doc = Jsoup.connect(repo1).get();
+        // String repo1 = "https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-app/";
+        // Document doc = Jsoup.connect(repo1).get();
         
-        for (Element file : doc.select("a")) {
-            String name = file.attr("href");
-            if (name.endsWith(".Final/")) {
-                System.out.println(name);
+        // for (Element file : doc.select("a")) {
+        //     String name = file.attr("href");
+        //     if (name.endsWith(".Final/")) {
+        //         System.out.println(name);
 
-                String artifactName = "apicurio-registry-app-" + name.replace(".Final/", ".Final.jar");
-                String url = repo1 + name + artifactName;
+        //         String artifactName = "apicurio-registry-app-" + name.replace(".Final/", ".Final.jar");
+        //         String url = repo1 + name + artifactName;
 
-                InputStream in = new URL(url).openStream();
-                Files.copy(in, Paths.get("app/target/" + artifactName), StandardCopyOption.REPLACE_EXISTING);
+        //         InputStream in = new URL(url).openStream();
+        //         Files.copy(in, Paths.get("app/target/" + artifactName), StandardCopyOption.REPLACE_EXISTING);
 
-                prevConfigurations.put(name.replace(".Final/", ".Final"), extractConfigurations("app/target/" + artifactName));
-            }
-        }
+        //         prevConfigurations.put(name.replace(".Final/", ".Final"), extractConfigurations("app/target/" + artifactName));
+        //     }
+        // }
 
         // TODO: include all the relevant jars, to be determined
         // TODO: make the current version configurable
@@ -239,6 +248,7 @@ public class genConfigDocs {
                 allConfiguration.put(key,
                         new Option(
                                 key,
+                                opt.getCategory(),
                                 opt.getDescription(),
                                 opt.getType(),
                                 value,
@@ -249,9 +259,11 @@ public class genConfigDocs {
                     allConfiguration.put(key,
                             new Option(
                                     key,
+                                    "unknown",
                                     "",
                                     "unknown",
-                                    value
+                                    value,
+                                    ""
                             ));
                 } else {
                     // Skip Quarkus property and unknowns!
@@ -260,9 +272,16 @@ public class genConfigDocs {
             }
         }
 
-        System.out.println("| name | type | default | available-from | description |");
-        System.out.println("| --- | --- | --- | --- | --- |");
-        for (var config: allConfiguration.values().stream().sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).collect(Collectors.toList())) {
+        System.out.println("| name | category | type | default | available-from | description |");
+        System.out.println("| --- | --- | --- | --- | --- | --- |");
+        for (var config: allConfiguration.values().stream().sorted((o1, o2) -> {
+            var cat = o1.getCategory().compareTo(o2.getCategory());
+                if (cat != 0) {
+                    return cat;
+                } else {
+                    return o1.getName().compareTo(o2.getName());
+                }
+            }).collect(Collectors.toList())) {
             System.out.println(config.toMDLine());
         }
     }

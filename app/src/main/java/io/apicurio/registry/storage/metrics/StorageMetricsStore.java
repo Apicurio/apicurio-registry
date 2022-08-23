@@ -24,6 +24,7 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
@@ -51,6 +52,7 @@ public class StorageMetricsStore {
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")
+    @Info( category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
     Long limitsCheckPeriod;
 
     @Inject

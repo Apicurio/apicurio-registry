@@ -24,6 +24,8 @@ import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.common.apps.config.Info;
+
 /**
  * @author eric.wittmann@gmail.com
  */

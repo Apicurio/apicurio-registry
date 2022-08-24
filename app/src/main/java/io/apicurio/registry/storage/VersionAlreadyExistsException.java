@@ -22,7 +22,7 @@ package io.apicurio.registry.storage;
  */
 public class VersionAlreadyExistsException extends AlreadyExistsException {
 
-    private static final long serialVersionUID = -1015140450163088675L;
+    private static final long serialVersionUID = 3567623491368394677L;
 
     private final String groupId;
     private final String artifactId;

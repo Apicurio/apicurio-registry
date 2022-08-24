@@ -1,14 +1,14 @@
 {
   "namespace": "com.kubetrade.schema.trade",
   "type": "record",
-  "name": "TradeKey",
+  "name": "AvroSchemaD",
   "fields": [
     {
-      "name": "exchange",
-      "type": "com.kubetrade.schema.common.Exchange"
+      "name": "schemaE",
+      "type": "com.kubetrade.schema.trade.AvroSchemaE"
     },
     {
-      "name": "key",
+      "name": "symbol",
       "type": "string"
     }
   ]

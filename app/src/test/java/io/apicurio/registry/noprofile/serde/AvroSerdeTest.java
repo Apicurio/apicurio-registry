@@ -26,11 +26,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import com.kubetrade.schema.trade.AvroSchemaA;
+import com.kubetrade.schema.trade.AvroSchemaB;
+import com.kubetrade.schema.trade.AvroSchemaC;
+import com.kubetrade.schema.trade.AvroSchemaD;
+import com.kubetrade.schema.trade.AvroSchemaE;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
-import com.kubetrade.schema.common.Exchange;
-import com.kubetrade.schema.trade.TradeKey;
-import com.kubetrade.schema.trade.TradeRaw;
 import io.apicurio.registry.serde.config.IdOption;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -229,8 +231,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void avroJsonWithReferences() throws Exception {
-        try (AvroKafkaSerializer<TradeRaw> serializer = new AvroKafkaSerializer<TradeRaw>(restClient);
-             Deserializer<TradeRaw> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(restClient);
+             Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
@@ -243,30 +245,41 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
-            TradeRaw tradeRaw = new TradeRaw();
-            TradeKey tradeKey = new TradeKey();
-            tradeKey.setKey(UUID.randomUUID().toString());
-            tradeKey.setExchange(Exchange.GEMINI);
-            tradeRaw.setTradeKey(tradeKey);
-            tradeRaw.setPayload("testPayload");
-            tradeRaw.setSymbol("testSymbol");
+            AvroSchemaB avroSchemaB = new AvroSchemaB();
+            AvroSchemaA avroSchemaA = AvroSchemaA.GEMINI;
+            AvroSchemaC avroSchemaC = new AvroSchemaC();
+            AvroSchemaD avroSchemaD = new AvroSchemaD();
+            AvroSchemaE avroSchemaE = new AvroSchemaE();
+
+            avroSchemaE.setPayload("ESchema");
+            avroSchemaE.setSymbol("ESymbol");
+
+            avroSchemaD.setSchemaE(avroSchemaE);
+            avroSchemaD.setSymbol("Dsymbol");
+
+            avroSchemaC.setSymbol("CSymbol");
+            avroSchemaC.setPayload("CSchema");
+            avroSchemaC.setSchemaD(avroSchemaD);
+
+            avroSchemaB.setSchemaC(avroSchemaC);
+            avroSchemaB.setSchemaA(avroSchemaA);
+            avroSchemaB.setKey(UUID.randomUUID().toString());
 
             String artifactId = generateArtifactId();
 
-            byte[] bytes = serializer.serialize(artifactId, tradeRaw);
+            byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
 
             // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
             JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
-            Assertions.assertEquals("testSymbol", msgAsJson.getString("symbol"));
+            Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
             // some impl details ...
             waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
 
-            TradeRaw ir = deserializer.deserialize(artifactId, bytes);
+            AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
 
-            Assertions.assertEquals(tradeRaw, ir);
-            Assertions.assertEquals("testSymbol", ir.getSymbol());
-            Assertions.assertEquals(Exchange.GEMINI, ir.getTradeKey().getExchange());
+            Assertions.assertEquals(avroSchemaB, ir);
+            Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());
         }
     }
 

@@ -225,6 +225,20 @@
             </properties>
         </profile>
         <profile>
+            <id>olm-clusterwide</id>
+            <properties>
+                <groups>olm-clusterwide &amp; !bundle &amp; !olm-namespace</groups>
+                <skip.tests>false</skip.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>olm-namespace</id>
+            <properties>
+                <groups>olm-namespace &amp;amp; !bundle &amp; !olm-clusterwide</groups>
+                <skip.tests>false</skip.tests>
+            </properties>
+        </profile>
+        <profile>
             <id>bundle</id>
             <properties>
                 <groups>bundle &amp; !olm</groups>

@@ -130,10 +130,5 @@ public abstract class TestBase {
 
             // TODO: Add more users to check API
         }
-
-        if (useKeycloak) {
-            // Remove Keycloak
-            KeycloakUtils.removeKeycloak();
-        }
     }
 }

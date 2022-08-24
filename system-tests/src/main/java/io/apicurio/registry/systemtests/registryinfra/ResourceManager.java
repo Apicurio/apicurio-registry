@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests.registryinfra;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
@@ -193,6 +194,9 @@ public class ResourceManager {
         LOGGER.info("Deleting resource {}...", resourceInfo);
 
         ResourceType<T> type = findResourceType(resource);
+        if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))) {
+            KeycloakUtils.removeKeycloak(resource.getMetadata().getNamespace());
+        }
 
         try {
             type.delete(resource);

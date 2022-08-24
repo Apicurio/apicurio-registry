@@ -50,7 +50,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -113,7 +113,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set common request headers
@@ -152,7 +152,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -187,7 +187,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -229,7 +229,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set request type
@@ -266,7 +266,7 @@ public class ApicurioRegistryApiClient {
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
-                .version((Environment.IS_KIND_CLUSTER ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2))
+                .version(HttpClient.Version.HTTP_1_1)
                 // Set request URI
                 .uri(uri)
                 // Set request type

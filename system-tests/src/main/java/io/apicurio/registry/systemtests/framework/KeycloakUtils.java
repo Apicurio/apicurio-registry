@@ -144,8 +144,8 @@ public class KeycloakUtils {
         removeKeycloak(Environment.NAMESPACE);
     }
 
-    public static void removeKeycloak(String namespace) {
-        LOGGER.info("Removing Keycloak...");
+    public static void removeKeycloakRealm(String namespace) {
+        LOGGER.info("Removing keycloak realm");
 
         Exec.executeAndCheck(
                 "oc",
@@ -153,6 +153,12 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
+    }
+
+    public static void removeKeycloak(String namespace) {
+        LOGGER.info("Removing Keycloak...");
+
+        removeKeycloakRealm(namespace);
 
         Exec.executeAndCheck(
                 "oc",

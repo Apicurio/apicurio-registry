@@ -1533,4 +1533,41 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertEquals(v2md.getContentId(), vmd.getContentId());
     }
 
+    @Test
+    public void testValidateRegistryApi() throws Exception {
+        //Preparation
+        final String groupId = "testCreateRegistryApiArtifact";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "RegistryAPI_v2";
+        final String description = "The second version of the Registry API.";
+
+        //Execution
+        InputStream stream = RegistryClientTest.class.getResourceAsStream("registry.json");
+        final ArtifactMetaData created = clientV2.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+        waitForArtifact(groupId, artifactId);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        
+        Rule rule = new Rule();
+        rule.setConfig("FULL");
+        rule.setType(RuleType.VALIDITY);
+		clientV2.createArtifactRule(groupId, artifactId, rule);
+		
+		//Create new version (should pass validation)
+		InputStream updateStream = RegistryClientTest.class.getResourceAsStream("registry.json");
+		ArtifactMetaData updated = clientV2.updateArtifact(groupId, artifactId, "2.0", updateStream);
+
+		//Assertions
+        assertNotNull(updated);
+        assertEquals(groupId, updated.getGroupId());
+        assertEquals(artifactId, updated.getId());
+        assertEquals("2.0", updated.getVersion());
+    }
+
 }

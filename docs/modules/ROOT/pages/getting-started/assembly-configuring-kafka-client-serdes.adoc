@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="configuring-kafka-client-serdes"]
+[id="configuring-kafka-client-serdes_{context}"]
 = Configuring Kafka serializers/deserializers in Java clients
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 

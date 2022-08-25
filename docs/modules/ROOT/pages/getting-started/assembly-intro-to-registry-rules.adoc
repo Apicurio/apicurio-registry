@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="intro-to-registry-rules"]
+[id="intro-to-registry-rules_{context}"]
 = {registry} content rules
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 

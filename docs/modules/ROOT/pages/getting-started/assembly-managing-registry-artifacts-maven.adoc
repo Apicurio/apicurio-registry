@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="managing-registry-artifacts-maven"]
+[id="managing-registry-artifacts-maven_{context}"]
 = Managing {registry} content using the Maven plug-in
 
 [role="_abstract"]

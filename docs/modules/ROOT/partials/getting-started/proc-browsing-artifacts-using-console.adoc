@@ -43,7 +43,7 @@ endif::[]
 
 . If additional versions of this artifact have been added, you can select them from the *Version* list in page header.
 
-. Click *Download* at the end of the page to save the artifact contents to a local file, for example, `my-protobuf-schema.proto`.
+. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page.
 
 ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]

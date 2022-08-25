@@ -244,6 +244,9 @@ public class RegistryClientImpl implements RegistryClient {
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
         }
+        if (ifExists != null) {
+            queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
+        }
 
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
     }

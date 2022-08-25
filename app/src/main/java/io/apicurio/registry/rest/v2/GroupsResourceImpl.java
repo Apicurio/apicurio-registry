@@ -30,6 +30,7 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
@@ -116,6 +117,7 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_T
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
@@ -296,6 +298,21 @@ public class GroupsResourceImpl implements GroupsResource {
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
         storage.updateArtifactMetaData(gidOrNull(groupId), artifactId, dto);
+    }
+    
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
+    	// TODO Auto-generated method stub
+    	return null;
+    }
+
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_OWNER})
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.AdminOrOwner)
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner data) {
+    	// TODO Auto-generated method stub
+    	
     }
 
     /**

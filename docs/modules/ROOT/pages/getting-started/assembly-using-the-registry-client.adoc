@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="using-the-registry-client"]
+[id="using-the-registry-client_{context}"]
 = Managing {registry} content using a Java client
 
 [role="_abstract"]

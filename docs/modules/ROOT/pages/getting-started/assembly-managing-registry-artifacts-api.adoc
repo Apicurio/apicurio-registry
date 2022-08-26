@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="managing-registry-artifacts-api"]
+[id="managing-registry-artifacts-api_{context}"]
 = Managing {registry} content using the REST API
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 

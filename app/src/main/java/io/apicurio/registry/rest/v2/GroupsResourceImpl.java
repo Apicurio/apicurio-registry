@@ -216,6 +216,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
                                            String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
                                            String xRegistryDescriptionEncoded, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
         return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
@@ -652,6 +653,8 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
                                            String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
+
         InputStream content;
         try {
             URL url = new URL(data.getContent());
@@ -849,6 +852,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
                                                  String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                  String xRegistryNameEncoded, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
         return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 

@@ -273,7 +273,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
 
     private showDocumentationTab(): boolean {
         if (this.state.artifact) {
-            return this.state.artifact.type === "OPENAPI" && this.state.artifact.state !== "DISABLED";
+            return (this.state.artifact.type === "OPENAPI" || this.state.artifact.type === "ASYNCAPI") && this.state.artifact.state !== "DISABLED";
         } else {
             return false;
         }

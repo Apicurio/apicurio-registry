@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="installing-registry-ocp"]
+[id="installing-registry-ocp_{context}"]
 = Installing {registry} on OpenShift
 
 [role="_abstract"]

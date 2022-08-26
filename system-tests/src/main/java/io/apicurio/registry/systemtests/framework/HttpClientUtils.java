@@ -24,8 +24,23 @@ public class HttpClientUtils {
 
     public static HttpResponse<String> processRequest(HttpRequest request) {
         try {
-            return HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
+            // Define client
+            HttpClient client;
+
+            // If we want to use secured connection
+            if (request.uri().getScheme().equals("https")) {
+                // Create insecure HTTPS client
+                client = HttpClient.newBuilder()
+                        .sslContext(HttpClientUtils.getInsecureContext())
+                        .build();
+
+            } else {
+                // Create HTTP client otherwise
+                client = HttpClient.newHttpClient();
+            }
+
+            // Send request with String response
+            return client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

@@ -8,6 +8,7 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
+import io.fabric8.kubernetes.api.model.Secret;
 import org.apache.hc.core5.http.HttpStatus;
 import org.slf4j.Logger;
 
@@ -20,6 +21,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -108,8 +110,10 @@ public class KeycloakUtils {
         LOGGER.info("Keycloak should be removed.");
     }
 
-    public static String getKeycloakURL(String namespace, String name) {
-        return "http://" + Kubernetes.getRouteHost(namespace, name) + "/auth";
+    public static String getKeycloakURL(String namespace, String name, boolean secured) {
+        String scheme = secured ? "https://" : "http://";
+
+        return scheme + Kubernetes.getRouteHost(namespace, name) + "/auth";
     }
 
     public static String getDefaultKeycloakURL() {
@@ -117,7 +121,15 @@ public class KeycloakUtils {
     }
 
     public static String getDefaultKeycloakURL(String namespace) {
-        return getKeycloakURL(namespace, Constants.SSO_HTTP_SERVICE);
+        return getKeycloakURL(namespace, Constants.SSO_HTTP_SERVICE, false);
+    }
+
+    public static String getDefaultKeycloakAdminURL() {
+        return getDefaultKeycloakAdminURL(Constants.TESTSUITE_NAMESPACE);
+    }
+
+    public static String getDefaultKeycloakAdminURL(String namespace) {
+        return getKeycloakURL(namespace, "keycloak", true);
     }
 
     private static HttpRequest.BodyPublisher ofFormData(Map<Object, Object> data) {
@@ -160,6 +172,55 @@ public class KeycloakUtils {
         // Create request
         HttpRequest request = HttpClientUtils.newBuilder()
                 .uri(keycloakRealmUrl)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(ofFormData(data))
+                .build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        // Check response status code
+        if (response.statusCode() != HttpStatus.SC_OK) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        // Return access token
+        try {
+            return MAPPER.readValue(response.body(), Map.class).get("access_token").toString();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String getAdminAccessToken() {
+        // Get secret with Keycloak admin credentials
+        Secret secret = Kubernetes.getSecret(Constants.TESTSUITE_NAMESPACE, "credential-" + Constants.SSO_NAME);
+        // Get Keycloak admin username
+        String username = new String(Base64.getDecoder().decode(secret.getData().get("ADMIN_USERNAME")));
+        // Get Keycloak admin password
+        String password = new String(Base64.getDecoder().decode(secret.getData().get("ADMIN_PASSWORD")));
+        // Get Keycloak admin URL
+        String url = getKeycloakURL(Constants.TESTSUITE_NAMESPACE, "keycloak", true);
+        // Construct token API URI of admin Keycloak Realm
+        URI tokenUrl = HttpClientUtils.buildURI(
+                "%s/realms/%s/protocol/openid-connect/token", url, Constants.SSO_REALM_ADMIN
+        );
+
+        // Prepare request data
+        Map<Object, Object> data = new HashMap<>();
+        data.put("grant_type", "password");
+        data.put("client_id", Constants.SSO_ADMIN_CLIENT_ID);
+        data.put("username", username);
+        data.put("password", password);
+
+        // Log info about current action
+        LOGGER.info("Requesting admin access token from {}...", tokenUrl);
+
+        // Create request
+        HttpRequest request = HttpClientUtils.newBuilder()
+                .uri(tokenUrl)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(ofFormData(data))
                 .build();

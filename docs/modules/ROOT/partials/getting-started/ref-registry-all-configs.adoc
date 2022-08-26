@@ -530,6 +530,18 @@ This section contains a list of the configuration options available for {registr
 |
 |`2.1.2.Final`
 |Registry redirects
+|`registry.rest.artifact.download.maxSize`
+|`rest`
+|`int`
+|`1000000`
+|`2.2.6-SNAPSHOT`
+|Max size of the artifact allowed to be downloaded from URL
+|`registry.rest.artifact.download.skipSSLValidation`
+|`rest`
+|`boolean`
+|`false`
+|`2.2.6-SNAPSHOT`
+|Skip SSL validation when downloading artifacts from URL
 |`quarkus.datasource.db-kind`
 |`store`
 |`string`

@@ -35,6 +35,16 @@ spec:
         webOrigins:
           - '*'
         publicClient: true
+      - clientId: test-client-api
+        directAccessGrantsEnabled: true
+        implicitFlowEnabled: true
+        redirectUris:
+          - '*'
+        standardFlowEnabled: true
+        webOrigins:
+          - '*'
+        publicClient: false
+        serviceAccountsEnabled: true
     users:
       - credentials:
           - temporary: false

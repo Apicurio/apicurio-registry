@@ -58,7 +58,7 @@ You can also enter an optional comma-separated list of labels for searching, or 
  
 . To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page. 
 
-. Click *Upload new version* in the page header to add a new artifact version, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
+. To add a new artifact version, click *Upload new version* in the page header, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
 
 . To delete an artifact, click *Delete* in the page header.
 +

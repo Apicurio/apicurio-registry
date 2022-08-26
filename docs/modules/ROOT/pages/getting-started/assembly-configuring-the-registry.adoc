@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="configuring-the-registry"]
+[id="configuring-the-registry_{context}"]
 = Configuring your {registry} deployment
 
 [role="_abstract"]

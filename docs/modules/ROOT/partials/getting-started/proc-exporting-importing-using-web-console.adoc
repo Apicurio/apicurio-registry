@@ -34,7 +34,7 @@ ifdef::rh-openshift-sr[]
 . In the web console, in the list of instances, click the source {registry} instance, and view the *Artifacts* tab.  
 endif::[] 
 
-. Next to *Upload artifact*, click the options icon (three vertical dots), and select *Download all artifacts (.zip file)* to export the registry data for this instance to a `.zip` download file. 
+. Click the options icon (three vertical dots) next to *Upload artifact*, and select *Download all artifacts (.zip file)* to export the registry data for this instance to a `.zip` download file. 
 
 ifdef::apicurio-registry,rh-service-registry[]
 . In the the web console for the target {registry} instance, view the *Artifacts* tab.  
@@ -44,7 +44,7 @@ ifdef::rh-openshift-sr[]
 . Return to the list of instances, click the target {registry} instance, and view the *Artifacts* tab.     
 endif::[]
 
-. Next to *Upload artifact*, click the options icon, and select *Upload multiple artifacts*.
+. Click the options icon next to *Upload artifact*, and select *Upload multiple artifacts*.
 
 . Drag and drop or browse to the `.zip` download file that you exported earlier.
 

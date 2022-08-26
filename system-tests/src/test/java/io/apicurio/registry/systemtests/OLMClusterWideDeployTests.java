@@ -4,7 +4,7 @@ import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import org.junit.jupiter.api.Disabled;
 
 @Disabled
-public class OLMClusterWideTests extends OLMTests {
+public class OLMClusterWideDeployTests extends OLMDeployTests {
     @Override
     public void setupTestClass() {
         LOGGER = LoggerUtils.getLogger();

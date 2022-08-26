@@ -17,7 +17,7 @@ import org.opentest4j.AssertionFailedError;
 import java.text.MessageFormat;
 
 @Disabled
-public abstract class OLMTests extends Tests {
+public abstract class OLMDeployTests extends DeployTests {
     protected boolean clusterWide;
 
     public boolean getClusterWide() {

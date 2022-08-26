@@ -9,21 +9,14 @@ import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.framework.TestNameGenerator;
 import io.apicurio.registry.systemtests.operator.OperatorManager;
-import io.apicurio.registry.systemtests.operator.types.KeycloakOLMOperatorType;
-import io.apicurio.registry.systemtests.operator.types.StrimziClusterOLMOperatorType;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
-import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
-import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import io.apicurio.registry.systemtests.resolver.ExtensionContextParameterResolver;
-import io.strimzi.api.kafka.model.Kafka;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -97,77 +90,5 @@ public abstract class TestBase {
         LoggerUtils.logDelimiter("#");
         LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
-    }
-
-    protected void runTest(
-            ExtensionContext testContext,
-            PersistenceKind persistenceKind,
-            KafkaKind kafkaKind,
-            boolean useKeycloak,
-            boolean testAPI
-    ) throws InterruptedException {
-        ApicurioRegistry registry = null;
-
-        if (persistenceKind.equals(PersistenceKind.SQL)) {
-            // Deploy PostgreSQL with/without Keycloak
-            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
-
-            registry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, useKeycloak);
-        } else if (persistenceKind.equals(PersistenceKind.KAFKA_SQL)) {
-            Kafka kafka;
-
-            // Deploy Kafka
-            if (kafkaKind.equals(KafkaKind.NO_AUTH)) {
-                // Deploy noAuthKafka
-                KafkaUtils.deployDefaultKafkaNoAuth(testContext);
-
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(
-                        testContext,
-                        useKeycloak
-                );
-            } else if (kafkaKind.equals(KafkaKind.TLS)) {
-                // Deploy tlsKafka
-                kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
-
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
-            } else if (kafkaKind.equals(KafkaKind.SCRAM)) {
-                // Deploy scramKafka
-                kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
-
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
-            } else {
-                LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
-            }
-        } else if (persistenceKind.equals(PersistenceKind.MEM)) {
-            // TODO: Deploy mem with/without Keycloak
-        } else {
-            LOGGER.error("Unrecognized PersistenceKind: {}.", persistenceKind);
-        }
-
-        if (registry != null && (testAPI || testAuth)) {
-            String username = "registry-admin";
-            String password = "changeme";
-
-            // TODO: Add more users to check API
-
-            if (testAPI) {
-                // Run API tests
-                APITests.run(registry, username, password, useKeycloak);
-            }
-
-            if (testAuth) {
-                // Run auth tests
-                LOGGER.info("Running auth tests...");
-                AuthTests.testAnonymousReadAccess(registry, username, password, useKeycloak);
-            }
-        }
     }
 }

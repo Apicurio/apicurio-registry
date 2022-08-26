@@ -5,6 +5,7 @@ import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactList;
 import io.apicurio.registry.systemtests.client.ArtifactType;
+import io.apicurio.registry.systemtests.client.AuthMethod;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
@@ -30,6 +31,7 @@ public class APITests {
         String artifactContent = ArtifactContent.DEFAULT_AVRO;
         String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
 
+        // Log hostname for API tests
         LOGGER.info("Hostname: {}", hostname);
 
         // Get API client
@@ -39,6 +41,8 @@ public class APITests {
         if (useToken) {
             // Update API client with token
             client.setToken(KeycloakUtils.getAccessToken(apicurioRegistry, username, password));
+            // Set authentication method
+            client.setAuthMethod(AuthMethod.TOKEN);
         }
 
         // Wait for readiness of API
@@ -47,6 +51,7 @@ public class APITests {
         // List artifacts
         LOGGER.info("Listing artifacts...");
         ArtifactList artifactList = client.listArtifacts();
+        Assertions.assertNotNull(artifactList);
         artifactList.printArtifactList(LOGGER);
         // Check that artifact does not exist yet
         Assertions.assertFalse(artifactList.contains(artifactGroupId, artifactId));
@@ -58,6 +63,7 @@ public class APITests {
         // List artifacts
         LOGGER.info("Listing artifacts...");
         artifactList = client.listArtifacts();
+        Assertions.assertNotNull(artifactList);
         artifactList.printArtifactList(LOGGER);
         // Check creation of artifact
         Assertions.assertTrue(artifactList.contains(artifactGroupId, artifactId));
@@ -70,6 +76,7 @@ public class APITests {
         // List artifacts
         LOGGER.info("Listing artifacts...");
         artifactList = client.listArtifacts();
+        Assertions.assertNotNull(artifactList);
         artifactList.printArtifactList(LOGGER);
         // Check deletion of artifact
         Assertions.assertFalse(artifactList.contains(artifactGroupId, artifactId));

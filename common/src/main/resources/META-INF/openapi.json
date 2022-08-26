@@ -1277,17 +1277,6 @@
                 "tags": [
                     "Admin"
                 ],
-                "parameters": [
-                    {
-                        "name": "principalId",
-                        "description": "Unique ID of a principal (typically either a user or service account).",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "path",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "content": {

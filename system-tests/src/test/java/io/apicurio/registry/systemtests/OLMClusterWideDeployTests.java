@@ -5,7 +5,8 @@ import org.junit.jupiter.api.Tag;
 
 @Tag("olm")
 @Tag("olm-clusterwide")
-public class OLMClusterWideTests extends OLMTests {
+@Disabled
+public class OLMClusterWideDeployTests extends OLMDeployTests {
     @Override
     public void setupTestClass() {
         LOGGER = LoggerUtils.getLogger();

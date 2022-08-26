@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Tag("bundle")
-public class BundleTests extends Tests {
+@Disabled
+public class BundleDeployTests extends DeployTests {
     @Override
     public void setupTestClass() {
         LOGGER = LoggerUtils.getLogger();

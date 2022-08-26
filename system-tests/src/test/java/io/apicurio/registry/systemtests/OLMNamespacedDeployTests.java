@@ -5,7 +5,8 @@ import org.junit.jupiter.api.Tag;
 
 @Tag("olm")
 @Tag("olm-namespace")
-public class OLMNamespacedTests extends OLMTests {
+@Disabled
+public class OLMNamespacedDeployTests extends OLMDeployTests {
     @Override
     public void setupTestClass() {
         LOGGER = LoggerUtils.getLogger();

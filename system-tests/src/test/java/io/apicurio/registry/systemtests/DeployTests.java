@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.DatabaseUtils;
 import io.apicurio.registry.systemtests.framework.KafkaUtils;
@@ -21,7 +20,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class Tests extends TestBase {
+public abstract class DeployTests extends TestBase {
     /* Functions for all tests */
 
     @BeforeAll
@@ -45,6 +44,7 @@ public abstract class Tests extends TestBase {
     public void testAfterEach(ExtensionContext testContext) {
         LOGGER.info("AfterEach: " + testContext.getDisplayName());
 
+        // TODO: Remove this after PR with fix
         KeycloakUtils.removeKeycloak();
 
         resourceManager.deleteResources(testContext);
@@ -58,11 +58,8 @@ public abstract class Tests extends TestBase {
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
-            boolean useKeycloak,
-            boolean testAPI,
-            boolean testAuth
+            boolean useKeycloak
     ) {
-        ApicurioRegistry registry = null;
 
         if (useKeycloak) {
             // Install Keycloak operator
@@ -83,7 +80,7 @@ public abstract class Tests extends TestBase {
             // Deploy PostgreSQL with/without Keycloak
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
 
-            registry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, useKeycloak);
+            ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, useKeycloak);
         } else if (persistenceKind.equals(PersistenceKind.KAFKA_SQL)) {
             Kafka kafka;
 
@@ -92,28 +89,17 @@ public abstract class Tests extends TestBase {
                 // Deploy noAuthKafka
                 KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(
-                        testContext,
-                        useKeycloak
-                );
+                ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.TLS)) {
                 // Deploy tlsKafka
                 kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
+                ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafka, useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.SCRAM)) {
                 // Deploy scramKafka
                 kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
+                ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafka, useKeycloak);
             } else {
                 LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
             }
@@ -122,68 +108,49 @@ public abstract class Tests extends TestBase {
         } else {
             LOGGER.error("Unrecognized PersistenceKind: {}.", persistenceKind);
         }
-
-        if (registry != null && (testAPI || testAuth)) {
-            String username = "registry-admin";
-            String password = "changeme";
-
-            // TODO: Add more users to check API
-
-            if (testAPI) {
-                // Run API tests
-                APITests.run(registry, username, password, useKeycloak);
-            }
-
-            if (testAuth) {
-                // Run auth tests
-                LOGGER.info("Running auth tests...");
-                // AuthTests.testAnonymousReadAccess(registry, username, password, useKeycloak);
-                AuthTests.testBasicAuthentication(registry, username, password);
-            }
-        }
     }
 
     /* TESTS - PostgreSQL */
 
     @Test
     public void testRegistrySqlNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.SQL, null, false, true, true);
+        runTest(testContext, PersistenceKind.SQL, null, false);
     }
 
     @Test
     public void testRegistrySqlKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.SQL, null, true, true, true);
+        runTest(testContext, PersistenceKind.SQL, null, true);
     }
 
     /* TESTS - KafkaSQL */
 
     @Test
     public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
     @Test
     public void testRegistryKafkasqlNoAuthKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
     }
 
     @Test
     public void testRegistryKafkasqlTLSNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
     @Test
     public void testRegistryKafkasqlTLSKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMKeycloak(ExtensionContext testContext) {
-        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true, true, true);
+        runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
 }

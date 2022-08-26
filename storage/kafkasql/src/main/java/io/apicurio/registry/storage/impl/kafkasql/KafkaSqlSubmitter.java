@@ -24,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
@@ -162,6 +164,16 @@ public class KafkaSqlSubmitter {
     }
     public CompletableFuture<UUID> submitVersion(String tenantId, String groupId, String artifactId, String version, ActionType action) {
         return submitArtifactVersion(tenantId, groupId, artifactId, version, action, null, null);
+    }
+
+
+    /* ******************************************************************************************
+     * Artifact Owner
+     * ****************************************************************************************** */
+    public CompletableFuture<UUID> submitArtifactOwner(String tenantId, String groupId, String artifactId, ActionType action, String owner) {
+        ArtifactOwnerKey key = ArtifactOwnerKey.create(tenantId, groupId, artifactId);
+        ArtifactOwnerValue value = ArtifactOwnerValue.create(action, owner);
+        return send(key, value);
     }
 
 

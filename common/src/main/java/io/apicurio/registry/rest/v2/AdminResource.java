@@ -179,8 +179,7 @@ public interface AdminResource {
   @Path("/roleMappings/{principalId}")
   @GET
   @Produces("application/json")
-  RoleMapping getRoleMapping(@PathParam("principalId") String principalId,
-      @PathParam("principalId") String principalId);
+  RoleMapping getRoleMapping(@PathParam("principalId") String principalId);
 
   /**
    * Updates a single role mapping for one user/principal.

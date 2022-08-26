@@ -38,6 +38,7 @@ import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -190,6 +191,12 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         delegate.updateArtifactMetaData(groupId, artifactId, metaData);
         //no event here, UPDATE_ARTIFACT is for cases where a new version is added
+    }
+
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        super.updateArtifactOwner(groupId, artifactId, owner);
+        //TODO consider a change ownership event
     }
 
     @Override

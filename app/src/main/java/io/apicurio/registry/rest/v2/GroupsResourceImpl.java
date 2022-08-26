@@ -17,12 +17,12 @@
 package io.apicurio.registry.rest.v2;
 
 import com.google.common.hash.Hashing;
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -303,16 +304,24 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
-    	// TODO Auto-generated method stub
-    	return null;
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
+        ArtifactOwner owner = new ArtifactOwner();
+        owner.setOwner(dto.getCreatedBy());
+        return owner;
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_OWNER})
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.AdminOrOwner)
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner data) {
-    	// TODO Auto-generated method stub
-    	
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        ArtifactOwnerDto dto = new ArtifactOwnerDto(data.getOwner());
+        storage.updateArtifactOwner(gidOrNull(groupId), artifactId, dto);
     }
 
     /**
@@ -643,7 +652,7 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
                                            String xRegistryName, String xRegistryNameEncoded,
                                            String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
-        InputStream content = null;
+        InputStream content;
         try {
             URL url = new URL(data.getContent());
             content = fetchContentFromURL(url.toURI());

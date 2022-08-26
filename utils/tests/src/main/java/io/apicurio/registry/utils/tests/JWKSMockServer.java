@@ -49,6 +49,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
 
     public static String ADMIN_CLIENT_ID = "admin-client";
     public static String DEVELOPER_CLIENT_ID = "developer-client";
+    public static String DEVELOPER_2_CLIENT_ID = "developer-2-client";
     public static String READONLY_CLIENT_ID = "readonly-client";
 
     public static String NO_ROLE_CLIENT_ID = "no-role-client";
@@ -92,6 +93,7 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         stubForClient(ADMIN_CLIENT_ID);
         //Developer user stub
         stubForClient(DEVELOPER_CLIENT_ID);
+        stubForClient(DEVELOPER_2_CLIENT_ID);
         //Read only user stub
         stubForClient(READONLY_CLIENT_ID);
         //Token without roles stub
@@ -154,6 +156,8 @@ public class JWKSMockServer implements QuarkusTestResourceLifecycleManager {
         if (userName.equals(ADMIN_CLIENT_ID)) {
             b.claim("groups", "sr-admin");
         } else if (userName.equals(DEVELOPER_CLIENT_ID)) {
+            b.claim("groups", "sr-developer");
+        } else if (userName.equals(DEVELOPER_2_CLIENT_ID)) {
             b.claim("groups", "sr-developer");
         } else if (userName.equals(READONLY_CLIENT_ID)) {
             b.claim("groups", "sr-readonly");

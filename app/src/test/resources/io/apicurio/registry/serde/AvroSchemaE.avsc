@@ -1,12 +1,8 @@
 {
   "namespace": "com.kubetrade.schema.trade",
   "type": "record",
-  "name": "TradeRaw",
+  "name": "AvroSchemaE",
   "fields": [
-    {
-      "name": "tradeKey",
-      "type": "com.kubetrade.schema.trade.TradeKey"
-    },
     {
       "name": "symbol",
       "type": "string"

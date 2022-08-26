@@ -37,6 +37,7 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
@@ -498,6 +499,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             ArtifactType artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
         if (!sqlStore.isArtifactExists(groupId, artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
+        }
+
+        if (version != null && sqlStore.isArtifactVersionExists(groupId, artifactId, version)) {
+            throw new VersionAlreadyExistsException(groupId, artifactId, version);
         }
 
         String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
@@ -1261,6 +1266,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
         return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactVersionExists(String, String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        return sqlStore.isArtifactVersionExists(groupId, artifactId, version);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

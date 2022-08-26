@@ -1,0 +1,19 @@
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "AvroSchemaB",
+  "fields": [
+    {
+      "name": "schemaA",
+      "type": "com.kubetrade.schema.trade.AvroSchemaA"
+    },
+    {
+      "name": "schemaC",
+      "type": "com.kubetrade.schema.trade.AvroSchemaC"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}

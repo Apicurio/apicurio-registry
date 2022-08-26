@@ -463,9 +463,11 @@
                         <configuration>
                             <stringType>String</stringType>
                             <imports>
-                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/Exchange.avsc</import>
-                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/TradeKey.avsc</import>
-                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/TradeRaw.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaE.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaA.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaD.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaC.avsc</import>
+                                <import>${project.basedir}/src/test/resources/io/apicurio/registry/serde/AvroSchemaB.avsc</import>
                             </imports>
                             <sourceDirectory>${project.basedir}/src/test/resources/io/apicurio/registry/serde/</sourceDirectory>
                             <outputDirectory>${project.basedir}/target/generated-test-sources</outputDirectory>

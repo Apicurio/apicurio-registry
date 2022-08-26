@@ -41,6 +41,7 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.utils.impexp.EntityType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -993,38 +994,45 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // Get meta-data from previous (latest) version
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId);
 
-        // Create version and return
-        return handles.withHandleNoException(handle -> {
-            // Metadata comes from the latest version
-            String name = latest.getName();
-            String description = latest.getDescription();
-            List<String> labels = latest.getLabels();
-            Map<String, String> properties = latest.getProperties();
+        try {
+            // Create version and return
+            return handles.withHandle(handle -> {
+                // Metadata comes from the latest version
+                String name = latest.getName();
+                String description = latest.getDescription();
+                List<String> labels = latest.getLabels();
+                Map<String, String> properties = latest.getProperties();
 
-            // Provided metadata will override inherited values from latest version
-            if (metaData.getName() != null) {
-                name = metaData.getName();
-            }
-            if (metaData.getDescription() != null) {
-                description = metaData.getDescription();
-            }
-            if (metaData.getLabels() != null) {
-                labels = metaData.getLabels();
-            }
-            if (metaData.getProperties() != null) {
-                properties = metaData.getProperties();
-            }
+                // Provided metadata will override inherited values from latest version
+                if (metaData.getName() != null) {
+                    name = metaData.getName();
+                }
+                if (metaData.getDescription() != null) {
+                    description = metaData.getDescription();
+                }
+                if (metaData.getLabels() != null) {
+                    labels = metaData.getLabels();
+                }
+                if (metaData.getProperties() != null) {
+                    properties = metaData.getProperties();
+                }
 
-            // Now create the version and return the new version metadata.
-            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, groupId, artifactId, version,
-                    name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
-            ArtifactMetaDataDto dto = versionToArtifactDto(groupId, artifactId, versionDto);
-            dto.setCreatedOn(latest.getCreatedOn());
-            dto.setCreatedBy(latest.getCreatedBy());
-            dto.setLabels(labels);
-            dto.setProperties(properties);
-            return dto;
-        });
+                // Now create the version and return the new version metadata.
+                ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, groupId, artifactId, version,
+                        name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
+                ArtifactMetaDataDto dto = versionToArtifactDto(groupId, artifactId, versionDto);
+                dto.setCreatedOn(latest.getCreatedOn());
+                dto.setCreatedBy(latest.getCreatedBy());
+                dto.setLabels(labels);
+                dto.setProperties(properties);
+                return dto;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new VersionAlreadyExistsException(groupId, artifactId, version);
+            }
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
@@ -2951,6 +2959,19 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .mapTo(Long.class)
                     .list();
         });
+    }
+
+    /**
+     * @see RegistryStorage#isArtifactExists(String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        try {
+            getArtifactVersionMetaData(groupId, artifactId, version);
+            return true;
+        } catch (VersionNotFoundException ignored) {
+            return false;
+        }
     }
 
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {

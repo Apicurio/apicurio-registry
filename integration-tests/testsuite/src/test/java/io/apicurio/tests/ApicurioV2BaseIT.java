@@ -116,6 +116,16 @@ public class ApicurioV2BaseIT extends ApicurioRegistryBaseIT {
         return amd;
     }
 
+    protected ArtifactMetaData createArtifact(String groupId, String artifactId, String version, IfExists ifExists, ArtifactType artifactType, InputStream artifact) throws Exception {
+        ArtifactMetaData amd = registryClient.createArtifact(groupId, artifactId, version, artifactType, ifExists, false, artifact);
+
+        // make sure we have schema registered
+        ensureClusterSync(amd.getGlobalId());
+        ensureClusterSync(amd.getGroupId(), amd.getId(), String.valueOf(amd.getVersion()));
+
+        return amd;
+    }
+
     protected VersionMetaData createArtifactVersion(String groupId, String artifactId, InputStream artifact) throws Exception {
         VersionMetaData meta = registryClient.createArtifactVersion(groupId, artifactId, null, artifact);
 

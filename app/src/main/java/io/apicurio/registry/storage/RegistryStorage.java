@@ -721,4 +721,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @return list of global ids of schemas that references artifact
      */
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version);
+
+    /**
+     *
+     * @param groupId
+     * @param artifactId
+     * @return true if an artifact version exists with the coordinates passed as parameters
+     * @throws RegistryStorageException
+     */
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException;
+
 }

@@ -601,4 +601,15 @@ public final class Kubernetes {
                 .orElse(false);
     }
 
+    public static boolean deploymentHasUnavailableReplicas(String namespace, String name) {
+        Deployment deployment = Kubernetes.getDeployment(namespace, name);
+
+        if (deployment == null || deployment.getStatus() == null) {
+            return false;
+        }
+
+        Integer unavailableReplicas = deployment.getStatus().getUnavailableReplicas();
+
+        return (unavailableReplicas != null && unavailableReplicas > 0);
+    }
 }

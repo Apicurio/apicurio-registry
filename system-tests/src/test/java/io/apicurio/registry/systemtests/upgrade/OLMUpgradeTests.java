@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtests;
+package io.apicurio.registry.systemtests.upgrade;
 
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
@@ -10,7 +10,6 @@ import io.apicurio.registry.systemtests.framework.DatabaseUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

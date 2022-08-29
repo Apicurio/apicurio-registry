@@ -79,6 +79,38 @@ public class DeploymentUtils {
         return true;
     }
 
+    public static boolean waitDeploymentHasUnavailableReplicas(String namespace, String name) {
+        return waitDeploymentHasUnavailableReplicas(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
+    }
+
+    public static boolean waitDeploymentHasUnavailableReplicas(
+            String namespace,
+            String name,
+            TimeoutBudget timeoutBudget
+    ) {
+        while (!timeoutBudget.timeoutExpired()) {
+            if (Kubernetes.deploymentHasUnavailableReplicas(namespace, name)) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                return false;
+            }
+        }
+
+        if (Kubernetes.deploymentHasUnavailableReplicas(namespace, name)) {
+            LOGGER.error("Deployment {} in namespace {} failed unavailable replicas check.", name, namespace);
+
+            return false;
+        }
+
+        return true;
+    }
+
     public static void createOrReplaceDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
         // Get deployment namespace
         String deploymentNamespace = deployment.getMetadata().getNamespace();
@@ -109,6 +141,9 @@ public class DeploymentUtils {
         // Update deployment
         Kubernetes.createOrReplaceDeployment(deploymentNamespace, deployment);
 
+        // Wait for deployment reload
+        Assertions.assertTrue(waitDeploymentHasUnavailableReplicas(deploymentNamespace, deploymentName));
+
         // Wait for deployment readiness
         Assertions.assertTrue(waitDeploymentReady(deploymentNamespace, deploymentName));
 
@@ -121,9 +156,7 @@ public class DeploymentUtils {
                 envVar.getValue(),
                 MessageFormat.format(
                         "Environment variable {0} of deployment {1} was NOT set to {2}.",
-                        envVar.getName(),
-                        deploymentName,
-                        envVar.getValue()
+                        envVar.getName(), deploymentName, envVar.getValue()
                 )
         );
     }

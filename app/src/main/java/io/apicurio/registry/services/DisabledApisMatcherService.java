@@ -57,7 +57,7 @@ public class DisabledApisMatcherService {
 
     @Inject
     @ConfigProperty(name = "registry.disable.apis")
-    @Info( category = "api", description = "Disable apis", availableSince = "2.0.0.Final")
+    @Info( category = "api", description = "Disable APIs", availableSince = "2.0.0.Final")
     Optional<List<String>> disableRegexps;
 
     public void init(@Observes StartupEvent ev) {

@@ -60,7 +60,7 @@ public class UiConfigProperties {
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.apiUrl")
-    @Info( category = "ui", description = "UI api URL", availableSince = "1.3.0.Final")
+    @Info( category = "ui", description = "UI APIs URL", availableSince = "1.3.0.Final")
     String apiUrl;
 
     @Inject

@@ -99,7 +99,7 @@ public class MultitenancyProperties {
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.ssl.ca.path")
-    @Info( category = "mt", description = "Tenant manager SSL ca path", availableSince = "2.2.0.Final")
+    @Info( category = "mt", description = "Tenant manager SSL Ca path", availableSince = "2.2.0.Final")
     Optional<String> tenantManagerCAFilePath;
 
     @Inject

@@ -30,7 +30,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck 
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
-    @Info( category = "health", description = "Error Threshold of response liveness check", availableSince = "1.0.2.Final")
+    @Info( category = "health", description = "Error threshold of response liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**

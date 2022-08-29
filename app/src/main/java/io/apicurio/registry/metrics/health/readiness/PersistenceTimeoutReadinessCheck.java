@@ -33,7 +33,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "5")
-    @Info( category = "health", description = "Error Threshold of persistence readiness check", availableSince = "1.0.2.Final")
+    @Info( category = "health", description = "Error threshold of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**

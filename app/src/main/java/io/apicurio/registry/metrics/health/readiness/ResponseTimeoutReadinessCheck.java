@@ -41,7 +41,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
-    @Info( category = "health", description = "Error Threshold of response readiness check", availableSince = "1.0.2.Final")
+    @Info( category = "health", description = "Error threshold of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configErrorThreshold;
 
     /**

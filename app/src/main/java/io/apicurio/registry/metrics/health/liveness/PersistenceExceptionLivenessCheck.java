@@ -32,7 +32,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * before the liveness check fails.
      */
     @ConfigProperty(name = "registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold", defaultValue = "1")
-    @Info( category = "health", description = "Error Threshold of persistence liveness check", availableSince = "1.0.2.Final")
+    @Info( category = "health", description = "Error threshold of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**

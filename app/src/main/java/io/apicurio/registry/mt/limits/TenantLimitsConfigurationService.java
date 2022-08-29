@@ -88,21 +88,21 @@ public class TenantLimitsConfigurationService {
     Long defaultMaxArtifactLabels;
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-label-size")
-    @Info( category = "limits", description = "Max artifact max label size", availableSince = "2.1.0.Final")
+    @Info( category = "limits", description = "Max artifact label size", availableSince = "2.1.0.Final")
     Long defaultMaxLabelBytesSize;
 
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-name-length")
-    @Info( category = "limits", description = "Max artifact max name length", availableSince = "2.1.0.Final")
+    @Info( category = "limits", description = "Max artifact name length", availableSince = "2.1.0.Final")
     Long defaultMaxNameLength;
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-description-length")
-    @Info( category = "limits", description = "Max artifact max description length", availableSince = "2.1.0.Final")
+    @Info( category = "limits", description = "Max artifact description length", availableSince = "2.1.0.Final")
     Long defaultMaxDescriptionLength;
 
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "registry.limits.config.max-requests-per-second")
-    @Info( category = "limits", description = "Max artifact max requests per second", availableSince = "2.2.3.Final")
+    @Info( category = "limits", description = "Max artifact requests per second", availableSince = "2.2.3.Final")
     Long defaultMaxRequestsPerSecond;
 
     @Inject

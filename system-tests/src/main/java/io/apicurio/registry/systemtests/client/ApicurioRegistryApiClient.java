@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.systemtests.framework.Base64Utils;
 import io.apicurio.registry.systemtests.framework.HttpClientUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
@@ -19,16 +20,13 @@ public class ApicurioRegistryApiClient {
     private String host;
     private int port;
     private String token;
+    private AuthMethod authMethod;
+    private String username;
+    private String password;
 
     public ApicurioRegistryApiClient(String host) {
         this.host = host;
         this.port = 80;
-    }
-
-    public ApicurioRegistryApiClient(String host, String token) {
-        this.host = host;
-        this.port = 80;
-        this.token = token;
     }
 
     public ApicurioRegistryApiClient(String host, int port) {
@@ -36,10 +34,18 @@ public class ApicurioRegistryApiClient {
         this.port = port;
     }
 
-    public ApicurioRegistryApiClient(String host, int port, String token) {
-        this.host = host;
-        this.port = port;
-        this.token = token;
+    private void setAuthenticationHeader(HttpRequest.Builder requestBuilder) {
+        // Set header with authentication when provided
+        if (authMethod == AuthMethod.TOKEN) {
+            requestBuilder.header("Authorization", String.format("Bearer %s", token));
+        } else if (authMethod == AuthMethod.BASIC) {
+            requestBuilder.header(
+                    "Authorization",
+                    String.format("Basic %s", Base64Utils.encode(username + ":" + password))
+            );
+        } else {
+            LOGGER.info("No authentication header needed.");
+        }
     }
 
     public boolean isServiceAvailable() {
@@ -56,10 +62,8 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .GET();
 
-        // Set header with token when provided
-        if (token != null) {
-            requestBuilder.header("Authorization", String.format("Bearer %s", token));
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
@@ -68,7 +72,7 @@ public class ApicurioRegistryApiClient {
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_OK) {
+        if (response.statusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE) {
             LOGGER.warn("Response: code={}", response.statusCode());
 
             return false;
@@ -86,7 +90,7 @@ public class ApicurioRegistryApiClient {
 
         while (!timeout.timeoutExpired()) {
             if (isServiceAvailable()) {
-                return true;
+                break;
             }
 
             try {
@@ -133,16 +137,16 @@ public class ApicurioRegistryApiClient {
                 // Set request type and content
                 .POST(HttpRequest.BodyPublishers.ofString(content));
 
-        // Set header with token when provided
-        if (token != null) {
-            requestBuilder.header("Authorization", String.format("Bearer %s", token));
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
 
         // Check response status code
         if (response.statusCode() != httpStatus) {
@@ -172,16 +176,16 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .GET();
 
-        // Set header with token when provided
-        if (token != null) {
-            requestBuilder.header("Authorization", String.format("Bearer %s", token));
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", HttpStatus.SC_OK);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_OK) {
@@ -215,16 +219,16 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .DELETE();
 
-        // Set header with token when provided
-        if (token != null) {
-            requestBuilder.header("Authorization", String.format("Bearer %s", token));
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
 
         // Check response status code
         if (response.statusCode() != httpStatus) {
@@ -243,6 +247,10 @@ public class ApicurioRegistryApiClient {
     }
 
     public ArtifactList listArtifacts(int limit) {
+        return listArtifacts(limit, HttpStatus.SC_OK);
+    }
+
+    public ArtifactList listArtifacts(int limit, int httpStatus) {
         // Log information about current action
         LOGGER.info("Listing all artifacts.");
 
@@ -261,10 +269,8 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .GET();
 
-        // Set header with token when provided
-        if (token != null) {
-            requestBuilder.header("Authorization", String.format("Bearer %s", token));
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
@@ -272,8 +278,10 @@ public class ApicurioRegistryApiClient {
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_OK) {
+        if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
             return null;
@@ -282,19 +290,19 @@ public class ApicurioRegistryApiClient {
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
         try {
-            return MAPPER.readValue(response.body(), ArtifactList.class);
+            if (httpStatus == HttpStatus.SC_OK) {
+                return MAPPER.readValue(response.body(), ArtifactList.class);
+            } else {
+                return new ArtifactList();
+            }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
     public boolean checkUnauthorized() {
-        return checkUnauthorized(false);
-    }
-
-    public boolean checkUnauthorized(boolean setToken) {
         // Log information about current action
-        LOGGER.info("Trying unauthorized access with{} token...", setToken ? "" : "out");
+        LOGGER.info("Trying unauthorized access...");
 
         // Get request URI
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
@@ -306,17 +314,53 @@ public class ApicurioRegistryApiClient {
                 // Set request type
                 .GET();
 
-        // If we want to set fake token
-        if (setToken) {
-            // Set header with fake token
-            requestBuilder.header("Authorization", "Bearer thisShouldNotWork");
-        }
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
 
         // Build request
         HttpRequest request = requestBuilder.build();
 
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", HttpStatus.SC_UNAUTHORIZED);
+
+        // Check response status code
+        if (response.statusCode() != HttpStatus.SC_UNAUTHORIZED) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean checkUnauthorizedFake() {
+        // Log information about current action
+        LOGGER.info("Trying fake unauthorized access...");
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/search/artifacts", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with fake token
+        requestBuilder.header("Authorization", "Bearer thisShouldNotWork");
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", HttpStatus.SC_UNAUTHORIZED);
 
         // Check response status code
         if (response.statusCode() != HttpStatus.SC_UNAUTHORIZED) {
@@ -352,5 +396,29 @@ public class ApicurioRegistryApiClient {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public AuthMethod getAuthMethod() {
+        return authMethod;
+    }
+
+    public void setAuthMethod(AuthMethod authMethod) {
+        this.authMethod = authMethod;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

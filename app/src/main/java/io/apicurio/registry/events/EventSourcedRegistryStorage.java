@@ -195,7 +195,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
 
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
-        super.updateArtifactOwner(groupId, artifactId, owner);
+        delegate.updateArtifactOwner(groupId, artifactId, owner);
         //TODO consider a change ownership event
     }
 

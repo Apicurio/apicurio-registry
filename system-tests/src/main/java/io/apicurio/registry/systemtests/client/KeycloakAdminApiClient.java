@@ -69,6 +69,7 @@ public class KeycloakAdminApiClient {
         }
 
         LOGGER.error("API client secret was not found.");
+
         return null;
     }
 

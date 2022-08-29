@@ -87,7 +87,6 @@ public class generateAllConfigPartial {
             String df = defaultValue == null || defaultValue.trim().isEmpty() ?  "" :  "`" + defaultValue + "`";
             String af = availableSince == null || availableSince.trim().isEmpty() ?  "" :  "`" + availableSince + "`";
             return  "|`" + name +  "`\n" +
-                    "|`" + category + "`\n" +
                     "|`" + type + "`\n" +
                     "|" + df + "\n" +
                     "|" + af + "\n" +
@@ -256,18 +255,45 @@ public class generateAllConfigPartial {
 
             dest.write(template);
 
-            for (var config: allConfiguration.values().stream().sorted((o1, o2) -> {
-            var cat = o1.getCategory().compareTo(o2.getCategory());
-                if (cat != 0) {
-                    return cat;
-                } else {
-                    return o1.getName().compareTo(o2.getName());
+            var categories = new HashSet<String>();
+            categories.addAll(allConfiguration.values().stream().map(c -> c.getCategory()).collect(Collectors.toList()));
+            
+            for (var category: categories.stream().sorted().collect(Collectors.toList())) {
+
+                dest.write("== Category `" + category + "`:\n");
+
+                dest.write(".Category `" + category + "` configuration options\n");
+                dest.write("[.table-expandable,width=\"100%\",cols=\"5,2,5,3,4\",options=\"header\"]\n");
+                dest.write("|===\n");
+                dest.write("|Name\n");
+                dest.write("|Type\n");
+                dest.write("|Default\n");
+                dest.write("|Available from\n");
+                dest.write("|Description\n");
+
+                for (var config: allConfiguration
+                    .values()
+                    .stream()
+                    .filter(c -> c.getCategory().equals(category))
+                    .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).collect(Collectors.toList())) {
+                    dest.write(config.toAdoc());
                 }
-            }).collect(Collectors.toList())) {
-                dest.write(config.toAdoc());
+
+                dest.write("|===\n\n");
             }
 
-            dest.write("|===\n");
+            // for (var config: allConfiguration.values().stream().sorted((o1, o2) -> {
+            // var cat = o1.getCategory().compareTo(o2.getCategory());
+            //     if (cat != 0) {
+            //         return cat;
+            //     } else {
+            //         return o1.getName().compareTo(o2.getName());
+            //     }
+            // }).collect(Collectors.toList())) {
+            //     dest.write(config.toAdoc());
+            // }
+
+            // dest.write("|===\n");
         }
     }
 }

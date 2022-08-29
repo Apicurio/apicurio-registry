@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DeploymentUtils {
 
@@ -40,28 +38,6 @@ public class DeploymentUtils {
                 .filter(ev -> ev.getName().equals(envVarName))
                 .findFirst()
                 .orElse(null);
-    }
-
-    public static List<EnvVar> getDeploymentEnvVars(Deployment deployment) {
-        return deployment
-                .getSpec()
-                .getTemplate()
-                .getSpec()
-                .getContainers()
-                .get(0)
-                .getEnv();
-    }
-
-    public static List<EnvVar> cloneDeploymentEnvVars(Deployment deployment) {
-        List<EnvVar> clonedEnvVars = new ArrayList<>();
-
-        for (EnvVar ev : getDeploymentEnvVars(deployment)) {
-            clonedEnvVars.add(new EnvVar(ev.getName(), ev.getValue(), ev.getValueFrom()) {{
-                setAdditionalProperties(ev.getAdditionalProperties());
-            }});
-        }
-
-        return clonedEnvVars;
     }
 
     public static void addDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
@@ -134,14 +110,15 @@ public class DeploymentUtils {
         Kubernetes.createOrReplaceDeployment(deploymentNamespace, deployment);
 
         // Wait for deployment readiness
-        waitDeploymentReady(deploymentNamespace, deploymentName);
+        Assertions.assertTrue(waitDeploymentReady(deploymentNamespace, deploymentName));
 
         // Get deployment
         deployment = Kubernetes.getDeployment(deploymentNamespace, deploymentName);
 
         // Check value of environment variable
-        Assertions.assertTrue(
-                getDeploymentEnvVar(deployment, envVar.getName()).getValue().equals(envVar.getValue()),
+        Assertions.assertEquals(
+                getDeploymentEnvVar(deployment, envVar.getName()).getValue(),
+                envVar.getValue(),
                 MessageFormat.format(
                         "Environment variable {0} of deployment {1} was NOT set to {2}.",
                         envVar.getName(),
@@ -149,25 +126,5 @@ public class DeploymentUtils {
                         envVar.getValue()
                 )
         );
-    }
-
-    public static void setDeploymentEnvVars(Deployment deployment, List<EnvVar> envVars) {
-        // Log information about current action
-        LOGGER.info("Setting environment variables of deployment {}: {}", deployment.getMetadata().getName(), envVars);
-
-        // Set deployment environment variables
-        deployment
-                .getSpec()
-                .getTemplate()
-                .getSpec()
-                .getContainers()
-                .get(0)
-                .setEnv(envVars);
-
-        // Update deployment
-        Kubernetes.createOrReplaceDeployment(deployment.getMetadata().getNamespace(), deployment);
-
-        // Wait for deployment readiness
-        waitDeploymentReady(deployment.getMetadata().getNamespace(), deployment.getMetadata().getName());
     }
 }

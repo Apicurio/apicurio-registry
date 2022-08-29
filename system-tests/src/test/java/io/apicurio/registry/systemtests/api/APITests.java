@@ -8,86 +8,76 @@ import io.apicurio.registry.systemtests.client.ArtifactType;
 import io.apicurio.registry.systemtests.client.AuthMethod;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
-import io.apicurio.registry.systemtests.framework.LoggerUtils;
-import org.junit.jupiter.api.Assertions;
+import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
+import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.Logger;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class APITests extends TestBase {
-    protected static Logger LOGGER = LoggerUtils.getLogger();
+    /* TEST RUNNERS */
 
-    public static void run(ApicurioRegistry apicurioRegistry) {
-        run(apicurioRegistry, null, null, false);
+    protected void runCreateReadDeleteTest(
+            ExtensionContext testContext,
+            PersistenceKind persistenceKind,
+            KafkaKind kafkaKind,
+            boolean useKeycloak
+    ) {
+        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
+
+        if (useKeycloak) {
+            CreateReadDelete.testCreateReadDelete(registry, "registry-admin", "changeme", true);
+
+            KeycloakUtils.removeKeycloak();
+        } else {
+            CreateReadDelete.testCreateReadDelete(registry, null, null, false);
+        }
     }
 
-    public static void run(ApicurioRegistry apicurioRegistry, String username, String password, boolean useToken) {
-        LOGGER.info("Running API tests...");
+    /* TESTS - PostgreSQL */
 
-        // Wait for readiness of Apicurio Registry hostname
-        // Prepare necessary variables
-        String artifactGroupId = "registry-test-group";
-        String artifactId = "registry-test-id";
-        String artifactContent = ArtifactContent.DEFAULT_AVRO;
-        String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
+    @Test
+    public void testRegistrySqlNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, false);
+    }
 
-        // Log hostname for API tests
-        LOGGER.info("Hostname: {}", hostname);
+    @Test
+    public void testRegistrySqlKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, true);
+    }
 
-        // Get API client
-        ApicurioRegistryApiClient client = new ApicurioRegistryApiClient(hostname);
+    /* TESTS - KafkaSQL */
 
-        // If we want to use access token
-        if (useToken) {
-            // Update API client with token
-            client.setToken(KeycloakUtils.getAccessToken(apicurioRegistry, username, password));
-            // Set authentication method
-            client.setAuthMethod(AuthMethod.TOKEN);
-        }
+    @Test
+    public void testRegistryKafkasqlNoAuthNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
+    }
 
-        // Wait for readiness of API
-        Assertions.assertTrue(client.waitServiceAvailable());
+    @Test
+    public void testRegistryKafkasqlNoAuthKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
+    }
 
-        // List artifacts
-        LOGGER.info("Listing artifacts...");
-        ArtifactList artifactList = client.listArtifacts();
-        Assertions.assertNotNull(artifactList);
-        artifactList.printArtifactList(LOGGER);
-        // Check that artifact does not exist yet
-        Assertions.assertFalse(artifactList.contains(artifactGroupId, artifactId));
+    @Test
+    public void testRegistryKafkasqlTLSNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
+    }
 
-        // Create artifact
-        LOGGER.info("Creating artifact...");
-        Assertions.assertTrue(client.createArtifact(artifactGroupId, artifactId, ArtifactType.AVRO, artifactContent));
+    @Test
+    public void testRegistryKafkasqlTLSKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
+    }
 
-        // List artifacts
-        LOGGER.info("Listing artifacts...");
-        artifactList = client.listArtifacts();
-        Assertions.assertNotNull(artifactList);
-        artifactList.printArtifactList(LOGGER);
-        // Check creation of artifact
-        Assertions.assertTrue(artifactList.contains(artifactGroupId, artifactId));
-        Assertions.assertEquals(client.readArtifactContent(artifactGroupId, artifactId), artifactContent);
+    @Test
+    public void testRegistryKafkasqlSCRAMNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
+    }
 
-        // Delete artifact
-        LOGGER.info("Deleting artifact...");
-        Assertions.assertTrue(client.deleteArtifact(artifactGroupId, artifactId));
-
-        // List artifacts
-        LOGGER.info("Listing artifacts...");
-        artifactList = client.listArtifacts();
-        Assertions.assertNotNull(artifactList);
-        artifactList.printArtifactList(LOGGER);
-        // Check deletion of artifact
-        Assertions.assertFalse(artifactList.contains(artifactGroupId, artifactId));
-
-        // If we use token
-        if (useToken) {
-            // Check unauthorized API call
-            LOGGER.info("Checking unauthorized API call...");
-            Assertions.assertTrue(client.checkUnauthorizedFake());
-        }
+    @Test
+    public void testRegistryKafkasqlSCRAMKeycloakCreateReadDelete(ExtensionContext testContext) {
+        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
 }

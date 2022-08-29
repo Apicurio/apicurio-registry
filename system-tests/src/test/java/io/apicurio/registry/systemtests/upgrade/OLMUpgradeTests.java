@@ -50,7 +50,7 @@ public class OLMUpgradeTests extends TestBase {
         ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, false);
 
         // Run basic API tests
-        APITests.run(apicurioRegistry);
+        CreateReadDelete.testCreateReadDelete(apicurioRegistry);
 
         // CREATE ARTIFACTS TO CHECK REGISTRY OPERABILITY AFTER UPGRADE
         // Get registry hostname
@@ -93,7 +93,7 @@ public class OLMUpgradeTests extends TestBase {
         ApicurioRegistryUtils.waitApicurioRegistryReady(apicurioRegistry);
 
         // Run basic API tests
-        APITests.run(apicurioRegistry);
+        CreateReadDelete.testCreateReadDelete(apicurioRegistry);
 
         // CHECK PRESENCE OF ARTIFACTS AFTER UPGRADE
         // Get list of artifacts

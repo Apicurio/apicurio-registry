@@ -22,11 +22,13 @@ public class AnonymousReadAccess {
     ) {
         /* RUN PRE-TEST ACTIONS */
 
-        // INITIALIZE API CLIENTS
+        // GET REGISTRY HOSTNAME
         // Wait for readiness of registry hostname
         Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
         // Get registry hostname
         String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
+
+        // GET CONTROL API CLIENT
         // Create control API client for setup of registry before test
         ApicurioRegistryApiClient controlClient = new ApicurioRegistryApiClient(hostname);
         // If access token is needed for control API client
@@ -38,6 +40,8 @@ public class AnonymousReadAccess {
         }
         // Wait for API availability
         Assertions.assertTrue(controlClient.waitServiceAvailable());
+
+        // GET TEST API CLIENT
         // Create test API client for test actions
         ApicurioRegistryApiClient testClient = new ApicurioRegistryApiClient(hostname);
 

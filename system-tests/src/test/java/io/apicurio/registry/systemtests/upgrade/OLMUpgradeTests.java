@@ -1,6 +1,8 @@
-package io.apicurio.registry.systemtests;
+package io.apicurio.registry.systemtests.upgrade;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicurio.registry.systemtests.TestBase;
+import io.apicurio.registry.systemtests.api.APITests;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactList;
@@ -10,7 +12,6 @@ import io.apicurio.registry.systemtests.framework.DatabaseUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -23,15 +24,6 @@ public class OLMUpgradeTests extends TestBase {
     @Override
     public void setupTestClass() {
         LOGGER = LoggerUtils.getLogger();
-    }
-
-    @AfterEach
-    public void testAfterEach(ExtensionContext testContext) {
-        LOGGER.info("AfterEach: " + testContext.getDisplayName());
-
-        resourceManager.deleteResources(testContext);
-
-        operatorManager.uninstallOperators(testContext);
     }
 
     public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) {

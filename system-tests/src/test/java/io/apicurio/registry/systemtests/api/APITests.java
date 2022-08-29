@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtests;
+package io.apicurio.registry.systemtests.api;
 
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
@@ -87,7 +87,7 @@ public abstract class APITests extends TestBase {
         if (useToken) {
             // Check unauthorized API call
             LOGGER.info("Checking unauthorized API call...");
-            Assertions.assertTrue(client.checkUnauthorized(true));
+            Assertions.assertTrue(client.checkUnauthorizedFake());
         }
     }
 }

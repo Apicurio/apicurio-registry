@@ -20,7 +20,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -186,9 +185,9 @@ public class KeycloakUtils {
         // Get secret with Keycloak admin credentials
         Secret secret = Kubernetes.getSecret(Constants.TESTSUITE_NAMESPACE, "credential-" + Constants.SSO_NAME);
         // Get Keycloak admin username
-        String username = new String(Base64.getDecoder().decode(secret.getData().get("ADMIN_USERNAME")));
+        String username = Base64Utils.decode(secret.getData().get("ADMIN_USERNAME"));
         // Get Keycloak admin password
-        String password = new String(Base64.getDecoder().decode(secret.getData().get("ADMIN_PASSWORD")));
+        String password = Base64Utils.decode(secret.getData().get("ADMIN_PASSWORD"));
         // Get Keycloak admin URL
         String url = getKeycloakURL(Constants.TESTSUITE_NAMESPACE, "keycloak", true);
         // Construct token API URI of admin Keycloak Realm

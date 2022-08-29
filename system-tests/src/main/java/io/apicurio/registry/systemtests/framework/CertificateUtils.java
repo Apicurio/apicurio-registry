@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,26 +67,8 @@ public class CertificateUtils {
         );
     }
 
-    private static String encode(Path path) {
-        try {
-            return Base64.getEncoder().encodeToString(Files.readAllBytes(path));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static String encode(String data) {
-        return Base64.getEncoder().encodeToString(data.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String decode(String data) {
-        return new String(
-                Base64.getDecoder().decode(data)
-        );
-    }
-
     private static String decodeBase64Secret(String namespace, String name, String key) {
-        return decode(Kubernetes.getSecretValue(namespace, name, key));
+        return Base64Utils.decode(Kubernetes.getSecretValue(namespace, name, key));
     }
 
     private static void writeToFile(String data, Path path) {
@@ -132,8 +113,8 @@ public class CertificateUtils {
         runTruststoreCmd(truststorePath, truststorePassword, caPath);
 
         Map<String, String> secretData = new HashMap<>() {{
-            put("ca.p12", encode(truststorePath));
-            put("ca.password", encode(truststorePassword));
+            put("ca.p12", Base64Utils.encode(truststorePath));
+            put("ca.password", Base64Utils.encode(truststorePassword));
         }};
 
         createSecret(testContext, namespace, truststoreSecretName, secretData);
@@ -163,8 +144,8 @@ public class CertificateUtils {
         runKeystoreCmd(keystorePath, keystorePassword, userCertPath, userKeyPath, hostname);
 
         Map<String, String> secretData = new HashMap<>() {{
-            put("user.p12", encode(keystorePath));
-            put("user.password", encode(keystorePassword));
+            put("user.p12", Base64Utils.encode(keystorePath));
+            put("user.password", Base64Utils.encode(keystorePassword));
         }};
 
         createSecret(testContext, namespace, keystoreSecretName, secretData);

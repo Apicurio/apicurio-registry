@@ -10,9 +10,13 @@ import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 
-public class APITests {
+@Disabled
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public abstract class APITests extends TestBase {
     protected static Logger LOGGER = LoggerUtils.getLogger();
 
     public static void run(ApicurioRegistry apicurioRegistry) {

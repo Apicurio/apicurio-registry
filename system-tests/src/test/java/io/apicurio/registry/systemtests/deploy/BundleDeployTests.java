@@ -3,10 +3,8 @@ package io.apicurio.registry.systemtests;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryBundleOperatorType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-@Disabled
 public class BundleDeployTests extends DeployTests {
     @Override
     public void setupTestClass() {

@@ -1,5 +1,6 @@
 /*
- * Copyright 2021 Red Hat
+ * Copyright 2020 Red Hat
+ * Copyright 2020 IBM
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +15,36 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth;
+package io.apicurio.registry.storage.dto;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.*;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public enum AuthorizedLevel {
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
+@RegisterForReflection
+public class ArtifactOwnerDto {
 
-    None, Read, Write, Admin, AdminOrOwner
+    private String owner;
+
+    /**
+     * @return the owner
+     */
+    public String getOwner() {
+        return owner;
+    }
+
+    /**
+     * @param Owner the owner to set
+     */
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
 
 }

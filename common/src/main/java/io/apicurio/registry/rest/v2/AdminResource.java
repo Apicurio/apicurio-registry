@@ -168,11 +168,11 @@ public interface AdminResource {
       InputStream data);
 
   /**
-   * Gets the details of a single role mapping (by principalId).
+   * Gets the details of a single role mapping (by `principalId`).
    *
    * This operation can fail for the following reasons:
    *
-   * * No role mapping for the principalId exists (HTTP error `404`)
+   * * No role mapping for the `principalId` exists (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    *
    */

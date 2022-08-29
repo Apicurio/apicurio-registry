@@ -42,6 +42,7 @@ import javax.transaction.Transactional;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.utils.impexp.EntityType;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1350,6 +1351,38 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         ArtifactMetaDataDto dto = this.getLatestArtifactMetaDataInternal(groupId, artifactId);
 
         internalUpdateArtifactVersionMetadata(dto.getGlobalId(), groupId, artifactId, dto.getVersion(), metaData);
+    }
+
+    /**
+     * @see RegistryStorage#updateArtifactOwner(String, String, ArtifactOwnerDto)
+     */
+    @Override @Transactional
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Updating ownership of an artifact: {} {}", groupId, artifactId);
+
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactOwner();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, owner.getOwner())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId)
+                        .execute();
+                if (rowCount == 0) {
+                    if (!isArtifactExists(groupId, artifactId)) {
+                        throw new ArtifactNotFoundException(groupId, artifactId);
+                    }
+                    // Likely someone tried to set the owner to the same value.  That is
+                    // not an error.  No need to throw.
+                }
+                return null;
+            });
+        } catch (StorageException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**

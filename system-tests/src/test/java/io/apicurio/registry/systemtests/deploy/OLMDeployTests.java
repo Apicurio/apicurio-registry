@@ -1,4 +1,4 @@
-package io.apicurio.registry.systemtests;
+package io.apicurio.registry.systemtests.deploy;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;

@@ -7,9 +7,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.json.JSONArray;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
@@ -18,8 +16,6 @@ public class KeycloakAdminApiClient {
     private String host;
     private int port;
     private String token;
-    private String username;
-    private String password;
 
     public KeycloakAdminApiClient(String host) {
         this.host = host;
@@ -31,11 +27,22 @@ public class KeycloakAdminApiClient {
         this.port = port;
     }
 
-    public String getApiClientSecret() throws IOException, InterruptedException {
+    public KeycloakAdminApiClient(String host, String token) {
+        this.host = host;
+        this.token = token;
+    }
+
+    public KeycloakAdminApiClient(String host, int port, String token) {
+        this.host = host;
+        this.port = port;
+        this.token = token;
+    }
+
+    public String getApiClientSecret() {
         return getApiClientSecret(Constants.SSO_TEST_CLIENT_API);
     }
 
-    public String getApiClientSecret(String clientId) throws IOException, InterruptedException {
+    public String getApiClientSecret(String clientId) {
         URI clientsRequestUrl = HttpClientUtils.buildURI(
                 "%s/admin/realms/%s/clients", host, Constants.SSO_REALM
         );
@@ -46,12 +53,7 @@ public class KeycloakAdminApiClient {
                 .GET()
                 .build();
 
-        // Process request
-        HttpClient httpClient = HttpClient.newBuilder()
-                .sslContext(HttpClientUtils.getInsecureContext())
-                .build();
-
-        HttpResponse<String> clientsResponse = httpClient.send(clientsRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> clientsResponse = HttpClientUtils.processRequest(clientsRequest);
 
         // Check response status code
         if (clientsResponse.statusCode() != HttpStatus.SC_OK) {
@@ -95,21 +97,5 @@ public class KeycloakAdminApiClient {
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }

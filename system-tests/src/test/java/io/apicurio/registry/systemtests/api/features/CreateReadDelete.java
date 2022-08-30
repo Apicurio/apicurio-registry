@@ -15,7 +15,12 @@ public class CreateReadDelete {
         testCreateReadDelete(apicurioRegistry, null, null, false);
     }
 
-    public static void testCreateReadDelete(ApicurioRegistry apicurioRegistry, String username, String password, boolean useToken) {
+    public static void testCreateReadDelete(
+            ApicurioRegistry apicurioRegistry,
+            String username,
+            String password,
+            boolean useToken
+    ) {
         // Wait for readiness of Apicurio Registry hostname
         Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
 

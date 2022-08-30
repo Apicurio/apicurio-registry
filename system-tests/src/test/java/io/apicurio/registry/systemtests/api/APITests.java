@@ -36,7 +36,7 @@ public abstract class APITests extends TestBase {
     /* TESTS - PostgreSQL */
 
     @Test
-    public void testRegistrySqlNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+    public void testRegistrySqlNoIAMCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, false);
     }
 
@@ -48,7 +48,7 @@ public abstract class APITests extends TestBase {
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthNoIAMCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
@@ -58,7 +58,7 @@ public abstract class APITests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSNoIAMCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
@@ -68,7 +68,7 @@ public abstract class APITests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoKeycloakCreateReadDelete(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMNoIAMCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 

@@ -49,7 +49,7 @@ public abstract class AuthTests extends TestBase {
     /* TESTS - PostgreSQL */
 
     @Test
-    public void testRegistrySqlNoKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistrySqlNoIAMAnonymousReadAccess(ExtensionContext testContext) {
         runAnonymousReadAccessTest(testContext, PersistenceKind.SQL, null, false);
     }
 
@@ -66,7 +66,7 @@ public abstract class AuthTests extends TestBase {
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthNoIAMAnonymousReadAccess(ExtensionContext testContext) {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
@@ -76,7 +76,7 @@ public abstract class AuthTests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSNoIAMAnonymousReadAccess(ExtensionContext testContext) {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
@@ -86,7 +86,7 @@ public abstract class AuthTests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMNoIAMAnonymousReadAccess(ExtensionContext testContext) {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 

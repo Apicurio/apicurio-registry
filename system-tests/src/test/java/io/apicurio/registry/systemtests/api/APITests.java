@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.api;
 
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.TestBase;
+import io.apicurio.registry.systemtests.api.features.CreateArtifact;
 import io.apicurio.registry.systemtests.api.features.CreateReadDelete;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
@@ -32,6 +33,23 @@ public abstract class APITests extends TestBase {
             CreateReadDelete.testCreateReadDelete(registry, null, null, false);
         }
     }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    protected void runCreateArtifactTest(
+            ExtensionContext testContext,
+            PersistenceKind persistenceKind,
+            KafkaKind kafkaKind,
+            boolean useKeycloak
+    ) {
+        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
+
+        if (useKeycloak) {
+            CreateArtifact.testCreateArtifact(registry, "registry-admin", "changeme", true);
+
+            KeycloakUtils.removeKeycloak();
+        } else {
+            CreateArtifact.testCreateArtifact(registry, null, null, false);
+        }
+    }
 
     /* TESTS - PostgreSQL */
 
@@ -43,6 +61,16 @@ public abstract class APITests extends TestBase {
     @Test
     public void testRegistrySqlKeycloakCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, true);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistrySqlNoIAMCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.SQL, null, false);
+    }
+
+    @Test
+    public void testRegistrySqlKeycloakCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.SQL, null, true);
     }
 
     /* TESTS - KafkaSQL */
@@ -75,5 +103,35 @@ public abstract class APITests extends TestBase {
     @Test
     public void testRegistryKafkasqlSCRAMKeycloakCreateReadDelete(ExtensionContext testContext) {
         runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistryKafkasqlNoAuthNoIAMCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
+    }
+
+    @Test
+    public void testRegistryKafkasqlNoAuthKeycloakCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
+    }
+
+    @Test
+    public void testRegistryKafkasqlTLSNoIAMCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
+    }
+
+    @Test
+    public void testRegistryKafkasqlTLSKeycloakCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
+    }
+
+    @Test
+    public void testRegistryKafkasqlSCRAMNoIAMCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
+    }
+
+    @Test
+    public void testRegistryKafkasqlSCRAMKeycloakCreateArtifact(ExtensionContext testContext) {
+        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
 }

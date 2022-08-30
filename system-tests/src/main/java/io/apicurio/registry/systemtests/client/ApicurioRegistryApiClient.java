@@ -301,6 +301,10 @@ public class ApicurioRegistryApiClient {
     }
 
     public boolean checkUnauthorized() {
+        return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    public boolean checkUnauthorized(int httpStatus) {
         // Log information about current action
         LOGGER.info("Trying unauthorized access...");
 
@@ -323,10 +327,10 @@ public class ApicurioRegistryApiClient {
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
-        LOGGER.info("Expected status code: {}.", HttpStatus.SC_UNAUTHORIZED);
+        LOGGER.info("Expected status code: {}.", httpStatus);
 
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_UNAUTHORIZED) {
+        if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
             return false;

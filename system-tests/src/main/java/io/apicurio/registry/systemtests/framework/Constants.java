@@ -10,13 +10,15 @@ public class Constants {
     public static final String REGISTRY_OPERATOR_DEPLOYMENT = "apicurio-registry-operator"; // Default from catalog
     public static final String REGISTRY = "registry";
     public static final String SSO_ADMIN_CLIENT_ID = "admin-cli";
-    public static final String SSO_CLIENT_API = "registry-client-api"; // Defined in kubefiles/keycloak
-    public static final String SSO_CLIENT_UI = "registry-client-ui"; // Defined in kubefiles/keycloak
+    public static final String SSO_ADMIN_USER = "registry-admin"; // Defined in kubefiles/keycloak-realm.yaml
+    public static final String SSO_CLIENT_API = "registry-client-api"; // Defined in kubefiles/keycloak-realm.yaml
+    public static final String SSO_CLIENT_UI = "registry-client-ui"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_HTTP_SERVICE = "sso-http";
-    public static final String SSO_NAME = "registry-sso"; // Defined in kubefiles/keycloak
-    public static final String SSO_REALM = "registry"; // Defined in kubefiles/keycloak
-    public static final String SSO_REALM_ADMIN = "master"; // Defined in kubefiles/keycloak
-    public static final String SSO_TEST_CLIENT_API = "test-client-api"; // Defined in kubefiles/keycloak
+    public static final String SSO_NAME = "registry-sso"; // Defined in kubefiles/keycloak.yaml
+    public static final String SSO_REALM = "registry"; // Defined in kubefiles/keycloak-realm.yaml
+    public static final String SSO_REALM_ADMIN = "master"; // Default Keycloak admin realm name
+    public static final String SSO_TEST_CLIENT_API = "test-client-api"; // Defined in kubefiles/keycloak-realm.yaml
+    public static final String SSO_USER_PASSWORD = "changeme"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String TESTSUITE_NAMESPACE = "testsuite-namespace";
 
     // TODO: Move other constants here too?

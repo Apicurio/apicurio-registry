@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.TestBase;
 import io.apicurio.registry.systemtests.auth.features.AnonymousReadAccess;
 import io.apicurio.registry.systemtests.auth.features.BasicAuthentication;
+import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
@@ -26,7 +27,12 @@ public abstract class AuthTests extends TestBase {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
-            AnonymousReadAccess.testAnonymousReadAccess(registry, "registry-admin", "changeme", true);
+            AnonymousReadAccess.testAnonymousReadAccess(
+                    registry,
+                    Constants.SSO_ADMIN_USER,
+                    Constants.SSO_USER_PASSWORD,
+                    true
+            );
 
             KeycloakUtils.removeKeycloak();
         } else {
@@ -41,7 +47,7 @@ public abstract class AuthTests extends TestBase {
     ) {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
-        BasicAuthentication.testBasicAuthentication(registry, "registry-admin", "changeme");
+        BasicAuthentication.testBasicAuthentication(registry, Constants.SSO_ADMIN_USER, Constants.SSO_USER_PASSWORD);
 
         KeycloakUtils.removeKeycloak();
     }

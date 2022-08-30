@@ -29,7 +29,7 @@ public abstract class APITests extends TestBase {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
-            CreateReadDelete.testCreateReadDelete(registry, "registry-admin", "changeme", true);
+            CreateReadDelete.testCreateReadDelete(registry, Constants.SSO_ADMIN_USER, Constants.SSO_USER_PASSWORD, true);
 
             KeycloakUtils.removeKeycloak();
         } else {
@@ -46,7 +46,7 @@ public abstract class APITests extends TestBase {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
-            CreateArtifact.testCreateArtifact(registry, "registry-admin", "changeme", true);
+            CreateArtifact.testCreateArtifact(registry, Constants.SSO_ADMIN_USER, Constants.SSO_USER_PASSWORD, true);
 
             KeycloakUtils.removeKeycloak();
         } else {

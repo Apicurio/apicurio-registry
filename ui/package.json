@@ -12,7 +12,7 @@
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
     "start": "webpack serve --hot --color --progress --config webpack.dev.js",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint --ext=.ts ./src"
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.2.0",

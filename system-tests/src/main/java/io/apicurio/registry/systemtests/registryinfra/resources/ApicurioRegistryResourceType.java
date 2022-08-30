@@ -17,7 +17,7 @@ import java.time.Duration;
 public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegistry> {
     @Override
     public Duration getTimeout() {
-        return Duration.ofMinutes(3);
+        return Duration.ofMinutes(10);
     }
 
     @Override

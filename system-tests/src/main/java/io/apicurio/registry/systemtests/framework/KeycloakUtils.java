@@ -10,7 +10,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceTyp
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;

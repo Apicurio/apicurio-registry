@@ -2,7 +2,6 @@ package io.apicurio.registry.systemtests.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.HttpClientUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;

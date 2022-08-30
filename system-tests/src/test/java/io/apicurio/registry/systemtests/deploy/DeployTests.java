@@ -30,7 +30,7 @@ public abstract class DeployTests extends TestBase {
     /* TESTS - PostgreSQL */
 
     @Test
-    public void testRegistrySqlNoKeycloak(ExtensionContext testContext) {
+    public void testRegistrySqlNoIAM(ExtensionContext testContext) {
         runTest(testContext, PersistenceKind.SQL, null, false);
     }
 
@@ -42,7 +42,7 @@ public abstract class DeployTests extends TestBase {
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthNoIAM(ExtensionContext testContext) {
         runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
@@ -52,7 +52,7 @@ public abstract class DeployTests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoKeycloak(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSNoIAM(ExtensionContext testContext) {
         runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
@@ -62,7 +62,7 @@ public abstract class DeployTests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMNoIAM(ExtensionContext testContext) {
         runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 

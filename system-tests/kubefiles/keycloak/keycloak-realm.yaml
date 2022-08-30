@@ -70,3 +70,10 @@ spec:
         realmRoles:
           - sr-readonly
         username: registry-user
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles: []
+        username: registry-no-role-user

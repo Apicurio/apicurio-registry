@@ -199,6 +199,49 @@ public class ApicurioRegistryApiClient {
         return response.body();
     }
 
+    public boolean updateArtifact(String groupId, String id, String newContent) {
+        return updateArtifact(groupId, id, newContent, HttpStatus.SC_OK);
+    }
+
+    public boolean updateArtifact(String groupId, String id, String newContent, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Updating artifact: groupId={}, id={}.", groupId, id);
+
+        // Get request URL
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s", host, port, groupId, id
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type and data
+                .PUT(HttpRequest.BodyPublishers.ofString(newContent));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
     public boolean deleteArtifact(String group, String id) {
         return deleteArtifact(group, id, HttpStatus.SC_NO_CONTENT);
     }

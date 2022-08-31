@@ -205,7 +205,7 @@ public class ResourceManager {
         }
 
         Assertions.assertTrue(
-                waitResourceCondition(resource, type::doesNotExist, TimeoutBudget.ofDuration(Duration.ofMinutes(3))),
+                waitResourceCondition(resource, type::doesNotExist, TimeoutBudget.ofDuration(Duration.ofMinutes(10))),
                 MessageFormat.format("Timed out waiting for resource {0} to be deleted.", resourceInfo)
         );
 

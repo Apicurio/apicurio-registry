@@ -134,7 +134,7 @@ public class OperatorManager {
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {
-        return waitOperatorReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(7)));
+        return waitOperatorReady(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(15)));
     }
 
     public boolean waitOperatorReady(OperatorType operatorType, TimeoutBudget timeoutBudget) {

@@ -27,6 +27,8 @@ export interface IfAuthProps extends PureComponentProps {
     isAuthenticated?: boolean;
     isAdmin?: boolean;
     isDeveloper?: boolean;
+    isOwner?: boolean;
+    isAdminOrOwner?: boolean;
     owner?: string;
     children?: React.ReactNode;
 }
@@ -75,6 +77,19 @@ export class IfAuth extends PureComponent<IfAuthProps, IfAuthState> {
         }
         if (this.props.isDeveloper !== undefined) {
             rval = rval && (auth.isUserDeveloper(this.props.owner) === this.props.isDeveloper);
+        }
+        if (this.props.isOwner !== undefined && this.props.owner) {
+            if (this.props.isOwner) {
+                rval = rval && (auth.isUserId(this.props.owner));
+            } else {
+                rval = rval && (!auth.isUserId(this.props.owner));
+            }
+        }
+        if (this.props.isAdminOrOwner === true && this.props.owner) {
+            rval = rval && (
+                auth.isUserAdmin() === true ||
+                auth.isUserId(this.props.owner)
+            );
         }
         return rval;
     }

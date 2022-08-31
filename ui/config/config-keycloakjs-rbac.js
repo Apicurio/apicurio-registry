@@ -14,7 +14,8 @@ var ApicurioRegistryConfig = {
             url: "https://studio-auth.apicur.io/auth",
             realm: "apicurio-local",
             clientId:"apicurio-registry",
-            onLoad: "login-required"
+            onLoad: "login-required",
+            checkLoginIframe: false
         }
     },
     features: {

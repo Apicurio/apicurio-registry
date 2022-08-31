@@ -201,7 +201,7 @@
         <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <apicurio-common-rest-client.version>0.1.12.Final</apicurio-common-rest-client.version>
-        <apicurio-common-app-components.version>0.1.11.Final</apicurio-common-app-components.version>
+        <apicurio-common-app-components.version>0.1.12.Final</apicurio-common-app-components.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.10.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
@@ -220,11 +220,11 @@
         <version.compiler.plugin>3.10.1</version.compiler.plugin>
         <version.deploy.plugin>3.0.0</version.deploy.plugin>
         <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
+        <version.javadoc.plugin>3.4.1</version.javadoc.plugin>
         <version.source.plugin>3.2.1</version.source.plugin>
         <version.surefire.plugin>2.22.2</version.surefire.plugin>
         <version.jar.plugin>3.2.2</version.jar.plugin>
-        <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
+        <version.checkstyle.plugin>3.2.0</version.checkstyle.plugin>
         <version.properties.plugin>1.1.0</version.properties.plugin>
         <version.dependency.plugin>3.3.0</version.dependency.plugin>
         <version.assembly.plugin>3.4.2</version.assembly.plugin>
@@ -243,7 +243,7 @@
         <test-containers.version>1.16.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
         <keycloak-admin-client.version>19.0.1</keycloak-admin-client.version>
-        <embedded-postgres.version>2.0.0</embedded-postgres.version>
+        <embedded-postgres.version>2.0.1</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.33.2</wiremock-jre8.version>
     </properties>

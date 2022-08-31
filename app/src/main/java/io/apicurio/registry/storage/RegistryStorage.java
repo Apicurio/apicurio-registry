@@ -28,6 +28,7 @@ import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.TenantContext;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -303,6 +304,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the owner (created-by) for an artifact by group and ID.
+     * @param groupId (optional)
+     * @param artifactId
+     * @param owner
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
      * Gets a list of rules configured for a specific Artifact (by group and ID).  This will return only the names of the
@@ -721,4 +732,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @return list of global ids of schemas that references artifact
      */
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version);
+
+    /**
+     *
+     * @param groupId
+     * @param artifactId
+     * @return true if an artifact version exists with the coordinates passed as parameters
+     * @throws RegistryStorageException
+     */
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException;
+
 }

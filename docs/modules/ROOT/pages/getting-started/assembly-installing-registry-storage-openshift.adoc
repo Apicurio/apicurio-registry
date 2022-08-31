@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="installing-registry-storage"]
+[id="installing-registry-storage_{context}"]
 = Installing {registry} storage on OpenShift
 
 [role="_abstract"]

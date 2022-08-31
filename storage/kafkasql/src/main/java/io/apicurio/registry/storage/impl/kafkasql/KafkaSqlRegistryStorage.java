@@ -37,8 +37,10 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -499,6 +501,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
+        if (version != null && sqlStore.isArtifactVersionExists(groupId, artifactId, version)) {
+            throw new VersionAlreadyExistsException(groupId, artifactId, version);
+        }
+
         String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -567,6 +573,18 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId, metaDataDto.getVersion(),
                 ActionType.UPDATE, metaDataDto.getState(), metaData));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactOwner(String, String, ArtifactOwnerDto)
+     */
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
+        ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId);
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1248,6 +1266,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
         return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactVersionExists(String, String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        return sqlStore.isArtifactVersionExists(groupId, artifactId, version);
     }
 
     protected void importEntity(Entity entity) throws RegistryStorageException {

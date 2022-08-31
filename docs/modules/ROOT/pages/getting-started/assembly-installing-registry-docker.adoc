@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="installing-the-registry-docker"]
+[id="installing-the-registry-docker_{context}"]
 = Installing {registry} using Docker
 
 [role="_abstract"]

@@ -319,6 +319,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "UPDATE rules SET configuration = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND type = ?";
     }
 
+    @Override
+    public String updateArtifactOwner() {
+        return "UPDATE artifacts SET createdBy = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactRule()
      */

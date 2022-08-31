@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -446,6 +447,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
                                    RuleConfigurationDto config)
         throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         delegate.updateArtifactRule(groupId, artifactId, rule, config);
+    }
+
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        delegate.updateArtifactOwner(groupId, artifactId, owner);
     }
 
     /**
@@ -953,6 +959,14 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return delegate.isArtifactExists(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactVersionExists(String, String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        return delegate.isArtifactVersionExists(groupId, artifactId, version);
     }
 
     /**

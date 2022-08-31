@@ -20,14 +20,12 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.UserInfo;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -48,8 +46,12 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Fabian Martinez
@@ -58,6 +60,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.DOCKER)
 public class SimpleAuthTest extends AbstractResourceTestBase {
+
+    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
     String authServerUrlConfigured;
@@ -238,4 +242,114 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
         clientAdmin.createArtifactRule(groupId, artifactId2, rule);
     }
+
+    @Test
+    public void testGetArtifactOwner() throws Exception {
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
+        RegistryClient client = createClient(auth);
+
+        //Preparation
+        final String groupId = "testGetArtifactOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "testGetArtifactOwnerName";
+        final String description = "testGetArtifactOwnerDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getCreatedBy());
+
+        //Get the artifact owner via the REST API and verify it
+        ArtifactOwner owner = client.getArtifactOwner(groupId, artifactId);
+        assertEquals("developer-client", owner.getOwner());
+    }
+
+    @Test
+    public void testUpdateArtifactOwner() throws Exception {
+        Auth auth = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
+        RegistryClient client = createClient(auth);
+
+        //Preparation
+        final String groupId = "testUpdateArtifactOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testUpdateArtifactOwnerName";
+        final String description = "testUpdateArtifactOwnerDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = client.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getCreatedBy());
+
+        //Get the artifact owner via the REST API and verify it
+        ArtifactOwner owner = client.getArtifactOwner(groupId, artifactId);
+        assertEquals("developer-client", owner.getOwner());
+
+        //Update the owner
+        owner = new ArtifactOwner();
+        owner.setOwner("developer-2-client");
+        client.updateArtifactOwner(groupId, artifactId, owner);
+
+        //Check that the update worked
+        owner = client.getArtifactOwner(groupId, artifactId);
+        assertEquals("developer-2-client", owner.getOwner());
+    }
+
+    @Test
+    public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
+        Auth auth_dev1 = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
+        RegistryClient client_dev1 = createClient(auth_dev1);
+        Auth auth_dev2 = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1");
+        RegistryClient client_dev2 = createClient(auth_dev2);
+
+        //Preparation
+        final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
+        final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
+
+        //Execution
+        final InputStream stream = IoUtil.toStream(ARTIFACT_CONTENT.getBytes(StandardCharsets.UTF_8));
+        final ArtifactMetaData created = client_dev1.createArtifact(groupId, artifactId, version, ArtifactType.JSON, IfExists.FAIL, false, name, description, stream);
+
+        //Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getCreatedBy());
+
+        //Get the artifact owner via the REST API and verify it
+        ArtifactOwner owner = client_dev1.getArtifactOwner(groupId, artifactId);
+        assertEquals("developer-client", owner.getOwner());
+
+        //Try to update the owner by dev2 (should fail)
+        assertThrows(ForbiddenException.class, () -> {
+            ArtifactOwner newOwner = new ArtifactOwner();
+            newOwner.setOwner("developer-2-client");
+            client_dev2.updateArtifactOwner(groupId, artifactId, newOwner);
+        });
+
+        //Should still be the original owner
+        owner = client_dev1.getArtifactOwner(groupId, artifactId);
+        assertEquals("developer-client", owner.getOwner());
+    }
+
 }

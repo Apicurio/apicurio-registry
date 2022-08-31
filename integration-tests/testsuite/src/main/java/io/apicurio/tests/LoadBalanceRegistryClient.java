@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +136,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
         return getTarget().getArtifactMetaData(groupId, artifactId);
     }
 
+    @Override
+    public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
+        return getTarget().getArtifactOwner(groupId, artifactId);
+    }
+
     /**
      * @param groupId
      * @param artifactId
@@ -144,6 +150,11 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         getTarget().updateArtifactMetaData(groupId, artifactId, data);
+    }
+
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner owner) {
+        getTarget().updateArtifactOwner(groupId, artifactId, owner);
     }
 
     /**

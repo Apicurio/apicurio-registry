@@ -73,6 +73,9 @@ public class MessageTypeToValueClass {
                 case ConfigProperty:
                     index.put(type, ConfigPropertyValue.class);
                     break;
+                case ArtifactOwner:
+                    index.put(type, ArtifactOwnerValue.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToValueClass] Type not mapped: " + type);
             }

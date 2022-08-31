@@ -2,7 +2,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 
-[id="migrating-the-registry"]
+[id="migrating-the-registry_{context}"]
 = Migrating an existing {registry} deployment 
 
 [role="_abstract"]

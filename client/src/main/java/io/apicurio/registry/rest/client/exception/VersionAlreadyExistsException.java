@@ -14,13 +14,19 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.auth;
+package io.apicurio.registry.rest.client.exception;
+
+
+import io.apicurio.registry.rest.v2.beans.Error;
 
 /**
- * @author eric.wittmann@gmail.com
+ * @author Miroslav Safar 'msafar@redhat.com'
  */
-public enum AuthorizedLevel {
+public class VersionAlreadyExistsException extends ConflictException {
 
-    None, Read, Write, Admin, AdminOrOwner
+    private static final long serialVersionUID = 1L;
 
+    public VersionAlreadyExistsException(Error error) {
+        super(error);
+    }
 }

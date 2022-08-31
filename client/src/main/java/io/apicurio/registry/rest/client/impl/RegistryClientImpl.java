@@ -27,24 +27,8 @@ import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.beans.Error;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.UserInfo;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
@@ -99,9 +83,23 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactOwner(normalizeGid(groupId), artifactId));
+    }
+
+    @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         try {
             apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw new RestClientException(new Error());
+        }
+    }
+
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner owner) {
+        try {
+            apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactOwner(normalizeGid(groupId), artifactId, owner));
         } catch (JsonProcessingException e) {
             throw new RestClientException(new Error());
         }
@@ -243,6 +241,9 @@ public class RegistryClientImpl implements RegistryClient {
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
             queryParams.put(Parameters.CANONICAL, Collections.singletonList(String.valueOf(canonical)));
+        }
+        if (ifExists != null) {
+            queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
 
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));

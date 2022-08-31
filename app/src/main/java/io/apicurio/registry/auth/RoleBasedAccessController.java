@@ -24,10 +24,7 @@ import javax.interceptor.InvocationContext;
  * @author eric.wittmann@gmail.com
  */
 @Singleton
-public class RoleBasedAccessController implements IAccessController {
-
-    @Inject
-    AuthConfig authConfig;
+public class RoleBasedAccessController extends AbstractAccessController {
 
     @Inject
     StorageRoleProvider storageRoleProvider;
@@ -52,6 +49,8 @@ public class RoleBasedAccessController implements IAccessController {
                 return isReadOnly() || isDeveloper() || isAdmin();
             case Write:
                 return isDeveloper() || isAdmin();
+            case AdminOrOwner:
+                return isAdmin() || isOwner(context);
             default:
                 throw new RuntimeException("Unhandled case: " + level);
         }

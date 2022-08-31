@@ -31,6 +31,7 @@ import com.kubetrade.schema.trade.AvroSchemaB;
 import com.kubetrade.schema.trade.AvroSchemaC;
 import com.kubetrade.schema.trade.AvroSchemaD;
 import com.kubetrade.schema.trade.AvroSchemaE;
+import com.kubetrade.schema.trade.AvroSchemaF;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.serde.config.IdOption;
@@ -280,6 +281,46 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             Assertions.assertEquals(avroSchemaB, ir);
             Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());
+        }
+    }
+
+    @Test
+    public void avroJsonWithDuplicateReference() throws Exception {
+        try (AvroKafkaSerializer<AvroSchemaF> serializer = new AvroKafkaSerializer<>(restClient);
+             Deserializer<AvroSchemaF> deserializer = new AvroKafkaDeserializer<>(restClient)) {
+
+            Map<String, String> config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.ENABLE_HEADERS, "false");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+            config.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+            deserializer.configure(config, false);
+
+            AvroSchemaF avroSchemaF = new AvroSchemaF();
+            AvroSchemaE avroSchemaE = new AvroSchemaE();
+
+            avroSchemaF.setKey(UUID.randomUUID().toString());
+            avroSchemaF.setSchemaE1(avroSchemaE);
+            avroSchemaF.setSchemaE2(avroSchemaE);
+
+            String artifactId = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(artifactId, avroSchemaF);
+
+            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
+
+            // some impl details ...
+            waitForSchema(globalId -> restClient.getContentByGlobalId(globalId) != null, bytes);
+
+            AvroSchemaF ir = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals(avroSchemaF, ir);
         }
     }
 

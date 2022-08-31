@@ -13,6 +13,7 @@ public class Constants {
     public static final String SSO_ADMIN_USER = "registry-admin"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_CLIENT_API = "registry-client-api"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_CLIENT_UI = "registry-client-ui"; // Defined in kubefiles/keycloak-realm.yaml
+    public static final String SSO_DEVELOPER_USER = "registry-developer"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_HTTP_SERVICE = "sso-http";
     public static final String SSO_NAME = "registry-sso"; // Defined in kubefiles/keycloak.yaml
     public static final String SSO_NO_ROLE_USER = "registry-no-role-user"; // Defined in kubefiles/keycloak-realm.yaml

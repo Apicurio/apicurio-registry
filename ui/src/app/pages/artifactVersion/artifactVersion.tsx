@@ -37,6 +37,7 @@ import { IfFeature } from "../../components";
 import { ArtifactMetaData, ArtifactTypes, ContentTypes, Rule, SearchedVersion } from "../../../models";
 import { CreateVersionData, EditableMetaData, Services } from "../../../services";
 import { PleaseWaitModal } from "../../components/modals/pleaseWaitModal";
+import { ChangeOwnerModal } from "./components/modals/changeOwnerModal";
 
 
 /**
@@ -59,6 +60,7 @@ export interface ArtifactVersionPageState extends PageState {
     isUploadModalOpen: boolean;
     isDeleteModalOpen: boolean;
     isEditModalOpen: boolean;
+    isChangeOwnerModalOpen: boolean;
     isPleaseWaitModalOpen: boolean;
     pleaseWaitMessage: string;
     rules: Rule[] | null;
@@ -102,6 +104,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                 onConfigureRule={this.doConfigureRule}
                                 onDownloadArtifact={this.doDownloadArtifact}
                                 onEditMetaData={this.openEditMetaDataModal}
+                                onChangeOwner={this.openChangeOwnerModal}
                 />
             </Tab>,
             <Tab eventKey={1} title="Documentation" key="documentation">
@@ -192,6 +195,11 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
                                    onClose={this.onEditModalClose}
                                    onEditMetaData={this.doEditMetaData}
                 />
+                <ChangeOwnerModal isOpen={this.state.isChangeOwnerModalOpen}
+                                  onClose={this.onChangeOwnerModalClose}
+                                  currentOwner={this.state.artifact?.createdBy || ""}
+                                  onChangeOwner={this.doChangeOwner}
+                />
                 <InvalidContentModal error={this.state.invalidContentError}
                                      isOpen={this.state.isInvalidContentModalOpen}
                                      onClose={this.closeInvalidContentModal} />
@@ -210,6 +218,7 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             invalidContentError: null,
             isDeleteModalOpen: false,
             isEditModalOpen: false,
+            isChangeOwnerModalOpen: false,
             isInvalidContentModalOpen: false,
             isPleaseWaitModalOpen: false,
             isUploadFormValid: false,
@@ -452,8 +461,16 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
         this.setSingleState("isEditModalOpen", true);
     };
 
+    private openChangeOwnerModal = (): void => {
+        this.setSingleState("isChangeOwnerModalOpen", true);
+    };
+
     private onEditModalClose = (): void => {
         this.setSingleState("isEditModalOpen", false);
+    };
+
+    private onChangeOwnerModalClose = (): void => {
+        this.setSingleState("isChangeOwnerModalOpen", false);
     };
 
     private doEditMetaData = (metaData: EditableMetaData): void => {
@@ -468,6 +485,20 @@ export class ArtifactVersionPage extends PageComponent<ArtifactVersionPageProps,
             this.handleServerError(error, "Error editing artifact metadata.");
         });
         this.onEditModalClose();
+    };
+
+    private doChangeOwner = (newOwner: string): void => {
+        Services.getGroupsService().updateArtifactOwner(this.groupId(), this.artifactId(), newOwner).then( () => {
+            if (this.state.artifact) {
+                this.setSingleState("artifact", {
+                    ...this.state.artifact,
+                    createdBy: newOwner
+                });
+            }
+        }).catch( error => {
+            this.handleServerError(error, "Error changing artifact ownership.");
+        });
+        this.onChangeOwnerModalClose();
     };
 
     private closeInvalidContentModal = (): void => {

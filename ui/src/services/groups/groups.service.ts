@@ -15,7 +15,15 @@
  * limitations under the License.
  */
 
-import { ArtifactMetaData, ContentTypes, Rule, SearchedArtifact, SearchedVersion, VersionMetaData } from "../../models";
+import {
+    ArtifactMetaData,
+    ArtifactOwner,
+    ContentTypes,
+    Rule,
+    SearchedArtifact,
+    SearchedVersion,
+    VersionMetaData
+} from "../../models";
 import { BaseService } from "../baseService";
 import YAML from "yaml";
 
@@ -153,6 +161,16 @@ export class GroupsService extends BaseService {
             endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
         }
         return this.httpPut<EditableMetaData>(endpoint, metaData);
+    }
+
+    public updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
+        groupId = this.normalizeGroupId(groupId);
+
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/owner", { groupId, artifactId });
+        const artifactOwner: ArtifactOwner = {
+            owner: newOwner
+        };
+        return this.httpPut<ArtifactOwner>(endpoint, artifactOwner);
     }
 
     public getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {

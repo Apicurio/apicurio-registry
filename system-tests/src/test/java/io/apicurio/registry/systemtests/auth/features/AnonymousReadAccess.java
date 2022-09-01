@@ -52,7 +52,7 @@ public class AnonymousReadAccess {
                 apicurioRegistry.getMetadata().getName() + "-deployment"
         );
         // Define artifact group ID
-        String groupId = "default";
+        String groupId = "anonymousReadAccessTest";
         // Define artifact ID
         String id = "anonymous-read-access-test";
         // Define artifact ID for create actions that should fail

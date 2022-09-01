@@ -67,7 +67,7 @@ public class BasicAuthentication {
                 apicurioRegistry.getMetadata().getName() + "-deployment"
         );
         // Define artifact group ID
-        String groupId = "default";
+        String groupId = "basicAuthenticationTest";
         // Define artifact ID
         String id = "basic-authentication-test";
         // Define artifact ID for create actions that should fail

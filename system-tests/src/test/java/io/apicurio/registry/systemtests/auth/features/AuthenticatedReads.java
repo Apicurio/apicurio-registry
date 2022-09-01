@@ -53,9 +53,9 @@ public class AuthenticatedReads {
                 apicurioRegistry.getMetadata().getName() + "-deployment"
         );
         // Define artifact group ID
-        String groupId = "default";
+        String groupId = "authenticatedReadsTest";
         // Define artifact ID
-        String id = "authenticated-reads";
+        String id = "authenticated-reads-test";
         // Define artifact ID for create actions that should fail
         String failId = id + "-fail";
         // Define artifact type

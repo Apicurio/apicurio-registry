@@ -57,9 +57,9 @@ public class ArtifactOwnerOnlyAuthorization {
                 apicurioRegistry.getMetadata().getName() + "-deployment"
         );
         // Define artifact group ID
-        String groupId = "artifactOwnerOnlyTest";
+        String groupId = "artifactOwnerOnlyAuthorizationTest";
         // Define artifact ID
-        String id = "artifact-owner-only-test";
+        String id = "artifact-owner-only-authorization-test";
         // Define artifact ID prefix for actions that should succeed
         String succeedId = id + "-succeed-";
         // Define artifact type

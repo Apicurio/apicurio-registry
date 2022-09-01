@@ -29,18 +29,18 @@ public class OLMUpgradeTests extends TestBase {
     public void testAfterEach(ExtensionContext testContext) {
         LOGGER.info("AfterEach: " + testContext.getDisplayName());
 
-        resourceManager.deleteResources(testContext);
+        resourceManager.deleteResources();
 
-        operatorManager.uninstallOperators(testContext);
+        operatorManager.uninstallOperators();
     }
 
-    public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) {
+    public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) throws InterruptedException {
         // Install operator from default catalog (do not use catalog source image, it will be used for upgrade)
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(
                 null,
                 clusterWide
         );
-        operatorManager.installOperator(testContext, registryOLMOperator);
+        operatorManager.installOperator(registryOLMOperator);
 
         // Save current (pre-upgrade) ClusterServiceVersion of operator
         DefaultArtifactVersion oldVersion = new DefaultArtifactVersion(registryOLMOperator.getClusterServiceVersion());
@@ -79,7 +79,7 @@ public class OLMUpgradeTests extends TestBase {
         ));
 
         // Run upgrade of operator from catalog source image
-        registryOLMOperator.upgrade(testContext);
+        registryOLMOperator.upgrade();
 
         // Save current (post-upgrade) ClusterServiceVersion of operator
         DefaultArtifactVersion newVersion = new DefaultArtifactVersion(registryOLMOperator.getClusterServiceVersion());
@@ -110,12 +110,12 @@ public class OLMUpgradeTests extends TestBase {
     }
 
     @Test
-    public void testUpgradeClusterWide(ExtensionContext testContext) {
+    public void testUpgradeClusterWide(ExtensionContext testContext) throws InterruptedException {
         runUpgradeTest(testContext, true);
     }
 
     @Test
-    public void testUpgradeNamespaced(ExtensionContext testContext) {
+    public void testUpgradeNamespaced(ExtensionContext testContext) throws InterruptedException {
         runUpgradeTest(testContext, false);
     }
 }

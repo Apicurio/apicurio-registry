@@ -8,7 +8,6 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -100,7 +99,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() {
         Kubernetes.createOrReplaceResources(getNamespace(), getResources());
     }
 

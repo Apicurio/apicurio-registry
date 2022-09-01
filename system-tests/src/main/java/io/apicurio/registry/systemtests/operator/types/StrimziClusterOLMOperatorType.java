@@ -10,7 +10,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionReso
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 public class StrimziClusterOLMOperatorType extends OLMOperator implements OperatorType {
@@ -57,7 +56,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() throws InterruptedException {
         /* Operator namespace is created in OperatorManager. */
 
         String catalogName = Environment.CATALOG;
@@ -69,7 +68,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
             if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-                setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
+                setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
             }
         }
 
@@ -90,7 +89,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
                 channelName
         ));
 
-        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
+        ResourceManager.getInstance().createSharedResource( true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }

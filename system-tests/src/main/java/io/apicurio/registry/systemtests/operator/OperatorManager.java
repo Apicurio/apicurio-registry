@@ -8,19 +8,17 @@ import io.apicurio.registry.systemtests.registryinfra.resources.NamespaceResourc
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.Namespace;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Stack;
 
 public class OperatorManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
     private static OperatorManager instance;
-    private static final Map<String, Stack<Runnable>> STORED_OPERATORS = new LinkedHashMap<>();
+    private static final Stack<Runnable> STORED_OPERATORS = new Stack<Runnable>();
+    private static final Stack<Runnable> SHARED_RESOURCES = new Stack<Runnable>();
 
     public static synchronized OperatorManager getInstance() {
         if (instance == null) {
@@ -30,38 +28,45 @@ public class OperatorManager {
         return instance;
     }
 
-    private void createOperatorNamespace(ExtensionContext testContext, String name) {
+    private void createOperatorNamespace(String name) throws InterruptedException {
         LOGGER.info("Creating new namespace {} for operator...", name);
 
         Namespace namespace = NamespaceResourceType.getDefault(name);
 
-        ResourceManager.getInstance().createResource(testContext, true, namespace);
+        ResourceManager.getInstance().createSharedResource(true, namespace);
     }
 
-    public void installOperator(ExtensionContext testContext, OperatorType operatorType) {
-        installOperator(testContext, operatorType, true);
+    public void installOperator(OperatorType operatorType) throws InterruptedException {
+        installOperator(operatorType, true);
 
         synchronized (this) {
-            STORED_OPERATORS.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
-            STORED_OPERATORS.get(testContext.getDisplayName()).push(() -> uninstallOperator(operatorType));
+            STORED_OPERATORS.push(() -> uninstallOperator(operatorType));
         }
     }
 
-    public void installOperator(ExtensionContext testContext, OperatorType operatorType, boolean waitReady) {
+    public void installOperatorShared(OperatorType operatorType) throws InterruptedException {
+        installOperator(operatorType, true);
+
+        synchronized (this) {
+            SHARED_RESOURCES.push(() -> uninstallOperator(operatorType));
+        }
+    }
+
+    public void installOperator(OperatorType operatorType, boolean waitReady) throws InterruptedException {
         String kind = operatorType.getKind().toString();
         String name = operatorType.getDeploymentName();
         String namespace = operatorType.getNamespaceName();
         String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
 
         if (Kubernetes.getNamespace(namespace) == null) {
-            createOperatorNamespace(testContext, namespace);
+            createOperatorNamespace(namespace);
         } else {
             LOGGER.info("Namespace {} for operator {} with name {} already exists.", namespace, kind, name);
         }
 
         LOGGER.info("Installing operator {}...", operatorInfo);
 
-        operatorType.install(testContext);
+        operatorType.install();
 
         LOGGER.info("Operator {} installed.", operatorInfo);
 
@@ -111,26 +116,30 @@ public class OperatorManager {
         }
     }
 
-    public void uninstallOperators(ExtensionContext testContext) {
+    public void uninstallOperators() {
         LOGGER.info("----------------------------------------------");
         LOGGER.info("Going to uninstall all operators.");
         LOGGER.info("----------------------------------------------");
-        LOGGER.info("Operators key: {}", testContext.getDisplayName());
 
-        if (
-                !STORED_OPERATORS.containsKey(testContext.getDisplayName())
-                || STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()
-        ) {
-            LOGGER.info("Nothing to uninstall.");
-        } else {
-            while (!STORED_OPERATORS.get(testContext.getDisplayName()).isEmpty()) {
-                STORED_OPERATORS.get(testContext.getDisplayName()).pop().run();
-            }
+        while (!STORED_OPERATORS.isEmpty()) {
+            STORED_OPERATORS.pop().run();
         }
 
         LOGGER.info("----------------------------------------------");
         LOGGER.info("");
-        STORED_OPERATORS.remove(testContext.getDisplayName());
+    }
+
+    public void uninstallSharedOperators() {
+        LOGGER.info("----------------------------------------------");
+        LOGGER.info("Going to uninstall all operators.");
+        LOGGER.info("----------------------------------------------");
+
+        while (!SHARED_RESOURCES.isEmpty()) {
+            SHARED_RESOURCES.pop().run();
+        }
+
+        LOGGER.info("----------------------------------------------");
+        LOGGER.info("");
     }
 
     public boolean waitOperatorReady(OperatorType operatorType) {

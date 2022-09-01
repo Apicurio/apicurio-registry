@@ -17,9 +17,9 @@ public class SeleniumUtils {
         Route route = RouteResourceType.getDefaultSelenium();
 
         try {
-            ResourceManager.getInstance().createResource(testContext, true, deployment);
-            ResourceManager.getInstance().createResource(testContext, true, service);
-            ResourceManager.getInstance().createResource(testContext, true, route);
+            ResourceManager.getInstance().createResource(true, deployment);
+            ResourceManager.getInstance().createResource(true, service);
+            ResourceManager.getInstance().createResource(true, route);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -27,7 +27,7 @@ public abstract class Tests extends TestBase {
     /* Functions for each test */
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
     }
 
@@ -35,9 +35,9 @@ public abstract class Tests extends TestBase {
     public void testAfterEach(ExtensionContext testContext) {
         LOGGER.info("AfterEach: " + testContext.getDisplayName());
 
-        resourceManager.deleteResources(testContext);
+        resourceManager.deleteResources();
 
-        operatorManager.uninstallOperators(testContext);
+        operatorManager.uninstallOperators();
     }
 
     /* TESTS - PostgreSQL */

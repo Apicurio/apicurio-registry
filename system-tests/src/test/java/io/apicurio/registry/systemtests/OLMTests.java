@@ -8,6 +8,7 @@ import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperat
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -27,16 +28,16 @@ public abstract class OLMTests extends Tests {
     }
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
 
-        operatorManager.installOperator(testContext, registryOLMOperator);
+        operatorManager.installOperator(registryOLMOperator);
     }
 
     @Test
-    public void testMultipleNamespaces(ExtensionContext testContext) {
+    public void testMultipleNamespaces(ExtensionContext testContext) throws InterruptedException {
         // Deploy default PostgreSQL database
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
         // Deploy default Apicurio Registry with default PostgreSQL database
@@ -63,13 +64,13 @@ public abstract class OLMTests extends Tests {
         if (clusterWide) {
             // If OLM operator is installed as cluster wide,
             // second Apicurio Registry should be deployed successfully
-            ResourceManager.getInstance().createResource(testContext, true, secondSqlRegistry);
+            ResourceManager.getInstance().createResource(true, secondSqlRegistry);
         } else {
             // If OLM operator is installed as namespaced,
             // second Apicurio Registry deployment should fail
             AssertionFailedError assertionFailedError = Assertions.assertThrows(
                     AssertionFailedError.class,
-                    () -> ResourceManager.getInstance().createResource(testContext, true, secondSqlRegistry)
+                    () -> ResourceManager.getInstance().createResource(true, secondSqlRegistry)
             );
 
             Assertions.assertEquals(

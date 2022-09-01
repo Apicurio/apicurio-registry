@@ -16,7 +16,6 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
@@ -66,7 +65,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     /**
      * Create catalog source and wait for its creation.
      */
-    private void createCatalogSource(ExtensionContext testContext, String namespace) {
+    private void createCatalogSource(String namespace) throws InterruptedException {
         String name = Constants.CATALOG_NAME;
         String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
 
@@ -74,7 +73,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
 
         catalogSource = CatalogSourceResourceType.getDefault(name, namespace, getSource());
 
-        ResourceManager.getInstance().createResource(testContext, false, catalogSource);
+        ResourceManager.getInstance().createSharedResource(false, catalogSource);
 
         LOGGER.info("Waiting for catalog source {} to be created...", info);
         OperatorUtils.waitCatalogSourceExists(namespace, name);
@@ -134,7 +133,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() throws InterruptedException {
         /* Operator namespace is created in OperatorManager. */
 
         String scope = getClusterWide() ? "cluster wide" : "namespaced";
@@ -145,13 +144,13 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), getNamespace());
 
         if (getSource() != null) {
-            createCatalogSource(testContext, catalogNamespace);
+            createCatalogSource(catalogNamespace);
 
             catalogName = catalogSource.getMetadata().getName();
         }
 
         if (!getClusterWide() && !Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-            setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
+            setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
         }
 
         ResourceUtils.waitPackageManifestExists(catalogName, registryPackage);
@@ -171,7 +170,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
                 channelName
         ));
 
-        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
+        ResourceManager.getInstance().createSharedResource(true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
@@ -213,7 +212,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         return isReady();
     }
 
-    public void upgrade(ExtensionContext testContext) {
+    public void upgrade() throws InterruptedException {
         LOGGER.info("Upgrading {} {} operator...", getClusterWide() ? "cluster wide" : "namespaced", getKind());
 
         // Get current subscription namespace
@@ -231,7 +230,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         setSource(Environment.CATALOG_IMAGE);
 
         // Create new catalog source from image
-        createCatalogSource(testContext, catalogNamespace);
+        createCatalogSource(catalogNamespace);
 
         // Update subscription to use newly created catalog source
         getSubscription().getSpec().setSource(catalogSource.getMetadata().getName());

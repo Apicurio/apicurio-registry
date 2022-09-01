@@ -11,7 +11,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -35,11 +34,11 @@ public class KeycloakUtils {
         return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
-    public static void deployKeycloak(ExtensionContext testContext) throws InterruptedException {
-        deployKeycloak(testContext, Environment.NAMESPACE);
+    public static void deployKeycloak() throws InterruptedException {
+        deployKeycloak(Environment.NAMESPACE);
     }
 
-    private static void deployKeycloakPostgres(ExtensionContext extensionContext, String namespace) throws URISyntaxException {
+    private static void deployKeycloakPostgres(String namespace) throws URISyntaxException {
         URL dtb = KeycloakUtils.class.getClassLoader().getResource("postgres.yaml");
 
         Exec.executeAndCheck(
@@ -52,13 +51,13 @@ public class KeycloakUtils {
 
     }
 
-    public static void deployKeycloak(ExtensionContext testContext, String namespace) throws InterruptedException {
+    public static void deployKeycloak(String namespace) throws InterruptedException {
         LOGGER.info("Deploying Keycloak...");
         ResourceManager manager = ResourceManager.getInstance();
 
         if (Environment.IS_KIND_CLUSTER) {
             try {
-                deployKeycloakPostgres(testContext, namespace);
+                deployKeycloakPostgres(namespace);
             } catch (Exception e) {
                 LOGGER.error("Could not deploy postgres for the keycloak!");
                 throw new RuntimeException(e);
@@ -118,10 +117,10 @@ public class KeycloakUtils {
             ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
             // Create Keycloak HTTP Service and wait for its readiness
-            manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
+            manager.createSharedResource( true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
             // Create Keycloak Route and wait for its readiness
-            manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
+            manager.createSharedResource( true, RouteResourceType.getDefaultKeycloak(namespace));
 
             // Log Keycloak URL
             LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));

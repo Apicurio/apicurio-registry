@@ -3,6 +3,8 @@ package io.apicurio.registry.systemtests.registryinfra;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.registry.systemtests.framework.Constants;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
@@ -24,22 +26,25 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ResourceManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
     private static ResourceManager instance;
-    private static final Map<String, Stack<Runnable>> STORED_RESOURCES = new LinkedHashMap<>();
+    private static final Stack<Runnable> STORED_RESOURCES = new Stack<>();
+    private static final Stack<Runnable> SHARED_RESOURCES = new Stack<>();
 
     public static synchronized ResourceManager getInstance() {
         if (instance == null) {
@@ -82,8 +87,8 @@ public class ResourceManager {
     }
 
     public final <T extends HasMetadata> void createResource(
-            ExtensionContext testContext, boolean waitReady, T resource
-    ) {
+            boolean waitReady, T resource
+    ) throws InterruptedException {
         String kind = resource.getKind();
         String name = resource.getMetadata().getName();
         String namespace = resource.getMetadata().getNamespace();
@@ -93,20 +98,64 @@ public class ResourceManager {
 
         synchronized (this) {
             if (namespace != null && Kubernetes.getNamespace(namespace) == null) {
-                createResource(testContext, waitReady, NamespaceResourceType.getDefault(namespace));
+                createSharedResource(waitReady, NamespaceResourceType.getDefault(namespace));
+            }
+        }
+
+        ResourceType<T> type = findResourceType(resource);
+        List<String> resourceNames = Kubernetes.getClient().resourceList().inNamespace(namespace).get().stream().map(HasMetadata::getMetadata).collect(Collectors.toList()).stream().map(ObjectMeta::getName).collect(Collectors.toList());
+        type.createOrReplace(resource);
+
+        synchronized (this) {
+            if (!name.equals(Constants.KAFKA)) {
+                STORED_RESOURCES.push(() -> deleteResource(resource));
+            }
+        }
+
+        LOGGER.info("Resource {} created.", resourceInfo);
+        if (!name.equals(Constants.KAFKA)) {
+            Thread.sleep(Duration.ofMinutes(1).toMillis());
+        }
+        if (waitReady) {
+            Assertions.assertTrue(
+                    waitResourceCondition(resource, type::isReady),
+                    MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
+            );
+
+            LOGGER.info("Resource {} is ready.", resourceInfo);
+
+            T updated = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+            type.refreshResource(resource, updated);
+        } else {
+            LOGGER.info("Do not wait for resource {} to be ready.", resourceInfo);
+        }
+    }
+
+    public final <T extends HasMetadata> void createSharedResource(
+            boolean waitReady, T resource
+    ) throws InterruptedException {
+        String kind = resource.getKind();
+        String name = resource.getMetadata().getName();
+        String namespace = resource.getMetadata().getNamespace();
+        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+
+        LOGGER.info("Creating shared resource {}...", resourceInfo);
+
+        synchronized (this) {
+            if (namespace != null && Kubernetes.getNamespace(namespace) == null) {
+                createSharedResource(waitReady, NamespaceResourceType.getDefault(namespace));
             }
         }
 
         ResourceType<T> type = findResourceType(resource);
 
-        type.create(resource);
+        type.createOrReplace(resource);
 
         synchronized (this) {
-            STORED_RESOURCES.computeIfAbsent(testContext.getDisplayName(), k -> new Stack<>());
-            STORED_RESOURCES.get(testContext.getDisplayName()).push(() -> deleteResource(resource));
+            SHARED_RESOURCES.push(() -> deleteResource(resource));
         }
 
-        LOGGER.info("Resource {} created.", resourceInfo);
+        LOGGER.info("Shared resource {} created.", resourceInfo);
 
         if (waitReady) {
             Assertions.assertTrue(
@@ -212,25 +261,32 @@ public class ResourceManager {
         LOGGER.info("Resource {} is deleted.", resourceInfo);
     }
 
-    public void deleteResources(ExtensionContext testContext) {
+    public void deleteKafka() {
+        Kafka kafka = KafkaResourceType.getOperation().inNamespace(Environment.NAMESPACE).withName(Constants.KAFKA).get();
+        deleteResource(kafka);
+    }
+    public void deleteSharedResources() {
         LOGGER.info("----------------------------------------------");
-        LOGGER.info("Going to clear all resources.");
+        LOGGER.info("Going to clear shared resources.");
         LOGGER.info("----------------------------------------------");
-        LOGGER.info("Resources key: {}", testContext.getDisplayName());
 
-        if (
-                !STORED_RESOURCES.containsKey(testContext.getDisplayName())
-                || STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()
-        ) {
-            LOGGER.info("Nothing to delete");
-        } else {
-            while (!STORED_RESOURCES.get(testContext.getDisplayName()).isEmpty()) {
-                STORED_RESOURCES.get(testContext.getDisplayName()).pop().run();
-            }
+        while (!SHARED_RESOURCES.isEmpty()) {
+            SHARED_RESOURCES.pop().run();
         }
 
         LOGGER.info("----------------------------------------------");
         LOGGER.info("");
-        STORED_RESOURCES.remove(testContext.getDisplayName());
+    }
+    public void deleteResources() {
+        LOGGER.info("----------------------------------------------");
+        LOGGER.info("Going to clear test resources.");
+        LOGGER.info("----------------------------------------------");
+
+        while (!STORED_RESOURCES.isEmpty()) {
+            STORED_RESOURCES.pop().run();
+        }
+
+        LOGGER.info("----------------------------------------------");
+        LOGGER.info("");
     }
 }

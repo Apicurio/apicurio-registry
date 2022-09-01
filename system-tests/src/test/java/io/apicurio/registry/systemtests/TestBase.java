@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.DatabaseUtils;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KafkaUtils;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
@@ -15,7 +16,9 @@ import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import io.apicurio.registry.systemtests.resolver.ExtensionContextParameterResolver;
 import io.strimzi.api.kafka.model.Kafka;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInfo;
@@ -38,6 +41,42 @@ public abstract class TestBase {
 
     public TestBase() {
         setupTestClass();
+    }
+
+    @BeforeAll
+    protected void beforeAllTests() throws InterruptedException {
+        // Install Keycloak operator
+        LoggerUtils.logDelimiter("#");
+        LOGGER.info("Deploying shared keycloak operator and instance!");
+        LoggerUtils.logDelimiter("#");
+
+        KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
+        operatorManager.installOperatorShared(keycloakOLMOperator);
+        KeycloakUtils.deployKeycloak();
+
+        LoggerUtils.logDelimiter("#");
+        LOGGER.info("Deploying shared strimzi operator and kafka");
+        LoggerUtils.logDelimiter("#");
+
+        StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
+        operatorManager.installOperatorShared(strimziOperator);
+
+        LoggerUtils.logDelimiter("#");
+        LOGGER.info("Deployment of shared resources is done!");
+        LoggerUtils.logDelimiter("#");
+    }
+
+    @AfterAll
+    protected void afterAllTests() {
+        LoggerUtils.logDelimiter("#");
+        LOGGER.info("Cleaning shared resources!");
+        LoggerUtils.logDelimiter("#");
+        resourceManager.deleteKafka();
+        operatorManager.uninstallSharedOperators();
+        resourceManager.deleteSharedResources();
+        LoggerUtils.logDelimiter("#");
+        LOGGER.info("Cleaning done!");
+        LoggerUtils.logDelimiter("#");
     }
 
     @BeforeEach
@@ -64,21 +103,6 @@ public abstract class TestBase {
             boolean testAPI
     ) throws InterruptedException {
         ApicurioRegistry registry = null;
-
-        if (useKeycloak) {
-            // Install Keycloak operator
-            KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-            operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-            // Deploy Keycloak
-            KeycloakUtils.deployKeycloak(testContext);
-        }
-
-        if (persistenceKind.equals(PersistenceKind.KAFKA_SQL)) {
-            // Install Strimzi operator
-            StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-            operatorManager.installOperator(testContext, strimziOperator);
-        }
 
         if (persistenceKind.equals(PersistenceKind.SQL)) {
             // Deploy PostreSQL with/without Keycloak

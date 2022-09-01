@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests.auth;
 import io.apicurio.registry.operator.api.model.ApicurioRegistry;
 import io.apicurio.registry.systemtests.TestBase;
 import io.apicurio.registry.systemtests.auth.features.AnonymousReadAccess;
+import io.apicurio.registry.systemtests.auth.features.ArtifactGroupOwnerOnlyAuthorization;
 import io.apicurio.registry.systemtests.auth.features.ArtifactOwnerOnlyAuthorization;
 import io.apicurio.registry.systemtests.auth.features.AuthenticatedReads;
 import io.apicurio.registry.systemtests.auth.features.BasicAuthentication;
@@ -77,6 +78,18 @@ public abstract class AuthTests extends TestBase {
 
         KeycloakUtils.removeKeycloak();
     }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    protected void runArtifactGroupOwnerOnlyAuthorizationTest(
+            ExtensionContext testContext,
+            PersistenceKind persistenceKind,
+            KafkaKind kafkaKind
+    ) {
+        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
+
+        ArtifactGroupOwnerOnlyAuthorization.testArtifactGroupOwnerOnlyAuthorization(registry);
+
+        KeycloakUtils.removeKeycloak();
+    }
 
     /* TESTS - PostgreSQL */
 
@@ -103,6 +116,11 @@ public abstract class AuthTests extends TestBase {
     @Test
     public void testRegistrySqlKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.SQL, null);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistrySqlKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+        runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.SQL, null);
     }
 
     /* TESTS - KafkaSQL */
@@ -180,5 +198,20 @@ public abstract class AuthTests extends TestBase {
     @Test
     public void testRegistryKafkasqlSCRAMKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistryKafkasqlNoAuthKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+        runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
+    }
+
+    @Test
+    public void testRegistryKafkasqlTLSKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+        runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
+    }
+
+    @Test
+    public void testRegistryKafkasqlSCRAMKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+        runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
 }

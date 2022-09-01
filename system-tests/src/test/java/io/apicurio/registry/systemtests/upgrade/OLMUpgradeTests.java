@@ -62,7 +62,12 @@ public class OLMUpgradeTests extends TestBase {
         // Create artifact one by one
         for (int i = 0; i < artifactsCount; i++) {
             // Create one single artifact in registry
-            apiClient.createArtifact("testsuite-upgrade", "upgrade-" + i, ArtifactType.AVRO, ArtifactContent.DEFAULT_AVRO);
+            apiClient.createArtifact(
+                    "testsuite-upgrade",
+                    "upgrade-" + i,
+                    ArtifactType.AVRO,
+                    ArtifactContent.DEFAULT_AVRO
+            );
         }
 
         // CHECK CREATION OF ARTIFACTS

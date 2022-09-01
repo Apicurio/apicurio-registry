@@ -7,7 +7,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Disabled
 public abstract class OLMAPITests extends APITests {
-    protected boolean clusterWide;
+    private boolean clusterWide;
 
     public boolean getClusterWide() {
         return clusterWide;

@@ -60,12 +60,14 @@ public class AuthenticatedReads {
         String failId = id + "-fail";
         // Define artifact type
         ArtifactType type = ArtifactType.JSON;
-        // Define artifact content
-        String content = "{}";
+        // Define artifact initial content
+        String initialContent = "{}";
+        // Define artifact updated content
+        String updatedContent = "{\"key\":\"id\"}";
 
         // PREPARE REGISTRY CONTENT
         // Create artifact for test
-        Assertions.assertTrue(controlClient.createArtifact(groupId, id, type, content));
+        Assertions.assertTrue(controlClient.createArtifact(groupId, id, type, initialContent));
 
         /* RUN TEST ACTIONS */
 
@@ -80,7 +82,11 @@ public class AuthenticatedReads {
         // Check that API returns 403 Forbidden when reading artifacts
         Assertions.assertTrue(testClient.checkUnauthorized(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, failId, type, content, HttpStatus.SC_FORBIDDEN));
+        Assertions.assertTrue(
+                testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, id, updatedContent, HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when deleting artifact
         Assertions.assertTrue(testClient.deleteArtifact(groupId, id, HttpStatus.SC_FORBIDDEN));
 
@@ -95,7 +101,11 @@ public class AuthenticatedReads {
         // Check that API returns 200 OK when reading artifacts
         Assertions.assertNotNull(testClient.listArtifacts());
         // Check that API returns 403 Forbidden when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, failId, type, content, HttpStatus.SC_FORBIDDEN));
+        Assertions.assertTrue(
+                testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, id, updatedContent, HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when deleting artifact
         Assertions.assertTrue(testClient.deleteArtifact(groupId, id, HttpStatus.SC_FORBIDDEN));
 
@@ -110,7 +120,11 @@ public class AuthenticatedReads {
         // Check that API returns 403 Forbidden when reading artifacts
         Assertions.assertTrue(testClient.checkUnauthorized(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, failId, type, content, HttpStatus.SC_FORBIDDEN));
+        Assertions.assertTrue(
+                testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, id, updatedContent, HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when deleting artifact
         Assertions.assertTrue(testClient.deleteArtifact(groupId, id, HttpStatus.SC_FORBIDDEN));
     }

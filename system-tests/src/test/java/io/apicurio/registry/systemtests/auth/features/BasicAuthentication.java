@@ -76,12 +76,14 @@ public class BasicAuthentication {
         String succeedId = id + "-succeed-";
         // Define artifact type
         ArtifactType type = ArtifactType.JSON;
-        // Define artifact content
-        String content = "{}";
+        // Define artifact initial content
+        String initialContent = "{}";
+        // Define artifact updated content
+        String updatedContent = "{\"key\":\"id\"}";
 
         // PREPARE REGISTRY CONTENT
         // Create artifact for test
-        Assertions.assertTrue(controlClient.createArtifact(groupId, id, type, content));
+        Assertions.assertTrue(controlClient.createArtifact(groupId, id, type, initialContent));
 
         /* RUN TEST ACTIONS */
 
@@ -91,7 +93,11 @@ public class BasicAuthentication {
         // Check that API returns 401 Unauthorized when reading artifacts
         Assertions.assertNotNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, failId, type, content, HttpStatus.SC_UNAUTHORIZED));
+        Assertions.assertTrue(
+                testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_UNAUTHORIZED)
+        );
+        // Check that API returns 401 Unauthorized when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, id, updatedContent, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when deleting artifact
         Assertions.assertTrue(testClient.deleteArtifact(groupId, id, HttpStatus.SC_UNAUTHORIZED));
 
@@ -101,14 +107,18 @@ public class BasicAuthentication {
             setName("CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED");
             setValue("true");
         }});
+        // Define artifact ID for the test part
+        String testArtifactId = succeedId + "true-value";
         // Wait for API availability
         Assertions.assertTrue(controlClient.waitServiceAvailable());
         // Check that API returns 200 OK when reading artifacts
         Assertions.assertNotNull(testClient.listArtifacts());
         // Check that API returns 200 OK when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, succeedId + "true-value", type, content));
+        Assertions.assertTrue(testClient.createArtifact(groupId, testArtifactId, type, initialContent));
+        // Check that API returns 200 OK when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, testArtifactId, updatedContent));
         // Check that API returns 204 No Content when deleting artifact
-        Assertions.assertTrue(testClient.deleteArtifact(groupId, succeedId + "true-value"));
+        Assertions.assertTrue(testClient.deleteArtifact(groupId, testArtifactId));
 
         // DISABLE HTTP BASIC AUTHENTICATION AND TEST IT
         // Set environment variable CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED of deployment to false
@@ -121,7 +131,11 @@ public class BasicAuthentication {
         // Check that API returns 401 Unauthorized when reading artifacts
         Assertions.assertNotNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when creating artifact
-        Assertions.assertTrue(testClient.createArtifact(groupId, failId, type, content, HttpStatus.SC_UNAUTHORIZED));
+        Assertions.assertTrue(
+                testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_UNAUTHORIZED)
+        );
+        // Check that API returns 401 Unauthorized when updating artifact
+        Assertions.assertTrue(testClient.updateArtifact(groupId, id, updatedContent, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when deleting artifact
         Assertions.assertTrue(testClient.deleteArtifact(groupId, id, HttpStatus.SC_UNAUTHORIZED));
     }

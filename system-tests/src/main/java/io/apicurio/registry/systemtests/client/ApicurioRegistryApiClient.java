@@ -343,6 +343,60 @@ public class ApicurioRegistryApiClient {
         }
     }
 
+    public ArtifactList listGroupArtifacts(String groupId) {
+        return listGroupArtifacts(groupId, HttpStatus.SC_OK);
+    }
+
+    public ArtifactList listGroupArtifacts(String groupId, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Listing artifacts in group {}.", groupId);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts",
+                host,
+                port,
+                groupId
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        try {
+            if (httpStatus == HttpStatus.SC_OK) {
+                return MAPPER.readValue(response.body(), ArtifactList.class);
+            } else {
+                return new ArtifactList();
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public boolean checkUnauthorized() {
         return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
     }

@@ -18,7 +18,7 @@ import java.text.MessageFormat;
 
 @Disabled
 public abstract class OLMDeployTests extends DeployTests {
-    protected boolean clusterWide;
+    private boolean clusterWide;
 
     public boolean getClusterWide() {
         return clusterWide;

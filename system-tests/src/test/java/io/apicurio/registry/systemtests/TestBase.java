@@ -58,7 +58,11 @@ public abstract class TestBase {
     @BeforeEach
     protected void beforeEachTest(ExtensionContext testContext) {
         LoggerUtils.logDelimiter("#");
-        LOGGER.info("[TEST-START] {}.{}-STARTED", testContext.getTestClass().get().getName(), testContext.getDisplayName());
+        LOGGER.info(
+                "[TEST-START] {}.{}-STARTED",
+                testContext.getTestClass().get().getName(),
+                testContext.getDisplayName()
+        );
         LoggerUtils.logDelimiter("#");
         LOGGER.info("");
     }
@@ -71,7 +75,11 @@ public abstract class TestBase {
 
         LOGGER.info("");
         LoggerUtils.logDelimiter("#");
-        LOGGER.info("[TEST-END] {}.{}-FINISHED", testContext.getTestClass().get().getName(), testContext.getDisplayName());
+        LOGGER.info(
+                "[TEST-END] {}.{}-FINISHED",
+                testContext.getTestClass().get().getName(),
+                testContext.getDisplayName()
+        );
         LoggerUtils.logDelimiter("#");
     }
 
@@ -119,7 +127,11 @@ public abstract class TestBase {
                 // Deploy scramKafka
                 kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
 
-                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext, kafka, useKeycloak);
+                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(
+                        testContext,
+                        kafka,
+                        useKeycloak
+                );
             } else {
                 LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
 

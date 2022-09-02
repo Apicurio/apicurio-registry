@@ -203,8 +203,8 @@ public class ApicurioRegistryUtils {
         String registryName = apicurioRegistry.getMetadata().getName();
         String registryNamespace = apicurioRegistry.getMetadata().getNamespace();
         String defaultRegistryHostname = registryName + "." + registryNamespace;
-        // Get Route
 
+        // Get Route
         Route registryRoute = Kubernetes.getRoute(apicurioRegistry);
 
         if (registryRoute == null) {

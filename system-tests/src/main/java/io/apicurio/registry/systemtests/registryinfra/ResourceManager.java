@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
-import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
@@ -26,18 +25,14 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.strimzi.api.kafka.model.Kafka;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.List;
 import java.util.Stack;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class ResourceManager {
     private static final Logger LOGGER = LoggerUtils.getLogger();

@@ -26,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
+import java.time.Duration;
+
 @DisplayNameGeneration(TestNameGenerator.class)
 @ExtendWith(ExtensionContextParameterResolver.class)
 public abstract class TestBase {
@@ -67,11 +69,13 @@ public abstract class TestBase {
     }
 
     @AfterAll
-    protected void afterAllTests() {
+    protected void afterAllTests() throws InterruptedException {
         LoggerUtils.logDelimiter("#");
         LOGGER.info("Cleaning shared resources!");
         LoggerUtils.logDelimiter("#");
         resourceManager.deleteKafka();
+        KeycloakUtils.removeKeycloak(Environment.NAMESPACE);
+        Thread.sleep(Duration.ofMinutes(2).toMillis());
         operatorManager.uninstallSharedOperators();
         resourceManager.deleteSharedResources();
         LoggerUtils.logDelimiter("#");

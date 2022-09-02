@@ -7,6 +7,7 @@ import io.apicurio.registry.systemtests.framework.DatabaseUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
+import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.opentest4j.AssertionFailedError;
 
 import java.text.MessageFormat;
+import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public abstract class OLMTests extends Tests {
     protected boolean clusterWide;
@@ -68,21 +72,10 @@ public abstract class OLMTests extends Tests {
         } else {
             // If OLM operator is installed as namespaced,
             // second Apicurio Registry deployment should fail
-            AssertionFailedError assertionFailedError = Assertions.assertThrows(
-                    AssertionFailedError.class,
-                    () -> ResourceManager.getInstance().createResource(true, secondSqlRegistry)
-            );
-
-            Assertions.assertEquals(
-                    MessageFormat.format(
-                            "Timed out waiting for resource {0} with name {1} in namespace {2} to be ready. " +
-                                    "==> expected: <true> but was: <false>",
-                            secondSqlRegistry.getKind(),
-                            secondSqlRegistry.getMetadata().getName(),
-                            secondSqlRegistry.getMetadata().getNamespace()
-                    ),
-                    assertionFailedError.getMessage()
-            );
+            ResourceManager.getInstance().createResource(false, secondSqlRegistry);
+            assertFalse(ResourceManager.getInstance().waitResourceCondition(secondSqlRegistry,
+                    ResourceManager.getInstance().findResourceType(secondSqlRegistry)::isReady,
+                    TimeoutBudget.ofDuration(Duration.ofMinutes(2))));
         }
     }
 }

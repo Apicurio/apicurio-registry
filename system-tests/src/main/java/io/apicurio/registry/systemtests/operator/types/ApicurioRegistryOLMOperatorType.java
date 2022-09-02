@@ -73,7 +73,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
 
         catalogSource = CatalogSourceResourceType.getDefault(name, namespace, getSource());
 
-        ResourceManager.getInstance().createSharedResource(false, catalogSource);
+        ResourceManager.getInstance().createResource(false, catalogSource);
 
         LOGGER.info("Waiting for catalog source {} to be created...", info);
         OperatorUtils.waitCatalogSourceExists(namespace, name);
@@ -170,7 +170,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
                 channelName
         ));
 
-        ResourceManager.getInstance().createSharedResource(true, getSubscription());
+        ResourceManager.getInstance().createResource(true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }

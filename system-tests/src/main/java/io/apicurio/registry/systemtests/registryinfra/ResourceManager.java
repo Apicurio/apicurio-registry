@@ -72,7 +72,7 @@ public class ResourceManager {
             new IngressResourceType()
     };
 
-    private <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
+    public <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
         ResourceType<T> result = null;
 
         for (ResourceType<?> type : resourceTypes) {
@@ -103,7 +103,6 @@ public class ResourceManager {
         }
 
         ResourceType<T> type = findResourceType(resource);
-        List<String> resourceNames = Kubernetes.getClient().resourceList().inNamespace(namespace).get().stream().map(HasMetadata::getMetadata).collect(Collectors.toList()).stream().map(ObjectMeta::getName).collect(Collectors.toList());
         type.createOrReplace(resource);
 
         synchronized (this) {
@@ -148,6 +147,7 @@ public class ResourceManager {
         }
 
         ResourceType<T> type = findResourceType(resource);
+        List<String> resourceNames = Kubernetes.getClient().resourceList().inNamespace(namespace).get().stream().map(HasMetadata::getMetadata).collect(Collectors.toList()).stream().map(ObjectMeta::getName).collect(Collectors.toList());
 
         type.createOrReplace(resource);
 
@@ -243,9 +243,9 @@ public class ResourceManager {
         LOGGER.info("Deleting resource {}...", resourceInfo);
 
         ResourceType<T> type = findResourceType(resource);
-        if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))) {
+        /*if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))) {
             KeycloakUtils.removeKeycloak(resource.getMetadata().getNamespace());
-        }
+        }*/
 
         try {
             type.delete(resource);
@@ -263,7 +263,9 @@ public class ResourceManager {
 
     public void deleteKafka() {
         Kafka kafka = KafkaResourceType.getOperation().inNamespace(Environment.NAMESPACE).withName(Constants.KAFKA).get();
-        deleteResource(kafka);
+        if (kafka != null) {
+            deleteResource(kafka);
+        }
     }
     public void deleteSharedResources() {
         LOGGER.info("----------------------------------------------");

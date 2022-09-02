@@ -22,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -138,10 +139,6 @@ public class KeycloakUtils {
         LOGGER.info("Keycloak should be deployed.");
     }
 
-    public static void removeKeycloak() {
-        removeKeycloak(Environment.NAMESPACE);
-    }
-
     public static void removeKeycloakRealm(String namespace) {
         LOGGER.info("Removing keycloak realm");
 
@@ -153,11 +150,10 @@ public class KeycloakUtils {
         );
     }
 
-    public static void removeKeycloak(String namespace) {
-        LOGGER.info("Removing Keycloak...");
-
+    public static void removeKeycloak(String namespace) throws InterruptedException {
         removeKeycloakRealm(namespace);
-
+        Thread.sleep(Duration.ofMinutes(2).toMillis());
+        LOGGER.info("Removing Keycloak...");
         Exec.executeAndCheck(
                 "oc",
                 "delete",

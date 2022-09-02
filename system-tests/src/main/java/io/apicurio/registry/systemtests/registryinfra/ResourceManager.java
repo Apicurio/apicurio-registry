@@ -147,7 +147,6 @@ public class ResourceManager {
         }
 
         ResourceType<T> type = findResourceType(resource);
-        List<String> resourceNames = Kubernetes.getClient().resourceList().inNamespace(namespace).get().stream().map(HasMetadata::getMetadata).collect(Collectors.toList()).stream().map(ObjectMeta::getName).collect(Collectors.toList());
 
         type.createOrReplace(resource);
 
@@ -160,10 +159,10 @@ public class ResourceManager {
         if (waitReady) {
             Assertions.assertTrue(
                     waitResourceCondition(resource, type::isReady),
-                    MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
+                    MessageFormat.format("Timed out waiting for shared resource {0} to be ready.", resourceInfo)
             );
 
-            LOGGER.info("Resource {} is ready.", resourceInfo);
+            LOGGER.info("Shared resource {} is ready.", resourceInfo);
 
             T updated = type.get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
             type.refreshResource(resource, updated);

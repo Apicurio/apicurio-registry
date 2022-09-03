@@ -3,16 +3,24 @@ package io.apicurio.registry.systemtests.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.systemtests.framework.Base64Utils;
+import io.apicurio.registry.systemtests.framework.CompatibilityLevel;
 import io.apicurio.registry.systemtests.framework.HttpClientUtils;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
+import io.apicurio.registry.systemtests.framework.RuleType;
+import io.apicurio.registry.systemtests.framework.ValidityLevel;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import org.apache.hc.core5.http.HttpStatus;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ApicurioRegistryApiClient {
     private static final Logger LOGGER = LoggerUtils.getLogger();
@@ -109,6 +117,358 @@ public class ApicurioRegistryApiClient {
         }
 
         LOGGER.info("API is ready.");
+
+        return true;
+    }
+
+    public boolean enableGlobalValidityRule() {
+        return enableGlobalValidityRule(HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableGlobalValidityRule(int httpStatus) {
+        return enableGlobalRule(RuleType.VALIDITY, httpStatus);
+    }
+
+    public boolean enableGlobalCompatibilityRule() {
+        return enableGlobalCompatibilityRule(HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableGlobalCompatibilityRule(int httpStatus) {
+        return enableGlobalRule(RuleType.COMPATIBILITY, httpStatus);
+    }
+
+    public boolean enableGlobalRule(RuleType ruleType) {
+        return enableGlobalRule(ruleType, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableGlobalRule(RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Enabling global {} rule...", ruleType);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules", host, port);
+
+        // Prepare request content
+        String content = String.format(
+                "{\"type\":\"%s\", \"config\":\"%s\"}",
+                ruleType,
+                ruleType == RuleType.VALIDITY ? ValidityLevel.FULL : CompatibilityLevel.BACKWARD
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .POST(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean updateGlobalValidityRule(ValidityLevel validityLevel) {
+        return updateGlobalValidityRule(validityLevel, HttpStatus.SC_OK);
+    }
+
+    public boolean updateGlobalValidityRule(ValidityLevel validityLevel, int httpStatus) {
+        return updateGlobalRule(RuleType.VALIDITY, validityLevel.name(), httpStatus);
+    }
+
+    public boolean updateGlobalCompatibilityRule(CompatibilityLevel compatibilityLevel) {
+        return updateGlobalCompatibilityRule(compatibilityLevel, HttpStatus.SC_OK);
+    }
+
+    public boolean updateGlobalCompatibilityRule(CompatibilityLevel compatibilityLevel, int httpStatus) {
+        return updateGlobalRule(RuleType.COMPATIBILITY, compatibilityLevel.name(), httpStatus);
+    }
+
+    public boolean updateGlobalRule(RuleType ruleType, String ruleLevel, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Updating global {} rule to {}...", ruleType, ruleLevel);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules/%s", host, port, ruleType);
+
+        // Prepare request content
+        String content = String.format("{\"type\":\"%s\", \"config\":\"%s\"}", ruleType, ruleLevel);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .PUT(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public ValidityLevel getGlobalValidityRule() {
+        return getGlobalValidityRule(HttpStatus.SC_OK);
+    }
+
+    public ValidityLevel getGlobalValidityRule(int httpStatus) {
+        String level = getGlobalRule(RuleType.VALIDITY, httpStatus);
+
+        return level == null ? null : ValidityLevel.valueOf(level);
+    }
+
+    public CompatibilityLevel getGlobalCompatibilityRule() {
+        return getGlobalCompatibilityRule(HttpStatus.SC_OK);
+    }
+
+    public CompatibilityLevel getGlobalCompatibilityRule(int httpStatus) {
+        String level = getGlobalRule(RuleType.COMPATIBILITY, httpStatus);
+
+        return level == null ? null : CompatibilityLevel.valueOf(level);
+    }
+
+    public String getGlobalRule(RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Getting global {} rule...", ruleType);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules/%s", host, port, ruleType);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return (new JSONObject(response.body())).getString("config");
+    }
+
+    public List<String> listGlobalRules() {
+        return listGlobalRules(HttpStatus.SC_OK);
+    }
+
+    public List<String> listGlobalRules(int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Listing global rules...");
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return (new JSONArray(response.body()))
+                .toList()
+                .stream()
+                .map(object -> Objects.toString(object, null))
+                .collect(Collectors.toList());
+    }
+
+    public boolean isGlobalValidityRuleEnabled() {
+        return isGlobalRuleEnabled(RuleType.VALIDITY);
+    }
+
+    public boolean isGlobalCompatibilityRuleEnabled() {
+        return isGlobalRuleEnabled(RuleType.COMPATIBILITY);
+    }
+
+    public boolean isGlobalRuleEnabled(RuleType ruleType) {
+        return listGlobalRules().contains(ruleType.name());
+    }
+
+    public boolean toggleGlobalValidityRule() {
+        return toggleGlobalRule(RuleType.VALIDITY);
+    }
+
+    public boolean toggleGlobalCompatibilityRule() {
+        return toggleGlobalRule(RuleType.COMPATIBILITY);
+    }
+
+    public boolean toggleGlobalRule(RuleType ruleType) {
+        if (isGlobalRuleEnabled(ruleType)) {
+            return disableGlobalRule(ruleType);
+        } else {
+            return enableGlobalRule(ruleType);
+        }
+    }
+
+    public boolean disableGlobalValidityRule() {
+        return disableGlobalValidityRule(HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableGlobalValidityRule(int httpStatus) {
+        return disableGlobalRule(RuleType.VALIDITY, httpStatus);
+    }
+
+    public boolean disableGlobalCompatibilityRule() {
+        return  disableGlobalCompatibilityRule(HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableGlobalCompatibilityRule(int httpStatus) {
+        return  disableGlobalRule(RuleType.COMPATIBILITY, httpStatus);
+    }
+
+    public boolean disableGlobalRule(RuleType ruleType) {
+        return disableGlobalRule(ruleType, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableGlobalRule(RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Disabling global {} rule...", ruleType);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules/%s", host, port, ruleType);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .DELETE();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean disableGlobalRules() {
+        return disableGlobalRules(HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableGlobalRules(int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Disabling all global rules...");
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .DELETE();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
         return true;
     }

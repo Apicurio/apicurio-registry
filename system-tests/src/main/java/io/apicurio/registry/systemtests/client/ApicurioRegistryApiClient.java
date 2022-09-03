@@ -299,7 +299,11 @@ public class ApicurioRegistryApiClient {
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
-        return (new JSONObject(response.body())).getString("config");
+        if (httpStatus == HttpStatus.SC_OK) {
+            return (new JSONObject(response.body())).getString("config");
+        } else {
+            return null;
+        }
     }
 
     public List<String> listGlobalRules() {
@@ -442,6 +446,379 @@ public class ApicurioRegistryApiClient {
 
         // Get request URI
         URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/rules", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .DELETE();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean enableArtifactValidityRule(String groupId, String id) {
+        return enableArtifactValidityRule(groupId, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableArtifactValidityRule(String groupId, String id, int httpStatus) {
+        return enableArtifactRule(groupId, id, RuleType.VALIDITY, httpStatus);
+    }
+
+    public boolean enableArtifactCompatibilityRule(String groupId, String id) {
+        return enableArtifactCompatibilityRule(groupId, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableArtifactCompatibilityRule(String groupId, String id, int httpStatus) {
+        return enableArtifactRule(groupId, id, RuleType.COMPATIBILITY, httpStatus);
+    }
+
+    public boolean enableArtifactRule(String groupId, String id, RuleType ruleType) {
+        return enableArtifactRule(groupId, id, ruleType, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean enableArtifactRule(String groupId, String id, RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Enabling artifact {} rule of {}/{}...", ruleType, groupId, id);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules", host, port, groupId, id
+        );
+
+        // Prepare request content
+        String content = String.format(
+                "{\"type\":\"%s\", \"config\":\"%s\"}",
+                ruleType,
+                ruleType == RuleType.VALIDITY ? ValidityLevel.FULL : CompatibilityLevel.BACKWARD
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .POST(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean updateArtifactValidityRule(String groupId, String id, ValidityLevel validityLevel) {
+        return updateArtifactValidityRule(groupId, id, validityLevel, HttpStatus.SC_OK);
+    }
+
+    public boolean updateArtifactValidityRule(String groupId, String id, ValidityLevel validityLevel, int httpStatus) {
+        return updateArtifactRule(groupId, id, RuleType.VALIDITY, validityLevel.name(), httpStatus);
+    }
+
+    public boolean updateArtifactCompatibilityRule(String groupId, String id, CompatibilityLevel compatibilityLevel) {
+        return updateArtifactCompatibilityRule(groupId, id, compatibilityLevel, HttpStatus.SC_OK);
+    }
+
+    public boolean updateArtifactCompatibilityRule(
+            String groupId,
+            String id,
+            CompatibilityLevel compatibilityLevel,
+            int httpStatus
+    ) {
+        return updateArtifactRule(groupId, id, RuleType.COMPATIBILITY, compatibilityLevel.name(), httpStatus);
+    }
+
+    public boolean updateArtifactRule(String groupId, String id, RuleType ruleType, String ruleLevel, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Updating artifact {} rule of {}/{} to {}...", ruleType, groupId, id, ruleLevel);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules/%s", host, port, groupId, id, ruleType
+        );
+
+        // Prepare request content
+        String content = String.format("{\"type\":\"%s\", \"config\":\"%s\"}", ruleType, ruleLevel);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .PUT(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public ValidityLevel getArtifactValidityRule(String groupId, String id) {
+        return getArtifactValidityRule(groupId, id, HttpStatus.SC_OK);
+    }
+
+    public ValidityLevel getArtifactValidityRule(String groupId, String id, int httpStatus) {
+        String level = getArtifactRule(groupId, id, RuleType.VALIDITY, httpStatus);
+
+        return level == null ? null : ValidityLevel.valueOf(level);
+    }
+
+    public CompatibilityLevel getArtifactCompatibilityRule(String groupId, String id) {
+        return getArtifactCompatibilityRule(groupId, id, HttpStatus.SC_OK);
+    }
+
+    public CompatibilityLevel getArtifactCompatibilityRule(String groupId, String id, int httpStatus) {
+        String level = getArtifactRule(groupId, id, RuleType.COMPATIBILITY, httpStatus);
+
+        return level == null ? null : CompatibilityLevel.valueOf(level);
+    }
+
+    public String getArtifactRule(String groupId, String id, RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Getting artifact {} rule of {}/{}...", ruleType, groupId, id);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules/%s", host, port, groupId, id, ruleType
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        if (httpStatus == HttpStatus.SC_OK) {
+            return (new JSONObject(response.body())).getString("config");
+        } else {
+            return null;
+        }
+    }
+
+    public List<String> listArtifactRules(String groupId, String id) {
+        return listArtifactRules(groupId, id, HttpStatus.SC_OK);
+    }
+
+    public List<String> listArtifactRules(String groupId, String id, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Listing artifact rules of {}/{}...", groupId, id);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules", host, port, groupId, id
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return (new JSONArray(response.body()))
+                .toList()
+                .stream()
+                .map(object -> Objects.toString(object, null))
+                .collect(Collectors.toList());
+    }
+
+    public boolean isArtifactValidityRuleEnabled(String groupId, String id) {
+        return isArtifactRuleEnabled(groupId, id, RuleType.VALIDITY);
+    }
+
+    public boolean isArtifactCompatibilityRuleEnabled(String groupId, String id) {
+        return isArtifactRuleEnabled(groupId, id, RuleType.COMPATIBILITY);
+    }
+
+    public boolean isArtifactRuleEnabled(String groupId, String id, RuleType ruleType) {
+        return listArtifactRules(groupId, id).contains(ruleType.name());
+    }
+
+    public boolean toggleArtifactValidityRule(String groupId, String id) {
+        return toggleArtifactRule(groupId, id, RuleType.VALIDITY);
+    }
+
+    public boolean toggleArtifactCompatibilityRule(String groupId, String id) {
+        return toggleArtifactRule(groupId, id, RuleType.COMPATIBILITY);
+    }
+
+    public boolean toggleArtifactRule(String groupId, String id, RuleType ruleType) {
+        if (isArtifactRuleEnabled(groupId, id, ruleType)) {
+            return disableArtifactRule(groupId, id, ruleType);
+        } else {
+            return enableArtifactRule(groupId, id, ruleType);
+        }
+    }
+
+    public boolean disableArtifactValidityRule(String groupId, String id) {
+        return disableArtifactValidityRule(groupId, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableArtifactValidityRule(String groupId, String id, int httpStatus) {
+        return disableArtifactRule(groupId, id, RuleType.VALIDITY, httpStatus);
+    }
+
+    public boolean disableArtifactCompatibilityRule(String groupId, String id) {
+        return  disableArtifactCompatibilityRule(groupId, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableArtifactCompatibilityRule(String groupId, String id, int httpStatus) {
+        return  disableArtifactRule(groupId, id, RuleType.COMPATIBILITY, httpStatus);
+    }
+
+    public boolean disableArtifactRule(String groupId, String id, RuleType ruleType) {
+        return disableArtifactRule(groupId, id, ruleType, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableArtifactRule(String groupId, String id, RuleType ruleType, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Disabling artifact {} rule of {}/{}...", ruleType, groupId, id);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules/%s", host, port, groupId, id, ruleType
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .DELETE();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
+    public boolean disableArtifactRules(String groupId, String id) {
+        return disableArtifactRules(groupId, id, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean disableArtifactRules(String groupId, String id, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Disabling all artifact rules of {}/{}...", groupId, id);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/groups/%s/artifacts/%s/rules", host, port, groupId, id
+        );
 
         // Get request builder
         HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()

@@ -2,7 +2,7 @@ package io.apicurio.registry.systemtests.framework;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.executor.Exec;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;

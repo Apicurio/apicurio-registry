@@ -1,9 +1,7 @@
 package io.apicurio.registry.systemtests.registryinfra.resources;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
-import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
-import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
-import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationSecurityBuilder;
+import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicur.registry.v1.ApicurioRegistryBuilder;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
@@ -192,7 +190,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setSecurity(
-                        new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                        new io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.SecurityBuilder()
                                 .withNewTls()
                                     .withKeystoreSecretName(Constants.KAFKA_USER + "-keystore")
                                     .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
@@ -216,7 +214,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setSecurity(
-                        new ApicurioRegistrySpecConfigurationKafkaSecurityBuilder()
+                        new io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.SecurityBuilder()
                                 .withNewScram()
                                     .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
                                     .withPasswordSecretName(Constants.KAFKA_USER)
@@ -240,7 +238,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getSpec()
                 .getConfiguration()
                 .setSecurity(
-                        new ApicurioRegistrySpecConfigurationSecurityBuilder()
+                        new io.apicur.registry.v1.apicurioregistryspec.configuration.SecurityBuilder()
                                 .withNewKeycloak()
                                 .withApiClientId(Constants.SSO_CLIENT_API)
                                 .withUiClientId(Constants.SSO_CLIENT_UI)

@@ -18,6 +18,7 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -344,11 +345,15 @@ public class ApicurioRegistryApiClient {
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
-        return (new JSONArray(response.body()))
-                .toList()
-                .stream()
-                .map(object -> Objects.toString(object, null))
-                .collect(Collectors.toList());
+        if (httpStatus == HttpStatus.SC_OK) {
+            return (new JSONArray(response.body()))
+                    .toList()
+                    .stream()
+                    .map(object -> Objects.toString(object, null))
+                    .collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     public boolean isGlobalValidityRuleEnabled() {
@@ -713,11 +718,15 @@ public class ApicurioRegistryApiClient {
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
-        return (new JSONArray(response.body()))
-                .toList()
-                .stream()
-                .map(object -> Objects.toString(object, null))
-                .collect(Collectors.toList());
+        if (httpStatus == HttpStatus.SC_OK) {
+            return (new JSONArray(response.body()))
+                    .toList()
+                    .stream()
+                    .map(object -> Objects.toString(object, null))
+                    .collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     public boolean isArtifactValidityRuleEnabled(String groupId, String id) {

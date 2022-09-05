@@ -55,7 +55,7 @@ public abstract class TestBase {
         KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
         operatorManager.installOperatorShared(keycloakOLMOperator);
         KeycloakUtils.deployKeycloak();
-
+        Thread.sleep(Duration.ofMinutes(2).toMillis());
         LoggerUtils.logDelimiter("#");
         LOGGER.info("Deploying shared strimzi operator and kafka");
         LoggerUtils.logDelimiter("#");

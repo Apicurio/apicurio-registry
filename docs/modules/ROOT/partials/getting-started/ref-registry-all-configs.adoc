@@ -21,7 +21,7 @@ This section contains a list of the configuration options available for {registr
 |`optional<list<string>>`
 |
 |`2.0.0.Final`
-|Disable apis
+|Disable APIs
 |===
 
 == Category `auth`:
@@ -37,7 +37,7 @@ This section contains a list of the configuration options available for {registr
 |`string`
 |
 |`2.0.0.Final`
-|OIDC client id
+|OIDC client ID
 |`registry.auth.admin-override.claim`
 |`string`
 |`org-admin`
@@ -92,7 +92,7 @@ This section contains a list of the configuration options available for {registr
 |`boolean`
 |`false`
 |`2.0.0.Final`
-|Enable auth
+|Enable authentication
 |`registry.auth.owner-only-authorization`
 |`boolean [dynamic]`
 |`false`
@@ -201,7 +201,7 @@ This section contains a list of the configuration options available for {registr
 |`optional<string>`
 |
 |`2.0.0.Final`
-|Events ksink enabled
+|Events Kafka sink enabled
 |===
 
 == Category `health`:
@@ -232,7 +232,7 @@ This section contains a list of the configuration options available for {registr
 |`integer`
 |`1`
 |`1.0.2.Final`
-|Error Threshold of persistence liveness check
+|Error threshold of persistence liveness check
 |`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
@@ -247,7 +247,7 @@ This section contains a list of the configuration options available for {registr
 |`integer`
 |`5`
 |`1.0.2.Final`
-|Error Threshold of persistence readiness check
+|Error threshold of persistence readiness check
 |`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
@@ -272,7 +272,7 @@ This section contains a list of the configuration options available for {registr
 |`integer`
 |`1`
 |`1.0.2.Final`
-|Error Threshold of response liveness check
+|Error threshold of response liveness check
 |`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
@@ -287,7 +287,7 @@ This section contains a list of the configuration options available for {registr
 |`integer`
 |`1`
 |`1.0.2.Final`
-|Error Threshold of response readiness check
+|Error threshold of response readiness check
 |`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
 |`integer`
 |`300`
@@ -375,17 +375,17 @@ This section contains a list of the configuration options available for {registr
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact max description length
+|Max artifact description length
 |`registry.limits.config.max-label-size`
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact max label size
+|Max artifact label size
 |`registry.limits.config.max-name-length`
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact max name length
+|Max artifact name length
 |`registry.limits.config.max-property-key-size`
 |`long`
 |`-1`
@@ -400,7 +400,7 @@ This section contains a list of the configuration options available for {registr
 |`long`
 |`-1`
 |`2.2.3.Final`
-|Max artifact max requests per second
+|Max artifact requests per second
 |`registry.limits.config.max-schema-size-bytes`
 |`long`
 |`-1`
@@ -512,12 +512,12 @@ This section contains a list of the configuration options available for {registr
 |`list<string>`
 |
 |`2.1.0.Final`
-|Organization Id claim name
+|Organization ID claim name
 |`registry.tenant.manager.auth.client-id`
 |`optional<string>`
 |
 |`2.1.0.Final`
-|Tenant manager auth client id
+|Tenant manager auth client ID
 |`registry.tenant.manager.auth.client-secret`
 |`optional<string>`
 |
@@ -542,7 +542,7 @@ This section contains a list of the configuration options available for {registr
 |`optional<string>`
 |
 |`2.2.0.Final`
-|Tenant manager SSL ca path
+|Tenant manager SSL Ca path
 |`registry.tenant.manager.url`
 |`optional<string>`
 |
@@ -641,7 +641,7 @@ This section contains a list of the configuration options available for {registr
 |`string`
 |
 |`1.3.0.Final`
-|UI api URL
+|UI APIs URL
 |`registry.ui.config.auth.oidc.client-id`
 |`string`
 |`none`

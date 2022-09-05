@@ -294,12 +294,33 @@ public class GroupRequestsProvider {
                 .build();
     }
 
+    public static Request<Void> updateArtifactOwner(String groupId, String artifactId, ArtifactOwner owner) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.PUT)
+                .path(Routes.ARTIFACT_OWNER)
+                .pathParams(List.of(groupId, artifactId))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(owner)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
     public static Request<ArtifactMetaData> getArtifactMetaData(String groupId, String artifactId) {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.GET)
                 .path(Routes.ARTIFACT_METADATA)
                 .pathParams(List.of(groupId, artifactId))
                 .responseType(new TypeReference<ArtifactMetaData>() {
+                })
+                .build();
+    }
+
+    public static Request<ArtifactOwner> getArtifactOwner(String groupId, String artifactId) {
+        return new Request.RequestBuilder<ArtifactOwner>()
+                .operation(Operation.GET)
+                .path(Routes.ARTIFACT_OWNER)
+                .pathParams(List.of(groupId, artifactId))
+                .responseType(new TypeReference<ArtifactOwner>() {
                 })
                 .build();
     }

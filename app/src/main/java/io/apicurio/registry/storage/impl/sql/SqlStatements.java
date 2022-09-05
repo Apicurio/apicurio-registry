@@ -233,6 +233,11 @@ public interface SqlStatements {
     public String updateArtifactRule();
 
     /**
+     * A statement to update a single artifact owner.
+     */
+    public String updateArtifactOwner();
+
+    /**
      * A statement to delete a single artifact rule.
      */
     public String deleteArtifactRule();

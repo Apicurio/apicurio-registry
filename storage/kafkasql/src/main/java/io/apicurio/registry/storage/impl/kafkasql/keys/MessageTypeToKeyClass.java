@@ -74,6 +74,9 @@ public class MessageTypeToKeyClass {
                 case ConfigProperty:
                     index.put(type, ConfigPropertyKey.class);
                     break;
+                case ArtifactOwner:
+                    index.put(type, ArtifactOwnerKey.class);
+                    break;
                 default:
                     throw new RuntimeException("[MessageTypeToKeyClass] Type not mapped: " + type);
             }

@@ -27,6 +27,7 @@ export interface AuthenticatedUser {
     username: string;
     displayName: string;
     fullName: string;
+    roles?: any;
 }
 
 /**
@@ -223,6 +224,10 @@ export class AuthService implements Service {
             return false;
         }
         return true;
+    }
+
+    public isUserId(userId: string): boolean {
+        return this.users.currentUser().username === userId;
     }
 
     public authenticateAndRender(render: () => void): void {

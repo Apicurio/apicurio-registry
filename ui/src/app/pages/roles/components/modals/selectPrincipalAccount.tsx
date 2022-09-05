@@ -27,6 +27,7 @@ export interface SelectPrincipalAccountProps extends PureComponentProps {
     initialOptions: Principal[];
     onToggle: (isOpen: boolean) => void;
     isUpdateAccess: boolean;
+    isUsersOnly?: boolean;
     defaultRole?: RoleMapping;
 }
 
@@ -57,6 +58,7 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
             id: "",
             isOpen: false
         });
+        this.props.onIdUpdate("");
     };
 
     private onSelect = (_event: any, selection: any, isPlaceholder: any) => {
@@ -65,8 +67,8 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
         } else {
             this.setSingleState("id", selection);
             this.onToggle(false);
+            this.props.onIdUpdate(selection);
         }
-        this.props.onIdUpdate(selection);
     };
 
     protected initializeState(): SelectPrincipalAccountState {
@@ -121,8 +123,10 @@ export class SelectPrincipalAccount extends PureComponent<SelectPrincipalAccount
                 principal.principalType === "SERVICE_ACCOUNT"
         ).filter(
             (principal) =>
-                principal.id.toLowerCase().includes(criteria.toLowerCase()) ||
-                principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
+                !this.props.isUsersOnly && (
+                    principal.id.toLowerCase().includes(criteria.toLowerCase()) ||
+                    principal.displayName?.toLowerCase().includes(criteria.toLowerCase())
+                )
         );
         const filteredUsers: Principal[] = this.props.initialOptions.filter(
             (principal) =>

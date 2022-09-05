@@ -907,6 +907,10 @@ public class ApicurioRegistryApiClient {
     }
 
     public String readArtifactContent(String groupId, String id) {
+        return readArtifactContent(groupId, id, HttpStatus.SC_OK);
+    }
+
+    public String readArtifactContent(String groupId, String id, int httpStatus) {
         // Log information about current action
         LOGGER.info("Reading artifact content: groupId={}, id={}.", groupId, id);
 
@@ -931,10 +935,10 @@ public class ApicurioRegistryApiClient {
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);
 
-        LOGGER.info("Expected status code: {}.", HttpStatus.SC_OK);
+        LOGGER.info("Expected status code: {}.", httpStatus);
 
         // Check response status code
-        if (response.statusCode() != HttpStatus.SC_OK) {
+        if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
             return null;
@@ -942,7 +946,11 @@ public class ApicurioRegistryApiClient {
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
 
-        return response.body();
+        if (httpStatus == HttpStatus.SC_OK) {
+            return response.body();
+        } else {
+            return null;
+        }
     }
 
     public boolean updateArtifact(String groupId, String id, String newContent) {

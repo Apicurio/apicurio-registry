@@ -114,7 +114,7 @@ public class MultitenancyProperties {
 
     @Inject
     @ConfigProperty(name = "registry.tenant.manager.auth.client-id")
-    @Info( category = "mt", description = "Tenant manager auth client id", availableSince = "2.1.0.Final")
+    @Info( category = "mt", description = "Tenant manager auth client ID", availableSince = "2.1.0.Final")
     Optional<String> tenantManagerClientId;
 
     @Inject

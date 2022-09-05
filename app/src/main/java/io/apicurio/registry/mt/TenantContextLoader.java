@@ -75,7 +75,7 @@ public class TenantContextLoader {
     Long cacheCheckPeriod;
 
     @ConfigProperty(name = "registry.organization-id.claim-name")
-    @Info( category = "mt", description = "Organization Id claim name", availableSince = "2.1.0.Final")
+    @Info( category = "mt", description = "Organization ID claim name", availableSince = "2.1.0.Final")
     List<String> organizationIdClaims;
 
     public void onStart(@Observes StartupEvent ev) {

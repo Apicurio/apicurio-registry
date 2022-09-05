@@ -80,7 +80,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     Optional<String> clientSecret;
 
     @ConfigProperty(name = "quarkus.oidc.client-id")
-    @Info( category = "auth", description = "OIDC client id", availableSince = "2.0.0.Final")
+    @Info( category = "auth", description = "OIDC client ID", availableSince = "2.0.0.Final")
     String clientId;
 
     @Inject

@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.text.MessageFormat;
 
-@Disabled
 public class OLMUpgradeTests extends TestBase {
     @Override
     public void setupTestClass() {
@@ -110,11 +109,13 @@ public class OLMUpgradeTests extends TestBase {
     }
 
     @Test
+    @Disabled
     public void testUpgradeClusterWide(ExtensionContext testContext) throws InterruptedException {
         runUpgradeTest(testContext, true);
     }
 
     @Test
+    @Disabled
     public void testUpgradeNamespaced(ExtensionContext testContext) throws InterruptedException {
         runUpgradeTest(testContext, false);
     }

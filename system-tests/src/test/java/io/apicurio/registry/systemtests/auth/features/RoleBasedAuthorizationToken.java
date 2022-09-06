@@ -98,6 +98,14 @@ public class RoleBasedAuthorizationToken {
         String thirdUpdatedContent = "{\"key\":\"value\"}";
         // Define variable for list of rules used in test
         List<String> ruleList;
+        // Define variable for level of validity rule used in test
+        ValidityLevel validityLevel;
+        // Define variable for level of compatibility rule used in test
+        CompatibilityLevel compatibilityLevel;
+        // Define variable for level of global validity rule used in test
+        ValidityLevel globalValidityLevel;
+        // Define variable for level of global compatibility rule used in test
+        CompatibilityLevel globalCompatibilityLevel;
 
         /* RUN TEST ACTIONS */
 
@@ -107,7 +115,7 @@ public class RoleBasedAuthorizationToken {
         // TODO: Check list of artifacts when artifact deleted
 
         // --- GLOBAL VALIDITY RULE
-        ValidityLevel validityLevel = ValidityLevel.SYNTAX_ONLY;
+        validityLevel = ValidityLevel.SYNTAX_ONLY;
 
         // --- global validity rule by admin
         // Check that API returns 204 No Content when enabling global validity rule by admin
@@ -123,7 +131,7 @@ public class RoleBasedAuthorizationToken {
         // Check that API returns 200 OK when updating global validity rule by admin
         Assertions.assertTrue(adminClient.updateGlobalValidityRule(validityLevel));
         // Get global validity rule level
-        ValidityLevel globalValidityLevel = adminClient.getGlobalValidityRule();
+        globalValidityLevel = adminClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by admin
         Assertions.assertNotNull(globalValidityLevel);
         // Check global validity rule after update
@@ -194,7 +202,7 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- GLOBAL COMPATIBILITY RULE
-        CompatibilityLevel compatibilityLevel = CompatibilityLevel.BACKWARD_TRANSITIVE;
+        compatibilityLevel = CompatibilityLevel.BACKWARD_TRANSITIVE;
 
         // --- global compatibility rule by admin
         // Check that API returns 204 No Content when enabling global compatibility rule by admin
@@ -210,7 +218,7 @@ public class RoleBasedAuthorizationToken {
         // Check that API returns 200 OK when updating global compatibility rule by admin
         Assertions.assertTrue(adminClient.updateGlobalCompatibilityRule(compatibilityLevel));
         // Get global compatibility rule level
-        CompatibilityLevel globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by admin
         Assertions.assertNotNull(globalCompatibilityLevel);
         // Check global compatibility rule after update

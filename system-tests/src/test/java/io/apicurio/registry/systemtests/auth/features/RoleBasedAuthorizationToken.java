@@ -103,7 +103,6 @@ public class RoleBasedAuthorizationToken {
 
         // TEST DEFAULT VALUE OF ROLE BASED AUTHORIZATION BY TOKEN (false)
         // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
-        // TODO: Check value of global rule after update
         // TODO: Check value of artifact rule after update
         // TODO: Check content of artifact when updated
 
@@ -123,8 +122,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
         // Check that API returns 200 OK when updating global validity rule by admin
         Assertions.assertTrue(adminClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        ValidityLevel globalValidityLevel = adminClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by admin
-        Assertions.assertNotNull(adminClient.getGlobalValidityRule());
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
 
@@ -141,27 +144,35 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
         // Check that API returns 200 OK when updating global validity rule by developer
         Assertions.assertTrue(developerClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        globalValidityLevel = developerClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by developer
-        Assertions.assertNotNull(developerClient.getGlobalValidityRule());
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by developer
         Assertions.assertTrue(developerClient.disableGlobalValidityRule());
 
         // --- global validity rule by readonly
-        // Check that API returns 204 No Content when enabling global validity rule by developer
+        // Check that API returns 204 No Content when enabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.enableGlobalValidityRule());
         // Get list of global rules
         ruleList = readonlyClient.listGlobalRules();
-        // Check that API returns 200 OK when listing global rules by developer
+        // Check that API returns 200 OK when listing global rules by readonly
         Assertions.assertNotNull(ruleList);
         // Check that validity rule is present in list of global rules
         Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
         // Check value of enabled rule
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
-        // Check that API returns 200 OK when updating global validity rule by developer
+        // Check that API returns 200 OK when updating global validity rule by readonly
         Assertions.assertTrue(readonlyClient.updateGlobalValidityRule(validityLevel));
-        // Check that API returns 200 OK when getting global validity rule by developer
-        Assertions.assertNotNull(readonlyClient.getGlobalValidityRule());
-        // Check that API returns 204 No Content when disabling global validity rule by developer
+        // Get global validity rule level
+        globalValidityLevel = readonlyClient.getGlobalValidityRule();
+        // Check that API returns 200 OK when getting global validity rule by readonly
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
+        // Check that API returns 204 No Content when disabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalValidityRule());
 
         // --- GLOBAL COMPATIBILITY RULE
@@ -180,8 +191,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by admin
         Assertions.assertTrue(adminClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        CompatibilityLevel globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by admin
-        Assertions.assertNotNull(adminClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
 
@@ -198,8 +213,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by developer
         Assertions.assertTrue(developerClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = developerClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by developer
-        Assertions.assertNotNull(developerClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule());
 
@@ -216,8 +235,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = readonlyClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by developer
-        Assertions.assertNotNull(readonlyClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule());
 
@@ -703,7 +726,6 @@ public class RoleBasedAuthorizationToken {
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
         // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
-        // TODO: Check value of global rule after update
         // TODO: Check value of artifact rule after update
         // TODO: Check content of artifact when updated
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to true
@@ -730,8 +752,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
         // Check that API returns 200 OK when updating global validity rule by admin
         Assertions.assertTrue(adminClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        globalValidityLevel = adminClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by admin
-        Assertions.assertNotNull(adminClient.getGlobalValidityRule());
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
 
@@ -760,6 +786,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(developerClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
         // Check that API returns 403 Forbidden when updating global validity rule by developer
         Assertions.assertTrue(developerClient.updateGlobalValidityRule(validityLevel, HttpStatus.SC_FORBIDDEN));
+        // Get global validity rule level
+        globalValidityLevel = adminClient.getGlobalValidityRule();
+        // Check that API returns 200 OK when getting global validity rule by admin
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule is not changed after update
+        Assertions.assertEquals(globalValidityLevel, ValidityLevel.FULL);
         // Check that API returns 403 Forbidden when getting global validity rule by developer
         Assertions.assertNull(developerClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global validity rule by developer
@@ -792,6 +824,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(readonlyClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
         // Check that API returns 403 Forbidden when updating global validity rule by readonly
         Assertions.assertTrue(readonlyClient.updateGlobalValidityRule(validityLevel, HttpStatus.SC_FORBIDDEN));
+        // Get global validity rule level
+        globalValidityLevel = adminClient.getGlobalValidityRule();
+        // Check that API returns 200 OK when getting global validity rule by admin
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule is not changed after update
+        Assertions.assertEquals(globalValidityLevel, ValidityLevel.FULL);
         // Check that API returns 403 Forbidden when getting global validity rule by readonly
         Assertions.assertNull(readonlyClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global validity rule by readonly
@@ -815,6 +853,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by admin
         Assertions.assertTrue(adminClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
+        // Check that API returns 200 OK when getting global compatibility rule by admin
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 200 OK when getting global compatibility rule by admin
         Assertions.assertNotNull(adminClient.getGlobalCompatibilityRule());
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
@@ -847,6 +891,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 developerClient.updateGlobalCompatibilityRule(compatibilityLevel, HttpStatus.SC_FORBIDDEN)
         );
+        // Get global compatibility rule level
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
+        // Check that API returns 200 OK when getting global compatibility rule by admin
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule is not changed after update
+        Assertions.assertEquals(globalCompatibilityLevel, CompatibilityLevel.BACKWARD);
         // Check that API returns 403 Forbidden when getting global compatibility rule by developer
         Assertions.assertNull(developerClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global compatibility rule by developer
@@ -881,6 +931,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 readonlyClient.updateGlobalCompatibilityRule(compatibilityLevel, HttpStatus.SC_FORBIDDEN)
         );
+        // Get global compatibility rule level
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
+        // Check that API returns 200 OK when getting global compatibility rule by admin
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule is not changed after update
+        Assertions.assertEquals(globalCompatibilityLevel, CompatibilityLevel.BACKWARD);
         // Check that API returns 403 Forbidden when getting global compatibility rule by readonly
         Assertions.assertNull(readonlyClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global compatibility rule by readonly
@@ -1394,7 +1450,6 @@ public class RoleBasedAuthorizationToken {
 
         // DISABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
         // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
-        // TODO: Check value of global rule after update
         // TODO: Check value of artifact rule after update
         // TODO: Check content of artifact when updated
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to false
@@ -1421,8 +1476,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
         // Check that API returns 200 OK when updating global validity rule by admin
         Assertions.assertTrue(adminClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        globalValidityLevel = adminClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by admin
-        Assertions.assertNotNull(adminClient.getGlobalValidityRule());
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
 
@@ -1439,27 +1498,35 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
         // Check that API returns 200 OK when updating global validity rule by developer
         Assertions.assertTrue(developerClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        globalValidityLevel = developerClient.getGlobalValidityRule();
         // Check that API returns 200 OK when getting global validity rule by developer
-        Assertions.assertNotNull(developerClient.getGlobalValidityRule());
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by developer
         Assertions.assertTrue(developerClient.disableGlobalValidityRule());
 
         // --- global validity rule by readonly
-        // Check that API returns 204 No Content when enabling global validity rule by developer
+        // Check that API returns 204 No Content when enabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.enableGlobalValidityRule());
         // Get list of global rules
         ruleList = readonlyClient.listGlobalRules();
-        // Check that API returns 200 OK when listing global rules by developer
+        // Check that API returns 200 OK when listing global rules by readonly
         Assertions.assertNotNull(ruleList);
         // Check that validity rule is present in list of global rules
         Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
         // Check value of enabled rule
         Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
-        // Check that API returns 200 OK when updating global validity rule by developer
+        // Check that API returns 200 OK when updating global validity rule by readonly
         Assertions.assertTrue(readonlyClient.updateGlobalValidityRule(validityLevel));
-        // Check that API returns 200 OK when getting global validity rule by developer
-        Assertions.assertNotNull(readonlyClient.getGlobalValidityRule());
-        // Check that API returns 204 No Content when disabling global validity rule by developer
+        // Get global validity rule level
+        globalValidityLevel = readonlyClient.getGlobalValidityRule();
+        // Check that API returns 200 OK when getting global validity rule by readonly
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
+        // Check that API returns 204 No Content when disabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalValidityRule());
 
         // --- GLOBAL COMPATIBILITY RULE
@@ -1478,8 +1545,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by admin
         Assertions.assertTrue(adminClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by admin
-        Assertions.assertNotNull(adminClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
 
@@ -1496,8 +1567,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by developer
         Assertions.assertTrue(developerClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = developerClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by developer
-        Assertions.assertNotNull(developerClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule());
 
@@ -1514,8 +1589,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
         // Check that API returns 200 OK when updating global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = readonlyClient.getGlobalCompatibilityRule();
         // Check that API returns 200 OK when getting global compatibility rule by developer
-        Assertions.assertNotNull(readonlyClient.getGlobalCompatibilityRule());
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule());
 

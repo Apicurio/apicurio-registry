@@ -102,7 +102,6 @@ public class RoleBasedAuthorizationToken {
         /* RUN TEST ACTIONS */
 
         // TEST DEFAULT VALUE OF ROLE BASED AUTHORIZATION BY TOKEN (false)
-        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check list of artifacts when artifact deleted
@@ -131,6 +130,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by developer
         // Check that API returns 204 No Content when enabling global validity rule by developer
@@ -153,6 +158,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by developer
         Assertions.assertTrue(developerClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = developerClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by readonly
         // Check that API returns 204 No Content when enabling global validity rule by readonly
@@ -175,6 +186,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = readonlyClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- GLOBAL COMPATIBILITY RULE
         CompatibilityLevel compatibilityLevel = CompatibilityLevel.BACKWARD_TRANSITIVE;
@@ -200,6 +217,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by developer
         // Check that API returns 204 No Content when enabling global compatibility rule by developer
@@ -222,6 +245,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = developerClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by readonly
         // Check that API returns 204 No Content when enabling global compatibility rule by developer
@@ -244,6 +273,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = readonlyClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION
         // Check that API returns 200 OK when listing artifacts by admin
@@ -762,7 +797,6 @@ public class RoleBasedAuthorizationToken {
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check list of artifacts when artifact deleted
@@ -798,6 +832,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by developer
         // Check that API returns 403 Forbidden when enabling global validity rule by developer
@@ -834,8 +874,20 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertNull(developerClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global validity rule by developer
         Assertions.assertTrue(developerClient.disableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
         // TEARDOWN: Disable global validity rule after test of developer permission
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by readonly
         // Check that API returns 403 Forbidden when enabling global validity rule by readonly
@@ -872,8 +924,20 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertNull(readonlyClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
         // TEARDOWN: Disable global validity rule after test of readonly permission
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- GLOBAL COMPATIBILITY RULE
         compatibilityLevel = CompatibilityLevel.FORWARD_TRANSITIVE;
@@ -901,6 +965,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertNotNull(adminClient.getGlobalCompatibilityRule());
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by developer
         // Check that API returns 403 Forbidden when enabling global compatibility rule by developer
@@ -939,8 +1009,20 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertNull(developerClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global compatibility rule by developer
         Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.COMPATIBILITY.name()));
         // TEARDOWN: Disable global compatibility rule after test of developer permission
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by readonly
         // Check that API returns 403 Forbidden when enabling global compatibility rule by readonly
@@ -979,8 +1061,20 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertNull(readonlyClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when disabling global compatibility rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.COMPATIBILITY.name()));
         // TEARDOWN: Disable global compatibility rule after test of readonly permission
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION
         // Check that API returns 200 OK when listing artifacts by admin
@@ -1511,7 +1605,6 @@ public class RoleBasedAuthorizationToken {
 
 
         // DISABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check list of artifacts when artifact deleted
@@ -1547,6 +1640,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by admin
         Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by developer
         // Check that API returns 204 No Content when enabling global validity rule by developer
@@ -1569,6 +1668,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by developer
         Assertions.assertTrue(developerClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = developerClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- global validity rule by readonly
         // Check that API returns 204 No Content when enabling global validity rule by readonly
@@ -1591,6 +1696,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling global validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = readonlyClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- GLOBAL COMPATIBILITY RULE
         compatibilityLevel = CompatibilityLevel.BACKWARD_TRANSITIVE;
@@ -1616,6 +1727,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by admin
         Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by developer
         // Check that API returns 204 No Content when enabling global compatibility rule by developer
@@ -1638,6 +1755,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = developerClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- global compatibility rule by readonly
         // Check that API returns 204 No Content when enabling global compatibility rule by developer
@@ -1660,6 +1783,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling global compatibility rule by developer
         Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = readonlyClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION
         // Check that API returns 200 OK when listing artifacts by admin

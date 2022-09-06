@@ -102,9 +102,11 @@ public class RoleBasedAuthorizationToken {
         /* RUN TEST ACTIONS */
 
         // TEST DEFAULT VALUE OF ROLE BASED AUTHORIZATION BY TOKEN (false)
-        // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
+        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
+        // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check content of artifact when updated
+        // TODO: Check list of artifacts when artifact deleted
 
         // --- GLOBAL VALIDITY RULE
         ValidityLevel validityLevel = ValidityLevel.SYNTAX_ONLY;
@@ -257,38 +259,56 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId), initialContent);
         // Check that API returns 200 OK when creating artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId), initialContent);
         // Check that API returns 200 OK when creating artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId), initialContent);
         // Check that API returns 200 OK when creating second artifact by admin
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId + secondId), initialContent);
         // Check that API returns 200 OK when creating second artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId + secondId), initialContent);
         // Check that API returns 200 OK when creating artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId + secondId), initialContent);
         // Check that API returns 200 OK when creating third artifact by admin
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId + thirdId), initialContent);
         // Check that API returns 200 OK when creating third artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId + thirdId), initialContent);
         // Check that API returns 200 OK when creating third artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId + thirdId), initialContent);
 
         // --- ARTIFACT VALIDITY RULE
         validityLevel = ValidityLevel.NONE;
@@ -725,9 +745,11 @@ public class RoleBasedAuthorizationToken {
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
+        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
+        // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check content of artifact when updated
+        // TODO: Check list of artifacts when artifact deleted
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to true
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -957,24 +979,34 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId), initialContent);
         // Check that API returns 200 OK when creating artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId), initialContent);
         // Check that API returns 200 OK when creating second artifact by admin
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId + secondId), initialContent);
         // Check that API returns 200 OK when creating second artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId + secondId), initialContent);
         // Check that API returns 403 Forbidden when creating artifact by readonly
         Assertions.assertTrue(
                 readonlyClient.createArtifact(groupId, readonlyId, type, initialContent, HttpStatus.SC_FORBIDDEN)
         );
         // Check non-creation of artifact
         Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, readonlyId));
+        // Check content of non-created artifact
+        Assertions.assertNull(readonlyClient.readArtifactContent(groupId, readonlyId, HttpStatus.SC_NOT_FOUND));
 
         // --- ARTIFACT VALIDITY RULE
         validityLevel = ValidityLevel.NONE;
@@ -1449,9 +1481,11 @@ public class RoleBasedAuthorizationToken {
 
 
         // DISABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of rules/artifacts when rule/artifact disabled/deleted
+        // TODO: Check list of global rules when global rule disabled
         // TODO: Check value of artifact rule after update
+        // TODO: Check list of artifact rules when artifact rule disabled
         // TODO: Check content of artifact when updated
+        // TODO: Check list of artifacts when artifact deleted
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to false
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -1611,38 +1645,56 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId), initialContent);
         // Check that API returns 200 OK when creating artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId), initialContent);
         // Check that API returns 200 OK when creating artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId), initialContent);
         // Check that API returns 200 OK when creating second artifact by admin
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId + secondId), initialContent);
         // Check that API returns 200 OK when creating second artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId + secondId), initialContent);
         // Check that API returns 200 OK when creating artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId + secondId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId + secondId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId + secondId), initialContent);
         // Check that API returns 200 OK when creating third artifact by admin
         Assertions.assertTrue(adminClient.createArtifact(groupId, adminId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId + thirdId), initialContent);
         // Check that API returns 200 OK when creating third artifact by developer
         Assertions.assertTrue(developerClient.createArtifact(groupId, developerId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(developerClient.listArtifacts().contains(groupId, developerId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(developerClient.readArtifactContent(groupId, developerId + thirdId), initialContent);
         // Check that API returns 200 OK when creating third artifact by readonly
         Assertions.assertTrue(readonlyClient.createArtifact(groupId, readonlyId + thirdId, type, initialContent));
         // Check creation of artifact
         Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, readonlyId + thirdId));
+        // Check content of created artifact
+        Assertions.assertEquals(readonlyClient.readArtifactContent(groupId, readonlyId + thirdId), initialContent);
 
         // --- ARTIFACT VALIDITY RULE
         validityLevel = ValidityLevel.NONE;

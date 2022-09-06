@@ -30,6 +30,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Serdes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.events.EventSink;
 import io.apicurio.registry.utils.RegistryProperties;
 import io.apicurio.registry.utils.kafka.AsyncProducer;
@@ -57,9 +58,11 @@ public class KafkaEventSink implements EventSink {
     private Integer partition;
 
     @ConfigProperty(name = "registry.events.kafka.topic")
+    @Info( category = "kafka", description = "Events Kafka topic", availableSince = "2.0.0.Final")
     Optional<String> eventsTopic;
 
     @ConfigProperty(name = "registry.events.kafka.topic-partition")
+    @Info( category = "kafka", description = "Events Kafka topic partition", availableSince = "2.0.0.Final")
     Optional<Integer> eventsTopicPartition;
 
     @PostConstruct

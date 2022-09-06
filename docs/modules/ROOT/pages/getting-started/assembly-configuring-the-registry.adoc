@@ -27,3 +27,4 @@ include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[levelof
 include::{mod-loc}getting-started/proc-configuring-registry-events.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]

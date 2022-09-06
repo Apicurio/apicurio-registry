@@ -25,6 +25,7 @@ import javax.enterprise.inject.Produces;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.utils.RegistryProperties;
 
 /**
@@ -34,6 +35,7 @@ import io.apicurio.registry.utils.RegistryProperties;
 public class HttpEventSinkConfiguration {
 
     @ConfigProperty(name = "registry.events.ksink")
+    @Info( category = "events", description = "Events Kafka sink enabled", availableSince = "2.0.0.Final")
     Optional<String> ksink;
 
     @Produces

@@ -81,4 +81,40 @@
 		<module>rest-api</module>
 	</modules>
 
+	<dependencies>
+		<!-- Fake dependency to ensure that the JAR is already available locally -->
+		<dependency>
+			<groupId>io.apicurio</groupId>
+			<artifactId>apicurio-registry-app</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>dev.jbang</groupId>
+				<artifactId>jbang-maven-plugin</artifactId>
+				<version>0.0.7</version>
+				<inherited>false</inherited>
+				<executions>
+					<execution>
+						<id>run</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+								<script>${project.basedir}/generateAllConfigPartial.java</script>
+								<args>
+									<arg>${project.version}</arg>
+									<arg>${project.basedir}</arg>
+								</args>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
 </project>

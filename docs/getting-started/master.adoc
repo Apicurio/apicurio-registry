@@ -23,6 +23,7 @@ include::assemblies/getting-started/assembly-installing-registry-docker.adoc[lev
 endif::[]
 include::assemblies/getting-started/assembly-installing-registry-openshift.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-configuring-the-registry.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-all-registry-configurations.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-managing-registry-artifacts-ui.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-managing-registry-artifacts-api.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-using-kafka-client-serdes.adoc[leveloffset=+1]

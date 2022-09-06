@@ -27,6 +27,7 @@ import javax.ws.rs.BadRequestException;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
 import io.apicurio.registry.storage.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -50,6 +51,7 @@ public class LogConfigurationService {
     RegistryStorage storage;
 
     @ConfigProperty(name = "quarkus.log.level")
+    @Info( category = "log", description = "Log level", availableSince = "2.0.0.Final")
     String defaultLogLevel;
 
     @Scheduled(concurrentExecution = ConcurrentExecution.SKIP, delayed = "{registry.logconfigjob.delayed}", every = "{registry.logconfigjob.every}")

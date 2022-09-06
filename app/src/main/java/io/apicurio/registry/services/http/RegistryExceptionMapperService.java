@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.http;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -97,6 +98,7 @@ public class RegistryExceptionMapperService {
     LivenessUtil livenessUtil;
 
     @ConfigProperty(name = "registry.api.errors.include-stack-in-response", defaultValue = "false")
+    @Info( category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
     static {

@@ -50,6 +50,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.LogConfiguration;
@@ -79,6 +80,7 @@ import io.vertx.core.json.JsonObject;
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")
+    @Info( category = "log", description = "Log level", availableSince = "2.0.0.Final")
     String defaultLogLevel;
 
     @Test

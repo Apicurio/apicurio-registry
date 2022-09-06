@@ -1,5 +1,7 @@
 package io.apicurio.registry;
 
+import io.apicurio.common.apps.config.Info;
+
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
@@ -31,6 +33,7 @@ public class ImportLifecycleBean {
     RegistryStorage storage;
 
     @ConfigProperty(name = "registry.import.url")
+    @Info( category = "import", description = "The import URL", availableSince = "2.1.0.Final")
     Optional<URL> registryImportUrlProp;
 
     void onStart(@Observes StartupEvent ev) {

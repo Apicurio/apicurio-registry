@@ -174,7 +174,7 @@ public class OperatorManager {
     }
 
     public boolean waitOperatorRemoved(OperatorType operatorType) {
-        return waitOperatorRemoved(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(11)));
+        return waitOperatorRemoved(operatorType, TimeoutBudget.ofDuration(Duration.ofMinutes(15)));
     }
 
     public boolean waitOperatorRemoved(OperatorType operatorType, TimeoutBudget timeoutBudget) {

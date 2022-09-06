@@ -7,7 +7,7 @@ public final class Environment {
     /** Environment variables */
     public static final String CATALOG_IMAGE_ENV_VAR = "CATALOG_IMAGE";
     public static final String CATALOG_ENV_VAR = "CATALOG";
-    public static final String SSO_CATALOG_ENV_VAT = "SSO_CATALOG";
+    public static final String SSO_CATALOG_ENV_VAR = "SSO_CATALOG";
     public static final String CATALOG_NAMESPACE_ENV_VAR = "CATALOG_NAMESPACE";
     public static final String CONVERTERS_SHA512SUM_ENV_VAR = "CONVERTERS_SHA512SUM";
     public static final String CONVERTERS_URL_ENV_VAR = "CONVERTERS_URL";
@@ -39,7 +39,7 @@ public final class Environment {
     /** Collecting environment variables */
     public static final String CATALOG_IMAGE = get(CATALOG_IMAGE_ENV_VAR);
     public static final String CATALOG = getOrDefault(CATALOG_ENV_VAR, CATALOG_DEFAULT);
-    public static final String SSO_CATALOG = getOrDefault(SSO_CATALOG_ENV_VAT, SSO_CATALOG_DEFAULT);
+    public static final String SSO_CATALOG = getOrDefault(SSO_CATALOG_ENV_VAR, SSO_CATALOG_DEFAULT);
 
     public static final String CATALOG_NAMESPACE = getOrDefault(CATALOG_NAMESPACE_ENV_VAR, Constants.CATALOG_NAMESPACE);
     public static final String CONVERTERS_SHA512SUM = get(CONVERTERS_SHA512SUM_ENV_VAR);

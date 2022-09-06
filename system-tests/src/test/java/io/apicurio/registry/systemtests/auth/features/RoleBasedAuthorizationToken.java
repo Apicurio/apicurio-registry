@@ -112,7 +112,6 @@ public class RoleBasedAuthorizationToken {
         // TEST DEFAULT VALUE OF ROLE BASED AUTHORIZATION BY TOKEN (false)
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
-        // TODO: Check list of artifacts when artifact deleted
 
         // --- GLOBAL VALIDITY RULE
         validityLevel = ValidityLevel.SYNTAX_ONLY;
@@ -784,30 +783,47 @@ public class RoleBasedAuthorizationToken {
         // --- DELETE ACTION ON OWN ARTIFACT
         // Check that API returns 204 No Content when deleting artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, adminId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, adminId));
         // Check that API returns 204 No Content when deleting artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, developerId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, developerId));
         // Check that API returns 204 No Content when deleting artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, readonlyId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, readonlyId));
 
         // --- DELETE ACTION ON OTHER'S ARTIFACT
         // Check that API returns 204 No Content when deleting developer artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, developerId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, developerId + secondId));
         // Check that API returns 204 No Content when deleting readonly artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, readonlyId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, readonlyId + secondId));
         // Check that API returns 204 No Content when deleting admin artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, adminId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, adminId + secondId));
         // Check that API returns 204 No Content when deleting readonly artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, readonlyId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, readonlyId + thirdId));
         // Check that API returns 204 No Content when deleting admin artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, adminId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, adminId + thirdId));
         // Check that API returns 204 No Content when deleting developer artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, developerId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, developerId + thirdId));
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
-        // TODO: Check list of artifacts when artifact deleted
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to true
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -1594,28 +1610,41 @@ public class RoleBasedAuthorizationToken {
         // --- DELETE ACTION ON OWN ARTIFACT
         // Check that API returns 204 No Content when deleting artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, adminId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, adminId));
         // Check that API returns 204 No Content when deleting artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, developerId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, developerId));
         // Check that API returns 403 Forbidden when deleting readonly artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+        // Check deletion of artifact
+        // NOTE: Readonly artifact was not created, nothing to delete, nothing to check.
 
         // --- DELETE ACTION ON OTHER'S ARTIFACT
         // Check that API returns 403 Forbidden when deleting second admin artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, adminId + secondId, HttpStatus.SC_FORBIDDEN));
+        // Check non-deletion of artifact
+        Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, adminId + secondId));
         // Check that API returns 403 Forbidden when deleting second developer artifact by readonly
         Assertions.assertTrue(
                 readonlyClient.deleteArtifact(groupId, developerId + secondId, HttpStatus.SC_FORBIDDEN)
         );
+        // Check non-deletion of artifact
+        Assertions.assertTrue(readonlyClient.listArtifacts().contains(groupId, developerId + secondId));
         // Check that API returns 204 No Content when deleting second developer artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, developerId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, developerId + secondId));
         // Check that API returns 204 No Content when deleting second admin artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, adminId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, adminId + secondId));
 
 
         // DISABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
         // TODO: Check value of artifact rule after update
         // TODO: Check list of artifact rules when artifact rule disabled
-        // TODO: Check list of artifacts when artifact deleted
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to false
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -2294,23 +2323,41 @@ public class RoleBasedAuthorizationToken {
         // --- DELETE ACTION ON OWN ARTIFACT
         // Check that API returns 204 No Content when deleting artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, adminId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, adminId));
         // Check that API returns 204 No Content when deleting artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, developerId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, developerId));
         // Check that API returns 204 No Content when deleting artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, readonlyId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, readonlyId));
 
         // --- DELETE ACTION ON OTHER'S ARTIFACT
         // Check that API returns 204 No Content when deleting developer artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, developerId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, developerId + secondId));
         // Check that API returns 204 No Content when deleting readonly artifact by admin
         Assertions.assertTrue(adminClient.deleteArtifact(groupId, readonlyId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, readonlyId + secondId));
         // Check that API returns 204 No Content when deleting admin artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, adminId + secondId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, adminId + secondId));
         // Check that API returns 204 No Content when deleting readonly artifact by developer
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, readonlyId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(developerClient.listArtifacts().contains(groupId, readonlyId + thirdId));
         // Check that API returns 204 No Content when deleting admin artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, adminId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, adminId + thirdId));
         // Check that API returns 204 No Content when deleting developer artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, developerId + thirdId));
+        // Check deletion of artifact
+        Assertions.assertFalse(readonlyClient.listArtifacts().contains(groupId, developerId + thirdId));
     }
 }

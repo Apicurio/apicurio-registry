@@ -27,7 +27,7 @@ ifdef::apicurio-registry[]
 . In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{kafka-streams}* Operator.
 endif::[]
 ifdef::rh-service-registry[]
-. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *Red Hat Integration - {kafka-streams}* Operator.
+. In the *Filter by keyword* text box, enter `{kafka-streams}` to find the *{prodnamefull} - {kafka-streams}* Operator.
 endif::[]
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 

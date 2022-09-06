@@ -27,7 +27,7 @@ ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}*.
 endif::[]
 ifdef::rh-service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}*.
+. Click *Installed Operators* > *{prodnamefull} - {registry}*.
 endif::[]
 
 . On the *ApicurioRegistry* tab, click the Operator custom resource for your deployment, for example, *example-apicurioregistry*.

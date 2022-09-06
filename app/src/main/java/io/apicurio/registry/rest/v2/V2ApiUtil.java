@@ -17,7 +17,9 @@
 
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v2.beans.SearchedVersion;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
@@ -28,6 +30,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
@@ -291,5 +294,20 @@ public final class V2ApiUtil {
         artifactReference.setVersion(reference.getVersion());
         artifactReference.setArtifactId(reference.getArtifactId());
         return artifactReference;
+    }
+
+    public static GroupMetaData groupDtoToGroup(GroupMetaDataDto dto) {
+        GroupMetaData group = new GroupMetaData();
+        group.setId(dto.getGroupId());
+        group.setDescription(dto.getDescription());
+        if (dto.getArtifactsType() != null) {
+            group.setType(dto.getArtifactsType());
+        }
+        group.setCreatedBy(dto.getCreatedBy());
+        group.setModifiedBy(dto.getModifiedBy());
+        group.setCreatedOn(new Date(dto.getCreatedOn()));
+        group.setModifiedOn(new Date(dto.getModifiedOn()));
+        group.setProperties(dto.getProperties());
+        return group;
     }
 }

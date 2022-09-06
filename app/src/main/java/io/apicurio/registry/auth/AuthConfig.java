@@ -63,7 +63,10 @@ public class AuthConfig {
     @Info( category = "auth", description = "Anonymous read access", availableSince = "2.1.0.Final")
     Supplier<Boolean> anonymousReadAccessEnabled;
 
-    @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = "registry.auth.enabled=true")
+    @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = {
+            "registry.auth.enabled=true",
+            "registry.auth.role-based-authorization=true"
+    })
     @ConfigProperty(name = "registry.auth.authenticated-read-access.enabled", defaultValue = "false")
     @Info( category = "auth", description = "Authenticated read access", availableSince = "2.1.4.Final")
     Supplier<Boolean> authenticatedReadAccessEnabled;

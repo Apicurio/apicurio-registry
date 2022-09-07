@@ -114,7 +114,6 @@ public class RoleBasedAuthorizationToken {
         /* RUN TEST ACTIONS */
 
         // TEST DEFAULT VALUE OF ROLE BASED AUTHORIZATION BY TOKEN (false)
-        // TODO: Check list of artifact rules when artifact rule disabled
 
         // --- GLOBAL VALIDITY RULE
         validityLevel = ValidityLevel.SYNTAX_ONLY;
@@ -378,6 +377,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule by developer
@@ -400,6 +405,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule by readonly
@@ -422,6 +433,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact validity rule on developer by admin
@@ -444,6 +461,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by admin
         // Check that API returns 204 No Content when enabling artifact validity rule on readonly by admin
@@ -466,6 +489,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on readonly by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule on admin by developer
@@ -488,6 +517,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule on readonly by developer
@@ -510,6 +545,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on readonly by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule on admin by readonly
@@ -532,6 +573,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on admin by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule on developer by readonly
@@ -554,6 +601,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on developer by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- ARTIFACT COMPATIBILITY RULE
         compatibilityLevel = CompatibilityLevel.FORWARD;
@@ -582,6 +635,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule by developer
@@ -609,6 +668,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule by readonly
@@ -634,6 +699,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact compatibility rule on developer by admin
@@ -659,6 +730,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by admin
         // Check that API returns 204 No Content when enabling artifact compatibility rule on readonly by admin
@@ -684,6 +761,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on readonly by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule on admin by developer
@@ -709,6 +792,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule on readonly by developer
@@ -734,6 +823,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on readonly by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule on admin by readonly
@@ -759,6 +854,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on admin by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule on developer by readonly
@@ -784,6 +885,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on developer by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION ON GROUP
         // Check that API returns 200 OK when listing group artifacts by admin
@@ -897,7 +1004,6 @@ public class RoleBasedAuthorizationToken {
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of artifact rules when artifact rule disabled
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to true
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -1240,6 +1346,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule by developer
@@ -1262,6 +1374,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact validity rule by readonly
@@ -1279,6 +1397,12 @@ public class RoleBasedAuthorizationToken {
         // NOTE: Readonly artifact was not created, nothing to update, nothing to check.
         // Check that API returns 403 Forbidden when disabling artifact validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact validity rule on developer by admin
@@ -1301,6 +1425,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by admin
         // Check that API returns 404 Not Found when enabling artifact validity rule on readonly by admin
@@ -1318,6 +1448,12 @@ public class RoleBasedAuthorizationToken {
         // NOTE: Readonly artifact was not created, nothing to update, nothing to check.
         // Check that API returns 404 Not Found when disabling artifact validity rule on readonly by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_NOT_FOUND));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules on readonly by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule on admin by developer
@@ -1340,6 +1476,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by developer
         // Check that API returns 404 Not Found when enabling artifact validity rule on readonly by developer
@@ -1361,6 +1503,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 developerClient.disableArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_NOT_FOUND)
         );
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules on readonly by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact validity rule on admin by readonly
@@ -1382,6 +1530,12 @@ public class RoleBasedAuthorizationToken {
         // NOTE: Readonly user is not allowed to update artifact rule on admin, nothing updated, nothing to check.
         // Check that API returns 403 Forbidden when disabling artifact validity rule on admin by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, adminId, HttpStatus.SC_FORBIDDEN));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules on admin by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact validity rule on developer by readonly
@@ -1405,6 +1559,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 readonlyClient.disableArtifactValidityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
         );
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules on developer by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- ARTIFACT COMPATIBILITY RULE
         compatibilityLevel = CompatibilityLevel.FORWARD;
@@ -1433,6 +1593,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule by developer
@@ -1460,6 +1626,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact compatibility rule by readonly
@@ -1490,6 +1662,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 readonlyClient.disableArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN)
         );
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact compatibility rule on developer by admin
@@ -1515,6 +1693,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by admin
         // Check that API returns 404 Not Found when enabling artifact compatibility rule on readonly by admin
@@ -1541,6 +1725,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 adminClient.disableArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_NOT_FOUND)
         );
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules on readonly by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule on admin by developer
@@ -1566,6 +1756,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by developer
         // Check that API returns 404 Not Found when enabling artifact compatibility rule on readonly by developer
@@ -1596,6 +1792,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 developerClient.disableArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_NOT_FOUND)
         );
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_NOT_FOUND);
+        // Check that API returns 404 Not Found when listing artifact rules on readonly by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact compatibility rule on admin by readonly
@@ -1626,6 +1828,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 readonlyClient.disableArtifactCompatibilityRule(groupId, adminId, HttpStatus.SC_FORBIDDEN)
         );
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by readonly
         // Check that API returns 403 Forbidden when enabling artifact compatibility rule on developer by readonly
@@ -1658,6 +1866,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertTrue(
                 readonlyClient.disableArtifactCompatibilityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
         );
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION ON GROUP
         // Check that API returns 200 OK when listing group artifacts by admin
@@ -1759,7 +1973,6 @@ public class RoleBasedAuthorizationToken {
 
 
         // DISABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
-        // TODO: Check list of artifact rules when artifact rule disabled
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to false
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
@@ -2030,6 +2243,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule by developer
@@ -2052,6 +2271,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on own artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule by readonly
@@ -2074,6 +2299,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact validity rule on developer by admin
@@ -2096,6 +2327,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by admin
         // Check that API returns 204 No Content when enabling artifact validity rule on readonly by admin
@@ -2118,6 +2355,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on readonly by admin
         Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule on admin by developer
@@ -2140,6 +2383,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on readonly artifact by developer
         // Check that API returns 204 No Content when enabling artifact validity rule on readonly by developer
@@ -2162,6 +2411,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on readonly by developer
         Assertions.assertTrue(developerClient.disableArtifactValidityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on admin artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule on admin by readonly
@@ -2184,6 +2439,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on admin by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- artifact validity rule on developer artifact by readonly
         // Check that API returns 204 No Content when enabling artifact validity rule on developer by readonly
@@ -2206,6 +2467,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactValidityLevel, validityLevel);
         // Check that API returns 204 No Content when disabling artifact validity rule on developer by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
 
         // --- ARTIFACT COMPATIBILITY RULE
         compatibilityLevel = CompatibilityLevel.FORWARD;
@@ -2234,6 +2501,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule by developer
@@ -2261,6 +2534,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on own artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule by readonly
@@ -2286,6 +2565,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by admin
         // Check that API returns 204 No Content when enabling artifact compatibility rule on developer by admin
@@ -2311,6 +2596,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on developer by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by admin
         // Check that API returns 204 No Content when enabling artifact compatibility rule on readonly by admin
@@ -2336,6 +2627,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on readonly by admin
         Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule on admin by developer
@@ -2361,6 +2658,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on admin by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on readonly artifact by developer
         // Check that API returns 204 No Content when enabling artifact compatibility rule on readonly by developer
@@ -2386,6 +2689,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on readonly by developer
         Assertions.assertTrue(developerClient.disableArtifactCompatibilityRule(groupId, readonlyId));
+        // Get list of artifact rules
+        ruleList = developerClient.listArtifactRules(groupId, readonlyId);
+        // Check that API returns 200 OK when listing artifact rules by developer
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on admin artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule on admin by readonly
@@ -2411,6 +2720,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on admin by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- artifact compatibility rule on developer artifact by readonly
         // Check that API returns 204 No Content when enabling artifact compatibility rule on developer by readonly
@@ -2436,6 +2751,12 @@ public class RoleBasedAuthorizationToken {
         Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
         // Check that API returns 204 No Content when disabling artifact compatibility rule on developer by readonly
         Assertions.assertTrue(readonlyClient.disableArtifactCompatibilityRule(groupId, developerId));
+        // Get list of artifact rules
+        ruleList = readonlyClient.listArtifactRules(groupId, developerId);
+        // Check that API returns 200 OK when listing artifact rules by readonly
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
 
         // --- LIST ACTION ON GROUP
         // Check that API returns 200 OK when listing group artifacts by admin

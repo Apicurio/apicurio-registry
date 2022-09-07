@@ -716,6 +716,8 @@ public class GroupsResourceImpl implements GroupsResource {
                     .request()
                     .get()
                     .readEntity(InputStream.class), contentLength);
+        } catch (BadRequestException bre) {
+            throw bre;
         } catch (Exception e) {
             throw new BadRequestException("Errors downloading the artifact content.", e);
         }

@@ -15,20 +15,9 @@
  */
 package io.apicurio.tests.selenium;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
+import io.apicurio.tests.common.Constants;
+import io.apicurio.tests.selenium.resources.WebItem;
+import io.apicurio.tests.ui.pages.BasePage;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.By;
@@ -42,12 +31,25 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.tests.common.Constants;
-import io.apicurio.tests.selenium.resources.WebItem;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 public class SeleniumProvider {
@@ -179,6 +181,16 @@ public class SeleniumProvider {
         }
     }
 
+    public void takeScreenShot(String path) {
+        try {
+            log.warn("Taking screenshot");
+            File file = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            FileUtils.copyFile(file, new File(path));
+        } catch (Exception ex) {
+            log.warn("Cannot take screenshot: {}", ex.getMessage());
+        }
+    }
+
     public void clearScreenShots() {
         if (browserScreenshots != null) {
             browserScreenshots.clear();
@@ -276,6 +288,10 @@ public class SeleniumProvider {
 
     public <T extends WebItem> T waitUntilItemPresent(int timeInSeconds, Supplier<T> item) throws Exception {
         return waitUntilItem(timeInSeconds, item, true);
+    }
+
+    public void waitUntilItemClickableByDataId(String dataId) {
+        getDriverWait().withTimeout(Duration.ofSeconds(5)).until(ExpectedConditions.elementToBeClickable(BasePage.byDataTestId(dataId)));
     }
 
     public void waitUntilItemNotPresent(int timeInSeconds, Supplier<WebItem> item) throws Exception {

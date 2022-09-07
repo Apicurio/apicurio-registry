@@ -68,14 +68,14 @@ export const UrlUpload: FunctionComponent<UrlUploadProps> = ({ id, urlPlaceholde
         <div className="url-upload">
             <div className="url-upload-flex">
                 <div className="url-upload-url">
-                    <TextInput value={url} type="text" placeholder={urlPlaceholder} id={id}
+                    <TextInput data-testid={`${id}-input`} value={url} type="text" placeholder={urlPlaceholder} id={id}
                         onChange={onTextInputChange} aria-label="url input" />
                 </div>
-                <div className="url-upload-button">
-                    <Button variant="control" isDisabled={!hasUrl()} onClick={onFetch}>Fetch</Button>
+                <div className="url-fetch-button">
+                    <Button data-testid={`${id}-fetch`} variant="control" isDisabled={!hasUrl()} onClick={onFetch}>Fetch</Button>
                 </div>
-                <div className="url-upload-button">
-                    <Button variant="control" isDisabled={!hasUrl()} onClick={onClear}>Clear</Button>
+                <div className="url-clear-button">
+                    <Button data-testid={`${id}-clear`} variant="control" isDisabled={!hasUrl()} onClick={onClear}>Clear</Button>
                 </div>
             </div>
             <div className="url-upload-preview">

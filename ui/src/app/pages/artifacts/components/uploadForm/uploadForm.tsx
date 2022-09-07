@@ -167,7 +167,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                         isBox={false}
                         role="region"
                     >
-                        <Tab eventKey={0} title={<TabTitleText>From file</TabTitleText>} aria-label="Default content - from file">
+                        <Tab eventKey={0} data-testid="tab-from-file" title={<TabTitleText>From file</TabTitleText>} aria-label="Default content - from file">
                             <FileUpload
                                 id="artifact-content"
                                 data-testid="form-upload"
@@ -182,9 +182,9 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                                 isLoading={this.state.contentIsLoading}
                             />
                         </Tab>
-                        <Tab eventKey={1} title={<TabTitleText>From URL</TabTitleText>}>
+                        <Tab eventKey={1} data-testid="tab-from-url" title={<TabTitleText>From URL</TabTitleText>}>
                             <UrlUpload
-                                id="design-text-url"
+                                id="artifact-content-url"
                                 urlPlaceholder="Enter a valid and accessible URL"
                                 onChange={(value, url) => {
                                     this.onContentChange(value, url, {});

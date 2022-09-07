@@ -34,7 +34,7 @@ NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifac
 . Click *Upload* and view the artifact details: 
 +
 ** *Overview*: Displays the artifact version metadata such as name, artifact ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Documentation* (OpenAPI artifacts only): Displays automatically-generated REST API documentation.
+** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content.
 +
 The following example shows an example Protobuf schema artifact:

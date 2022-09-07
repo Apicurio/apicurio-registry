@@ -4,7 +4,7 @@
 [id="registry-liveness-env-vars_{context}"]
 = Environment variables for {registry} health checks
 
-This section describes the available environment variables for {registry} health checks on OpenShift. These include liveness and readiness probes to monitor the health of the {registry} server on OpenShift. For an example procedure, see xref:configuring-liveness-readiness-probes[].
+This section describes the available environment variables for {registry} health checks on OpenShift. These include liveness and readiness probes to monitor the health of the {registry} server on OpenShift. For an example procedure, see xref:configuring-liveness-readiness-probes_{context}[].
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 

@@ -33,6 +33,7 @@ endif::[]
 ifdef::service-registry-downstream[]
 :rh-service-registry:
 :org-name: Red Hat
+:prodnamefull: {org-name} Integration
 :registry: Service Registry
 :registry-version: 2.2
 :registry-v1: 1.1
@@ -72,7 +73,7 @@ include::attributes-links.adoc[]
 
 // Download URLs
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
-:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2022-Q1
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration&version=2022-Q3
 
 
 // internal links

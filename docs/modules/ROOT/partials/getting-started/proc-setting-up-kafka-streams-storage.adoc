@@ -24,7 +24,7 @@ ifdef::apicurio-registry[]
 .. Click *Installed Operators* and then *{kafka-streams}*.
 endif::[]
 ifdef::rh-service-registry[]
-.. Click *Installed Operators* and then *Red Hat Integration - {kafka-streams}*.
+.. Click *Installed Operators* and then *{prodnamefull} - {kafka-streams}*.
 endif::[]
 .. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
 .. Edit the custom resource definition as appropriate, and click *Create*.
@@ -54,7 +54,7 @@ ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 ifdef::rh-service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+. Click *Installed Operators* > *{prodnamefull} - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 . Paste in the following custom resource definition, but use your `bootstrapServers` value that you copied earlier:
 +

@@ -56,7 +56,7 @@ ifdef::apicurio-registry[]
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 ifdef::rh-service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+. Click *Installed Operators* > *{prodnamefull} - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
 endif::[]
 
 . Paste in the following custom resource definition, and edit the values for the database `url` and credentials to match your environment:

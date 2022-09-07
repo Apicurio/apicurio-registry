@@ -172,6 +172,24 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(group2, "testMultipleGroups/EmptyAPI/1", ArtifactType.OPENAPI, jsonArtifactContent);
         createArtifact(group2, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent);
 
+        // Get group 1 metadata
+        given()
+                .when()
+                .pathParam("groupId", group1)
+                .get("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo("testMultipleGroups_1"));
+
+        // Get group 2 metadata
+        given()
+                .when()
+                .pathParam("groupId", group2)
+                .get("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo("testMultipleGroups_2"));
+
         // Search each group to ensure the correct # of artifacts.
         given()
             .when()
@@ -208,6 +226,38 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("openapi", not(equalTo("3.0.2")))
                 .body("info.title", not(equalTo("Empty API")));
 
+        //Test delete group operations
+        // Delete group 1 metadata
+        given()
+                .when()
+                .pathParam("groupId", group1)
+                .delete("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(204);
+
+        // Delete group 2 metadata
+        given()
+                .when()
+                .pathParam("groupId", group2)
+                .delete("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(204);
+
+        // Get group 1 metadata again, should return 404
+        given()
+                .when()
+                .pathParam("groupId", group1)
+                .get("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(404);
+
+        // Get group 1 metadata again, should return 404
+        given()
+                .when()
+                .pathParam("groupId", group2)
+                .get("/registry/v2/groups/{groupId}")
+                .then()
+                .statusCode(404);
     }
 
     @Test

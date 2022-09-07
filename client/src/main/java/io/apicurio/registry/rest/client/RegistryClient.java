@@ -147,6 +147,12 @@ public interface RegistryClient extends Closeable {
 
     void deleteArtifactsInGroup(String groupId);
 
+    void createArtifactGroup(GroupMetaData groupMetaData);
+
+    void deleteArtifactGroup(String groupId);
+
+    GroupMetaData getArtifactGroup(String groupId);
+
     InputStream getContentById(long contentId);
 
     InputStream getContentByGlobalId(long globalId);

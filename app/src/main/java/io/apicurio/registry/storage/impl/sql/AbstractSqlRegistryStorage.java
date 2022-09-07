@@ -731,6 +731,26 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
+        if (groupId != null) {
+            //Only create group metadata for non-default groups.
+            createGroup(groupId, createdBy);
+        }
+
+        // Put the content in the DB and get the unique content ID back.
+        long contentId = handles.withHandleNoException(handle -> {
+            return createOrUpdateContent(handle, artifactType, content, references);
+        });
+
+        // If the metaData provided is null, try to figure it out from the content.
+        EditableArtifactMetaDataDto md = metaData;
+        if (md == null) {
+            md = extractMetaData(artifactType, content);
+        }
+
+        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
+    }
+
+    private void createGroup(String groupId, String createdBy) {
         try {
             // this will throw GroupNotFoundException if the group does not exist
             getGroupMetaData(groupId);
@@ -747,19 +767,6 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 //ignored
             }
         }
-
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content, references);
-        });
-
-        // If the metaData provided is null, try to figure it out from the content.
-        EditableArtifactMetaDataDto md = metaData;
-        if (md == null) {
-            md = extractMetaData(artifactType, content);
-        }
-
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, globalIdGenerator);
     }
 
     protected ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
@@ -2374,7 +2381,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
-            deleteArtifacts(groupId);
+            try {
+                deleteArtifacts(groupId);
+            } catch (ArtifactNotFoundException anfe) {
+                //Just ignore, group with no artifacts
+            }
             return null;
         });
     }

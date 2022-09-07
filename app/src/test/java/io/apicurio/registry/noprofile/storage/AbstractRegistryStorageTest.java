@@ -1036,8 +1036,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete first to cleanup after other tests
         storage().deleteAllUserData();
         createSomeUserData();
-        Assertions.assertEquals(6, countStorageEntities());
-        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        Assertions.assertEquals(8, countStorageEntities());
+        // ^ TODO Change to 9 after https://github.com/Apicurio/apicurio-registry/issues/1721
         // Delete all
         storage().deleteAllUserData();
         Assertions.assertEquals(0, countStorageEntities());
@@ -1047,20 +1047,20 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testMultiTenant_DeleteAllUserData() throws Exception {
         tenantCtx.setContext(tenantId1);
         createSomeUserData();
-        Assertions.assertEquals(6, countStorageEntities());
-        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        Assertions.assertEquals(8, countStorageEntities());
+        // ^ TODO Change to 9 after https://github.com/Apicurio/apicurio-registry/issues/1721
         tenantCtx.setContext(tenantId2);
         createSomeUserData();
-        Assertions.assertEquals(6, countStorageEntities());
-        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        Assertions.assertEquals(8, countStorageEntities());
+        // ^ TODO Change to 9 after https://github.com/Apicurio/apicurio-registry/issues/1721
         // Delete t1
         tenantCtx.setContext(tenantId1);
         storage().deleteAllUserData();
         Assertions.assertEquals(0, countStorageEntities());
         // NOT deleted t2
         tenantCtx.setContext(tenantId2);
-        Assertions.assertEquals(6, countStorageEntities());
-        // ^ TODO Change to 7 after https://github.com/Apicurio/apicurio-registry/issues/1721
+        Assertions.assertEquals(8, countStorageEntities());
+        // ^ TODO Change to 9 after https://github.com/Apicurio/apicurio-registry/issues/1721
         // Delete t2
         storage().deleteAllUserData();
         Assertions.assertEquals(0, countStorageEntities());

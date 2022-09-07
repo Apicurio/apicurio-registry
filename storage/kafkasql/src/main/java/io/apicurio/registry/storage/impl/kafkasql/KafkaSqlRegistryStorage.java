@@ -413,6 +413,11 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        if (groupId != null) {
+            //Only create group metadata for non-default groups.
+            createGroup(groupId, createdBy);
+        }
+
         long globalId = nextClusterGlobalId();
 
         UUID uuid = ConcurrentUtil.get(
@@ -928,6 +933,25 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = new EditableArtifactMetaDataDto();
         }
         return metaData;
+    }
+
+    private void createGroup(String groupId, String createdBy) {
+        try {
+            // this will throw GroupNotFoundException if the group does not exist
+            getGroupMetaData(groupId);
+        } catch (GroupNotFoundException e) {
+            try {
+                createGroup(GroupMetaDataDto.builder()
+                        .groupId(groupId)
+                        .createdOn(0)
+                        .modifiedOn(0)
+                        .createdBy(createdBy)
+                        .modifiedBy(createdBy)
+                        .build());
+            } catch (GroupAlreadyExistsException a) {
+                //ignored
+            }
+        }
     }
 
     /**

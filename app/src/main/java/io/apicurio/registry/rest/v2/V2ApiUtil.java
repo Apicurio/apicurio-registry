@@ -17,7 +17,6 @@
 
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.registry.cncf.schemaregistry.beans.SchemaGroup;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.SearchedArtifact;

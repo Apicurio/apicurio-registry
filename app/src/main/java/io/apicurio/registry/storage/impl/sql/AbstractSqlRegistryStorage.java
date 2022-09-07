@@ -731,6 +731,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
+        try {
+            // this will throw GroupNotFoundException if the group does not exist
+            getGroupMetaData(groupId);
+        } catch (GroupNotFoundException e) {
+            try {
+                createGroup(GroupMetaDataDto.builder()
+                        .groupId(groupId)
+                        .createdOn(0)
+                        .modifiedOn(0)
+                        .createdBy(createdBy)
+                        .modifiedBy(createdBy)
+                        .build());
+            } catch (GroupAlreadyExistsException a) {
+                //ignored
+            }
+        }
+
         // Put the content in the DB and get the unique content ID back.
         long contentId = handles.withHandleNoException(handle -> {
             return createOrUpdateContent(handle, artifactType, content, references);

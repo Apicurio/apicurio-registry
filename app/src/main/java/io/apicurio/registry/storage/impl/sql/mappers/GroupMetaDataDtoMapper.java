@@ -18,6 +18,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
@@ -53,7 +54,8 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
 
         dto.setModifiedBy(rs.getString("modifiedBy"));
-        dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
+        Timestamp modifiedOn = rs.getTimestamp("modifiedOn");
+        dto.setModifiedOn(modifiedOn == null ? 0 : modifiedOn.getTime());
 
         dto.setProperties(SqlUtil.deserializeProperties(rs.getString("properties")));
 

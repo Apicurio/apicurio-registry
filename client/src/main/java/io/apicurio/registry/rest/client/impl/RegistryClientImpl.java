@@ -309,6 +309,25 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public void createArtifactGroup(GroupMetaData groupMetaData) {
+        try {
+            apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifactGroup(groupMetaData));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+    }
+
+    @Override
+    public void deleteArtifactGroup(String groupId) {
+        apicurioHttpClient.sendRequest(GroupRequestsProvider.deleteArtifactGroup(groupId));
+    }
+
+    @Override
+    public GroupMetaData getArtifactGroup(String groupId) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactGroup(groupId));
+    }
+
+    @Override
     public InputStream getContentById(long contentId) {
         return apicurioHttpClient.sendRequest(IdRequestsProvider.getContentById(contentId));
     }

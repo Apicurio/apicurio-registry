@@ -2374,7 +2374,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
-            deleteArtifacts(groupId);
+            try {
+                deleteArtifacts(groupId);
+            } catch (ArtifactNotFoundException anfe) {
+                //Just ignore, group with no artifacts
+            }
             return null;
         });
     }

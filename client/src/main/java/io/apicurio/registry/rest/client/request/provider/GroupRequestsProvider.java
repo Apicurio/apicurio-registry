@@ -41,7 +41,7 @@ public class GroupRequestsProvider {
     public static Request<Void> deleteArtifactsInGroup(String groupId) {
         return new Request.RequestBuilder<Void>()
                 .operation(Operation.DELETE)
-                .path(Routes.GROUP_BASE_PATH)
+                .path(Routes.ARTIFACT_GROUPS_BASE_PATH)
                 .pathParams(List.of(groupId))
                 .responseType(new TypeReference<Void>() {
                 })
@@ -51,7 +51,7 @@ public class GroupRequestsProvider {
     public static Request<ArtifactMetaData> createArtifact(String groupId, Map<String, String> headers, InputStream data, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.POST)
-                .path(Routes.GROUP_BASE_PATH)
+                .path(Routes.ARTIFACT_GROUPS_BASE_PATH)
                 .headers(headers)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)
@@ -65,7 +65,7 @@ public class GroupRequestsProvider {
             throws JsonProcessingException {
         return new Request.RequestBuilder<ArtifactMetaData>()
                 .operation(Operation.POST)
-                .path(Routes.GROUP_BASE_PATH)
+                .path(Routes.ARTIFACT_GROUPS_BASE_PATH)
                 .headers(headers)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)
@@ -78,7 +78,7 @@ public class GroupRequestsProvider {
     public static Request<ArtifactSearchResults> listArtifactsInGroup(String groupId, Map<String, List<String>> queryParams) {
         return new Request.RequestBuilder<ArtifactSearchResults>()
                 .operation(Operation.GET)
-                .path(Routes.GROUP_BASE_PATH)
+                .path(Routes.ARTIFACT_GROUPS_BASE_PATH)
                 .pathParams(List.of(groupId))
                 .queryParams(queryParams)
                 .responseType(new TypeReference<ArtifactSearchResults>() {
@@ -375,7 +375,39 @@ public class GroupRequestsProvider {
                 .operation(GET)
                 .path(Routes.ARTIFACT_VERSION_REFERENCES)
                 .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version))
-                .responseType(new TypeReference<List<ArtifactReference>>(){})
+                .responseType(new TypeReference<List<ArtifactReference>>() {
+                })
+                .build();
+    }
+
+    public static Request<Void> createArtifactGroup(GroupMetaData groupMetaData) throws JsonProcessingException {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.POST)
+                .path(Routes.GROUPS_BASE_PATH)
+                .pathParams(List.of(groupMetaData.getId()))
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(groupMetaData)))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<Void> deleteArtifactGroup(String groupId) {
+        return new Request.RequestBuilder<Void>()
+                .operation(Operation.DELETE)
+                .path(Routes.GROUPS_BASE_PATH)
+                .pathParams(List.of(groupId))
+                .responseType(new TypeReference<Void>() {
+                })
+                .build();
+    }
+
+    public static Request<GroupMetaData> getArtifactGroup(String groupId) {
+        return new Request.RequestBuilder<GroupMetaData>()
+                .operation(GET)
+                .path(Routes.GROUPS_BASE_PATH)
+                .pathParams(List.of(groupId))
+                .responseType(new TypeReference<GroupMetaData>() {
+                })
                 .build();
     }
 }

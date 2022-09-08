@@ -19,7 +19,6 @@ public final class Environment {
     public static final String SSO_PACKAGE_ENV_VAR = "SSO_PACKAGE";
     public static final String TESTSUITE_PATH_ENV_VAR = "TESTSUITE_PATH";
     public static final String TMP_PATH_ENV_VAR = "TMP_PATH";
-    public static final String KIND_CLUSTER_VAR = "KIND_CLUSTER";
 
     public static final String FORCE_NAMESPACE = "FORCE_NAMESPACE";
 
@@ -60,10 +59,7 @@ public final class Environment {
 
     public static final String KAFKA_BUNDLE = getOrDefault(KAFKA_BUNDLE_ENV_VAR, KAFKA_BUNDLE_DEFAULT);
 
-    // Cluster specification (KIND - true, for OCP just set to false or ignore it and left to null)
-    public static final Boolean IS_KIND_CLUSTER = Boolean.parseBoolean(getOrDefault(KIND_CLUSTER_VAR, "false"));
-
-    public static final String CLUSTER_WIDE_NAMESPACE =  IS_KIND_CLUSTER ? "operators" : "openshift-operators";
+    public static final String CLUSTER_WIDE_NAMESPACE =  "openshift-operators";
 
 
     private static String get(String key) {

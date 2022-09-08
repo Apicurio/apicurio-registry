@@ -53,55 +53,33 @@ public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType
         String catalogNamespace = Environment.CATALOG_NAMESPACE;
         String ssoPackage = Environment.SSO_PACKAGE;
         // Add ability to install operator from source?
-        if (Environment.IS_KIND_CLUSTER) {
-            String channelName = "candidate";
-            if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-                setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
-            }
 
-            setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName));
-
-            // Currently is keycloak set to candidate release because postgress config on stable is
-            // super heavy and not really useful.
-            setSubscription(SubscriptionResourceType.getDefault(
-                    "keycloak-operator",
-                    getNamespace(),
-                    ssoPackage,
-                    catalogName,
-                    catalogNamespace,
-                    getClusterServiceVersion(),
-                    channelName
-            ));
-
-            ResourceManager.getInstance().createSharedResource(true, getSubscription());
+        if (Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
+            LOGGER.info("Operator group already present in namespace {}.", getNamespace());
         } else {
-            if (Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-                LOGGER.info("Operator group already present in namespace {}.", getNamespace());
-            } else {
-                setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
-            }
-
-            ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
-
-            String channelName = OperatorUtils.getDefaultChannel(catalogName, ssoPackage);
-            setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName));
-
-            LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
-
-            setSubscription(SubscriptionResourceType.getDefault(
-                    "sso-subscription",
-                    getNamespace(),
-                    ssoPackage,
-                    catalogName,
-                    catalogNamespace,
-                    getClusterServiceVersion(),
-                    channelName
-            ));
-
-            ResourceManager.getInstance().createSharedResource(true, getSubscription());
-
-            /* Waiting for operator deployment readiness is implemented in OperatorManager. */
+            setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
         }
+
+        ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
+
+        String channelName = OperatorUtils.getDefaultChannel(catalogName, ssoPackage);
+        setClusterServiceVersion(OperatorUtils.getCurrentCSV(catalogName, ssoPackage, channelName));
+
+        LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
+
+        setSubscription(SubscriptionResourceType.getDefault(
+                "sso-subscription",
+                getNamespace(),
+                ssoPackage,
+                catalogName,
+                catalogNamespace,
+                getClusterServiceVersion(),
+                channelName
+        ));
+
+        ResourceManager.getInstance().createSharedResource(true, getSubscription());
+
+        /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
 
     @Override

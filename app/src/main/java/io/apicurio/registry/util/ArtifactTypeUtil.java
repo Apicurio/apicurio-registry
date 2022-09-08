@@ -163,9 +163,11 @@ public final class ArtifactTypeUtil {
             // Avro
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
-            for (ContentHandle referencedContent : resolvedReferences.values()) {
-                Schema schemaRef = parser.parse(referencedContent.content());
-                schemaRefs.add(schemaRef);
+            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
+                    schemaRefs.add(schemaRef);
+                }
             }
             final Schema schema = parser.parse(content.content());
             schema.toString(schemaRefs, false);

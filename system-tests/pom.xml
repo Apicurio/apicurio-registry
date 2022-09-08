@@ -22,7 +22,7 @@
         <version.slf4.simple>2.0.0</version.slf4.simple>
         <version.registry.api.model>1.1.0-SNAPSHOT</version.registry.api.model>
         <version.strimzi.api>0.30.0</version.strimzi.api>
-        <version.eclipse.jgit>6.2.0.202206071550-r</version.eclipse.jgit>
+        <version.eclipse.jgit>6.3.0.202209071007-r</version.eclipse.jgit>
         <version.org.json>20220320</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
         <version.apache.httpcomponents>5.1.4</version.apache.httpcomponents>

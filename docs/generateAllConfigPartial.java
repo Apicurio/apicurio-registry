@@ -281,19 +281,6 @@ public class generateAllConfigPartial {
 
                 dest.write("|===\n\n");
             }
-
-            // for (var config: allConfiguration.values().stream().sorted((o1, o2) -> {
-            // var cat = o1.getCategory().compareTo(o2.getCategory());
-            //     if (cat != 0) {
-            //         return cat;
-            //     } else {
-            //         return o1.getName().compareTo(o2.getName());
-            //     }
-            // }).collect(Collectors.toList())) {
-            //     dest.write(config.toAdoc());
-            // }
-
-            // dest.write("|===\n");
         }
     }
 }

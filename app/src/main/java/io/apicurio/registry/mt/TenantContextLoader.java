@@ -71,11 +71,11 @@ public class TenantContextLoader {
 
     @Inject
     @ConfigProperty(defaultValue = "60000", name = "registry.tenants.context.cache.check-period")
-    @Info( category = "mt", description = "Tenants context cache check period", availableSince = "2.1.0.Final")
+    @Info(category = "mt", description = "Tenants context cache check period", availableSince = "2.1.0.Final")
     Long cacheCheckPeriod;
 
     @ConfigProperty(name = "registry.organization-id.claim-name")
-    @Info( category = "mt", description = "Organization ID claim name", availableSince = "2.1.0.Final")
+    @Info(category = "mt", description = "Organization ID claim name", availableSince = "2.1.0.Final")
     List<String> organizationIdClaims;
 
     public void onStart(@Observes StartupEvent ev) {

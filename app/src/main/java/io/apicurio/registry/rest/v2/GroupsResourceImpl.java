@@ -655,15 +655,27 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
         requireParameter("content", data.getContent());
 
+        Client client = null;
         InputStream content;
         try {
-            URL url = new URL(data.getContent());
-            content = fetchContentFromURL(url.toURI());
-        } catch (MalformedURLException | URISyntaxException e) {
-            content = IoUtil.toStream(data.getContent());
-        }
+            try {
+                URL url = new URL(data.getContent());
+                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
+                content = fetchContentFromURL(client, url.toURI());
+            } catch (MalformedURLException | URISyntaxException e) {
+                content = IoUtil.toStream(data.getContent());
+            }
 
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+        } catch (KeyManagementException kme) {
+            throw new RuntimeException(kme);
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new RuntimeException(nsae);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
     }
 
     public enum RegistryHashAlgorithm {
@@ -675,16 +687,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * Return an InputStream for the resource to be downloaded
      * @param url
      */
-    private InputStream fetchContentFromURL(URI url) {
-        Client client = null;
-        try {
-            client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
-        } catch (KeyManagementException kme) {
-            throw new RuntimeException(kme);
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new RuntimeException(nsae);
-        }
-
+    private InputStream fetchContentFromURL(Client client, URI url) {
         try {
             // 1. Registry issues HTTP HEAD request to the target URL.
             List<Object> contentLengthHeaders = client

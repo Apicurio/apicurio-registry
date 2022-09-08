@@ -48,7 +48,6 @@ import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.InvalidArtifactIdException;
 import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -332,12 +331,6 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public List<String> getGroups() {
-        return storage.getGroupIds(GET_GROUPS_LIMIT);
-    }
-
-    @Override
     @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
     public GroupMetaData getGroupById(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
@@ -345,40 +338,32 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Write)
-    public GroupMetaData createGroup(String groupId, CreateGroupMetaData data) {
-        //createdOn and modifiedOn are set by the storage
+    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
+    public void deleteGroupById(String groupId) {
+        storage.deleteGroup(groupId);
+    }
+
+    @Override
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    public List<String> listGroups(Integer limit, Integer offset, SortOrder order, SortBy orderby) {
+        return storage.getGroupIds(GET_GROUPS_LIMIT);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
+    public GroupMetaData createGroup(CreateGroupMetaData data) {
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder()
-                .groupId(groupId)
+                .groupId(data.getId())
                 .description(data.getDescription())
                 .artifactsType(data.getType() != null ? ArtifactType.fromValue(data.getType().value()) : null)
                 .properties(data.getProperties());
 
         String user = securityIdentity.getPrincipal().getName();
+        group.createdBy(user).createdOn(new Date().getTime());
 
-        try {
-            group.createdBy(user)
-                    .createdOn(new Date().getTime());
+        storage.createGroup(group.build());
 
-            storage.createGroup(group.build());
-
-            return V2ApiUtil.groupDtoToGroup(storage.getGroupMetaData(groupId));
-        } catch (GroupAlreadyExistsException e) {
-            GroupMetaDataDto existing = storage.getGroupMetaData(groupId);
-            group.createdBy(existing.getCreatedBy())
-                    .createdOn(existing.getCreatedOn())
-                    .modifiedBy(user)
-                    .modifiedOn(new Date().getTime());
-
-            storage.updateGroupMetaData(group.build());
-            return V2ApiUtil.groupDtoToGroup(storage.getGroupMetaData(groupId));
-        }
-    }
-
-    @Override
-    @Authorized(style=AuthorizedStyle.GroupOnly, level=AuthorizedLevel.Write)
-    public void deleteGroupById(String groupId) {
-        storage.deleteGroup(groupId);
+        return V2ApiUtil.groupDtoToGroup(storage.getGroupMetaData(data.getId()));
     }
 
     /**

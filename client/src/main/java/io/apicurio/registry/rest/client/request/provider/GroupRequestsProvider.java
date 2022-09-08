@@ -384,7 +384,6 @@ public class GroupRequestsProvider {
         return new Request.RequestBuilder<Void>()
                 .operation(Operation.POST)
                 .path(Routes.GROUPS_BASE_PATH)
-                .pathParams(List.of(groupMetaData.getId()))
                 .data(IoUtil.toStream(mapper.writeValueAsBytes(groupMetaData)))
                 .responseType(new TypeReference<Void>() {
                 })
@@ -394,7 +393,7 @@ public class GroupRequestsProvider {
     public static Request<Void> deleteArtifactGroup(String groupId) {
         return new Request.RequestBuilder<Void>()
                 .operation(Operation.DELETE)
-                .path(Routes.GROUPS_BASE_PATH)
+                .path(Routes.GROUP_BASE_PATH)
                 .pathParams(List.of(groupId))
                 .responseType(new TypeReference<Void>() {
                 })
@@ -404,7 +403,7 @@ public class GroupRequestsProvider {
     public static Request<GroupMetaData> getArtifactGroup(String groupId) {
         return new Request.RequestBuilder<GroupMetaData>()
                 .operation(GET)
-                .path(Routes.GROUPS_BASE_PATH)
+                .path(Routes.GROUP_BASE_PATH)
                 .pathParams(List.of(groupId))
                 .responseType(new TypeReference<GroupMetaData>() {
                 })

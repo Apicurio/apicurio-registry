@@ -720,6 +720,10 @@ public class GroupsResourceImpl implements GroupsResource {
             throw bre;
         } catch (Exception e) {
             throw new BadRequestException("Errors downloading the artifact content.", e);
+        } finally {
+            if(client != null) {
+                client.close();
+            }
         }
     }
 

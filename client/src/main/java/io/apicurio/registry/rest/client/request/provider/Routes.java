@@ -21,8 +21,9 @@ package io.apicurio.registry.rest.client.request.provider;
  */
 public class Routes {
 
-    protected static final String GROUPS_BASE_PATH = "groups/%s";
-    protected static final String ARTIFACT_GROUPS_BASE_PATH = GROUPS_BASE_PATH + "/artifacts";
+    protected static final String GROUPS_BASE_PATH = "groups";
+    protected static final String GROUP_BASE_PATH = "groups/%s";
+    protected static final String ARTIFACT_GROUPS_BASE_PATH = GROUP_BASE_PATH + "/artifacts";
     protected static final String ARTIFACT_BASE_PATH = ARTIFACT_GROUPS_BASE_PATH + "/%s";
     protected static final String IDS_BASE_PATH = "ids";
     protected static final String ADMIN_BASE_PATH = "admin";

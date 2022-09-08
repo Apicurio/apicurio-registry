@@ -718,6 +718,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
     /**
      *
      * @param groupId
+     * @return true if a group exists with the id passed as parameter
+     * @throws RegistryStorageException
+     */
+    public boolean isGroupExists(String groupId) throws RegistryStorageException;
+
+    /**
+     *
+     * @param groupId
      * @param artifactId
      * @param version
      * @return list of content ids of schemas that references artifact

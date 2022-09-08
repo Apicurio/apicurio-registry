@@ -413,9 +413,15 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
-        if (groupId != null) {
+        if (groupId != null && !isGroupExists(groupId)) {
             //Only create group metadata for non-default groups.
-            createGroup(groupId, createdBy);
+            createGroup(GroupMetaDataDto.builder()
+                    .groupId(groupId)
+                    .createdOn(0)
+                    .modifiedOn(0)
+                    .createdBy(createdBy)
+                    .modifiedBy(createdBy)
+                    .build());
         }
 
         long globalId = nextClusterGlobalId();
@@ -935,25 +941,6 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return metaData;
     }
 
-    private void createGroup(String groupId, String createdBy) {
-        try {
-            // this will throw GroupNotFoundException if the group does not exist
-            getGroupMetaData(groupId);
-        } catch (GroupNotFoundException e) {
-            try {
-                createGroup(GroupMetaDataDto.builder()
-                        .groupId(groupId)
-                        .createdOn(0)
-                        .modifiedOn(0)
-                        .createdBy(createdBy)
-                        .modifiedBy(createdBy)
-                        .build());
-            } catch (GroupAlreadyExistsException a) {
-                //ignored
-            }
-        }
-    }
-
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
@@ -1277,6 +1264,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return sqlStore.isArtifactExists(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isGroupExists(String)
+     */
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return sqlStore.isGroupExists(groupId);
     }
 
     /**

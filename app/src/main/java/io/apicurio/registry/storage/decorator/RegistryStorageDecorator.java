@@ -961,6 +961,11 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
         return delegate.isArtifactExists(groupId, artifactId);
     }
 
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return delegate.isGroupExists(groupId);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#isArtifactVersionExists(String, String, String)
      */

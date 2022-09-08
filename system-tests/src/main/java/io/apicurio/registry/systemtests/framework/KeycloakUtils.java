@@ -8,12 +8,9 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
-import io.apicurio.registry.systemtests.time.TimeoutBudget;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.apache.hc.core5.http.HttpStatus;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -25,7 +22,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class KeycloakUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();

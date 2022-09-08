@@ -5,7 +5,9 @@ import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
+import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.GroupMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
@@ -695,4 +697,52 @@ public interface GroupsResource {
   @Consumes("application/json")
   void updateArtifactOwner(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, ArtifactOwner data);
+
+  /**
+   * Creates a new group.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No group exists with the specified ID (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}")
+  @GET
+  @Produces("application/json")
+  GroupMetaData getGroupById(@PathParam("groupId") String groupId);
+
+  /**
+   * Deletes a group by identifier.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   * * The group does not exist (HTTP error `404`)
+   *
+   */
+  @Path("/{groupId}")
+  @DELETE
+  void deleteGroupById(@PathParam("groupId") String groupId);
+
+  /**
+   * Returns a list of all groups.  This list is paged.
+   */
+  @GET
+  @Produces("application/json")
+  List<String> listGroups(@QueryParam("limit") Integer limit, @QueryParam("offset") Integer offset,
+      @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby);
+
+  /**
+   * Creates a new group.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   * * The group already exist (HTTP error `409`)
+   *
+   */
+  @POST
+  @Produces("application/json")
+  @Consumes("application/json")
+  GroupMetaData createGroup(CreateGroupMetaData data);
 }

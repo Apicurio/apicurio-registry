@@ -2241,7 +2241,7 @@
             "parameters": [
                 {
                     "name": "groupId",
-                    "description": "Unique ID of an artifact group.",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
                     "schema": {
                         "$ref": "#/components/schemas/GroupId"
                     },
@@ -2785,6 +2785,164 @@
                     "required": true
                 }
             ]
+        },
+        "/groups/{groupId}": {
+            "summary": "Collection to manage a single group in the registry.",
+            "get": {
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GroupMetaData"
+                                }
+                            }
+                        },
+                        "description": "The group's metadata."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getGroupById",
+                "summary": "Get a group by the specified ID.",
+                "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* No group exists with the specified ID (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "delete": {
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Empty content indicates a successful deletion."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "deleteGroupById",
+                "summary": "Delete group by ID.",
+                "description": "Deletes a group by identifier.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group does not exist (HTTP error `404`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups": {
+            "summary": "Collection of the groups in the registry.",
+            "get": {
+                "tags": [
+                    "Groups"
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "description": "The number of groups to return.  Defaults to 20.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "offset",
+                        "description": "The number of groups to skip before starting the result set.  Defaults to 0.",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "order",
+                        "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortOrder"
+                        },
+                        "in": "query"
+                    },
+                    {
+                        "name": "orderby",
+                        "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
+                        "schema": {
+                            "$ref": "#/components/schemas/SortBy"
+                        },
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "On a successful response, returns a bounded set of groups."
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "listGroups",
+                "summary": "List groups",
+                "description": "Returns a list of all groups.  This list is paged."
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateGroupMetaData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Groups"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GroupMetaData"
+                                }
+                            }
+                        },
+                        "description": "The group has been successfully created."
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "createGroup",
+                "summary": "Create a new group",
+                "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n"
+            }
         },
         "x-codegen-contextRoot": "/apis/registry/v2"
     },
@@ -3866,6 +4024,101 @@
                 "example": {
                     "owner": "bwayne"
                 }
+            },
+            "GroupMetaData": {
+                "title": "Root Type for GroupMetaData",
+                "description": "",
+                "required": [
+                    "id",
+                    "description",
+                    "artifactsType",
+                    "createdBy",
+                    "createdOn",
+                    "modifiedBy",
+                    "modifiedOn",
+                    "properties"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/GroupId",
+                        "description": ""
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "createdOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "modifiedBy": {
+                        "type": "string"
+                    },
+                    "modifiedOn": {
+                        "format": "date-time",
+                        "type": "string",
+                        "x-codegen-formatPattern": "yyyy-MM-dd'T'HH:mm:ssZ"
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    }
+                },
+                "example": {
+                    "id": "group-identifier",
+                    "description": "Description of the group",
+                    "artifactsType": "AVRO",
+                    "createdBy": "user1",
+                    "createdOn": "2019-03-22T12:51:19Z",
+                    "modifiedBy": "user2",
+                    "modifiedOn": "2019-07-19T15:09:00Z",
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    }
+                }
+            },
+            "CreateGroupMetaData": {
+                "title": "Root Type for CreateGroupMetaData",
+                "description": "",
+                "required": [
+                    "id"
+                ],
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "properties": {
+                        "$ref": "#/components/schemas/Properties",
+                        "description": ""
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ArtifactType",
+                        "description": ""
+                    },
+                    "id": {
+                        "description": "",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "id": "group-identifier",
+                    "description": "The description of the artifact.",
+                    "properties": {
+                        "custom-1": "foo",
+                        "custom-2": "bar"
+                    },
+                    "type": "AVRO"
+                }
             }
         },
         "responses": {
@@ -4020,7 +4273,11 @@
         },
         {
             "name": "Users",
-            "description": "Some operations related to users."
+            "description": "Operations related to users."
+        },
+        {
+            "name": "Groups",
+            "description": "Registry artifacts can be collected together using groups. This section includes all of the primary operations related to groups."
         }
     ],
     "x-codegen": {

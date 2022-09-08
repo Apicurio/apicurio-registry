@@ -60,11 +60,15 @@ public class UploadArtifactDialog extends BasePage {
     }
 
     public WebElement getArtifactURL() {
-        return getUploadArtifactDialog().findElement(byDataTestId("form-url"));
+        return getUploadArtifactDialog().findElement(byDataTestId("artifact-content-url-input"));
     }
 
-    public WebElement getArtifactSHA() {
-        return getUploadArtifactDialog().findElement(byDataTestId("form-sha"));
+    public WebElement getFromUrlTab() {
+        return getUploadArtifactDialog().findElement(byDataTestId("tab-from-url"));
+    }
+
+    public WebElement getFetchButton() {
+        return getUploadArtifactDialog().findElement(byDataTestId("artifact-content-url-fetch"));
     }
 
     public WebElement getUploadButton() {

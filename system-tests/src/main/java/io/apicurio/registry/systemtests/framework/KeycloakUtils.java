@@ -9,15 +9,17 @@ import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceType;
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,15 +31,26 @@ public class KeycloakUtils {
         return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
-    public static void deployKeycloak(ExtensionContext testContext) {
-        deployKeycloak(testContext, Constants.TESTSUITE_NAMESPACE);
+    public static void deployKeycloak() throws InterruptedException {
+        deployKeycloak(Environment.NAMESPACE);
     }
 
-    public static void deployKeycloak(ExtensionContext testContext, String namespace) {
+    private static void deployKeycloakPostgres(String namespace) throws URISyntaxException {
+        URL dtb = KeycloakUtils.class.getClassLoader().getResource("postgres.yaml");
+
+        Exec.executeAndCheck(
+                "oc",
+                "apply",
+                "-n", namespace,
+                "-f", Paths.get(dtb.toURI()).toFile().toString()
+        );
+        ResourceUtils.waitStatefulSetReady(namespace, "postgresql-db");
+
+    }
+
+    public static void deployKeycloak(String namespace) throws InterruptedException {
         LOGGER.info("Deploying Keycloak...");
-
         ResourceManager manager = ResourceManager.getInstance();
-
         // Deploy Keycloak server
         Exec.executeAndCheck(
                 "oc",
@@ -50,14 +63,15 @@ public class KeycloakUtils {
         ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
         // Create Keycloak HTTP Service and wait for its readiness
-        manager.createResource(testContext, true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
+        manager.createSharedResource( true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
         // Create Keycloak Route and wait for its readiness
-        manager.createResource(testContext, true, RouteResourceType.getDefaultKeycloak(namespace));
+        manager.createSharedResource( true, RouteResourceType.getDefaultKeycloak(namespace));
 
         // Log Keycloak URL
         LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
 
+        // TODO: Wait for Keycloak Realm readiness, but API model not available
         // Create Keycloak Realm
         Exec.executeAndCheck(
                 "oc",
@@ -66,17 +80,11 @@ public class KeycloakUtils {
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
 
-        // TODO: Wait for Keycloak Realm readiness, but API model not available
-
         LOGGER.info("Keycloak should be deployed.");
     }
 
-    public static void removeKeycloak() {
-        removeKeycloak(Constants.TESTSUITE_NAMESPACE);
-    }
-
-    public static void removeKeycloak(String namespace) {
-        LOGGER.info("Removing Keycloak...");
+    public static void removeKeycloakRealm(String namespace) {
+        LOGGER.info("Removing keycloak realm");
 
         Exec.executeAndCheck(
                 "oc",
@@ -84,7 +92,12 @@ public class KeycloakUtils {
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
+    }
 
+    public static void removeKeycloak(String namespace) throws InterruptedException {
+        removeKeycloakRealm(namespace);
+        Thread.sleep(Duration.ofMinutes(2).toMillis());
+        LOGGER.info("Removing Keycloak...");
         Exec.executeAndCheck(
                 "oc",
                 "delete",
@@ -100,7 +113,7 @@ public class KeycloakUtils {
     }
 
     public static String getDefaultKeycloakURL() {
-        return getDefaultKeycloakURL(Constants.TESTSUITE_NAMESPACE);
+        return getDefaultKeycloakURL(Environment.NAMESPACE);
     }
 
     public static String getDefaultKeycloakURL(String namespace) {

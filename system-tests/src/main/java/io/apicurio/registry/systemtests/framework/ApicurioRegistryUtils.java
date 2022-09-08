@@ -50,11 +50,11 @@ public class ApicurioRegistryUtils {
     public static ApicurioRegistry deployDefaultApicurioRegistrySql(
             ExtensionContext testContext,
             boolean useKeycloak
-    ) {
+    ) throws InterruptedException {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistrySql = ApicurioRegistryResourceType.getDefaultSql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         if (useKeycloak) {
@@ -62,7 +62,7 @@ public class ApicurioRegistryUtils {
         }
 
         // Create Apicurio Registry
-        ResourceManager.getInstance().createResource(testContext, true, apicurioRegistrySql);
+        ResourceManager.getInstance().createResource(true, apicurioRegistrySql);
 
         return apicurioRegistrySql;
     }
@@ -70,11 +70,11 @@ public class ApicurioRegistryUtils {
     public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlNoAuth(
             ExtensionContext testContext,
             boolean useKeycloak
-    ) {
+    ) throws InterruptedException {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         if (useKeycloak) {
@@ -82,7 +82,7 @@ public class ApicurioRegistryUtils {
         }
 
         // Create Apicurio Registry without authentication
-        ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlNoAuth);
+        ResourceManager.getInstance().createResource(true, apicurioRegistryKafkasqlNoAuth);
 
         return apicurioRegistryKafkasqlNoAuth;
     }
@@ -91,11 +91,11 @@ public class ApicurioRegistryUtils {
             ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
-    ) {
+    ) throws InterruptedException {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         // Update Apicurio Registry to have TLS configuration
@@ -121,7 +121,7 @@ public class ApicurioRegistryUtils {
         }
 
         // Create Apicurio Registry with TLS configuration
-        ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlTLS);
+        ResourceManager.getInstance().createResource(true, apicurioRegistryKafkasqlTLS);
 
         return apicurioRegistryKafkasqlTLS;
     }
@@ -130,11 +130,11 @@ public class ApicurioRegistryUtils {
             ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
-    ) {
+    ) throws InterruptedException {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
                 Constants.REGISTRY,
-                Constants.TESTSUITE_NAMESPACE
+                Environment.NAMESPACE
         );
 
         // Update to have SCRAM configuration
@@ -152,7 +152,7 @@ public class ApicurioRegistryUtils {
         }
 
         // Create Apicurio Registry with SCRAM configuration
-        ResourceManager.getInstance().createResource(testContext, true, apicurioRegistryKafkasqlSCRAM);
+        ResourceManager.getInstance().createResource(true, apicurioRegistryKafkasqlSCRAM);
 
         return apicurioRegistryKafkasqlSCRAM;
     }
@@ -203,6 +203,7 @@ public class ApicurioRegistryUtils {
         String registryName = apicurioRegistry.getMetadata().getName();
         String registryNamespace = apicurioRegistry.getMetadata().getNamespace();
         String defaultRegistryHostname = registryName + "." + registryNamespace;
+
         // Get Route
         Route registryRoute = Kubernetes.getRoute(apicurioRegistry);
 

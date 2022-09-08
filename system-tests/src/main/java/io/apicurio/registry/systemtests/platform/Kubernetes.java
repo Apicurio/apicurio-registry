@@ -429,12 +429,17 @@ public final class Kubernetes {
     }
 
     public static Deployment getDeployment(String namespace, String name) {
-        return getClient()
-                .apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        try {
+            return getClient()
+                    .apps()
+                    .deployments()
+                    .inNamespace(namespace)
+                    .withName(name)
+                    .get();
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 
     public static Deployment getDeploymentByPrefix(String namespace, String prefix) {
@@ -574,7 +579,6 @@ public final class Kubernetes {
                 .list()
                 .getItems()
                 .size();
-
         return namespaceOperatorGroupsCount > 0;
     }
 }

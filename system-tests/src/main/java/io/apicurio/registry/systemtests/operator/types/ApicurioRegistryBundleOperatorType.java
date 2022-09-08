@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests.operator.types;
 
-import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
@@ -9,7 +8,6 @@ import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -49,7 +47,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     public ApicurioRegistryBundleOperatorType() {
-        super(Environment.REGISTRY_BUNDLE, Constants.TESTSUITE_NAMESPACE);
+        super(Environment.REGISTRY_BUNDLE, Environment.NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();
@@ -59,7 +57,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     public ApicurioRegistryBundleOperatorType(String source) {
-        super(source, Constants.TESTSUITE_NAMESPACE);
+        super(source, Environment.NAMESPACE);
 
         try {
             loadOperatorResourcesFromFile();
@@ -101,7 +99,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() {
         Kubernetes.createOrReplaceResources(getNamespace(), getResources());
     }
 

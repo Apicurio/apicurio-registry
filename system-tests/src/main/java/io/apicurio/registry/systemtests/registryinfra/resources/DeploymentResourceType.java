@@ -18,7 +18,7 @@ import java.util.List;
 public class DeploymentResourceType implements ResourceType<Deployment> {
     @Override
     public Duration getTimeout() {
-        return Duration.ofMinutes(3);
+        return Duration.ofMinutes(5);
     }
 
     @Override

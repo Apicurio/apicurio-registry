@@ -138,6 +138,7 @@
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
 
+        <module>system-tests</module>
     </modules>
 
     <properties>

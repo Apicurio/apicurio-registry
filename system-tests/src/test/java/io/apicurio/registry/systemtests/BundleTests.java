@@ -3,10 +3,10 @@ package io.apicurio.registry.systemtests;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryBundleOperatorType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-@Disabled
+@Tag("bundle")
 public class BundleTests extends Tests {
     @Override
     public void setupTestClass() {
@@ -14,11 +14,11 @@ public class BundleTests extends Tests {
     }
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
         ApicurioRegistryBundleOperatorType registryBundleOperator = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(testContext, registryBundleOperator);
+        operatorManager.installOperator(registryBundleOperator);
     }
 }

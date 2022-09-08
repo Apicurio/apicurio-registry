@@ -14,7 +14,6 @@ import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroup;
 import io.fabric8.openshift.api.model.operatorhub.v1.OperatorGroupBuilder;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.SubscriptionSpec;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -199,7 +198,7 @@ public class OperatorUtils {
         return waitCatalogSourceReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
     }
 
-    public static OperatorGroup createOperatorGroup(ExtensionContext testContext, String namespace) {
+    public static OperatorGroup createOperatorGroup(String namespace) throws InterruptedException {
         String name = namespace + "-operator-group";
 
         LOGGER.info("Creating operator group {} in namespace {} targeting namespace {}...", name, namespace, namespace);
@@ -214,7 +213,7 @@ public class OperatorUtils {
                 .endSpec()
                 .build();
 
-        ResourceManager.getInstance().createResource(testContext, true, operatorGroup);
+        ResourceManager.getInstance().createSharedResource(true, operatorGroup);
 
         return operatorGroup;
     }

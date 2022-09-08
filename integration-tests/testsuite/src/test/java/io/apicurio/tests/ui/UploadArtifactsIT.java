@@ -58,14 +58,14 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
     }
 
     public void doTestFromURL(RegistryClient client, String fromURL, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
-        doTest(client, null, type, artifactId, autodetect, fromURL, null);
+        doTest(client, null, type, artifactId, autodetect, fromURL);
     }
 
     public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
-        doTest(client, resource, type, artifactId, autodetect, null, null);
+        doTest(client, resource, type, artifactId, autodetect, null);
     }
 
-    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect, String fromURL, String sha) throws Exception {
+    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect, String fromURL) throws Exception {
         String groupId = UploadArtifactsIT.class.getName();
 
         assertNotNull(type);
@@ -75,7 +75,7 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
         String webArtifactId = (fromURL == null) ? page.uploadArtifact(groupId, artifactId, autodetect ? null : type, content) :
-                page.uploadArtifactFromURL(groupId, artifactId, autodetect ? null : type, fromURL, sha);
+                page.uploadArtifactFromURL(groupId, artifactId, autodetect ? null : type, fromURL);
 
         if (artifactId != null) {
             assertEquals(artifactId, webArtifactId);
@@ -125,11 +125,12 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
     }
 
     @Test
-    void testJsonSchemaFromURL() throws Exception {
+    void testOpenApiFromURL() throws Exception {
+        String testUrl = SeleniumProvider.getInstance().getUiUrl().replace("/ui", "/api-specifications/registry/v2/openapi.json");
         doTestFromURL(
                 registryClient,
-                "http://localhost:8081/api-specifications/registry/v2/openapi.json",
-                ArtifactType.JSON, null, false);
+                testUrl,
+                ArtifactType.OPENAPI, null, false);
     }
 
     //auto-detect, kafka connect excluded because it's known it does not work

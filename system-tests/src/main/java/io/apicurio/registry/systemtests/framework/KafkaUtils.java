@@ -43,7 +43,7 @@ public class KafkaUtils {
         return true;
     }
 
-    public static void createSecuredUser(ExtensionContext testContext, String username, Kafka kafka, KafkaKind kind) {
+    public static void createSecuredUser(ExtensionContext testContext, String username, Kafka kafka, KafkaKind kind) throws InterruptedException {
         String namespace = kafka.getMetadata().getNamespace();
         String kafkaName = kafka.getMetadata().getName();
         String kafkaCaSecretName = kafkaName + "-cluster-ca-cert";
@@ -56,16 +56,15 @@ public class KafkaUtils {
         }
 
         ResourceManager.getInstance().createResource(
-                testContext,
                 true,
                 KafkaUserResourceType.getDefaultByKind(username, namespace, kafkaName, kind)
         );
     }
 
-    public static Kafka deployDefaultKafkaByKind(ExtensionContext testContext, KafkaKind kind) {
+    public static Kafka deployDefaultKafkaByKind(ExtensionContext testContext, KafkaKind kind) throws InterruptedException {
         Kafka kafka = KafkaResourceType.getDefaultByKind(kind);
 
-        ResourceManager.getInstance().createResource(testContext, true, kafka);
+        ResourceManager.getInstance().createResource(true, kafka);
 
         if (KafkaKind.SCRAM.equals(kind) || KafkaKind.TLS.equals(kind)) {
             createSecuredUser(testContext, Constants.KAFKA_USER, kafka, kind);
@@ -76,15 +75,15 @@ public class KafkaUtils {
         return kafka;
     }
 
-    public static Kafka deployDefaultKafkaNoAuth(ExtensionContext testContext) {
+    public static Kafka deployDefaultKafkaNoAuth(ExtensionContext testContext) throws InterruptedException {
         return deployDefaultKafkaByKind(testContext, KafkaKind.NO_AUTH);
     }
 
-    public static Kafka deployDefaultKafkaTls(ExtensionContext testContext) {
+    public static Kafka deployDefaultKafkaTls(ExtensionContext testContext) throws InterruptedException {
         return deployDefaultKafkaByKind(testContext, KafkaKind.TLS);
     }
 
-    public static Kafka deployDefaultKafkaScram(ExtensionContext testContext) {
+    public static Kafka deployDefaultKafkaScram(ExtensionContext testContext) throws InterruptedException {
         return deployDefaultKafkaByKind(testContext, KafkaKind.SCRAM);
     }
 }

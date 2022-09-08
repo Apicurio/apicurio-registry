@@ -100,7 +100,7 @@ public class CertificateUtils {
 
     private static void createSecret(
             ExtensionContext testContext, String namespace, String name, Map<String, String> secretData
-    ) {
+    ) throws InterruptedException {
         Secret secret = new SecretBuilder()
                 .withNewMetadata()
                     .withName(name)
@@ -109,7 +109,7 @@ public class CertificateUtils {
                 .addToData(secretData)
                 .build();
 
-        ResourceManager.getInstance().createResource(testContext, true, secret);
+        ResourceManager.getInstance().createResource( true, secret);
     }
 
     public static void createTruststore(
@@ -117,7 +117,7 @@ public class CertificateUtils {
             String namespace,
             String caCertSecretName,
             String truststoreSecretName
-    ) {
+    ) throws InterruptedException {
         LOGGER.info("Preparing truststore...");
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
@@ -145,7 +145,7 @@ public class CertificateUtils {
             String clientCertSecretName,
             String keystoreSecretName,
             String hostname
-    ) {
+    ) throws InterruptedException {
         LOGGER.info("Preparing keystore...");
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());

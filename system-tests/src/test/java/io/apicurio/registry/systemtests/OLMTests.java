@@ -7,16 +7,15 @@ import io.apicurio.registry.systemtests.framework.DatabaseUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
-import org.junit.jupiter.api.Assertions;
+import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.opentest4j.AssertionFailedError;
 
-import java.text.MessageFormat;
+import java.time.Duration;
 
-@Disabled
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 public abstract class OLMTests extends Tests {
     protected boolean clusterWide;
 
@@ -29,16 +28,16 @@ public abstract class OLMTests extends Tests {
     }
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
 
-        operatorManager.installOperator(testContext, registryOLMOperator);
+        operatorManager.installOperator(registryOLMOperator);
     }
 
     @Test
-    public void testMultipleNamespaces(ExtensionContext testContext) {
+    public void testMultipleNamespaces(ExtensionContext testContext) throws InterruptedException {
         // Deploy default PostgreSQL database
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
         // Deploy default Apicurio Registry with default PostgreSQL database
@@ -65,25 +64,14 @@ public abstract class OLMTests extends Tests {
         if (clusterWide) {
             // If OLM operator is installed as cluster wide,
             // second Apicurio Registry should be deployed successfully
-            ResourceManager.getInstance().createResource(testContext, true, secondSqlRegistry);
+            ResourceManager.getInstance().createResource(true, secondSqlRegistry);
         } else {
             // If OLM operator is installed as namespaced,
             // second Apicurio Registry deployment should fail
-            AssertionFailedError assertionFailedError = Assertions.assertThrows(
-                    AssertionFailedError.class,
-                    () -> ResourceManager.getInstance().createResource(testContext, true, secondSqlRegistry)
-            );
-
-            Assertions.assertEquals(
-                    MessageFormat.format(
-                            "Timed out waiting for resource {0} with name {1} in namespace {2} to be ready. " +
-                                    "==> expected: <true> but was: <false>",
-                            secondSqlRegistry.getKind(),
-                            secondSqlRegistry.getMetadata().getName(),
-                            secondSqlRegistry.getMetadata().getNamespace()
-                    ),
-                    assertionFailedError.getMessage()
-            );
+            ResourceManager.getInstance().createResource(false, secondSqlRegistry);
+            assertFalse(ResourceManager.getInstance().waitResourceCondition(secondSqlRegistry,
+                    ResourceManager.getInstance().findResourceType(secondSqlRegistry)::isReady,
+                    TimeoutBudget.ofDuration(Duration.ofMinutes(2))));
         }
     }
 }

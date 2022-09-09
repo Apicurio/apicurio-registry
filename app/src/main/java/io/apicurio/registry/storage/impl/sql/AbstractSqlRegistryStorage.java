@@ -731,6 +731,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
+        if (groupId != null && !isGroupExists(groupId)) {
+            //Only create group metadata for non-default groups.
+            createGroup(GroupMetaDataDto.builder()
+                    .groupId(groupId)
+                    .createdOn(0)
+                    .modifiedOn(0)
+                    .createdBy(createdBy)
+                    .modifiedBy(createdBy)
+                    .build());
+        }
+
         // Put the content in the DB and get the unique content ID back.
         long contentId = handles.withHandleNoException(handle -> {
             return createOrUpdateContent(handle, artifactType, content, references);
@@ -2958,6 +2969,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(0, tenantContext().tenantId())
                     .bind(1, normalizeGroupId(groupId))
                     .bind(2, artifactId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
+    /**
+     * @see RegistryStorage#isGroupExists(String)
+     */
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectGroupCountById();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
                     .mapTo(Integer.class)
                     .one() > 0;
         });

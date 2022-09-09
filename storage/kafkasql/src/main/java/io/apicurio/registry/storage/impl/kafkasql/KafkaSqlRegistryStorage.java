@@ -413,6 +413,17 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             metaData = extractMetaData(artifactType, content);
         }
 
+        if (groupId != null && !isGroupExists(groupId)) {
+            //Only create group metadata for non-default groups.
+            createGroup(GroupMetaDataDto.builder()
+                    .groupId(groupId)
+                    .createdOn(0)
+                    .modifiedOn(0)
+                    .createdBy(createdBy)
+                    .modifiedBy(createdBy)
+                    .build());
+        }
+
         long globalId = nextClusterGlobalId();
 
         UUID uuid = ConcurrentUtil.get(
@@ -1253,6 +1264,14 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return sqlStore.isArtifactExists(groupId, artifactId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isGroupExists(String)
+     */
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return sqlStore.isGroupExists(groupId);
     }
 
     /**

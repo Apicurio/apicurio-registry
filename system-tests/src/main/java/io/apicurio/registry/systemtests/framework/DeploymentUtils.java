@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 public class DeploymentUtils {
 
@@ -112,30 +114,32 @@ public class DeploymentUtils {
     }
 
     public static void createOrReplaceDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
+        createOrReplaceDeploymentEnvVars(deployment, Collections.singletonList(envVar));
+    }
+
+    public static void createOrReplaceDeploymentEnvVars(Deployment deployment, List<EnvVar> envVars) {
         // Get deployment namespace
         String deploymentNamespace = deployment.getMetadata().getNamespace();
         // Get deployment name
         String deploymentName = deployment.getMetadata().getName();
 
-        // If environment variable already exists in deployment
-        if (deploymentEnvVarExists(deployment, envVar)) {
-            // Log information about current action
-            LOGGER.info(
-                    "Setting environment variable {} of deployment {} to {}.",
-                    envVar.getName(), deploymentName, envVar.getValue()
-            );
+        for (EnvVar ev : envVars) {
+            // If environment variable already exists in deployment
+            if (deploymentEnvVarExists(deployment, ev)) {
+                // Log information about current action
+                LOGGER.info("Setting environment variable {} of deployment {} to {}.",
+                        ev.getName(), deploymentName, ev.getValue());
 
-            // Set value of environment variable
-            getDeploymentEnvVar(deployment, envVar.getName()).setValue(envVar.getValue());
-        } else {
-            // Log information about current action
-            LOGGER.info(
-                    "Adding environment variable {} with value {} to deployment {}.",
-                    envVar.getName(), envVar.getValue(), deploymentName
-            );
+                // Set value of environment variable
+                getDeploymentEnvVar(deployment, ev.getName()).setValue(ev.getValue());
+            } else {
+                // Log information about current action
+                LOGGER.info("Adding environment variable {} with value {} to deployment {}.",
+                        ev.getName(), ev.getValue(), deploymentName);
 
-            // Add environment variable if it does not exist yet
-            addDeploymentEnvVar(deployment, envVar);
+                // Add environment variable if it does not exist yet
+                addDeploymentEnvVar(deployment, ev);
+            }
         }
 
         // Update deployment
@@ -150,14 +154,15 @@ public class DeploymentUtils {
         // Get deployment
         deployment = Kubernetes.getDeployment(deploymentNamespace, deploymentName);
 
-        // Check value of environment variable
-        Assertions.assertEquals(
-                getDeploymentEnvVar(deployment, envVar.getName()).getValue(),
-                envVar.getValue(),
-                MessageFormat.format(
-                        "Environment variable {0} of deployment {1} was NOT set to {2}.",
-                        envVar.getName(), deploymentName, envVar.getValue()
-                )
-        );
+        for (EnvVar ev : envVars) {
+            // Check value of environment variable
+            Assertions.assertEquals(
+                    getDeploymentEnvVar(deployment, ev.getName()).getValue(),
+                    ev.getValue(),
+                    MessageFormat.format("Environment variable {0} of deployment {1} was NOT set to {2}.",
+                            ev.getName(), deploymentName, ev.getValue()
+                    )
+            );
+        }
     }
 }

@@ -72,7 +72,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
                 .setParsedSchema(schema)
                 .setReferenceName(schema.getFullName())
                 .setSchemaReferences(resolvedReferences)
-                .setRawSchema(IoUtil.toBytes(schema.toString()));
+                .setRawSchema(IoUtil.toBytes(schema.toString(resolvedReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
     }
 
     private List<ParsedSchema<Schema>> handleReferences(List<Schema.Field> schemaFields) {
@@ -82,7 +82,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
                 final List<ParsedSchema<Schema>> parsedSchemas = handleReferences(field.schema().getFields());
 
-                byte[] rawSchema = IoUtil.toBytes(field.schema().toString(parsedSchemas.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toList()), false));
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString(parsedSchemas.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false));
 
                 ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
                         .setParsedSchema(field.schema())

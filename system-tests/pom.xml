@@ -21,6 +21,7 @@
         <version.fabric8-java-gen>6.1.1</version.fabric8-java-gen>
         <sundrio.version>0.92.1</sundrio.version>
         <lombok.version>1.18.24</lombok.version>
+        <operator.version>1.0.0-v2.0.0.final</operator.version>
         <version.hamcrest>2.2</version.hamcrest>
         <version.slf4.simple>2.0.0</version.slf4.simple>
         <version.strimzi.api>0.30.0</version.strimzi.api>
@@ -237,7 +238,7 @@
                         <goal>wget</goal>
                     </goals>
                     <configuration>
-                        <url>https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/1.0.0-v2.0.0.final/packagemanifests/1.0.0-v2.0.0.final/registry.apicur.io_apicurioregistries.yaml</url>
+                        <url>https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/${operator.version}/packagemanifests/${operator.version}/registry.apicur.io_apicurioregistries.yaml</url>
                         <outputFileName>registry.apicur.io_apicurioregistries.yaml</outputFileName>
                         <outputDirectory>${project.build.directory}</outputDirectory>
                     </configuration>

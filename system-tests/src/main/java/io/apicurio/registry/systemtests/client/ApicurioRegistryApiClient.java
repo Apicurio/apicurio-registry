@@ -1356,6 +1356,57 @@ public class ApicurioRegistryApiClient {
         return true;
     }
 
+    public boolean createUser(String userId, ApicurioRegistryUserRole userRole, String userName) {
+        return createUser(userId, userRole, userName, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean createUser(String userId, ApicurioRegistryUserRole userRole, String userName, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Creating user {} with role {}...", userId, userRole);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/roleMappings", host, port);
+
+        // Prepare request content
+        String content = String.format(
+                "{\"principalId\":\"%s\",\"role\":\"%s\",\"principalName\":\"%s\"}",
+                userId,
+                userRole,
+                userName
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .POST(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
     public boolean checkUnauthorized() {
         return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
     }

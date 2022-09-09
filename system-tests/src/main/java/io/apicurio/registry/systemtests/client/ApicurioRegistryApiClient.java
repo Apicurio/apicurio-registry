@@ -1310,6 +1310,52 @@ public class ApicurioRegistryApiClient {
         return true;
     }
 
+    public boolean deleteUser(String userId) {
+        return deleteUser(userId, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean deleteUser(String userId, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Deleting user {}...", userId);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/admin/roleMappings/%s",
+                host,
+                port,
+                userId
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .DELETE();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
     public boolean checkUnauthorized() {
         return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
     }

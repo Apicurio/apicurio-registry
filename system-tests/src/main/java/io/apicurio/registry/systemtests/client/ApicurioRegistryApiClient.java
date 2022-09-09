@@ -1259,6 +1259,57 @@ public class ApicurioRegistryApiClient {
         }
     }
 
+    public boolean updateUser(String userId, ApicurioRegistryUserRole userRole) {
+        return updateUser(userId, userRole, HttpStatus.SC_NO_CONTENT);
+    }
+
+    public boolean updateUser(String userId, ApicurioRegistryUserRole userRole, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Updating user {} with role {}...", userId, userRole);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/admin/roleMappings/%s",
+                host,
+                port,
+                userId
+        );
+
+        // Prepare request content
+        String content = String.format("{\"role\":\"%s\"}", userRole);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set content type header
+                .header("Content-Type", "application/json")
+                // Set request type and content
+                .PUT(HttpRequest.BodyPublishers.ofString(content));
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return false;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        return true;
+    }
+
     public boolean checkUnauthorized() {
         return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
     }

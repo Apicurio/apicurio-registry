@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
 import io.apicurio.registry.systemtests.framework.Base64Utils;
 import io.apicurio.registry.systemtests.framework.CompatibilityLevel;
 import io.apicurio.registry.systemtests.framework.HttpClientUtils;
@@ -26,6 +27,10 @@ import java.util.stream.Collectors;
 public class ApicurioRegistryApiClient {
     private static final Logger LOGGER = LoggerUtils.getLogger();
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final CollectionType USER_LIST_COLLECTION_TYPE = MAPPER.getTypeFactory().constructCollectionType(
+            List.class,
+            ApicurioRegistryUser.class
+    );
     private String host;
     private int port;
     private String token;
@@ -1145,6 +1150,55 @@ public class ApicurioRegistryApiClient {
                 return MAPPER.readValue(response.body(), ArtifactList.class);
             } else {
                 return new ArtifactList();
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<ApicurioRegistryUser> getUserList() {
+        return getUserList(HttpStatus.SC_OK);
+    }
+
+    public List<ApicurioRegistryUser> getUserList(int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Listing registry users...");
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI("http://%s:%d/apis/registry/v2/admin/roleMappings", host, port);
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        try {
+            if (httpStatus == HttpStatus.SC_OK) {
+                return MAPPER.readValue(response.body(), USER_LIST_COLLECTION_TYPE);
+            } else {
+                return new ArrayList<>();
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

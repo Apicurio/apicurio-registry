@@ -1205,6 +1205,60 @@ public class ApicurioRegistryApiClient {
         }
     }
 
+    public ApicurioRegistryUser getUser(String userId) {
+        return getUser(userId, HttpStatus.SC_OK);
+    }
+
+    public ApicurioRegistryUser getUser(String userId, int httpStatus) {
+        // Log information about current action
+        LOGGER.info("Getting user {}...", userId);
+
+        // Get request URI
+        URI uri = HttpClientUtils.buildURI(
+                "http://%s:%d/apis/registry/v2/admin/roleMappings/%s",
+                host,
+                port,
+                userId
+        );
+
+        // Get request builder
+        HttpRequest.Builder requestBuilder = HttpClientUtils.newBuilder()
+                // Set request URI
+                .uri(uri)
+                // Set request type
+                .GET();
+
+        // Set header with authentication when provided
+        setAuthenticationHeader(requestBuilder);
+
+        // Build request
+        HttpRequest request = requestBuilder.build();
+
+        // Process request
+        HttpResponse<String> response = HttpClientUtils.processRequest(request);
+
+        LOGGER.info("Expected status code: {}.", httpStatus);
+
+        // Check response status code
+        if (response.statusCode() != httpStatus) {
+            LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
+
+            return null;
+        }
+
+        LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
+
+        try {
+            if (httpStatus == HttpStatus.SC_OK) {
+                return MAPPER.readValue(response.body(), ApicurioRegistryUser.class);
+            } else {
+                return null;
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public boolean checkUnauthorized() {
         return checkUnauthorized(HttpStatus.SC_UNAUTHORIZED);
     }

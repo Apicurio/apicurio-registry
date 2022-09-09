@@ -131,7 +131,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
         List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
@@ -166,7 +166,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Rule getGlobalRuleConfig(RuleType rule) {
         RuleConfigurationDto dto;
         try {

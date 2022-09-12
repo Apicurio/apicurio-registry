@@ -10,23 +10,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import io.apicurio.registry.utils.JAXRSClientUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.client.WebTarget;
@@ -203,46 +196,8 @@ class SchemaRegistryRestAPIClient {
         }
     }
 
-
-    private static class NullHostnameVerifier implements HostnameVerifier {
-        public static final NullHostnameVerifier INSTANCE = new NullHostnameVerifier();
-
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            return true;
-        }
-    }
-
-    private static TrustManager[] nullTrustManager = new TrustManager[]{new X509TrustManager() {
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-    }};
-
-
     private static Client getJAXRSClient(boolean skipSSLValidation) throws KeyManagementException, NoSuchAlgorithmException {
-        ClientBuilder cb = ClientBuilder.newBuilder();
-
-        cb.connectTimeout(10, TimeUnit.SECONDS);
-
-        Client newClient;
-        if (skipSSLValidation) {
-            SSLContext nullSSLContext = SSLContext.getInstance("TLSv1.2");
-            nullSSLContext.init(null, nullTrustManager, null);
-            cb.hostnameVerifier(NullHostnameVerifier.INSTANCE)
-              .sslContext(nullSSLContext);
-
-            newClient = cb.build();
-        } else {
-            newClient = cb.build();
-        }
+        Client newClient = JAXRSClientUtil.getJAXRSClient(skipSSLValidation);
 
         newClient.register(JacksonJsonProvider.class);
 

@@ -319,6 +319,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "UPDATE rules SET configuration = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ? AND type = ?";
     }
 
+    @Override
+    public String updateArtifactOwner() {
+        return "UPDATE artifacts SET createdBy = ? WHERE tenantId = ? AND groupId = ? AND artifactId = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactRule()
      */
@@ -985,5 +990,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteOrphanedReferences() {
         return "DELETE FROM artifactreferences ar WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = ar.contentId AND v.tenantId = ar.tenantId)";
+    }
+
+    @Override
+    public String selectContentIdsReferencingArtifactBy() {
+        return "SELECT contentId FROM artifactreferences WHERE tenantId=? AND groupId=? AND artifactId=? AND version=?";
+    }
+
+    @Override
+    public String selectGlobalIdsReferencingArtifactBy() {
+        return "SELECT DISTINCT v.globalId FROM versions v JOIN artifactreferences ar ON v.tenantId=ar.tenantId AND v.contentId=ar.contentId WHERE ar.tenantId=? AND ar.groupId=? AND ar.artifactId=? AND ar.version=?";
     }
 }

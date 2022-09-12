@@ -1,7 +1,7 @@
 // Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="registry-artifact-reference"]
+[id="registry-artifact-reference_{context}"]
 = {registry} artifact reference
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 

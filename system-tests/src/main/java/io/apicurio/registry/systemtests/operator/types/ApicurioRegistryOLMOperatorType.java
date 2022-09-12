@@ -16,7 +16,6 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.CatalogSource;
 import io.fabric8.openshift.api.model.operatorhub.v1alpha1.Subscription;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
@@ -28,13 +27,13 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     private CatalogSource catalogSource = null;
 
     public ApicurioRegistryOLMOperatorType() {
-        super(Environment.CATALOG_IMAGE, Constants.CLUSTER_WIDE_NAMESPACE, true);
+        super(Environment.CATALOG_IMAGE, Environment.CLUSTER_WIDE_NAMESPACE, true);
     }
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
         super(
                 Environment.CATALOG_IMAGE,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
                 isClusterWide
         );
     }
@@ -42,7 +41,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide) {
         super(
                 source,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
                 isClusterWide
         );
     }
@@ -50,7 +49,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide, String operatorNamespace) {
         super(
                 Environment.CATALOG_IMAGE,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
                 isClusterWide
         );
     }
@@ -58,7 +57,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide, String operatorNamespace) {
         super(
                 source,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
                 isClusterWide
         );
     }
@@ -66,7 +65,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     /**
      * Create catalog source and wait for its creation.
      */
-    private void createCatalogSource(ExtensionContext testContext, String namespace) {
+    private void createCatalogSource(String namespace) throws InterruptedException {
         String name = Constants.CATALOG_NAME;
         String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
 
@@ -74,7 +73,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
 
         catalogSource = CatalogSourceResourceType.getDefault(name, namespace, getSource());
 
-        ResourceManager.getInstance().createResource(testContext, false, catalogSource);
+        ResourceManager.getInstance().createResource(false, catalogSource);
 
         LOGGER.info("Waiting for catalog source {} to be created...", info);
         OperatorUtils.waitCatalogSourceExists(namespace, name);
@@ -134,24 +133,24 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() throws InterruptedException {
         /* Operator namespace is created in OperatorManager. */
 
         String scope = getClusterWide() ? "cluster wide" : "namespaced";
         String catalogName = Environment.CATALOG;
-        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String catalogNamespace = Environment.CATALOG_NAMESPACE;
         String registryPackage = Environment.REGISTRY_PACKAGE;
 
         LOGGER.info("Installing {} OLM operator {} in namespace {}...", scope, getKind(), getNamespace());
 
         if (getSource() != null) {
-            createCatalogSource(testContext, catalogNamespace);
+            createCatalogSource(catalogNamespace);
 
             catalogName = catalogSource.getMetadata().getName();
         }
 
         if (!getClusterWide() && !Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-            setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
+            setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
         }
 
         ResourceUtils.waitPackageManifestExists(catalogName, registryPackage);
@@ -171,7 +170,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
                 channelName
         ));
 
-        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
+        ResourceManager.getInstance().createResource(true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }
@@ -213,7 +212,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         return isReady();
     }
 
-    public void upgrade(ExtensionContext testContext) {
+    public void upgrade() throws InterruptedException {
         LOGGER.info("Upgrading {} {} operator...", getClusterWide() ? "cluster wide" : "namespaced", getKind());
 
         // Get current subscription namespace
@@ -231,7 +230,7 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         setSource(Environment.CATALOG_IMAGE);
 
         // Create new catalog source from image
-        createCatalogSource(testContext, catalogNamespace);
+        createCatalogSource(catalogNamespace);
 
         // Update subscription to use newly created catalog source
         getSubscription().getSpec().setSource(catalogSource.getMetadata().getName());

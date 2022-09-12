@@ -87,6 +87,7 @@ public class SearchResourceImpl implements SearchResource {
                     break;
                 case name:
                     filter.setType(SearchFilterType.name);
+                    break;
                 case everything:
                 default:
                     filter.setType(SearchFilterType.everything);

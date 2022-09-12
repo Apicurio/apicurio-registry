@@ -18,7 +18,8 @@
 import React from "react";
 import "./artifacts.css";
 import {
-    Button, FileUpload,
+    Button,
+    FileUpload,
     Flex,
     FlexItem,
     Form,
@@ -27,19 +28,19 @@ import {
     PageSection,
     PageSectionVariants,
     Spinner
-} from '@patternfly/react-core';
-import {ArtifactList} from "./components/artifactList";
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {ArtifactsPageToolbar, ArtifactsPageToolbarFilterCriteria} from "./components/toolbar";
-import {ArtifactsPageEmptyState} from "./components/empty";
-import {UploadArtifactForm} from "./components/uploadForm";
-import {InvalidContentModal} from "../../components/modals";
-import {If} from "../../components/common/if";
-import {ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services} from "../../../services";
-import {SearchedArtifact} from "../../../models";
-import {PleaseWaitModal} from "../../components/modals/pleaseWaitModal";
-import {RootPageHeader} from "../../components";
-import {ProgressModal} from "../../components/modals/progressModal";
+} from "@patternfly/react-core";
+import { ArtifactList } from "./components/artifactList";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { ArtifactsPageToolbar, ArtifactsPageToolbarFilterCriteria } from "./components/toolbar";
+import { ArtifactsPageEmptyState } from "./components/empty";
+import { UploadArtifactForm } from "./components/uploadForm";
+import { InvalidContentModal } from "../../components/modals";
+import { If } from "../../components/common/if";
+import { ArtifactsSearchResults, CreateArtifactData, GetArtifactsCriteria, Paging, Services } from "../../../services";
+import { SearchedArtifact } from "../../../models";
+import { PleaseWaitModal } from "../../components/modals/pleaseWaitModal";
+import { RootPageHeader } from "../../components";
+import { ProgressModal } from "../../components/modals/progressModal";
 import { ApiError } from "src/models/apiError.model";
 
 /**

@@ -1,5 +1,6 @@
 package io.apicurio.registry.metrics.health.readiness;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
@@ -40,6 +41,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * before the readiness check fails.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold", defaultValue = "1")
+    @Info( category = "health", description = "Error threshold of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configErrorThreshold;
 
     /**
@@ -49,12 +51,14 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec", defaultValue = "60")
+    @Info( category = "health", description = "Counter reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configCounterResetWindowDurationSec;
 
     /**
      * If set to a positive value, reset the readiness status after this time window passes without any further errors.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec", defaultValue = "300")
+    @Info( category = "health", description = "Status reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configStatusResetWindowDurationSec;
 
     /**
@@ -62,6 +66,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * TODO This may be expected on some endpoints. Add a way to ignore those.
      */
     @ConfigProperty(name = "registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec", defaultValue = "10")
+    @Info( category = "health", description = "Timeout of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configTimeoutSec;
 
     private Duration timeoutSec;

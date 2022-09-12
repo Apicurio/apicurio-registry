@@ -22,7 +22,10 @@ module.exports = merge(common("development"), {
     allowedHosts: "all",
     hot: true,
     client: {
-      overlay: true,
+      overlay: {
+        warnings: false,
+        errors: true
+      }
     },
     open: true,
     https: PROTOCOL === "https",

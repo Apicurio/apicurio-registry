@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React from "react";
 import "./errorPage.css";
 import {
     Button,
@@ -27,11 +27,11 @@ import {
     PageSection,
     PageSectionVariants,
     Title
-} from '@patternfly/react-core';
-import {ExclamationCircleIcon} from "@patternfly/react-icons";
+} from "@patternfly/react-core";
+import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-tomorrow";
-import {ErrorPage, ErrorPageProps} from "./errorPage";
+import { ErrorPage, ErrorPageProps } from "./errorPage";
 
 
 export class RateLimitErrorPage extends ErrorPage {

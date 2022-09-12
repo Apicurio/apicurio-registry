@@ -146,7 +146,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                         throw new VersionNotFoundException(null, subject, version);
                     }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
-                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null));
+                    Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(storedArtifact.getReferences());
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null, resolvedReferences));
                 });
     }
 
@@ -333,6 +334,17 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     @Override
     public RuleConfigurationDto getArtifactRule(String subject, RuleType ruleType) {
         return storage.getArtifactRule(null, subject, ruleType);
+    }
+
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String subject, String versionString) {
+        if (cconfig.legacyIdModeEnabled.get()) {
+            return parseVersionString(subject, versionString,
+                    version -> storage.getGlobalIdsReferencingArtifact(null, subject, version));
+        }
+
+        return parseVersionString(subject, versionString,
+                version -> storage.getContentIdsReferencingArtifact(null, subject, version));
     }
 
 

@@ -89,6 +89,57 @@ public class RegistryUITester {
 
     }
 
+    public String uploadArtifactFromURL(String groupId, String artifactId, ArtifactType type, String url) throws UnsupportedEncodingException {
+
+        UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
+
+        if (groupId != null) {
+            uploadDialog.fillGroupId(groupId);
+        }
+
+        if (artifactId != null) {
+            uploadDialog.fillArtifactId(artifactId);
+        }
+
+        selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownToggle());
+        selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownItem(type));
+
+        // Switch to the "From URL tab"
+        selenium.clickOnItem(uploadDialog.getFromUrlTab());
+
+        // Wait for the tab to switch
+        selenium.waitUntilItemClickableByDataId("artifact-content-url-input");
+
+        try {
+            selenium.fillInputItem(uploadDialog.getArtifactURL(), url);
+            selenium.clickOnItem(uploadDialog.getFetchButton());
+        } finally {
+            selenium.takeScreenShot();
+        }
+
+        selenium.takeScreenShot("C:\\Temp\\BEFORE.png");
+
+        try {
+            // Wait for the content to be fetched
+            selenium.waitUntilItemClickableByDataId("modal-btn-upload");
+            selenium.clickOnItem(uploadDialog.getUploadButton());
+        } finally {
+            selenium.takeScreenShot();
+            selenium.takeScreenShot("C:\\Temp\\AFTER.png");
+        }
+
+        try {
+            selenium.getDriverWait().withTimeout(Duration.ofSeconds(10)).until(
+                    ExpectedConditions.urlContains("/versions/latest"));
+            String[] slices = selenium.getDriver().getCurrentUrl().split("/");
+            String aid = slices[slices.length - 3 ];
+            return URLDecoder.decode(aid, StandardCharsets.UTF_8.name());
+        } finally {
+            selenium.takeScreenShot();
+        }
+
+    }
+
     public UploadArtifactDialog openUploadArtifactDialog() {
         var btn = artifactsListPage.getEmptyUploadArtifactOpenDialogButton();
         if (btn == null) {

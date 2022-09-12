@@ -6,14 +6,14 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [main]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 2.0.x]
+    branches: [main, 2.0.x]
 
 jobs:
   lint:
@@ -26,6 +26,9 @@ jobs:
 
       - name: Install tools
         run: .github/scripts/install-tools.sh
+
+      - name: Check generated code
+        run: ./scripts/validate-generated-code.sh
 
       - name: Run linter
         run: ./scripts/validate-files.sh

@@ -37,8 +37,10 @@ import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -488,6 +490,10 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
 
+        if (version != null && sqlStore.isArtifactVersionExists(groupId, artifactId, version)) {
+            throw new VersionAlreadyExistsException(groupId, artifactId, version);
+        }
+
         String contentHash = ensureContent(content, groupId, artifactId, artifactType, references);
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
@@ -556,6 +562,18 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactVersion(tenantContext.tenantId(), groupId, artifactId, metaDataDto.getVersion(),
                 ActionType.UPDATE, metaDataDto.getState(), metaData));
+        coordinator.waitForResponse(reqId);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactOwner(String, String, ArtifactOwnerDto)
+     */
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
+        ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId);
+
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
     }
 
@@ -1180,6 +1198,58 @@ public class KafkaSqlRegistryStorage extends AbstractRegistryStorage {
         return sqlStore.isArtifactExists(groupId, artifactId);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getContentIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return sqlStore.getContentIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#isArtifactVersionExists(String, String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        return sqlStore.isArtifactVersionExists(groupId, artifactId, version);
+    }
+
+    protected void importEntity(Entity entity) throws RegistryStorageException {
+        switch (entity.getEntityType()) {
+            case ArtifactRule:
+                importArtifactRule((ArtifactRuleEntity) entity);
+                break;
+            case ArtifactVersion:
+                importArtifactVersion((ArtifactVersionEntity) entity);
+                break;
+            case Content:
+                importContent((ContentEntity) entity);
+                break;
+            case GlobalRule:
+                importGlobalRule((GlobalRuleEntity) entity);
+                break;
+            case Group:
+                importGroup((GroupEntity) entity);
+                break;
+            case Manifest:
+                ManifestEntity manifest = (ManifestEntity) entity;
+                log.info("---------- Import Info ----------");
+                log.info("System Name:    {}", manifest.systemName);
+                log.info("System Desc:    {}", manifest.systemDescription);
+                log.info("System Version: {}", manifest.systemVersion);
+                log.info("Data exported on {} by user {}", manifest.exportedOn, manifest.exportedBy);
+                log.info("---------- ----------- ----------");
+                // Ignore the manifest for now.
+                break;
+            default:
+                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
+        }
+    }
     protected void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
         submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);

@@ -13,7 +13,7 @@ on:
       release-version:
         required: true
         type: string
-      snapshot-version: 
+      snapshot-version:
         required: true
         type: string
 
@@ -46,12 +46,12 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-      
+
       - name: Configure Git
         run: |
           git config --global user.name "apicurio-ci"
           git config --global user.email "apicurio.ci@gmail.com"
-          
+
       - name: Checkout Apicurio Registry Tag ${{ env.RELEASE_VERSION }}
         uses: actions/checkout@v2
         with:
@@ -62,7 +62,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: cd apicurio-registry && make build-all
-      
+
       - name: Checkout Apicurio Registry Examples
         uses: actions/checkout@v2
         with:
@@ -87,7 +87,7 @@ jobs:
           cd apicurio-registry-examples
           git add .
           git commit -m "Automated update to Release Version:: ${{ env.RELEASE_VERSION }}"
-          git push origin master
+          git push origin main
 
       - name: Tag Examples
         run: |
@@ -99,13 +99,13 @@ jobs:
         run: |
           cd apicurio-registry-examples
           mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
-      
+
       - name: Commit Snapshot Version Changes
         run: |
           cd apicurio-registry-examples
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
-          git push origin master
+          git push origin main
 
       - name: Google Chat Notification
         if: ${{ failure() }}

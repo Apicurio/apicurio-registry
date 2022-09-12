@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./uploadForm.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {FileUpload, Form, FormGroup} from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { FileUpload, Form, FormGroup } from "@patternfly/react-core";
 
 
 /**

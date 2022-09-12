@@ -17,12 +17,12 @@
         <maven.compiler.target>11</maven.compiler.target>
         <version.junit.jupiter>5.8.2</version.junit.jupiter>
         <version.junit.platform>1.7.0</version.junit.platform>
-        <version.fabric8>5.12.1</version.fabric8>
+        <version.fabric8>5.12.2</version.fabric8>
         <version.hamcrest>2.2</version.hamcrest>
-        <version.slf4.simple>1.7.36</version.slf4.simple>
+        <version.slf4.simple>2.0.0</version.slf4.simple>
         <version.registry.api.model>1.1.0-SNAPSHOT</version.registry.api.model>
-        <version.strimzi.api>0.29.0</version.strimzi.api>
-        <version.eclipse.jgit>6.2.0.202206071550-r</version.eclipse.jgit>
+        <version.strimzi.api>0.31.0</version.strimzi.api>
+        <version.eclipse.jgit>6.3.0.202209071007-r</version.eclipse.jgit>
         <version.org.json>20220320</version.org.json>
         <version.apache.commons>3.12.0</version.apache.commons>
         <version.apache.httpcomponents>5.1.4</version.apache.httpcomponents>
@@ -69,6 +69,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>${version.slf4.simple}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -190,7 +191,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.0</version>
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>
@@ -215,6 +216,34 @@
             <id>default</id>
             <properties>
                 <groups>default</groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>olm</id>
+            <properties>
+                <groups>olm &amp; !bundle</groups>
+                <skip.tests>false</skip.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>olm-clusterwide</id>
+            <properties>
+                <groups>olm-clusterwide &amp; !bundle &amp; !olm-namespace</groups>
+                <skip.tests>false</skip.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>olm-namespace</id>
+            <properties>
+                <groups>olm-namespace &amp; !bundle &amp; !olm-clusterwide</groups>
+                <skip.tests>false</skip.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>bundle</id>
+            <properties>
+                <groups>bundle &amp; !olm</groups>
+                <skip.tests>false</skip.tests>
             </properties>
         </profile>
     </profiles>

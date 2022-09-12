@@ -16,8 +16,8 @@
  */
 import React from "react";
 import "./artifactTypeIcon.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import {ArtifactTypes} from "../../../models";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { ArtifactTypes } from "../../../models";
 
 /**
  * Properties

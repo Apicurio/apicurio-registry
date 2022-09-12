@@ -252,8 +252,8 @@ public interface SubjectVersionsResource {
      */
     @GET
     @Path("/{version}/referencedby")
-    List<Integer> getSchemasReferencedBy(
-            @PathParam("subject") String subject, @PathParam("version") Integer version) throws Exception;
+    List<Long> getSchemasReferencedBy(
+            @PathParam("subject") String subject, @PathParam("version") String version) throws Exception;
 
 
 }

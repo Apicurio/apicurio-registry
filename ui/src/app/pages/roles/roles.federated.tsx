@@ -17,8 +17,8 @@
 
 import React from "react";
 import "./roles.css";
-import {RolesPage, RolesPageProps} from "./roles";
-import {FederatedComponentProps, FederatedUtils} from "../../federated";
+import { RolesPage, RolesPageProps } from "./roles";
+import { FederatedComponentProps, FederatedUtils } from "../../federated";
 
 
 /**

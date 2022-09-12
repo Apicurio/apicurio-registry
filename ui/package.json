@@ -11,20 +11,24 @@
     "postinstall": "node .fix_yaml.js",
     "clean": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
-    "build-mtui": "webpack --config webpack.prod.js --env=target:mtui",
-    "start": "webpack serve --hot --color --progress --config webpack.dev.js"
+    "start": "webpack serve --hot --color --progress --config webpack.dev.js",
+    "lint": "eslint --ext=.ts ./src"
   },
   "devDependencies": {
+    "@apicurio/eslint-config": "0.2.0",
     "@redhat-cloud-services/frontend-components-config": "4.6.6",
     "@types/node": "^11.9.6",
     "@types/react": "17.0.1",
     "@types/react-dom": "17.0.1",
     "@types/react-router": "5.1.14",
     "@types/react-router-dom": "5.1.7",
+    "@typescript-eslint/eslint-plugin": "5.33.1",
+    "@typescript-eslint/parser": "5.33.1",
     "copy-webpack-plugin": "^8.1.1",
     "css-loader": "6.7.1",
     "css-minimizer-webpack-plugin": "3.4.1",
     "dotenv-webpack": "7.1.0",
+    "eslint": "8.22.0",
     "file-loader": "6.2.0",
     "html-webpack-plugin": "^5.3.1",
     "imagemin": "^6.0.0",
@@ -32,7 +36,7 @@
     "null-loader": "4.0.1",
     "postcss": "8.4.12",
     "postcss-loader": "6.2.1",
-    "node-polyfill-webpack-plugin": "1.1.2",
+    "node-polyfill-webpack-plugin": "^1.1.4",
     "prettier": "^1.15.2",
     "prop-types": "^15.6.1",
     "raw-loader": "4.0.2",
@@ -44,10 +48,6 @@
     "ts-jest": "^24.0.0",
     "ts-loader": "9.2.8",
     "tsconfig-paths-webpack-plugin": "^3.5.1",
-    "tslint": "^5.13.1",
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-eslint-rules": "^5.4.0",
-    "tslint-react": "^3.6.0",
     "typescript": "^3.3.3333",
     "url-loader": "4.1.1",
     "webpack": "5.70.0",
@@ -57,6 +57,7 @@
     "webpack-merge": "5.8.0"
   },
   "dependencies": {
+    "@asyncapi/react-component": "^1.0.0-next.40",
     "@patternfly/patternfly": "4.185.1",
     "@patternfly/react-core": "4.202.16",
     "@patternfly/react-icons": "4.53.16",
@@ -72,12 +73,16 @@
     "react-ace": "10.1.0",
     "react-dom": "17.0.2",
     "react-moment": "1.1.2",
+    "oidc-client-ts": "^2.0.3",
     "react-router-dom": "5.2.1",
     "redoc": "2.0.0-rc.72",
     "styled-components": "^4.2.0",
     "to-arraybuffer": "^1.0.1",
     "tty-browserify": "0.0.1",
     "yaml": "2.1.1"
+  },
+  "overrides": {
+    "colorette": "2.0.19"
   },
   "resolutions": {
     "redoc/**/colorette": "2.0.19"

@@ -16,11 +16,11 @@
  */
 import React from "react";
 import "./empty.css";
-import {Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title} from '@patternfly/react-core';
-import {PlusCircleIcon} from "@patternfly/react-icons";
-import {IfAuth, PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {IfFeature} from "../../../../components/common/ifFeature";
-import {If} from "../../../../components/common/if";
+import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateVariant, Title } from "@patternfly/react-core";
+import { PlusCircleIcon } from "@patternfly/react-icons";
+import { IfAuth, PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { IfFeature } from "../../../../components/common/ifFeature";
+import { If } from "../../../../components/common/if";
 
 /**
  * Properties

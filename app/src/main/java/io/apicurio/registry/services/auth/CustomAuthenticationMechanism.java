@@ -36,6 +36,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
 import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.common.apps.logging.audit.AuditLogService;
@@ -62,19 +63,24 @@ import io.vertx.ext.web.RoutingContext;
 public class CustomAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @ConfigProperty(name = "registry.auth.enabled")
+    @Info( category = "auth", description = "Enable auth", availableSince = "2.2.6-SNAPSHOT")
     boolean authEnabled;
 
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "registry.auth.enabled=true")
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.enabled", defaultValue = "false")
+    @Info( category = "auth", description = "Enable basic auth client credentials", availableSince = "2.1.0.Final")
     Supplier<Boolean> fakeBasicAuthEnabled;
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
+    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     @ConfigProperty(name = "registry.auth.client-secret")
+    @Info( category = "auth", description = "Auth client secret", availableSince = "2.1.0.Final")
     Optional<String> clientSecret;
 
     @ConfigProperty(name = "quarkus.oidc.client-id")
+    @Info( category = "auth", description = "OIDC client ID", availableSince = "2.0.0.Final")
     String clientId;
 
     @Inject

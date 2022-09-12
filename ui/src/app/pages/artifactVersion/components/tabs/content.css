@@ -20,5 +20,12 @@
     visibility: hidden;
 }
 
+.formatting-buttons {
+    position: absolute;
+    right: 25px;
+    top: 10px;
+    z-index: 1;
+}
+
 #artifactContent {
 }

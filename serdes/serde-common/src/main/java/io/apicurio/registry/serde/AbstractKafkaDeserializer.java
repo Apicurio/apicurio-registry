@@ -115,7 +115,7 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
             return null;
         }
         ArtifactReference artifactReference = null;
-        if (headers != null) {
+        if (headersHandler != null && headers != null) {
             artifactReference = headersHandler.readHeaders(headers);
 
             if (artifactReference.hasValue()) {

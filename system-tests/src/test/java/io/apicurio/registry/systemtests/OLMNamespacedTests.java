@@ -1,9 +1,10 @@
 package io.apicurio.registry.systemtests;
 
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 
-@Disabled
+@Tag("olm")
+@Tag("olm-namespace")
 public class OLMNamespacedTests extends OLMTests {
     @Override
     public void setupTestClass() {

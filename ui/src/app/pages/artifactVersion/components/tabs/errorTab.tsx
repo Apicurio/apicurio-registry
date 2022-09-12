@@ -1,9 +1,17 @@
 import React, { ReactNode } from "react";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-tomorrow";
-import { Button, EmptyState, EmptyStateBody, EmptyStateIcon, EmptyStateSecondaryActions, EmptyStateVariant, Title } from "@patternfly/react-core";
+import {
+    Button,
+    EmptyState,
+    EmptyStateBody,
+    EmptyStateIcon,
+    EmptyStateSecondaryActions,
+    EmptyStateVariant,
+    Title
+} from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 
 export interface TabError {
@@ -27,7 +35,7 @@ export interface ErrorTabContentProps extends PureComponentProps {
 export interface ErrorTabContentState extends PureComponentState {
     isShowDetails: boolean;
     editorWidth: string;
-    editorHeight: string;   
+    editorHeight: string;
 }
 
 
@@ -86,7 +94,7 @@ export class ErrorTabContent extends PureComponent<ErrorTabContentProps, ErrorTa
             </div>
         )
     }
-    
+
     protected initializeState(): ErrorTabContentState {
         return {
             editorHeight: "250px",

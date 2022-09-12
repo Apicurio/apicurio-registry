@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.AdminClientFactory;
@@ -54,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
+    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = "authTestGroupId";

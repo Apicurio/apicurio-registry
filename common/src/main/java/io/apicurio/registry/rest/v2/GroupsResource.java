@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
@@ -430,6 +431,8 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
       @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Content-Hash") String xRegistryContentHash,
+      @HeaderParam("X-Registry-Hash-Algorithm") String xRegistryHashAlgorithm,
       ContentCreateRequest data);
 
   /**
@@ -498,7 +501,9 @@ public interface GroupsResource {
       @HeaderParam("X-Registry-Description") String xRegistryDescription,
       @HeaderParam("X-Registry-Description-Encoded") String xRegistryDescriptionEncoded,
       @HeaderParam("X-Registry-Name") String xRegistryName,
-      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded, InputStream data);
+      @HeaderParam("X-Registry-Name-Encoded") String xRegistryNameEncoded,
+      @HeaderParam("X-Registry-Content-Hash") String xRegistryContentHash,
+      @HeaderParam("X-Registry-Hash-Algorithm") String xRegistryHashAlgorithm, InputStream data);
 
   /**
    * Deletes all of the artifacts that exist in a given group.
@@ -662,4 +667,32 @@ public interface GroupsResource {
   VersionMetaData getArtifactVersionMetaDataByContent(@PathParam("groupId") String groupId,
       @PathParam("artifactId") String artifactId, @QueryParam("canonical") Boolean canonical,
       InputStream data);
+
+  /**
+   * Gets the owner of an artifact in the registry.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/owner")
+  @GET
+  @Produces("application/json")
+  ArtifactOwner getArtifactOwner(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId);
+
+  /**
+   * Changes the ownership of an artifact.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * No artifact with this `artifactId` exists (HTTP error `404`)
+   * * A server error occurred (HTTP error `500`)
+   */
+  @Path("/{groupId}/artifacts/{artifactId}/owner")
+  @PUT
+  @Consumes("application/json")
+  void updateArtifactOwner(@PathParam("groupId") String groupId,
+      @PathParam("artifactId") String artifactId, ArtifactOwner data);
 }

@@ -14,12 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./invalidContentModal.css";
-import {Button, DataList, DataListCell, DataListItemCells, DataListItemRow, Modal, ModalVariant} from "@patternfly/react-core";
-import {PureComponent, PureComponentProps, PureComponentState} from "../baseComponent";
-import { ApiError } from 'src/models/apiError.model';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import {
+    Button,
+    DataList,
+    DataListCell,
+    DataListItemCells,
+    DataListItemRow,
+    Modal,
+    ModalVariant
+} from "@patternfly/react-core";
+import { PureComponent, PureComponentProps, PureComponentState } from "../baseComponent";
+import { ApiError } from "src/models/apiError.model";
+import { ExclamationCircleIcon } from "@patternfly/react-icons";
 
 
 /**

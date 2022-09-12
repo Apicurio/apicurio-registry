@@ -15,6 +15,9 @@ endif::[]
 * You are logged in to the {registry} web console:
 + 
 `{registry-url}`
+ifdef::rh-openshift-sr[]
+* You have access to a running {registry} instance.
+endif::[]
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application. 
 
 .Procedure
@@ -22,7 +25,7 @@ endif::[]
 ifdef::rh-openshift-sr[]
 . In the {registry} web console, click your existing {registry} instance. 
 endif::[]
-. On the *Artifacts* tab, browse the list artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID.  
+. On the *Artifacts* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID.  
 +
 .Artifacts in {registry} web console
 ifdef::apicurio-registry,rh-service-registry[]
@@ -35,12 +38,12 @@ endif::[]
 . Click an artifact to view the following details:
 
 ** *Overview*: Displays the artifact version metadata such as name, optional group and ID, global ID, content ID, labels, and properties. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Documentation* (OpenAPI only): Displays automatically-generated REST API documentation.
+** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact content. 
 
-. If additional versions of this artifact have been added, you can select them from the *Version* list at the top right of the page.
+. If additional versions of this artifact have been added, you can select them from the *Version* list in page header.
 
-. Click *Download* at the bottom of the page to save the artifact contents to a local file, for example, `my-protobuf-schema.proto`.
+. To save the artifact contents to a local file, for example, `my-protobuf-schema.proto`, click *Download* at the end of the page.
 
 ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]

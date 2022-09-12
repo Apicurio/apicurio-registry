@@ -19,8 +19,10 @@ import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
 import io.apicurio.registry.rest.client.exception.RuleViolationException;
+import io.apicurio.registry.rest.client.exception.VersionAlreadyExistsException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.SortBy;
 import io.apicurio.registry.rest.v2.beans.SortOrder;
@@ -202,6 +204,20 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         ByteArrayInputStream iad = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
         assertClientError(ArtifactAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, iad), true, errorCodeExtractor);
+    }
+
+    @Test
+    @Tag(ACCEPTANCE)
+    void testVersionAlreadyExistsIfExistsUpdate() throws Exception {
+        ByteArrayInputStream artifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        ArtifactMetaData metaData = createArtifact(groupId, artifactId, "1.1", IfExists.FAIL, ArtifactType.AVRO, artifactData);
+        LOGGER.info("Created artifact {} with metadata {}", artifactId, metaData.toString());
+
+        ByteArrayInputStream sameArtifactData = new ByteArrayInputStream("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}".getBytes(StandardCharsets.UTF_8));
+
+        assertClientError(VersionAlreadyExistsException.class.getSimpleName(), 409, () -> createArtifact(groupId, artifactId, "1.1", IfExists.UPDATE, ArtifactType.AVRO, sameArtifactData), true, errorCodeExtractor);
     }
 
     @Test

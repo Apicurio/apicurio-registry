@@ -1297,7 +1297,7 @@
                 },
                 "operationId": "getRoleMapping",
                 "summary": "Return a single role mapping",
-                "description": "Gets the details of a single role mapping (by principalId).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the principalId exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+                "description": "Gets the details of a single role mapping (by `principalId`).\n\nThis operation can fail for the following reasons:\n\n* No role mapping for the `principalId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
                 "requestBody": {
@@ -1461,7 +1461,7 @@
                     }
                 },
                 "operationId": "referencesByContentHash",
-                "summary": "Returns a list with all the references for the artifact with the given hash",
+                "summary": "List artifact references by hash",
                 "description": "Returns a list containing all the artifact references using the artifact content hash.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
@@ -1497,8 +1497,8 @@
                     }
                 },
                 "operationId": "referencesByContentId",
-                "summary": "Returns a list with all the references for the artifact with the given content id.",
-                "description": "Returns a list containing all the artifact references using the artifact contentId.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "summary": "List artifact references by content ID",
+                "description": "Returns a list containing all the artifact references using the artifact content ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1534,8 +1534,8 @@
                     }
                 },
                 "operationId": "referencesByGlobalId",
-                "summary": "Returns a list with all the references for the artifact with the given global id.",
-                "description": "Returns a list containing all the artifact references using the artifact global id.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
+                "summary": "List artifact references by global ID",
+                "description": "Returns a list containing all the artifact references using the artifact global ID.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -1665,7 +1665,7 @@
                     }
                 },
                 "operationId": "getConfigProperty",
-                "summary": "Get the value of a configuration property",
+                "summary": "Get configuration property value",
                 "description": "Returns the value of a single configuration property.\n\nThis operation may fail for one of the following reasons:\n\n* Property not found or not configured (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
             },
             "put": {
@@ -2175,6 +2175,26 @@
                             "$ref": "#/components/schemas/EncodedArtifactName"
                         },
                         "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Content-Hash",
+                        "description": "Specifies the (optional) hash of the artifact to be verified.",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "header"
+                    },
+                    {
+                        "name": "X-Registry-Hash-Algorithm",
+                        "description": "The algorithm to use when checking the content validity. (available: SHA256, MD5; default: SHA256)",
+                        "schema": {
+                            "enum": [
+                                "SHA256",
+                                "MD5"
+                            ],
+                            "type": "string"
+                        },
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2215,7 +2235,7 @@
                     }
                 },
                 "operationId": "deleteArtifactsInGroup",
-                "summary": "Deletes all artifacts in a group",
+                "summary": "Delete artifacts in group",
                 "description": "Deletes all of the artifacts that exist in a given group."
             },
             "parameters": [
@@ -2666,6 +2686,84 @@
                 "operationId": "getArtifactVersionMetaDataByContent",
                 "summary": "Get artifact version metadata by content",
                 "description": "Gets the metadata for an artifact that matches the raw content.  Searches the registry\nfor a version of the given artifact matching the content provided in the body of the\nPOST.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* No artifact with the `artifactId` exists (HTTP error `404`)\n* No artifact version matching the provided content exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+            },
+            "parameters": [
+                {
+                    "name": "groupId",
+                    "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts.",
+                    "schema": {
+                        "$ref": "#/components/schemas/GroupId"
+                    },
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "artifactId",
+                    "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier.",
+                    "schema": {
+                        "$ref": "#/components/schemas/ArtifactId"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/groups/{groupId}/artifacts/{artifactId}/owner": {
+            "summary": "Manage the ownership of a single artifact.",
+            "get": {
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArtifactOwner"
+                                }
+                            }
+                        },
+                        "description": "The artifact's owner."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "getArtifactOwner",
+                "summary": "Get artifact owner",
+                "description": "Gets the owner of an artifact in the registry.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArtifactOwner"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "tags": [
+                    "Metadata"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "The owner was successfully changed."
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "operationId": "updateArtifactOwner",
+                "summary": "Update artifact owner",
+                "description": "Changes the ownership of an artifact.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
             },
             "parameters": [
                 {
@@ -3619,7 +3717,7 @@
                 "type": "object",
                 "properties": {
                     "content": {
-                        "description": "Raw content of the artifact.",
+                        "description": "Raw content of the artifact or a valid (and accessible) URL where the content can be found.",
                         "type": "string",
                         "example": ""
                     },
@@ -3754,6 +3852,19 @@
                     "maxArtifactNameLengthChars": -1,
                     "maxArtifactDescriptionLengthChars": -1,
                     "maxRequestsPerSecondCount": -1
+                }
+            },
+            "ArtifactOwner": {
+                "title": "Root Type for ArtifactOwner",
+                "description": "Describes the ownership of an artifact.",
+                "type": "object",
+                "properties": {
+                    "owner": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "owner": "bwayne"
                 }
             }
         },

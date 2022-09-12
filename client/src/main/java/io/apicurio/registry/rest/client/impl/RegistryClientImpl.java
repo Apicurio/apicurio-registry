@@ -27,25 +27,10 @@ import io.apicurio.registry.rest.client.request.provider.GroupRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.IdRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.SearchRequestsProvider;
 import io.apicurio.registry.rest.client.request.provider.UsersRequestsProvider;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rest.v2.beans.Error;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.LogConfiguration;
-import io.apicurio.registry.rest.v2.beans.NamedLogConfiguration;
-import io.apicurio.registry.rest.v2.beans.RoleMapping;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.UserInfo;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ArtifactIdValidator;
@@ -55,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.io.StringBufferInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -97,9 +83,23 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
+        return apicurioHttpClient.sendRequest(GroupRequestsProvider.getArtifactOwner(normalizeGid(groupId), artifactId));
+    }
+
+    @Override
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         try {
             apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactMetaData(normalizeGid(groupId), artifactId, data));
+        } catch (JsonProcessingException e) {
+            throw new RestClientException(new Error());
+        }
+    }
+
+    @Override
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner owner) {
+        try {
+            apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactOwner(normalizeGid(groupId), artifactId, owner));
         } catch (JsonProcessingException e) {
             throw new RestClientException(new Error());
         }
@@ -219,7 +219,7 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -229,6 +229,14 @@ public class RegistryClientImpl implements RegistryClient {
         }
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+        }
+        if (artifactSHA != null) {
+            headers.put(Headers.HASH_ALGO, "SHA256");
+            headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+        }
+        if (fromURL != null) {
+            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+            data = new StringBufferInputStream("{ \"content\" : \"" + fromURL + "\" }");
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -237,11 +245,12 @@ public class RegistryClientImpl implements RegistryClient {
         if (ifExists != null) {
             queryParams.put(Parameters.IF_EXISTS, Collections.singletonList(ifExists.value()));
         }
+
         return apicurioHttpClient.sendRequest(GroupRequestsProvider.createArtifact(normalizeGid(groupId), headers, data, queryParams));
     }
 
     @Override
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, InputStream data, List<ArtifactReference> artifactReferences) {
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, String version, ArtifactType artifactType, IfExists ifExists, Boolean canonical, String artifactName, String artifactDescription, String contentType, String fromURL, String artifactSHA, InputStream data, List<ArtifactReference> artifactReferences) {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
@@ -251,6 +260,15 @@ public class RegistryClientImpl implements RegistryClient {
         }
         if (artifactType != null) {
             headers.put(Headers.ARTIFACT_TYPE, artifactType.name());
+        }
+        if (artifactSHA != null) {
+            headers.put(Headers.HASH_ALGO, "SHA256");
+            headers.put(Headers.ARTIFACT_HASH, artifactSHA);
+        }
+        String content = IoUtil.toString(data);
+        if (fromURL != null) {
+            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
+            content = " { \"content\" : \"" + fromURL + "\" }";
         }
         final Map<String, List<String>> queryParams = new HashMap<>();
         if (canonical != null) {
@@ -261,7 +279,7 @@ public class RegistryClientImpl implements RegistryClient {
         }
 
         final ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
-        contentCreateRequest.setContent(IoUtil.toString(data));
+        contentCreateRequest.setContent(content);
         contentCreateRequest.setReferences(artifactReferences);
 
         try {

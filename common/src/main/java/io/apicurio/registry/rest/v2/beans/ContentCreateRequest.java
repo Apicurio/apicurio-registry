@@ -24,12 +24,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class ContentCreateRequest {
 
     /**
-     * Raw content of the artifact.
+     * Raw content of the artifact or a valid (and accessible) URL where the content can be found.
      * (Required)
      * 
      */
     @JsonProperty("content")
-    @JsonPropertyDescription("Raw content of the artifact.")
+    @JsonPropertyDescription("Raw content of the artifact or a valid (and accessible) URL where the content can be found.")
     private String content;
     /**
      * Collection of references to other artifacts.
@@ -41,7 +41,7 @@ public class ContentCreateRequest {
     private List<ArtifactReference> references = new ArrayList<ArtifactReference>();
 
     /**
-     * Raw content of the artifact.
+     * Raw content of the artifact or a valid (and accessible) URL where the content can be found.
      * (Required)
      * 
      */
@@ -51,7 +51,7 @@ public class ContentCreateRequest {
     }
 
     /**
-     * Raw content of the artifact.
+     * Raw content of the artifact or a valid (and accessible) URL where the content can be found.
      * (Required)
      * 
      */

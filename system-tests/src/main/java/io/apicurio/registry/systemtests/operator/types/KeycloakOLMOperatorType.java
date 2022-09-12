@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests.operator.types;
 
-import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
@@ -11,18 +10,17 @@ import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionReso
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
 
     public KeycloakOLMOperatorType() {
-        super(null, Constants.TESTSUITE_NAMESPACE, false);
+        super(null, Environment.NAMESPACE, false);
     }
 
     public KeycloakOLMOperatorType(String source) {
-        super(source, Constants.TESTSUITE_NAMESPACE, false);
+        super(source, Environment.NAMESPACE, false);
     }
 
     public KeycloakOLMOperatorType(String source, String operatorNamespace) {
@@ -50,17 +48,16 @@ public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
-        // Add ability to install operator from source?
-
-        String catalogName = Environment.CATALOG;
-        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+    public void install() throws InterruptedException {
+        String catalogName = Environment.SSO_CATALOG;
+        String catalogNamespace = Environment.CATALOG_NAMESPACE;
         String ssoPackage = Environment.SSO_PACKAGE;
+        // Add ability to install operator from source?
 
         if (Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
             LOGGER.info("Operator group already present in namespace {}.", getNamespace());
         } else {
-            setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
+            setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
         }
 
         ResourceUtils.waitPackageManifestExists(catalogName, ssoPackage);
@@ -80,7 +77,7 @@ public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType
                 channelName
         ));
 
-        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
+        ResourceManager.getInstance().createSharedResource(true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }

@@ -1,19 +1,17 @@
-import {Alerts, AlertVariant, ConfigService} from "../config";
-import {Service} from "../baseService";
-import {ConfigurationProperty} from "../../models/configurationProperty.model";
-import {LoggerService} from "../logger";
+import { Alerts, AlertVariant, ConfigService } from "../config";
+import { Service } from "../baseService";
+import { ConfigurationProperty } from "../../models/configurationProperty.model";
+import { LoggerService } from "../logger";
 
 
 export class AlertsService implements Service {
 
-    // @ts-ignore
     private config: ConfigService = null;
-    // @ts-ignore
     private logger: LoggerService = null;
 
     public init = () => {
         // no init
-    }
+    };
 
     public settingChanged(property: ConfigurationProperty, newValue: any): void {
         const alerts: Alerts | undefined = this.config.featureAlertsService();

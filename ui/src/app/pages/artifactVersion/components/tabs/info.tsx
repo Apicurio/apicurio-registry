@@ -18,7 +18,8 @@
 import React from "react";
 import "./info.css";
 import {
-    ArtifactTypeIcon, IfAuth,
+    ArtifactTypeIcon,
+    IfAuth,
     PureComponent,
     PureComponentProps,
     PureComponentState,
@@ -26,19 +27,24 @@ import {
 } from "../../../../components";
 import {
     Button,
-    Card, CardBody,
+    Card,
+    CardBody,
+    CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
+    Divider,
     Label,
     Split,
-    SplitItem, Truncate
+    SplitItem,
+    Truncate
 } from "@patternfly/react-core";
 import { DownloadIcon, PencilAltIcon } from "@patternfly/react-icons";
 import Moment from "react-moment";
 import { IfFeature } from "../../../../components/common/ifFeature";
 import { ArtifactMetaData, Rule } from "../../../../../models";
+import { If } from "../../../../components/common/if";
 
 /**
  * Properties
@@ -53,6 +59,7 @@ export interface InfoTabContentProps extends PureComponentProps {
     onConfigureRule: (ruleType: string, config: string) => void;
     onDownloadArtifact: () => void;
     onEditMetaData: () => void;
+    onChangeOwner: () => void;
 }
 
 /**
@@ -77,28 +84,30 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
             <div className="artifact-tab-content">
                 <div className="artifact-basics">
                     <Card>
-                        <CardBody>
+                        <CardTitle>
                             <div className="title-and-type">
                                 <Split>
                                     <SplitItem className="type"><ArtifactTypeIcon type={this.props.artifact.type} /></SplitItem>
-                                    <SplitItem className="title" isFilled={true}>Version details</SplitItem>
+                                    <SplitItem className="title" isFilled={true}>Version metadata</SplitItem>
                                     <SplitItem className="actions">
                                         <IfAuth isDeveloper={true}>
                                             <IfFeature feature="readOnly" isNot={true}>
                                                 <Button id="edit-action"
                                                         data-testid="artifact-btn-edit"
-                                                        title="Edit artifact version metadata"
                                                         onClick={this.props.onEditMetaData}
-                                                        variant="link"><PencilAltIcon />{' '}Edit</Button>
+                                                        variant="link"><PencilAltIcon />{" "}Edit</Button>
                                             </IfFeature>
                                         </IfAuth>
                                     </SplitItem>
                                 </Split>
                             </div>
+                        </CardTitle>
+                        <Divider />
+                        <CardBody>
                             <DescriptionList className="metaData" isCompact={true}>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Name</DescriptionListTerm>
-                                    <DescriptionListDescription className={!this.props.artifact.name ? 'empty-state-text' : ''}>{this.artifactName()}</DescriptionListDescription>
+                                    <DescriptionListDescription className={!this.props.artifact.name ? "empty-state-text" : ""}>{this.artifactName()}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>ID</DescriptionListTerm>
@@ -106,7 +115,7 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Description</DescriptionListTerm>
-                                    <DescriptionListDescription className={!this.props.artifact.description ? 'empty-state-text' : ''}>{this.description()}</DescriptionListDescription>
+                                    <DescriptionListDescription className={!this.props.artifact.description ? "empty-state-text" : ""}>{this.description()}</DescriptionListDescription>
                                 </DescriptionListGroup>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Status</DescriptionListTerm>
@@ -116,6 +125,24 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                                     <DescriptionListTerm>Created</DescriptionListTerm>
                                     <DescriptionListDescription><Moment date={this.props.artifact.createdOn} fromNow={true} /></DescriptionListDescription>
                                 </DescriptionListGroup>
+                                <If condition={this.props.artifact.createdBy !== undefined && this.props.artifact.createdBy !== ""}>
+                                    <DescriptionListGroup>
+                                        <DescriptionListTerm>Owner</DescriptionListTerm>
+                                        <DescriptionListDescription>
+                                            <span>{this.props.artifact.createdBy}</span>
+                                            <span>
+                                                <IfAuth isAdminOrOwner={true} owner={this.props.artifact.createdBy}>
+                                                    <IfFeature feature="readOnly" isNot={true}>
+                                                        <Button id="edit-action"
+                                                                data-testid="artifact-btn-edit"
+                                                                onClick={this.props.onChangeOwner}
+                                                                variant="link"><PencilAltIcon /></Button>
+                                                    </IfFeature>
+                                                </IfAuth>
+                                            </span>
+                                        </DescriptionListDescription>
+                                    </DescriptionListGroup>
+                                </If>
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Modified</DescriptionListTerm>
                                     <DescriptionListDescription>{<Moment date={this.props.artifact.modifiedOn} fromNow={true} />}</DescriptionListDescription>
@@ -166,8 +193,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
                 </div>
                 <div className="artifact-rules">
                     <Card>
-                        <CardBody>
+                        <CardTitle>
                             <div className="rules-label">Content rules</div>
+                        </CardTitle>
+                        <Divider />
+                        <CardBody>
                             <RuleList rules={this.props.rules}
                                       onEnableRule={this.props.onEnableRule}
                                       onDisableRule={this.props.onDisableRule}
@@ -193,11 +223,11 @@ export class InfoTabContent extends PureComponent<InfoTabContentProps, InfoTabCo
     }
 
     private description(): string {
-        return this.props.artifact.description || `No description`;
+        return this.props.artifact.description || "No description";
     }
 
     private artifactName(): string {
-        return this.props.artifact.name || 'No name';
+        return this.props.artifact.name || "No name";
     }
 
     private isArtifactInGroup = (): boolean => {

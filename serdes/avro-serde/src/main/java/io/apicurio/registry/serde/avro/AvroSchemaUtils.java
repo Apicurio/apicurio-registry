@@ -17,6 +17,8 @@
 
 package io.apicurio.registry.serde.avro;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericContainer;
@@ -60,7 +62,7 @@ public class AvroSchemaUtils {
         return parse(schema, Collections.emptyList());
     }
 
-    public static Schema parse(String schema, List<String> references) {
+    public static Schema parse(String schema, List<ParsedSchema<Schema>> references) {
         //First try to parse without references, useful when the content is dereferenced
         try {
             final Schema.Parser parser = new Schema.Parser();
@@ -68,10 +70,19 @@ public class AvroSchemaUtils {
         } catch (SchemaParseException e) {
             //If we fail to parse the content from the main schema, then parse first the references and then the main schema
             final Schema.Parser parser = new Schema.Parser();
-            for (String referencedContent : references) {
-                parser.parse(referencedContent);
-            }
+            handleReferences(parser, references);
             return parser.parse(schema);
+        }
+    }
+
+    private static void handleReferences(Schema.Parser parser, List<ParsedSchema<Schema>> schemaReferences) {
+        for (ParsedSchema<Schema> referencedContent : schemaReferences) {
+            if (referencedContent.hasReferences()) {
+                handleReferences(parser, referencedContent.getSchemaReferences());
+            }
+            if (!parser.getTypes().containsKey(referencedContent.getParsedSchema().getFullName())) {
+                parser.parse(IoUtil.toString(referencedContent.getRawSchema()));
+            }
         }
     }
 

@@ -16,8 +16,8 @@
  */
 import React from "react";
 import "./artifactList.css";
-import {Link} from "react-router-dom";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import { Link } from "react-router-dom";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
 
 /**
  * Properties

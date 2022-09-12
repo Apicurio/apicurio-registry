@@ -16,18 +16,21 @@
 
 package io.apicurio.registry.rest.v2;
 
+import com.google.common.hash.Hashing;
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v2.beans.ContentCreateRequest;
@@ -48,6 +51,7 @@ import io.apicurio.registry.storage.InvalidGroupIdException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -69,6 +73,7 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.JAXRSClientUtil;
 import org.jose4j.base64url.Base64;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -76,10 +81,19 @@ import javax.inject.Inject;
 import javax.interceptor.Interceptors;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -94,14 +108,17 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONI
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
@@ -130,6 +147,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    RestConfig restConfig;
 
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String, java.lang.Boolean)
@@ -196,6 +216,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
                                            String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
                                            String xRegistryDescriptionEncoded, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
         return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
@@ -279,6 +300,29 @@ public class GroupsResourceImpl implements GroupsResource {
         dto.setLabels(data.getLabels());
         dto.setProperties(data.getProperties());
         storage.updateArtifactMetaData(gidOrNull(groupId), artifactId, dto);
+    }
+    
+    @Override
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Read)
+    public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(gidOrNull(groupId), artifactId);
+        ArtifactOwner owner = new ArtifactOwner();
+        owner.setOwner(dto.getCreatedBy());
+        return owner;
+    }
+
+    @Override
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_OWNER})
+    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.AdminOrOwner)
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+
+        ArtifactOwnerDto dto = new ArtifactOwnerDto(data.getOwner());
+        storage.updateArtifactOwner(gidOrNull(groupId), artifactId, dto);
     }
 
     /**
@@ -585,30 +629,101 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, InputStream)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, InputStream)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", KEY_FROM_URL, "11", KEY_SHA})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
                                            String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                            String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                           String xRegistryName, String xRegistryNameEncoded, InputStream data) {
-
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, data, Collections.emptyList());
+                                           String xRegistryName, String xRegistryNameEncoded,
+                                           String xRegistryContentHash, String xRegistryHashAlgorithm, InputStream data) {
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, data, Collections.emptyList());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(java.lang.String, io.apicurio.registry.types.ArtifactType, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.IfExists, java.lang.Boolean, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.rest.v2.beans.ContentCreateRequest)
+     * @see io.apicurio.registry.rest.v2.GroupsResource#createArtifact(String, ArtifactType, String, String, IfExists, Boolean, String, String, String, String, String, String, ContentCreateRequest)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED})
+    @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_TYPE, "2", KEY_ARTIFACT_ID, "3", KEY_VERSION, "4", KEY_IF_EXISTS, "5", KEY_CANONICAL, "6", KEY_DESCRIPTION, "7", KEY_DESCRIPTION_ENCODED, "8", KEY_NAME, "9", KEY_NAME_ENCODED, "10", "from_url" /*KEY_FROM_URL*/, "11", "artifact_sha" /*KEY_SHA*/})
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
-    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType,
-                                           String xRegistryArtifactId, String xRegistryVersion, IfExists ifExists, Boolean canonical,
-                                           String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryName,
-                                           String xRegistryNameEncoded, ContentCreateRequest data) {
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
+    public ArtifactMetaData createArtifact(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
+                                           String xRegistryVersion, IfExists ifExists, Boolean canonical,
+                                           String xRegistryDescription, String xRegistryDescriptionEncoded,
+                                           String xRegistryName, String xRegistryNameEncoded,
+                                           String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
+
+        Client client = null;
+        InputStream content;
+        try {
+            try {
+                URL url = new URL(data.getContent());
+                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
+                content = fetchContentFromURL(client, url.toURI());
+            } catch (MalformedURLException | URISyntaxException e) {
+                content = IoUtil.toStream(data.getContent());
+            }
+
+            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+        } catch (KeyManagementException kme) {
+            throw new RuntimeException(kme);
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new RuntimeException(nsae);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+    public enum RegistryHashAlgorithm {
+        SHA256,
+        MD5
+    }
+
+    /**
+     * Return an InputStream for the resource to be downloaded
+     * @param url
+     */
+    private InputStream fetchContentFromURL(Client client, URI url) {
+        try {
+            // 1. Registry issues HTTP HEAD request to the target URL.
+            List<Object> contentLengthHeaders = client
+                    .target(url)
+                    .request()
+                    .head()
+                    .getHeaders()
+                    .get("Content-Length");
+
+            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
+                throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
+            }
+
+            // 2. According to HTTP specification, target server must return Content-Length header.
+            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
+
+            // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
+            if (contentLength > restConfig.getDownloadMaxSize()) {
+                throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
+            }
+
+            if (contentLength <= 0) {
+                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
+            }
+
+            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
+            return new BufferedInputStream(client
+                    .target(url)
+                    .request()
+                    .get()
+                    .readEntity(InputStream.class), contentLength);
+        } catch (BadRequestException bre) {
+            throw bre;
+        } catch (Exception e) {
+            throw new BadRequestException("Errors downloading the artifact content.", e);
+        }
     }
 
     /**
@@ -623,13 +738,17 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param xRegistryDescriptionEncoded
      * @param xRegistryName
      * @param xRegistryNameEncoded
+     * @param xRegistryContentHash
+     * @param xRegistryHashAlgorithm
      * @param data
      * @param references
      */
     private ArtifactMetaData createArtifactWithRefs(String groupId, ArtifactType xRegistryArtifactType, String xRegistryArtifactId,
                                                     String xRegistryVersion, IfExists ifExists, Boolean canonical,
                                                     String xRegistryDescription, String xRegistryDescriptionEncoded,
-                                                    String xRegistryName, String xRegistryNameEncoded, InputStream data, List<ArtifactReference> references) {
+                                                    String xRegistryName, String xRegistryNameEncoded,
+                                                    String xRegistryContentHash, String xRegistryHashAlgorithm,
+                                                    InputStream data, List<ArtifactReference> references) {
 
         requireParameter("groupId", groupId);
 
@@ -649,6 +768,25 @@ public class GroupsResourceImpl implements GroupsResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
+
+        // Mitigation for MITM attacks, verify that the artifact is the expected one
+        if (xRegistryContentHash != null) {
+            String calculatedSha = null;
+            RegistryHashAlgorithm algorithm = (xRegistryHashAlgorithm == null) ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
+            switch (algorithm) {
+                case MD5:
+                    calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                    break;
+                case SHA256:
+                    calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                    break;
+            }
+
+            if (!calculatedSha.equals(xRegistryContentHash.trim())) {
+                throw new BadRequestException("Provided Artifact Hash doesn't match with the content");
+            }
+        }
+
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();
@@ -660,7 +798,8 @@ public class GroupsResourceImpl implements GroupsResource {
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
-            if (ContentTypeUtil.isApplicationYaml(ct)) {
+            if (ContentTypeUtil.isApplicationYaml(ct) ||
+                    (ContentTypeUtil.isApplicationCreateExtended(ct) && ContentTypeUtil.isParsableYaml(content))) {
                 content = ContentTypeUtil.yamlToJson(content);
             }
 
@@ -726,6 +865,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
                                                  String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded,
                                                  String xRegistryNameEncoded, ContentCreateRequest data) {
+        requireParameter("content", data.getContent());
         return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded, IoUtil.toStream(data.getContent()), data.getReferences());
     }
 
@@ -880,7 +1020,9 @@ public class GroupsResourceImpl implements GroupsResource {
                 .map(V2ApiUtil::referenceToDto)
                 .collect(Collectors.toList());
 
-        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, Collections.emptyMap());
+        final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+
+        rulesService.applyRules(gidOrNull(groupId), artifactId, artifactType, content, RuleApplicationType.UPDATE, resolvedReferences);
         EditableArtifactMetaDataDto metaData = getEditableMetaData(name, description);
         ArtifactMetaDataDto dto = storage.updateArtifactWithMetadata(gidOrNull(groupId), artifactId, version, artifactType, content, metaData, referencesAsDtos);
         return V2ApiUtil.dtoToMetaData(gidOrNull(groupId), artifactId, artifactType, dto);

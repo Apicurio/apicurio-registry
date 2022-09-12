@@ -7,6 +7,9 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
+import io.apicurio.registry.storage.impl.kafkasql.keys.ArtifactOwnerKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.ArtifactOwnerValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -178,6 +181,8 @@ public class KafkaSqlSink {
                     return processDownload((DownloadKey) key, (DownloadValue) value);
                 case ConfigProperty:
                     return processConfigProperty((ConfigPropertyKey) key, (ConfigPropertyValue) value);
+                case ArtifactOwner:
+                    return processArtifactOwnerMessage((ArtifactOwnerKey) key, (ArtifactOwnerValue) value);
                 default:
                     log.warn("Unrecognized message type: {}", record.key());
                     throw new RegistryStorageException("Unexpected message type: " + messageType.name());
@@ -367,6 +372,22 @@ public class KafkaSqlSink {
                 entity.type = key.getRuleType();
                 entity.configuration = value.getConfig().getConfiguration();
                 sqlStore.importArtifactRule(entity);
+            default:
+                return unsupported(key, value);
+        }
+    }
+
+    /**
+     * Process a Kafka message of type "artifact owner".  This includes updating the owner for
+     * a specific artifact.
+     * @param key
+     * @param value
+     */
+    private Object processArtifactOwnerMessage(ArtifactOwnerKey key, ArtifactOwnerValue value) {
+        switch (value.getAction()) {
+            case UPDATE:
+                sqlStore.updateArtifactOwner(key.getGroupId(), key.getArtifactId(), new ArtifactOwnerDto(value.getOwner()));
+                return null;
             default:
                 return unsupported(key, value);
         }

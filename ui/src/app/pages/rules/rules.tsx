@@ -17,12 +17,12 @@
 
 import React from "react";
 import "./rules.css";
-import {Button, PageSection, PageSectionVariants, TextContent} from '@patternfly/react-core';
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {RuleList} from "../../components/ruleList";
-import {Rule} from "../../../models";
-import {Services} from "../../../services";
-import {RootPageHeader} from "../../components";
+import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { RuleList } from "../../components/ruleList";
+import { Rule } from "../../../models";
+import { Services } from "../../../services";
+import { RootPageHeader } from "../../components";
 
 
 /**

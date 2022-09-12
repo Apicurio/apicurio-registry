@@ -39,6 +39,9 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -49,6 +52,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -184,9 +188,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
+    @Info( category = "store", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
+    @Info( category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
 
     /**
@@ -697,7 +703,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                 handle.createUpdate(sqli)
                         .bind(0, tenantContext.tenantId())
                         .bind(1, contentId)
-                        .bind(2, reference.getGroupId())
+                        .bind(2, normalizeGroupId(reference.getGroupId()))
                         .bind(3, reference.getArtifactId())
                         .bind(4, reference.getVersion())
                         .bind(5, reference.getName())
@@ -914,7 +920,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
-    @Override @Transactional
+    @Override
     public StoredArtifactDto getArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact (latest version) by artifactId: {} {}", groupId, artifactId);
@@ -991,44 +997,51 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         // Get meta-data from previous (latest) version
         ArtifactMetaDataDto latest = this.getLatestArtifactMetaDataInternal(groupId, artifactId);
 
-        // Create version and return
-        return handles.withHandleNoException(handle -> {
-            // Metadata comes from the latest version
-            String name = latest.getName();
-            String description = latest.getDescription();
-            List<String> labels = latest.getLabels();
-            Map<String, String> properties = latest.getProperties();
+        try {
+            // Create version and return
+            return handles.withHandle(handle -> {
+                // Metadata comes from the latest version
+                String name = latest.getName();
+                String description = latest.getDescription();
+                List<String> labels = latest.getLabels();
+                Map<String, String> properties = latest.getProperties();
 
-            // Provided metadata will override inherited values from latest version
-            if (metaData.getName() != null) {
-                name = metaData.getName();
-            }
-            if (metaData.getDescription() != null) {
-                description = metaData.getDescription();
-            }
-            if (metaData.getLabels() != null) {
-                labels = metaData.getLabels();
-            }
-            if (metaData.getProperties() != null) {
-                properties = metaData.getProperties();
-            }
+                // Provided metadata will override inherited values from latest version
+                if (metaData.getName() != null) {
+                    name = metaData.getName();
+                }
+                if (metaData.getDescription() != null) {
+                    description = metaData.getDescription();
+                }
+                if (metaData.getLabels() != null) {
+                    labels = metaData.getLabels();
+                }
+                if (metaData.getProperties() != null) {
+                    properties = metaData.getProperties();
+                }
 
-            // Now create the version and return the new version metadata.
-            ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, groupId, artifactId, version,
-                    name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
-            ArtifactMetaDataDto dto = versionToArtifactDto(groupId, artifactId, versionDto);
-            dto.setCreatedOn(latest.getCreatedOn());
-            dto.setCreatedBy(latest.getCreatedBy());
-            dto.setLabels(labels);
-            dto.setProperties(properties);
-            return dto;
-        });
+                // Now create the version and return the new version metadata.
+                ArtifactVersionMetaDataDto versionDto = this.createArtifactVersion(handle, artifactType, false, groupId, artifactId, version,
+                        name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
+                ArtifactMetaDataDto dto = versionToArtifactDto(groupId, artifactId, versionDto);
+                dto.setCreatedOn(latest.getCreatedOn());
+                dto.setCreatedBy(latest.getCreatedBy());
+                dto.setLabels(labels);
+                dto.setProperties(properties);
+                return dto;
+            });
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                throw new VersionAlreadyExistsException(groupId, artifactId, version);
+            }
+            throw new RegistryStorageException(e);
+        }
     }
 
     /**
      * @see RegistryStorage#getArtifactIds(java.lang.Integer)
      */
-    @Override @Transactional
+    @Override
     public Set<String> getArtifactIds(Integer limit) {
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException( handle -> {
@@ -1235,7 +1248,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
-    @Override @Transactional
+    @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting artifact (latest version) meta-data: {} {}", groupId, artifactId);
@@ -1269,7 +1282,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle)
      */
-    @Override @Transactional
+    @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
             ContentHandle content) throws ArtifactNotFoundException, RegistryStorageException {
         String hash;
@@ -1308,7 +1321,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactMetaData(long)
      */
-    @Override @Transactional
+    @Override
     public ArtifactMetaDataDto getArtifactMetaData(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting meta-data for globalId: {}", globalId);
@@ -1343,9 +1356,41 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     /**
-     * @see RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
+     * @see RegistryStorage#updateArtifactOwner(String, String, ArtifactOwnerDto)
      */
     @Override @Transactional
+    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Updating ownership of an artifact: {} {}", groupId, artifactId);
+
+        try {
+            this.handles.withHandle( handle -> {
+                String sql = sqlStatements.updateArtifactOwner();
+                int rowCount = handle.createUpdate(sql)
+                        .bind(0, owner.getOwner())
+                        .bind(1, tenantContext.tenantId())
+                        .bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId)
+                        .execute();
+                if (rowCount == 0) {
+                    if (!isArtifactExists(groupId, artifactId)) {
+                        throw new ArtifactNotFoundException(groupId, artifactId);
+                    }
+                    // Likely someone tried to set the owner to the same value.  That is
+                    // not an error.  No need to throw.
+                }
+                return null;
+            });
+        } catch (StorageException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RegistryStorageException(e);
+        }
+    }
+
+    /**
+     * @see RegistryStorage#getArtifactRules(java.lang.String, java.lang.String)
+     */
+    @Override
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of all artifact rules for: {} {}", groupId, artifactId);
@@ -1440,7 +1485,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
      */
-    @Override @Transactional
+    @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact rule for artifact: {} {} and rule: {}", groupId, artifactId, rule.name());
@@ -1536,7 +1581,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
      */
-    @Override @Transactional
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
@@ -1601,7 +1646,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactVersion(long)
      */
-    @Override @Transactional
+    @Override
     public StoredArtifactDto getArtifactVersion(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by globalId: {}", globalId);
@@ -1625,7 +1670,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
-    @Override @Transactional
+    @Override
     public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Selecting a single artifact version by artifactId: {} {} and version {}", groupId, artifactId, version);
@@ -1756,7 +1801,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String)
      */
-    @Override @Transactional
+    @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Selecting artifact version meta-data: {} {} version {}", groupId, artifactId, version);
@@ -1930,7 +1975,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getGlobalRules()
      */
-    @Override @Transactional
+    @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         return handles.withHandleNoException( handle -> {
             String sql = sqlStatements.selectGlobalRules();
@@ -1989,7 +2034,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#getGlobalRule(io.apicurio.registry.types.RuleType)
      */
-    @Override @Transactional
+    @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule)
             throws RuleNotFoundException, RegistryStorageException {
         log.debug("Selecting a single global rule: {}", rule.name());
@@ -2247,7 +2292,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
-    @Override
+    @Override @Transactional
     public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
         try {
             this.handles.withHandle( handle -> {
@@ -2277,7 +2322,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
-    @Override
+    @Override @Transactional
     public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
         handles.withHandleNoException(handle -> {
             String sql = sqlStatements.updateGroup();
@@ -2300,7 +2345,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#deleteGroup(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
         handles.withHandleNoException(handle -> {
             String sql = sqlStatements.deleteGroup();
@@ -2362,8 +2407,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#exportData(java.util.function.Function)
      */
-    @Override
-    @Transactional
+    @Override @Transactional
     public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
         try {
             // Export a simple manifest file
@@ -2476,8 +2520,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
      */
-    @Override
-    @Transactional
+    @Override @Transactional
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) throws RegistryStorageException {
         handles.withHandleNoException(handle -> {
             DataImporter dataImporter;
@@ -2556,7 +2599,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
         log.debug("Inserting a role mapping row for: {}", principalId);
         try {
@@ -2581,7 +2624,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#deleteRoleMapping(java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
         log.debug("Deleting a role mapping row for: {}", principalId);
         try {
@@ -2665,7 +2708,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#updateRoleMapping(java.lang.String, java.lang.String)
      */
-    @Override
+    @Override @Transactional
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
         log.debug("Updating a role mapping: {}::{}", principalId, role);
         try {
@@ -2715,8 +2758,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#consumeDownload(java.lang.String)
      */
-    @Override
-    @Transactional
+    @Override @Transactional
     public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
         log.debug("Consuming a download ID: {}", downloadId);
 
@@ -2757,8 +2799,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
      */
-    @Override
-    @Transactional
+    @Override @Transactional
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
         log.debug("Deleting all expired downloads");
         long now = java.lang.System.currentTimeMillis();
@@ -2771,7 +2812,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
-    @Override
+    @Override @Transactional
     public void deleteAllUserData() {
         log.debug("Deleting all user data");
 
@@ -2874,6 +2915,53 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
         });
     }
 
+    /**
+     * @see RegistryStorage#getContentIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectContentIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    /**
+     * @see RegistryStorage#getGlobalIdsReferencingArtifact(String, String, String)
+     */
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectGlobalIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .bind(3, version)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    /**
+     * @see RegistryStorage#isArtifactExists(String, String)
+     */
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+        try {
+            getArtifactVersionMetaData(groupId, artifactId, version);
+            return true;
+        } catch (VersionNotFoundException ignored) {
+            return false;
+        }
+    }
+
     private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
@@ -2893,7 +2981,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     private ArtifactVersionMetaDataDto lookupForReference(ArtifactReferenceDto reference) {
-        return getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        return getArtifactVersionMetaDataInternal(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
     }
 
     protected void deleteAllOrphanedContent() {

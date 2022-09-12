@@ -7,14 +7,14 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [master, '[1-9].[0-9].x']
+    branches: [main, '[1-9].[0-9].x']
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master, 2.0.x]
+    branches: [main, 2.0.x]
 
 
 jobs:
@@ -34,18 +34,19 @@ jobs:
         with:
           java-version: ${{ matrix.jdk-version }}
           distribution: 'temurin'
+          cache: 'maven'
 
       # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
       - name: Set up QEMU
         if: github.event_name == 'push'
         uses: docker/setup-qemu-action@v1
-        
+
       # Docker CLI plugin for extended build capabilities with BuildKit
       - name: Set up Docker Buildx
         if: github.event_name == 'push'
         id: buildx
         uses: docker/setup-buildx-action@v1
-        
+
       - name: Inspect builder
         if: github.event_name == 'push'
         run: |
@@ -55,14 +56,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-verify-
-
       - name: Build api-model
         run: |
           git clone https://github.com/Apicurio/apicurio-registry-operator.git
@@ -70,7 +63,8 @@ jobs:
           mvn install
 
       - name: Build and Test All Variants
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        #run: make SKIP_TESTS=false BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all Use once operator ingress issue is fixed
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress -pl !system-tests' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -88,7 +82,7 @@ jobs:
         if: github.event_name == 'push'
         run: ./.github/scripts/build-and-push-multiarch-images.sh ${GITHUB_REF#refs/heads/} quay.io snapshot
 
-  
+
   build-native-images:
     name: Build native images
     runs-on: ubuntu-18.04
@@ -102,14 +96,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-verify-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-verify-
+          cache: 'maven'
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
@@ -122,6 +109,14 @@ jobs:
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
 
       - name: Build Native executables
         env:
@@ -175,7 +170,7 @@ jobs:
         run: docker images
 
   notify-sdk:
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -186,7 +181,7 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: changes
         with:
-          base: master
+          base: main
           filters: |
             openapi:
               - 'app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json'
@@ -201,7 +196,7 @@ jobs:
            client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json"}'
 
   trigger-examples-build:
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/master' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     runs-on: ubuntu-latest
     needs: [build-verify]
     steps:

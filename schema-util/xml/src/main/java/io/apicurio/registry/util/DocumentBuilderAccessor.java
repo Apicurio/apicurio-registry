@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.util;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -32,6 +33,8 @@ public final class DocumentBuilderAccessor {
             DocumentBuilder builder = null;
             try {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+                factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
                 factory.setNamespaceAware(true);
                 builder = factory.newDocumentBuilder();
             } catch (ParserConfigurationException e) {

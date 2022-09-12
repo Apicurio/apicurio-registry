@@ -64,7 +64,7 @@ public final class ArtifactTypeUtil {
      *
      * @param content       the content
      * @param xArtifactType the artifact type
-     * @param ct            content type from request API
+     * @param contentType   content type from request API
      */
     //FIXME:references artifact must be dereferenced here otherwise this will fail to discover the type
     public static ArtifactType determineArtifactType(ContentHandle content, ArtifactType xArtifactType, String contentType) {
@@ -163,9 +163,11 @@ public final class ArtifactTypeUtil {
             // Avro
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
-            for (ContentHandle referencedContent : resolvedReferences.values()) {
-                Schema schemaRef = parser.parse(referencedContent.content());
-                schemaRefs.add(schemaRef);
+            for (Map.Entry<String, ContentHandle> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().content());
+                    schemaRefs.add(schemaRef);
+                }
             }
             final Schema schema = parser.parse(content.content());
             schema.toString(schemaRefs, false);

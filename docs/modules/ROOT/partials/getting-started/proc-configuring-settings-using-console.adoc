@@ -5,7 +5,7 @@
 = Configuring {registry} instance settings using the web console
 
 [role="_abstract"]
-As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime. You can use this feature to manage configuration options for authentication, authorization, API compatibility, and the web console.
+As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} instances at runtime. You can manage configuration options for features such as authentication, authorization, and API compatibility.
 
 //This section shows how to configure..
 
@@ -33,7 +33,7 @@ ifdef::apicurio-registry,rh-service-registry[]
 endif::[] 
 
 ifdef::rh-openshift-sr[]
-. In the {registry} web console, click the {registry} instance that you want to configure, and then click the *Settings* page.  
+. In the {registry} web console, click the {registry} instance that you want to configure, and then click the *Settings* tab.  
 endif::[] 
 
 . Select the settings that you want to configure for this {registry} instance: 
@@ -111,8 +111,6 @@ ifdef::apicurio-registry,rh-service-registry[]
 | When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
 |===
 endif::[]
-
-//. Click *Save* to confirm your settings.
 
 [role="_additional-resources"]
 .Additional resources

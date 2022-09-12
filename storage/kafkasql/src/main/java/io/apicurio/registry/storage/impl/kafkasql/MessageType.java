@@ -37,7 +37,8 @@ public enum MessageType {
     RoleMapping(10),
     GlobalAction(11),
     Download(12),
-    ConfigProperty(13)
+    ConfigProperty(13),
+    ArtifactOwner(14),
     ;
 
     private final byte ord;

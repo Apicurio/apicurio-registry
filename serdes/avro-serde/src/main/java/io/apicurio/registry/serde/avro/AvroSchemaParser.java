@@ -56,7 +56,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
-        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), resolvedReferences.values().stream().map(parsedSchema -> IoUtil.toString(parsedSchema.getRawSchema())).collect(Collectors.toList()));
+        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema), new ArrayList<>(resolvedReferences.values()));
     }
 
     /**

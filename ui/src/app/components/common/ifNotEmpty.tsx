@@ -1,5 +1,5 @@
-import React, {FunctionComponent} from "react";
-import {Button, EmptyState, EmptyStateBody, EmptyStateVariant, Title} from "@patternfly/react-core";
+import React, { FunctionComponent } from "react";
+import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
 
 /**
  * Properties

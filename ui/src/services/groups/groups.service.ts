@@ -16,21 +16,24 @@
  */
 
 import {
+    ArtifactMetaData,
+    ArtifactOwner,
+    ContentTypes,
+    Rule,
     SearchedArtifact,
     SearchedVersion,
-    ArtifactMetaData,
-    Rule,
-    VersionMetaData,
-    ContentTypes
+    VersionMetaData
 } from "../../models";
-import {BaseService} from "../baseService";
+import { BaseService } from "../baseService";
 import YAML from "yaml";
 
 export interface CreateArtifactData {
     groupId: string;
     id: string|null;
     type: string;
-    content: string;
+    fromURL?: string|null;
+    sha?: string|null;
+    content?: string|null;
 }
 
 export interface CreateVersionData {
@@ -78,7 +81,18 @@ export class GroupsService extends BaseService {
         if (data.type) {
             headers["X-Registry-ArtifactType"] = data.type;
         }
-        headers["Content-Type"] = this.contentType(data.type, data.content);
+        if (data.sha) {
+            headers["X-Registry-Hash-Algorithm"] = "SHA256";
+            headers["X-Registry-Content-Hash"] = data.sha;
+        }
+
+        if (data.fromURL) {
+            headers["Content-Type"] = "application/create.extended+json";
+            data.content = `{ "content": "${data.fromURL}" }`;
+        } else {
+            headers["Content-Type"] = this.contentType(data.type, data.content ? data.content : "");
+        }
+
         return this.httpPostWithReturn<any, ArtifactMetaData>(endpoint, data.content, this.options(headers));
     }
 
@@ -147,6 +161,16 @@ export class GroupsService extends BaseService {
             endpoint = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/meta", { groupId, artifactId });
         }
         return this.httpPut<EditableMetaData>(endpoint, metaData);
+    }
+
+    public updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void> {
+        groupId = this.normalizeGroupId(groupId);
+
+        const endpoint: string = this.endpoint("/v2/groups/:groupId/artifacts/:artifactId/owner", { groupId, artifactId });
+        const artifactOwner: ArtifactOwner = {
+            owner: newOwner
+        };
+        return this.httpPut<ArtifactOwner>(endpoint, artifactOwner);
     }
 
     public getArtifactContent(groupId: string|null, artifactId: string, version: string): Promise<string> {

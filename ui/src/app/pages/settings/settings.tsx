@@ -19,19 +19,19 @@ import React from "react";
 import "./settings.css";
 import {
     Card,
-    CardBody, CardFooter,
+    CardBody,
     CardTitle,
     PageSection,
     PageSectionVariants,
     SearchInput,
     TextContent
-} from '@patternfly/react-core';
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {Services} from "../../../services";
-import {IfNotEmpty, RootPageHeader} from "../../components";
-import {ConfigurationProperty} from "../../../models/configurationProperty.model";
-import {ConfigProperty} from "./components";
-import {If} from "../../components/common/if";
+} from "@patternfly/react-core";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { Services } from "../../../services";
+import { IfNotEmpty, RootPageHeader } from "../../components";
+import { ConfigurationProperty } from "../../../models/configurationProperty.model";
+import { ConfigProperty } from "./components";
+import { If } from "../../components/common/if";
 
 
 interface PropertyGroup {
@@ -115,8 +115,8 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                         Configure global settings for this Service Registry instance.
                     </TextContent>
                     <TextContent style={{marginTop: "10px", marginBottom: "5px", maxWidth: "450px"}}>
-                        <SearchInput placeholder={`Search settings`}
-                                     aria-label="Search settings"
+                        <SearchInput placeholder={`Filter by keyword`}
+                                     aria-label="Filter by keyword"
                                      value={this.state.searchCriteria}
                                      onChange={this.onSearchCriteria}
                                      onSearch={this.onSearchSettings}
@@ -129,7 +129,7 @@ export class SettingsPage extends PageComponent<SettingsPageProps, SettingsPageS
                         {
                             this.propertyGroups().map(group =>
                                 <If key={group.id} condition={group.properties !== undefined && group.properties.length > 0}>
-                                    <Card key={group.id} className="config-property-group" style={{marginBottom: "15px"}}>
+                                    <Card key={group.id} className="config-property-group">
                                         <CardTitle className="title">{group.label}</CardTitle>
                                         <CardBody className="config-properties">
                                             {

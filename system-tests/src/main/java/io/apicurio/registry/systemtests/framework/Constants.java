@@ -1,9 +1,9 @@
 package io.apicurio.registry.systemtests.framework;
 
-public final class Constants {
+
+public class Constants {
     public static final String CATALOG_NAME = "testsuite-operators";
     public static final String CATALOG_NAMESPACE = "openshift-marketplace";
-    public static final String CLUSTER_WIDE_NAMESPACE = "openshift-operators";
     public static final String KAFKA_CONNECT = "kafka-connect-for-registry";
     public static final String KAFKA = "kafka-for-registry";
     public static final String KAFKA_USER = "kafka-user-for-registry";
@@ -13,6 +13,7 @@ public final class Constants {
     public static final String SSO_CLIENT_UI = "registry-client-ui"; // Defined in kubefiles/keycloak
     public static final String SSO_HTTP_SERVICE = "sso-http";
     public static final String SSO_REALM = "registry"; // Defined in kubefiles/keycloak
+
     public static final String TESTSUITE_NAMESPACE = "testsuite-namespace";
 
     // TODO: Move other constants here too?

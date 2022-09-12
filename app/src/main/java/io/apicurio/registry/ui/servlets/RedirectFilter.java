@@ -33,6 +33,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import io.apicurio.common.apps.config.Info;
+
 
 /**
  * @author eric.wittmann@gmail.com
@@ -41,9 +43,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class RedirectFilter implements Filter {
     
     @ConfigProperty(name = "registry.enable-redirects")
+    @Info( category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 
     @ConfigProperty(name = "registry.redirects")
+    @Info( category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
 

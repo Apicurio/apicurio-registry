@@ -233,6 +233,11 @@ public interface SqlStatements {
     public String updateArtifactRule();
 
     /**
+     * A statement to update a single artifact owner.
+     */
+    public String updateArtifactOwner();
+
+    /**
      * A statement to delete a single artifact rule.
      */
     public String deleteArtifactRule();
@@ -371,6 +376,16 @@ public interface SqlStatements {
      * A statement to insert a row in the "references" table.
      */
     public String upsertReference();
+
+    /**
+     * A statement to select ids of content referencing artifact
+     */
+    public String selectContentIdsReferencingArtifactBy();
+
+    /**
+     * A statement to select global ids of artifact versions with content referencing artifact
+     */
+    public String selectGlobalIdsReferencingArtifactBy();
 
     /**
      * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).

@@ -7,14 +7,14 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [master, '[1-9].[1-9].x']
+    branches: [main, '[1-9].[1-9].x']
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [master]
+    branches: [main]
 
 jobs:
   integration-tests:
@@ -31,14 +31,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Cache Dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-integration-tests-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-integration-tests-
+          cache: 'maven'
 
       - name: Build api-model
         run: |
@@ -47,7 +40,7 @@ jobs:
           mvn install
 
       # - name: Set test profile to acceptance
-      #   if: github.ref != 'refs/heads/master'
+      #   if: github.ref != 'refs/heads/main'
       #   run: |
       #     echo "test_profile=acceptance" >> $GITHUB_ENV
 
@@ -61,13 +54,13 @@ jobs:
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Psystem-tests -Dmaven.javadoc.skip=true --no-transfer-progress -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
-      
+
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
 
       - name: Run UI tests
         run: ./mvnw verify -Pintegration-tests -Pui -Pinmemory -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
-      
+
       - name: Run Integration Tests - sql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - sql clustered
@@ -75,7 +68,7 @@ jobs:
       - name: Run Integration Tests - kafkasql
         run: ./mvnw verify -Pintegration-tests -P${{ env.test_profile }} -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - kafkasql clustered
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         run: ./mvnw verify -Pintegration-tests -Pclustered -Pkafkasql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
       - name: Run Integration Tests - multitenancy
         run: ./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false

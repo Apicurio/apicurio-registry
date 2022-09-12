@@ -23,16 +23,17 @@ import {
     DescriptionListTerm,
     Form,
     FormGroup,
-    Modal, Popover,
+    Modal,
+    Popover,
     Radio,
     SelectOptionObject,
     TextInput
-} from '@patternfly/react-core';
-import {Principal, Services} from "../../../../../services";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {RoleMapping, RoleTypes} from "../../../../../models";
-import {OutlinedQuestionCircleIcon} from '@patternfly/react-icons'
-import {SelectPrincipalAccount} from "./selectPrincipalAccount";
+} from "@patternfly/react-core";
+import { Principal, Services } from "../../../../../services";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { RoleMapping, RoleTypes } from "../../../../../models";
+import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
+import { SelectPrincipalAccount } from "./selectPrincipalAccount";
 import "./grantAccessModal.css";
 
 /**
@@ -102,7 +103,7 @@ export class GrantAccessModal extends PureComponent<GrantAccessModalProps, Grant
     public render(): React.ReactElement {
         const {isFetchingMappingRole, accountId} = this.state;
         const {isUpdateAccess, defaultRole} = this.props;
-        const principals: Principal[] | undefined =Services.getConfigService().principals();
+        const principals: Principal[] | undefined = Services.getConfigService().principals();
 
         return (
             <Modal

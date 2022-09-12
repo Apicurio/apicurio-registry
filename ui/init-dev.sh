@@ -14,4 +14,4 @@ fi
 cp config/version.js src/version.js
 cp config/config-$CONFIG_TYPE.js src/config.js
 
-echo "Done.  Try:  'yarn start'"
+echo "Done.  Try:  'npm run start'"

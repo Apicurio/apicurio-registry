@@ -1,7 +1,6 @@
 package io.apicurio.registry.systemtests.operator.types;
 
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 public interface OperatorType {
     OperatorKind getKind();
@@ -12,7 +11,7 @@ public interface OperatorType {
 
     Deployment getDeployment();
 
-    void install(ExtensionContext testContext);
+    void install() throws InterruptedException;
 
     void uninstall();
 

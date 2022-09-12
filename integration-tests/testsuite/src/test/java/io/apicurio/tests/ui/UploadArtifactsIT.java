@@ -57,16 +57,25 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
         }
     }
 
+    public void doTestFromURL(RegistryClient client, String fromURL, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
+        doTest(client, null, type, artifactId, autodetect, fromURL);
+    }
+
     public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect) throws Exception {
+        doTest(client, resource, type, artifactId, autodetect, null);
+    }
+
+    public void doTest(RegistryClient client, String resource, ArtifactType type, String artifactId, boolean autodetect, String fromURL) throws Exception {
         String groupId = UploadArtifactsIT.class.getName();
 
         assertNotNull(type);
 
-        String content = resourceToString("artifactTypes/" + resource);
+        String content = (fromURL == null) ? resourceToString("artifactTypes/" + resource) : null;
 
         RegistryUITester page = new RegistryUITester(selenium);
         page.openWebPage();
-        String webArtifactId = page.uploadArtifact(groupId, artifactId, autodetect ? null : type, content);
+        String webArtifactId = (fromURL == null) ? page.uploadArtifact(groupId, artifactId, autodetect ? null : type, content) :
+                page.uploadArtifactFromURL(groupId, artifactId, autodetect ? null : type, fromURL);
 
         if (artifactId != null) {
             assertEquals(artifactId, webArtifactId);
@@ -113,6 +122,15 @@ public class UploadArtifactsIT extends ApicurioV2BaseIT {
     @Test
     void testGraphQL() throws Exception {
         doTest(registryClient, "graphql/swars_v1.graphql", ArtifactType.GRAPHQL, null, false);
+    }
+
+    @Test
+    void testOpenApiFromURL() throws Exception {
+        String testUrl = SeleniumProvider.getInstance().getUiUrl().replace("/ui", "/api-specifications/registry/v2/openapi.json");
+        doTestFromURL(
+                registryClient,
+                testUrl,
+                ArtifactType.OPENAPI, null, false);
     }
 
     //auto-detect, kafka connect excluded because it's known it does not work

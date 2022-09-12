@@ -29,6 +29,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.utils.RegistryProperties;
 
 /**
@@ -44,23 +45,48 @@ public class UiConfigProperties {
     @Inject
     @Dynamic(label = "UI read-only mode", description = "When selected, the Service Registry web console is set to read-only, preventing create, read, update, or delete operations.")
     @ConfigProperty(name = "registry.ui.features.readOnly", defaultValue = "false")
+    @Info( category = "ui", description = "UI read-only mode", availableSince = "1.2.0.Final")
     Supplier<Boolean> featureReadOnly;
 
     @Inject
     @ConfigProperty(name = "registry.ui.features.settings", defaultValue = "false")
+    @Info( category = "ui", description = "UI features settings", availableSince = "2.2.2.Final")
     boolean featureSettings;
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.uiContextPath", defaultValue = "/ui/")
+    @Info( category = "ui", description = "UI context path", availableSince = "2.1.0.Final")
     String uiContextPath;
 
     @Inject
     @ConfigProperty(name = "registry.ui.config.apiUrl")
+    @Info( category = "ui", description = "UI APIs URL", availableSince = "1.3.0.Final")
     String apiUrl;
 
     @Inject
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
+    @Info( category = "ui", description = "UI OIDC tenant enabled", availableSince = "2.0.0.Final")
     boolean tenantEnabled;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.type", defaultValue = "none")
+    @Info( category = "ui", description = "UI auth type", availableSince = "2.2.6.Final")
+    String uiAuthType;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.url", defaultValue = "none")
+    @Info( category = "ui", description = "UI auth OIDC URL", availableSince = "2.2.6.Final")
+    String oidcUrl;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.client-id", defaultValue = "none")
+    @Info( category = "ui", description = "UI auth OIDC client ID", availableSince = "2.2.6.Final")
+    String oidcClientId;
+
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.redirect-url", defaultValue = "none")
+    @Info( category = "ui", description = "UI auth OIDC redirect URL", availableSince = "2.2.6.Final")
+    String oidcRedirectUri;
 
     private final Map<String, Object> keycloakConfig;
 
@@ -103,8 +129,23 @@ public class UiConfigProperties {
         return apiUrl;
     }
 
-    public boolean isKeycloakAuthEnabled() {
+    public boolean isAuthenticationEnabled() {
         return tenantEnabled;
     }
 
+    public String getUiAuthType() {
+        return uiAuthType;
+    }
+
+    public String getOidcUrl() {
+        return oidcUrl;
+    }
+
+    public String getOidcClientId() {
+        return oidcClientId;
+    }
+
+    public String getOidcRedirectUrl() {
+        return oidcRedirectUri;
+    }
 }

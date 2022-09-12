@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 import React from "react";
-import {Services} from "../../services";
+import { Services } from "../../services";
 
-
-// tslint:disable-next-line:no-empty-interface
+/* eslint-disable @typescript-eslint/no-empty-interface */
 export interface PureComponentProps {
 }
 
-// tslint:disable-next-line:no-empty-interface
+/* eslint-disable @typescript-eslint/no-empty-interface */
 export interface PureComponentState {
 }
 
@@ -30,7 +29,7 @@ export interface PureComponentState {
 /**
  * Base class for all Apicurio Registry UI components.
  */
-export abstract class PureComponent<P extends PureComponentProps, S extends PureComponentState, SS = {}> extends React.PureComponent<P, S, SS> {
+export abstract class PureComponent<P extends PureComponentProps, S extends PureComponentState, SS = Record<string, unknown>> extends React.PureComponent<P, S, SS> {
 
     private static HISTORY: any = null;
     private testIdCounter: number = 1;
@@ -69,7 +68,6 @@ export abstract class PureComponent<P extends PureComponentProps, S extends Pure
     }
 
     protected navigateTo = (location: string): () => void => {
-        // @ts-ignore
         return () => {
             const history: any = PureComponent.HISTORY;
             if (history) {

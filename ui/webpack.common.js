@@ -8,6 +8,7 @@ delete dependencies.serve; // Needed for nodeshift bug
 const webpack = require("webpack");
 const ChunkMapper = require("@redhat-cloud-services/frontend-components-config/chunk-mapper");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 const isPatternflyStyles = (stylesheet) => stylesheet.includes("@patternfly/react-styles/css/") || stylesheet.includes("@patternfly/react-core/");
 
@@ -25,9 +26,7 @@ process.argv.forEach(arg => {
 
 module.exports = (env, argv) => {
   const isProduction = argv && argv.mode === "production";
-  const isMtUi = cmdArgs.target === "mtui" ? true : false;
   console.info("Is production build? %o", isProduction);
-  console.info("Is Multi-Tenant UI build? %o", isMtUi);
   return {
     entry: {
       app: path.resolve(__dirname, "src", "index.tsx")
@@ -115,9 +114,7 @@ module.exports = (env, argv) => {
       }),
       new webpack.container.ModuleFederationPlugin({
         name: federatedModuleName,
-        filename: `${federatedModuleName}${
-            (isProduction && !isMtUi) ? ".[chunkhash:8]" : ""
-        }.js`,
+        filename: `${federatedModuleName}${isProduction ? ".[chunkhash:8]" : ""}.js`,
         exposes: {
           "./FederatedArtifactsPage": "./src/app/pages/artifacts/artifacts.federated",
           "./FederatedArtifactRedirectPage": "./src/app/pages/artifact/artifact.federated",
@@ -143,7 +140,8 @@ module.exports = (env, argv) => {
             requiredVersion: dependencies["react-router-dom"],
           },
         }
-      })
+      }),
+      new NodePolyfillPlugin()
     ],
     resolve: {
       extensions: [".js", ".ts", ".tsx", ".jsx"],

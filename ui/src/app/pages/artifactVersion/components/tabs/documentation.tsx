@@ -17,8 +17,10 @@
 
 import React from "react";
 import "./documentation.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
-import {RedocStandalone} from "redoc";
+import "@asyncapi/react-component/styles/default.css";
+import { PureComponent, PureComponentProps, PureComponentState } from "../../../../components";
+import { RedocStandalone } from "redoc";
+import AsyncApiComponent, { ConfigInterface } from "@asyncapi/react-component";
 import { ErrorTabContent } from "./errorTab";
 import { Services } from "src/services";
 
@@ -61,6 +63,15 @@ export class DocumentationTabContent extends PureComponent<DocumentationTabConte
             visualizer = <RedocStandalone spec={this.state.parsedContent} />;
         }
 
+        if(this.props.artifactType === "ASYNCAPI") {
+            const config: ConfigInterface = {
+                show: {
+                    sidebar: false
+                }
+            };
+            visualizer = <AsyncApiComponent schema={this.state.parsedContent} config={config} />;
+        }
+
         if (visualizer !== null) {
             return visualizer;
         } else {
@@ -82,7 +93,7 @@ export class DocumentationTabContent extends PureComponent<DocumentationTabConte
                 error: ex
             };
         }
-        
+
     }
 
     private isError() : boolean {

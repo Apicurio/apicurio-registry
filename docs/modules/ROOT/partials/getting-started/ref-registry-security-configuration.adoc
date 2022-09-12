@@ -153,7 +153,7 @@ To enable using roles managed internally by {registry}, set the following enviro
 |Type
 |Default
 |`ROLE_BASED_AUTHZ_SOURCE`
-| When set to `application`, user are managed internally by {registry}.
+| When set to `application`, user roles are managed internally by {registry}.
 |String
 |`token`
 |===

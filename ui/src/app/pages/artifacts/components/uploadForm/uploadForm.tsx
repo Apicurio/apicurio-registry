@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
+import React from "react";
 import "./uploadForm.css";
-import {PureComponent, PureComponentProps, PureComponentState} from "../../../../components";
+import { PureComponent, PureComponentProps, PureComponentState, UrlUpload } from "../../../../components";
 import {
     debounce,
     Dropdown,
@@ -26,12 +26,12 @@ import {
     FileUpload,
     Form,
     FormGroup,
-    FormHelperText,
+    FormHelperText, Tab, Tabs, TabTitleText,
     TextInput
 } from "@patternfly/react-core";
-import {CaretDownIcon} from "@patternfly/react-icons";
-import {ArtifactTypes} from "../../../../../models";
-import {CreateArtifactData} from "../../../../../services";
+import { CaretDownIcon } from "@patternfly/react-icons";
+import { ArtifactTypes } from "../../../../../models";
+import { CreateArtifactData } from "../../../../../services";
 
 
 const artifactTypes: any[] = [
@@ -62,7 +62,8 @@ export interface UploadArtifactFormState extends PureComponentState {
     group: string;
     type: string;
     typeIsExpanded: boolean;
-    content: string;
+    tabKey: number;
+    content: string|null;
     contentFilename: string;
     contentIsLoading: boolean;
     formValid: boolean;
@@ -153,19 +154,44 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                     isRequired={true}
                     fieldId="form-artifact"
                 >
-                    <FileUpload
-                        id="artifact-content"
-                        data-testid="form-upload"
-                        type="text"
-                        filename={this.state.contentFilename}
-                        value={this.state.content}
-                        isRequired={true}
-                        allowEditingUploadedText={true}
-                        onChange={this.onContentChange}
-                        onReadStarted={this.onFileReadStarted}
-                        onReadFinished={this.onFileReadFinished}
-                        isLoading={this.state.contentIsLoading}
-                    />
+                    <Tabs
+                        className="create-tabs"
+                        style={{ marginBottom: "8px" }}
+                        activeKey={this.state.tabKey}
+                        onSelect={(_event, eventKey) => {
+                            this.setSingleState("tabKey", eventKey);
+                            this.onContentChange(undefined, undefined, {});
+                            _event.preventDefault();
+                            _event.stopPropagation();
+                        }}
+                        isBox={false}
+                        role="region"
+                    >
+                        <Tab eventKey={0} data-testid="tab-from-file" title={<TabTitleText>From file</TabTitleText>} aria-label="Default content - from file">
+                            <FileUpload
+                                id="artifact-content"
+                                data-testid="form-upload"
+                                type="text"
+                                filename={this.state.contentFilename}
+                                value={this.state.content!}
+                                isRequired={false}
+                                allowEditingUploadedText={true}
+                                onChange={this.onContentChange}
+                                onReadStarted={this.onFileReadStarted}
+                                onReadFinished={this.onFileReadFinished}
+                                isLoading={this.state.contentIsLoading}
+                            />
+                        </Tab>
+                        <Tab eventKey={1} data-testid="tab-from-url" title={<TabTitleText>From URL</TabTitleText>}>
+                            <UrlUpload
+                                id="artifact-content-url"
+                                urlPlaceholder="Enter a valid and accessible URL"
+                                onChange={(value, url) => {
+                                    this.onContentChange(value, url, {});
+                                }}
+                            />
+                        </Tab>
+                    </Tabs>
                 </FormGroup>
             </Form>
         );
@@ -173,7 +199,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
 
     protected initializeState(): UploadArtifactFormState {
         return {
-            content: "",
+            content: null,
             contentFilename: "",
             contentIsLoading: false,
             debouncedOnChange: debounce(this.props.onChange, 200),
@@ -181,6 +207,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
             group: "",
             type: "",
             typeIsExpanded: false,
+            tabKey: 0,
             formValid: false,
             idValid: true,
             groupValid: true
@@ -222,7 +249,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         });
     };
 
-    private onContentChange = (value: any, filename: string, event: any): void => {
+    private onContentChange = (value: any, filename: string | undefined, event: any): void => {
         this.setSingleState("content", value, () => {
             this.fireOnChange();
             this.checkFormValid();
@@ -268,7 +295,7 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
                     }
                 }
                 return true;
-            }
+            };
             return id.indexOf("%") == -1 && isAscii(id);
         }
     }
@@ -305,11 +332,11 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         const data: CreateArtifactData = this.currentData();
         if (this.isIdValid(data.id)) {
             if (!data.id) {
-                return "default"
+                return "default";
             }
-            return "success"
+            return "success";
         } else {
-            return "error"
+            return "error";
         }
     }
 
@@ -317,11 +344,11 @@ export class UploadArtifactForm extends PureComponent<UploadArtifactFormProps, U
         const data: CreateArtifactData = this.currentData();
         if (this.isIdValid(data.groupId)) {
             if (!data.groupId) {
-                return "default"
+                return "default";
             }
-            return "success"
+            return "success";
         } else {
-            return "error"
+            return "error";
         }
     }
 

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.services.http;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.multitenant.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -52,6 +53,7 @@ import io.apicurio.registry.storage.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.RoleMappingNotFoundException;
 import io.apicurio.registry.storage.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.RuleNotFoundException;
+import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
@@ -96,12 +98,14 @@ public class RegistryExceptionMapperService {
     LivenessUtil livenessUtil;
 
     @ConfigProperty(name = "registry.api.errors.include-stack-in-response", defaultValue = "false")
+    @Info( category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);

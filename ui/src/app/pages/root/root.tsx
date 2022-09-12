@@ -16,8 +16,8 @@
  */
 
 import React from "react";
-import {PageComponent, PageProps, PageState} from "../basePage";
-import {Redirect} from "react-router";
+import { PageComponent, PageProps, PageState } from "../basePage";
+import { Redirect } from "react-router";
 
 
 /**

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {BaseService} from "../baseService";
-import {UserInfo} from "../../models";
+import { BaseService } from "../baseService";
+import { UserInfo } from "../../models";
 
 /**
  * A service that provides access to the /users endpoint.

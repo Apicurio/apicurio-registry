@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -52,6 +53,7 @@ import java.util.Collections;
 public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
+    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = getClass().getSimpleName() + "Group";

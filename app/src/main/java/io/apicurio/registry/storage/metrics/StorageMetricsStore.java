@@ -52,7 +52,7 @@ public class StorageMetricsStore {
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "registry.storage.metrics.cache.check-period")
-    @Info( category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
+    @Info(category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
     Long limitsCheckPeriod;
 
     @Inject

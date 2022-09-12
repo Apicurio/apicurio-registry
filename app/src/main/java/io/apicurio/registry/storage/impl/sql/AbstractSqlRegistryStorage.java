@@ -189,11 +189,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
-    @Info( category = "store", description = "SQL init", availableSince = "2.0.0.Final")
+    @Info(category = "store", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-    @Info( category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
+    @Info(category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
 
     /**

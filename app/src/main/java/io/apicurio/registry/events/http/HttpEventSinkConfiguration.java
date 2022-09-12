@@ -35,7 +35,7 @@ import io.apicurio.registry.utils.RegistryProperties;
 public class HttpEventSinkConfiguration {
 
     @ConfigProperty(name = "registry.events.ksink")
-    @Info( category = "events", description = "Events Kafka sink enabled", availableSince = "2.0.0.Final")
+    @Info(category = "events", description = "Events Kafka sink enabled", availableSince = "2.0.0.Final")
     Optional<String> ksink;
 
     @Produces

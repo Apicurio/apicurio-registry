@@ -98,7 +98,7 @@ public class RegistryExceptionMapperService {
     LivenessUtil livenessUtil;
 
     @ConfigProperty(name = "registry.api.errors.include-stack-in-response", defaultValue = "false")
-    @Info( category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
+    @Info(category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
     static {

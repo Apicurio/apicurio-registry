@@ -677,5 +677,10 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.2.2.Final`
 |UI features settings
+|`registry.ui.root`
+|`string`
+|
+|`2.3.0.Final`
+|Overrides the UI root context (useful when relocating the UI context using an inbound proxy)
 |===
 

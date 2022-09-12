@@ -63,7 +63,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
             "} ";
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
-    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
+    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
     ApicurioHttpClient httpClient;

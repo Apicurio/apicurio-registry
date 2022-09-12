@@ -40,7 +40,7 @@ public class LivenessUtil {
 
     @Inject
     @ConfigProperty(name = "registry.liveness.errors.ignored")
-    @Info( category = "health", description = "Ignored liveness errors", availableSince = "1.2.3.Final")
+    @Info(category = "health", description = "Ignored liveness errors", availableSince = "1.2.3.Final")
     Optional<List<String>> ignored;
 
     public boolean isIgnoreError(Throwable ex) {

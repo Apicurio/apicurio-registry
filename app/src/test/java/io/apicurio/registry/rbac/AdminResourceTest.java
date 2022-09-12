@@ -80,7 +80,7 @@ import io.vertx.core.json.JsonObject;
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.log.level")
-    @Info( category = "log", description = "Log level", availableSince = "2.0.0.Final")
+    @Info(category = "log", description = "Log level", availableSince = "2.0.0.Final")
     String defaultLogLevel;
 
     @Test

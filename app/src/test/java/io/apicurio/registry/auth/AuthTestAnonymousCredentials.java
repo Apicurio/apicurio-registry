@@ -53,7 +53,7 @@ import java.util.Collections;
 public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
-    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
+    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = getClass().getSimpleName() + "Group";

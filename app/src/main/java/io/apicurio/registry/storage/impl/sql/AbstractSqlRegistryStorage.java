@@ -41,7 +41,6 @@ import javax.transaction.Transactional;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.util.DataImporter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;

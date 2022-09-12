@@ -220,7 +220,8 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
         Assertions.assertThrows(ForbiddenException.class, () -> {
             readOnlyClient.createGlobalRule(ruleConfig);
         });
-        Assertions.assertThrows(ForbiddenException.class, () -> readOnlyClient.listGlobalRules());
+        // Users with read access are allowed to list global rules, just not edit them.
+        readOnlyClient.listGlobalRules();
 
         ArtifactMetaData meta = writePermissionsClient.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
         TestUtils.retry(() -> writePermissionsClient.getArtifactMetaData(groupId, meta.getId()));

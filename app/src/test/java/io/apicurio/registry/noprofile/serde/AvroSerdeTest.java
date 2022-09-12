@@ -247,6 +247,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             AvroSchemaB avroSchemaB = new AvroSchemaB();
             AvroSchemaA avroSchemaA = AvroSchemaA.GEMINI;
+            AvroSchemaA avroSchemaA2 = AvroSchemaA.GEMINI;
             AvroSchemaC avroSchemaC = new AvroSchemaC();
             AvroSchemaD avroSchemaD = new AvroSchemaD();
             AvroSchemaE avroSchemaE = new AvroSchemaE();
@@ -263,6 +264,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             avroSchemaB.setSchemaC(avroSchemaC);
             avroSchemaB.setSchemaA(avroSchemaA);
+            avroSchemaB.setSchemaA2(avroSchemaA2);
             avroSchemaB.setKey(UUID.randomUUID().toString());
 
             String artifactId = generateArtifactId();

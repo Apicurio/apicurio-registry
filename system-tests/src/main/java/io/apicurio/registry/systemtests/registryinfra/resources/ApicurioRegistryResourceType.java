@@ -75,7 +75,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConditions()
                 .stream()
                 .filter(condition -> condition.getType().equals("Ready"))
-                .map(condition -> condition.getStatus().equals("True"))
+                .map(condition -> condition.getStatus().name().equals("TRUE"))
                 .findFirst()
                 .orElse(false);
     }

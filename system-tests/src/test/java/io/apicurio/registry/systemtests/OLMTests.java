@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtests;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.DatabaseUtils;

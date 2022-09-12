@@ -932,11 +932,6 @@
     <profiles>
         <profile>
             <id>system-tests</id>
-            <activation>
-                <property>
-                    <name>includeSystemTests</name>
-                </property>
-            </activation>
             <modules>
                 <!-- Operator tests module -->
                 <module>system-tests</module>

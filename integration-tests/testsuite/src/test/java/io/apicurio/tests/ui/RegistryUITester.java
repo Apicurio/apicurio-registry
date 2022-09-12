@@ -89,7 +89,7 @@ public class RegistryUITester {
 
     }
 
-    public String uploadArtifactFromURL(String groupId, String artifactId, ArtifactType type, String url, String artifactSHA) throws UnsupportedEncodingException {
+    public String uploadArtifactFromURL(String groupId, String artifactId, ArtifactType type, String url) throws UnsupportedEncodingException {
 
         UploadArtifactDialog uploadDialog = openUploadArtifactDialog();
 
@@ -104,15 +104,28 @@ public class RegistryUITester {
         selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownToggle());
         selenium.clickOnItem(uploadDialog.getArtifactTypeDropdownItem(type));
 
-        selenium.fillInputItem(uploadDialog.getArtifactURL(), url);
-        if (artifactSHA != null) {
-            selenium.fillInputItem(uploadDialog.getArtifactSHA(), artifactSHA);
-        }
+        // Switch to the "From URL tab"
+        selenium.clickOnItem(uploadDialog.getFromUrlTab());
+
+        // Wait for the tab to switch
+        selenium.waitUntilItemClickableByDataId("artifact-content-url-input");
 
         try {
+            selenium.fillInputItem(uploadDialog.getArtifactURL(), url);
+            selenium.clickOnItem(uploadDialog.getFetchButton());
+        } finally {
+            selenium.takeScreenShot();
+        }
+
+        selenium.takeScreenShot("C:\\Temp\\BEFORE.png");
+
+        try {
+            // Wait for the content to be fetched
+            selenium.waitUntilItemClickableByDataId("modal-btn-upload");
             selenium.clickOnItem(uploadDialog.getUploadButton());
         } finally {
             selenium.takeScreenShot();
+            selenium.takeScreenShot("C:\\Temp\\AFTER.png");
         }
 
         try {

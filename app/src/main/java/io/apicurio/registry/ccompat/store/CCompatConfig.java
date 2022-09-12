@@ -23,6 +23,7 @@ import javax.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -32,6 +33,7 @@ public class CCompatConfig {
 
     @Dynamic(label = "Legacy ID mode (compatibility API)", description =  "When selected, the Schema Registry compatibility API uses global ID instead of content ID for artifact identifiers.")
     @ConfigProperty(name = "registry.ccompat.legacy-id-mode.enabled", defaultValue = "false")
+    @Info( category = "ccompat", description = "Legacy ID mode (compatibility API)", availableSince = "2.0.2.Final")
     Supplier<Boolean> legacyIdModeEnabled;
 
 }

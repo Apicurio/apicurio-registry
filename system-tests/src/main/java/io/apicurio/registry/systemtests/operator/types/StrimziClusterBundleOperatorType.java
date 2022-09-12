@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests.operator.types;
 
-import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
@@ -10,7 +9,6 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import org.eclipse.jgit.api.Git;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -68,7 +66,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
     }
 
     public StrimziClusterBundleOperatorType() {
-        super(Environment.KAFKA_BUNDLE, Constants.TESTSUITE_NAMESPACE);
+        super(Environment.KAFKA_BUNDLE, Environment.NAMESPACE);
 
         try {
             loadOperatorResources();
@@ -78,7 +76,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
     }
 
     public StrimziClusterBundleOperatorType(String source) {
-        super(source, Constants.TESTSUITE_NAMESPACE);
+        super(source, Environment.NAMESPACE);
 
         try {
             loadOperatorResources();
@@ -120,7 +118,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() {
         Kubernetes.createOrReplaceResources(getNamespace(), getResources());
     }
 

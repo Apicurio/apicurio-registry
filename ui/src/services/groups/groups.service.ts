@@ -31,9 +31,9 @@ export interface CreateArtifactData {
     groupId: string;
     id: string|null;
     type: string;
-    fromURL: string|null;
-    sha: string|null;
-    content: string|null;
+    fromURL?: string|null;
+    sha?: string|null;
+    content?: string|null;
 }
 
 export interface CreateVersionData {

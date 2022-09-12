@@ -16,6 +16,10 @@ on:
       - 'docs/**'
     branches: [main, 2.0.x]
 
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-verify:
@@ -63,7 +67,7 @@ jobs:
           mvn install
 
       - name: Build and Test All Variants
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -108,6 +112,14 @@ jobs:
 
       - name: Build All Variants
         run: make SKIP_TESTS=true BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
+
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
 
       - name: Build Native executables
         env:

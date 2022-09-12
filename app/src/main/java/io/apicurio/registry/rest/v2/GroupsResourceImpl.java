@@ -655,15 +655,27 @@ public class GroupsResourceImpl implements GroupsResource {
                                            String xRegistryContentHash, String xRegistryHashAlgorithm, ContentCreateRequest data) {
         requireParameter("content", data.getContent());
 
+        Client client = null;
         InputStream content;
         try {
-            URL url = new URL(data.getContent());
-            content = fetchContentFromURL(url.toURI());
-        } catch (MalformedURLException | URISyntaxException e) {
-            content = IoUtil.toStream(data.getContent());
-        }
+            try {
+                URL url = new URL(data.getContent());
+                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
+                content = fetchContentFromURL(client, url.toURI());
+            } catch (MalformedURLException | URISyntaxException e) {
+                content = IoUtil.toStream(data.getContent());
+            }
 
-        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId, xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded, xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm, content, data.getReferences());
+        } catch (KeyManagementException kme) {
+            throw new RuntimeException(kme);
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new RuntimeException(nsae);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
     }
 
     public enum RegistryHashAlgorithm {
@@ -675,42 +687,43 @@ public class GroupsResourceImpl implements GroupsResource {
      * Return an InputStream for the resource to be downloaded
      * @param url
      */
-    private InputStream fetchContentFromURL(URI url) {
-        Client client = null;
+    private InputStream fetchContentFromURL(Client client, URI url) {
         try {
-            client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
-        } catch (KeyManagementException kme) {
-            throw new RuntimeException(kme);
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new RuntimeException(nsae);
+            // 1. Registry issues HTTP HEAD request to the target URL.
+            List<Object> contentLengthHeaders = client
+                    .target(url)
+                    .request()
+                    .head()
+                    .getHeaders()
+                    .get("Content-Length");
+
+            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
+                throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
+            }
+
+            // 2. According to HTTP specification, target server must return Content-Length header.
+            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
+
+            // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
+            if (contentLength > restConfig.getDownloadMaxSize()) {
+                throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
+            }
+
+            if (contentLength <= 0) {
+                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
+            }
+
+            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
+            return new BufferedInputStream(client
+                    .target(url)
+                    .request()
+                    .get()
+                    .readEntity(InputStream.class), contentLength);
+        } catch (BadRequestException bre) {
+            throw bre;
+        } catch (Exception e) {
+            throw new BadRequestException("Errors downloading the artifact content.", e);
         }
-
-        // 1. Registry issues HTTP HEAD request to the target URL.
-        List<Object> contentLengthHeaders = client
-                .target(url)
-                .request()
-                .head()
-                .getHeaders()
-                .get("Content-Length");
-
-        if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-            throw new BadRequestException("Requested resource URL does not provide 'Content-Length' in the headers");
-        }
-
-        // 2. According to HTTP specification, target server must return Content-Length header.
-        int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
-
-        // 3. Registry analyzes value of Content-Length to check if file with declared size could be processed securely.
-        if (contentLength > restConfig.getDownloadMaxSize()) {
-            throw new BadRequestException("Requested resource is bigger than " + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-        }
-
-        // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes specified by HTTP HEAD from step 1.
-        return new BufferedInputStream(client
-                .target(url)
-                .request()
-                .get()
-                .readEntity(InputStream.class), contentLength);
     }
 
     /**

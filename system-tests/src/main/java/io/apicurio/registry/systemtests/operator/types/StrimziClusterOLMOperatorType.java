@@ -1,6 +1,5 @@
 package io.apicurio.registry.systemtests.operator.types;
 
-import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.framework.OperatorUtils;
@@ -11,20 +10,19 @@ import io.apicurio.registry.systemtests.registryinfra.resources.SubscriptionReso
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 public class StrimziClusterOLMOperatorType extends OLMOperator implements OperatorType {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
 
     public StrimziClusterOLMOperatorType() {
-        super(null, Constants.CLUSTER_WIDE_NAMESPACE, true);
+        super(null, Environment.CLUSTER_WIDE_NAMESPACE, true);
     }
 
     public StrimziClusterOLMOperatorType(boolean isClusterWide) {
         super(
                 null,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : Constants.TESTSUITE_NAMESPACE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
                 isClusterWide
         );
     }
@@ -32,7 +30,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
     public StrimziClusterOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
         super(
                 source,
-                isClusterWide ? Constants.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
                 isClusterWide
         );
     }
@@ -58,20 +56,19 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
     }
 
     @Override
-    public void install(ExtensionContext testContext) {
+    public void install() throws InterruptedException {
         /* Operator namespace is created in OperatorManager. */
 
         String catalogName = Environment.CATALOG;
-        String catalogNamespace = Constants.CATALOG_NAMESPACE;
+        String catalogNamespace = Environment.CATALOG_NAMESPACE;
         String kafkaPackage = Environment.KAFKA_PACKAGE;
 
         if (getClusterWide()) {
             LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), getNamespace());
         } else {
             LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
-
             if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
-                setOperatorGroup(OperatorUtils.createOperatorGroup(testContext, getNamespace()));
+                setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
             }
         }
 
@@ -92,7 +89,7 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
                 channelName
         ));
 
-        ResourceManager.getInstance().createResource(testContext, true, getSubscription());
+        ResourceManager.getInstance().createSharedResource( true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }

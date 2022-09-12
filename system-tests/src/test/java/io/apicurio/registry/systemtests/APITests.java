@@ -22,8 +22,6 @@ public class APITests {
         LOGGER.info("Running API tests...");
 
         // Wait for readiness of Apicurio Registry hostname
-        Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
-
         // Prepare necessary variables
         String artifactGroupId = "registry-test-group";
         String artifactId = "registry-test-id";

@@ -137,7 +137,6 @@
         <module>schema-util/xml</module>
         <module>schema-util/xsd</module>
         <module>schema-util/util-provider</module>
-
     </modules>
 
     <properties>
@@ -187,12 +186,12 @@
         <apicurio-data-models.version>1.1.26</apicurio-data-models.version>
 
         <!-- GraphQL -->
-        <graphql.version>19.1</graphql.version>
+        <graphql.version>19.2</graphql.version>
 
         <!-- JSON Schema Validator -->
         <org.everit.json.schema.version>1.14.1</org.everit.json.schema.version><!-- TODO unification -->
-        <jackson-datatype-json-org.version>2.13.0</jackson-datatype-json-org.version>
-        <jackson-dataformat-yaml.version>2.12.5</jackson-dataformat-yaml.version>
+        <jackson-datatype-json-org.version>2.13.4</jackson-datatype-json-org.version>
+        <jackson-dataformat-yaml.version>2.13.4</jackson-dataformat-yaml.version>
 
         <!-- Dependency versions -->
         <lombok.version>1.18.24</lombok.version>

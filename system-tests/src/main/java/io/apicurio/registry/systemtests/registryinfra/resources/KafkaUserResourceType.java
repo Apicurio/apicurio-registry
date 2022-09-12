@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtests.registryinfra.resources;
 
 import io.apicurio.registry.systemtests.framework.Constants;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -124,7 +125,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     public static KafkaUser getDefaultTLS() {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
-                Constants.TESTSUITE_NAMESPACE,
+                Environment.NAMESPACE,
                 Constants.KAFKA,
                 KafkaKind.TLS
         );
@@ -133,7 +134,7 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     public static KafkaUser getDefaultSCRAM() {
         return getDefaultByKind(
                 Constants.KAFKA_USER,
-                Constants.TESTSUITE_NAMESPACE,
+                Environment.NAMESPACE,
                 Constants.KAFKA,
                 KafkaKind.SCRAM
         );

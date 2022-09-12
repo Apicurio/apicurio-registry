@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.model.ApicurioRegistryBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationKafkaSecurityBuilder;
 import io.apicurio.registry.operator.api.model.ApicurioRegistrySpecConfigurationSecurityBuilder;
 import io.apicurio.registry.systemtests.framework.Constants;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
@@ -16,7 +17,7 @@ import java.time.Duration;
 public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegistry> {
     @Override
     public Duration getTimeout() {
-        return Duration.ofMinutes(3);
+        return Duration.ofMinutes(10);
     }
 
     @Override
@@ -98,6 +99,8 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
 
     /** Get default instances **/
 
+
+
     public static ApicurioRegistry getDefaultMem(String name, String namespace) {
         return new ApicurioRegistryBuilder()
                 .withNewMetadata()
@@ -137,9 +140,10 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                     .endConfiguration()
                 .endSpec()
                 .build();
+
     }
     public static ApicurioRegistry getDefaultKafkasql(String name, String namespace) {
-        return new ApicurioRegistryBuilder()
+       return new ApicurioRegistryBuilder()
                 .withNewMetadata()
                     .withName(name)
                     .withNamespace(namespace)
@@ -149,25 +153,25 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                         .withPersistence("kafkasql")
                         .withNewKafkasql()
                             .withBootstrapServers(
-                                    Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                                    Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                             ".svc.cluster.local:9092"
                             )
                         .endKafkasql()
                     .endConfiguration()
                 .endSpec()
-                .build();
+               .build();
     }
 
     public static ApicurioRegistry getDefaultMem(String name) {
-        return getDefaultMem(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultMem(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultSql(String name) {
-        return getDefaultSql(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultSql(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultKafkasql(String name) {
-        return getDefaultKafkasql(name, Constants.TESTSUITE_NAMESPACE);
+        return getDefaultKafkasql(name, Environment.NAMESPACE);
     }
 
     public static ApicurioRegistry getDefaultMem() {
@@ -201,7 +205,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }
@@ -226,7 +230,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setBootstrapServers(
-                        Constants.KAFKA + "-kafka-bootstrap." + Constants.TESTSUITE_NAMESPACE +
+                        Constants.KAFKA + "-kafka-bootstrap." + Environment.NAMESPACE +
                                 ".svc.cluster.local:9093"
                 );
     }

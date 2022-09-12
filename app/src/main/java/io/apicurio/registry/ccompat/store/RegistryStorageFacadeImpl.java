@@ -146,7 +146,8 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                         throw new VersionNotFoundException(null, subject, version);
                     }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
-                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null));
+                    Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(storedArtifact.getReferences());
+                    return converter.convert(subject, storedArtifact, ArtifactTypeUtil.determineArtifactType(removeQuotedBrackets(storedArtifact.getContent().content()), null, null, resolvedReferences));
                 });
     }
 

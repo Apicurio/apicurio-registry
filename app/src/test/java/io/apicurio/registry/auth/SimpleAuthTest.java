@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -64,6 +65,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
+    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
     final String groupId = "authTestGroupId";

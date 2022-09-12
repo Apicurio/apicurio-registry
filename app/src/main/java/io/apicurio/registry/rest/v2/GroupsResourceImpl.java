@@ -772,14 +772,18 @@ public class GroupsResourceImpl implements GroupsResource {
         // Mitigation for MITM attacks, verify that the artifact is the expected one
         if (xRegistryContentHash != null) {
             String calculatedSha = null;
-            RegistryHashAlgorithm algorithm = (xRegistryHashAlgorithm == null) ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
-            switch (algorithm) {
-                case MD5:
-                    calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8).toString();
-                    break;
-                case SHA256:
-                    calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
-                    break;
+            try {
+                RegistryHashAlgorithm algorithm = (xRegistryHashAlgorithm == null) ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
+                switch (algorithm) {
+                    case MD5:
+                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                        break;
+                    case SHA256:
+                        calculatedSha = Hashing.sha256().hashString(content.content(), StandardCharsets.UTF_8).toString();
+                        break;
+                }
+            } catch (Exception e) {
+                throw new BadRequestException("Requested hash algorithm not supported");
             }
 
             if (!calculatedSha.equals(xRegistryContentHash.trim())) {

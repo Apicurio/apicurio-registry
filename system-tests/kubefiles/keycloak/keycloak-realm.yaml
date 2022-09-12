@@ -17,6 +17,9 @@ spec:
         - name: sr-admin
         - name: sr-developer
         - name: sr-readonly
+        - name: test-admin-role
+        - name: test-developer-role
+        - name: test-readonly-role
     clients:
       - clientId: registry-client-ui
         implicitFlowEnabled: true
@@ -77,3 +80,27 @@ spec:
         enabled: true
         realmRoles: []
         username: registry-no-role-user
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - test-admin-role
+        username: registry-admin-role
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - test-developer-role
+        username: registry-developer-role
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles:
+          - test-readonly-role
+        username: registry-user-role

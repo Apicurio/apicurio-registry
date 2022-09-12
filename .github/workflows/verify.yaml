@@ -16,6 +16,13 @@ on:
       - 'docs/**'
     branches: [main, 2.0.x]
 
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
 
 jobs:
   build-verify:
@@ -63,8 +70,7 @@ jobs:
           mvn install
 
       - name: Build and Test All Variants
-        #run: make SKIP_TESTS=false BUILD_FLAGS='-Psystem-tests -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all Use once operator ingress issue is fixed
-        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress -pl !system-tests' build-all
+        run: make SKIP_TESTS=false BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress' build-all
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

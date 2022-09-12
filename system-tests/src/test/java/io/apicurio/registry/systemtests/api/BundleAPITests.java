@@ -19,6 +19,6 @@ public class BundleAPITests extends APITests {
 
         ApicurioRegistryBundleOperatorType registryBundleOperator = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(registryBundleOperator, true);
+        operatorManager.installOperator(registryBundleOperator);
     }
 }

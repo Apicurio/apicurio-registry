@@ -19,6 +19,6 @@ public class BundleAuthTests extends AuthTests {
 
         ApicurioRegistryBundleOperatorType registryBundleOperator = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(registryBundleOperator, true);
+        operatorManager.installOperator(registryBundleOperator);
     }
 }

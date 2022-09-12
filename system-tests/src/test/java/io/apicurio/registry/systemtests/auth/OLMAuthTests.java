@@ -23,6 +23,6 @@ public abstract class OLMAuthTests extends AuthTests {
 
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
 
-        operatorManager.installOperator(registryOLMOperator, true);
+        operatorManager.installOperator(registryOLMOperator);
     }
 }

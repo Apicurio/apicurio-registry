@@ -18,11 +18,11 @@ public abstract class OLMAuthTests extends AuthTests {
     }
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
 
-        operatorManager.installOperator(testContext, registryOLMOperator);
+        operatorManager.installOperator(registryOLMOperator, true);
     }
 }

@@ -14,11 +14,11 @@ public class BundleAuthTests extends AuthTests {
     }
 
     @BeforeEach
-    public void testBeforeEach(ExtensionContext testContext) {
+    public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
         ApicurioRegistryBundleOperatorType registryBundleOperator = new ApicurioRegistryBundleOperatorType();
 
-        operatorManager.installOperator(testContext, registryBundleOperator);
+        operatorManager.installOperator(registryBundleOperator, true);
     }
 }

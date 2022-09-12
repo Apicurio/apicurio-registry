@@ -16,7 +16,6 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-@Disabled
 public abstract class OLMDeployTests extends DeployTests {
     private boolean clusterWide;
 

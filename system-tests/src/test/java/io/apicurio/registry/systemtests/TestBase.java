@@ -96,9 +96,9 @@ public abstract class TestBase {
 
     @AfterEach
     protected void afterEachTest(ExtensionContext testContext) {
-        resourceManager.deleteResources(testContext);
+        resourceManager.deleteResources();
 
-        operatorManager.uninstallOperators(testContext);
+        operatorManager.uninstallOperators();
 
         LOGGER.info("");
         LoggerUtils.logDelimiter("#");
@@ -115,22 +115,7 @@ public abstract class TestBase {
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
             boolean useKeycloak
-    ) {
-        if (useKeycloak) {
-            // Install Keycloak operator
-            KeycloakOLMOperatorType keycloakOLMOperator = new KeycloakOLMOperatorType();
-            operatorManager.installOperator(testContext, keycloakOLMOperator);
-
-            // Deploy Keycloak
-            KeycloakUtils.deployKeycloak(testContext);
-        }
-
-        if (persistenceKind.equals(PersistenceKind.KAFKA_SQL)) {
-            // Install Strimzi operator
-            StrimziClusterOLMOperatorType strimziOperator = new StrimziClusterOLMOperatorType();
-            operatorManager.installOperator(testContext, strimziOperator);
-        }
-
+    ) throws InterruptedException {
         if (persistenceKind.equals(PersistenceKind.SQL)) {
             // Deploy PostgreSQL with/without Keycloak
             DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);

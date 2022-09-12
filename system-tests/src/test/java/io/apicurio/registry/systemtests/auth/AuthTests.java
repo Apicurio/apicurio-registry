@@ -10,7 +10,6 @@ import io.apicurio.registry.systemtests.auth.features.BasicAuthentication;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationApplication;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationToken;
 import io.apicurio.registry.systemtests.framework.Constants;
-import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.Disabled;
@@ -28,7 +27,7 @@ public abstract class AuthTests extends TestBase {
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
             boolean useKeycloak
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
@@ -38,8 +37,6 @@ public abstract class AuthTests extends TestBase {
                     Constants.SSO_USER_PASSWORD,
                     true
             );
-
-            KeycloakUtils.removeKeycloak();
         } else {
             AnonymousReadAccess.testAnonymousReadAccess(registry, null, null, false);
         }
@@ -49,235 +46,279 @@ public abstract class AuthTests extends TestBase {
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         BasicAuthentication.testBasicAuthentication(registry, Constants.SSO_ADMIN_USER, Constants.SSO_USER_PASSWORD);
-
-        KeycloakUtils.removeKeycloak();
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runAuthenticatedReadsTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         AuthenticatedReads.testAuthenticatedReads(registry);
-
-        KeycloakUtils.removeKeycloak();
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runArtifactOwnerOnlyAuthorizationTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         ArtifactOwnerOnlyAuthorization.testArtifactOwnerOnlyAuthorization(registry);
-
-        KeycloakUtils.removeKeycloak();
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runArtifactGroupOwnerOnlyAuthorizationTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         ArtifactGroupOwnerOnlyAuthorization.testArtifactGroupOwnerOnlyAuthorization(registry);
-
-        KeycloakUtils.removeKeycloak();
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runRoleBasedAuthorizationTokenTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         RoleBasedAuthorizationToken.testRoleBasedAuthorizationToken(registry);
-
-        KeycloakUtils.removeKeycloak();
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runRoleBasedAuthorizationApplicationTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         RoleBasedAuthorizationApplication.testRoleBasedAuthorizationApplication(registry);
-
-        KeycloakUtils.removeKeycloak();
     }
 
     /* TESTS - PostgreSQL */
 
     @Test
-    public void testRegistrySqlNoIAMAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistrySqlNoIAMAnonymousReadAccess(ExtensionContext testContext) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.SQL, null, false);
     }
 
     @Test
-    public void testRegistrySqlKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakAnonymousReadAccess(ExtensionContext testContext) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.SQL, null, true);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakBasicAuthentication(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakBasicAuthentication(ExtensionContext testContext) throws InterruptedException {
         runBasicAuthenticationTest(testContext, PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakAuthenticatedReads(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakAuthenticatedReads(ExtensionContext testContext) throws InterruptedException {
         runAuthenticatedReadsTest(testContext, PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakArtifactOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakArtifactGroupOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakRoleBasedAuthorizationToken(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakRoleBasedAuthorizationToken(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationTokenTest(testContext, PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakRoleBasedAuthorizationApplication(ExtensionContext testContext) {
+    public void testRegistrySqlKeycloakRoleBasedAuthorizationApplication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationApplicationTest(testContext, PersistenceKind.SQL, null);
     }
 
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoIAMAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthNoIAMAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoIAMAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSNoIAMAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoIAMAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMNoIAMAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakAnonymousReadAccess(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakAnonymousReadAccess(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAnonymousReadAccessTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakBasicAuthentication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakBasicAuthentication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runBasicAuthenticationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakBasicAuthentication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakBasicAuthentication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runBasicAuthenticationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakBasicAuthentication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakBasicAuthentication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runBasicAuthenticationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakAuthenticatedReads(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakAuthenticatedReads(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAuthenticatedReadsTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakAuthenticatedReads(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakAuthenticatedReads(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAuthenticatedReadsTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakAuthenticatedReads(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakAuthenticatedReads(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runAuthenticatedReadsTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakArtifactOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakArtifactOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakArtifactOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakArtifactOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakArtifactGroupOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakArtifactGroupOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakArtifactGroupOwnerOnlyAuthorization(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakArtifactGroupOwnerOnlyAuthorization(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runArtifactGroupOwnerOnlyAuthorizationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationToken(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationToken(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationTokenTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationToken(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationToken(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationTokenTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationToken(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationToken(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationTokenTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationApplication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationApplication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationApplicationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationApplication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationApplication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationApplicationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationApplication(ExtensionContext testContext) {
+    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationApplication(
+            ExtensionContext testContext
+    ) throws InterruptedException {
         runRoleBasedAuthorizationApplicationTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
 }

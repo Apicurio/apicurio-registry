@@ -23,15 +23,6 @@ public class OLMUpgradeTests extends TestBase {
         LOGGER = LoggerUtils.getLogger();
     }
 
-    @AfterEach
-    public void testAfterEach(ExtensionContext testContext) {
-        LOGGER.info("AfterEach: " + testContext.getDisplayName());
-
-        resourceManager.deleteResources();
-
-        operatorManager.uninstallOperators();
-    }
-
     public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) throws InterruptedException {
         // Install operator from default catalog (do not use catalog source image, it will be used for upgrade)
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(

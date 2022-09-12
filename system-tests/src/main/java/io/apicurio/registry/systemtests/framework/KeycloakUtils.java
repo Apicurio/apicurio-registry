@@ -10,6 +10,7 @@ import io.apicurio.registry.systemtests.registryinfra.resources.RouteResourceTyp
 import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceType;
 import io.fabric8.kubernetes.api.model.Secret;
 import org.apache.hc.core5.http.HttpStatus;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 
 import java.net.URI;

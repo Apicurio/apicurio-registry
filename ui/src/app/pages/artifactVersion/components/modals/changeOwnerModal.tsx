@@ -67,7 +67,7 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
                                     console.debug("=====> ID update: ", id);
                                     setNewOwner(id);
                                 }}
-                                isUsersOnly={true}
+                                isUsersOnly={false}
                                 initialOptions={principals || []}
                                 isUpdateAccess={false}
                             />:

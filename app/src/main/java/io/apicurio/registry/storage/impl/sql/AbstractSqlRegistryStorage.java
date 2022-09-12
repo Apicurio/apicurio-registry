@@ -700,15 +700,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected void insertReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             references.forEach(reference -> {
-                String sqli = sqlStatements.upsertReference();
-                handle.createUpdate(sqli)
-                        .bind(0, tenantContext.tenantId())
-                        .bind(1, contentId)
-                        .bind(2, normalizeGroupId(reference.getGroupId()))
-                        .bind(3, reference.getArtifactId())
-                        .bind(4, reference.getVersion())
-                        .bind(5, reference.getName())
-                        .execute();
+                try {
+                    String sqli = sqlStatements.upsertReference();
+                    handle.createUpdate(sqli)
+                            .bind(0, tenantContext.tenantId())
+                            .bind(1, contentId)
+                            .bind(2, normalizeGroupId(reference.getGroupId()))
+                            .bind(3, reference.getArtifactId())
+                            .bind(4, reference.getVersion())
+                            .bind(5, reference.getName())
+                            .execute();
+                } catch (Exception e) {
+                    if (sqlStatements.isPrimaryKeyViolation(e)) {
+                        //Do nothing, the reference already exist, only needed for H2
+                    } else {
+                        throw new RegistryStorageException(e);
+                    }
+                }
             });
         }
     }

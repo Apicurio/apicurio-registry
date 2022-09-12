@@ -249,7 +249,9 @@ public class MultitenantAuthIT extends ApicurioRegistryBaseIT {
             Assertions.assertThrows(ForbiddenException.class, () -> {
                 client.createGlobalRule(ruleConfig);
             });
-            Assertions.assertThrows(ForbiddenException.class, () -> client.listGlobalRules());
+            
+            // The client can list the global rules but not edit them.  This should work.
+            client.listGlobalRules();
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }

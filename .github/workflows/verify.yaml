@@ -16,6 +16,13 @@ on:
       - 'docs/**'
     branches: [main, 2.0.x]
 
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
 
 jobs:
   build-verify:

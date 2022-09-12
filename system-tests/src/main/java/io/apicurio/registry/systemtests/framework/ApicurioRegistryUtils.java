@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtests.framework;
 
 import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.Security;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
@@ -17,7 +18,7 @@ public class ApicurioRegistryUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     private static String getTruststoreSecretName(ApicurioRegistry registry) {
-        io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.Security security = registry
+        Security security = registry
                 .getSpec()
                 .getConfiguration()
                 .getKafkasql()
@@ -33,7 +34,7 @@ public class ApicurioRegistryUtils {
     }
 
     private static String getKeystoreSecretName(ApicurioRegistry registry) {
-        io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.Security security = registry
+        Security security = registry
                 .getSpec()
                 .getConfiguration()
                 .getKafkasql()

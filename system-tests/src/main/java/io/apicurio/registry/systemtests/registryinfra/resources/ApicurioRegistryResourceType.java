@@ -2,6 +2,7 @@ package io.apicurio.registry.systemtests.registryinfra.resources;
 
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicur.registry.v1.ApicurioRegistryBuilder;
+import io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.SecurityBuilder;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
@@ -190,7 +191,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setSecurity(
-                        new io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.SecurityBuilder()
+                        new SecurityBuilder()
                                 .withNewTls()
                                     .withKeystoreSecretName(Constants.KAFKA_USER + "-keystore")
                                     .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
@@ -214,7 +215,7 @@ public class ApicurioRegistryResourceType implements ResourceType<ApicurioRegist
                 .getConfiguration()
                 .getKafkasql()
                 .setSecurity(
-                        new io.apicur.registry.v1.apicurioregistryspec.configuration.kafkasql.SecurityBuilder()
+                        new SecurityBuilder()
                                 .withNewScram()
                                     .withTruststoreSecretName(Constants.KAFKA + "-cluster-ca-truststore")
                                     .withPasswordSecretName(Constants.KAFKA_USER)

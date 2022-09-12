@@ -1,6 +1,8 @@
 package io.apicurio.registry.systemtests.upgrade;
 
 import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicurio.registry.systemtests.TestBase;
+import io.apicurio.registry.systemtests.api.features.CreateReadDelete;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactList;

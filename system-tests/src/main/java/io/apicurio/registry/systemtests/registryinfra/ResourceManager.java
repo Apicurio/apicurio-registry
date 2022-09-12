@@ -107,6 +107,7 @@ public class ResourceManager {
         }
 
         LOGGER.info("Resource {} created.", resourceInfo);
+
         if (!name.equals(Constants.KAFKA)) {
             Thread.sleep(Duration.ofMinutes(1).toMillis());
         }
@@ -125,9 +126,7 @@ public class ResourceManager {
         }
     }
 
-    public final <T extends HasMetadata> void createSharedResource(
-            boolean waitReady, T resource
-    ) throws InterruptedException {
+    public final <T extends HasMetadata> void createSharedResource(boolean waitReady, T resource) {
         String kind = resource.getKind();
         String name = resource.getMetadata().getName();
         String namespace = resource.getMetadata().getNamespace();
@@ -237,9 +236,13 @@ public class ResourceManager {
         LOGGER.info("Deleting resource {}...", resourceInfo);
 
         ResourceType<T> type = findResourceType(resource);
-        /*if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))) {
+        /*
+        if (
+            resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))
+        ) {
             KeycloakUtils.removeKeycloak(resource.getMetadata().getNamespace());
-        }*/
+        }
+        */
 
         try {
             type.delete(resource);
@@ -256,7 +259,12 @@ public class ResourceManager {
     }
 
     public void deleteKafka() {
-        Kafka kafka = KafkaResourceType.getOperation().inNamespace(Environment.NAMESPACE).withName(Constants.KAFKA).get();
+        Kafka kafka = KafkaResourceType
+                .getOperation()
+                .inNamespace(Environment.NAMESPACE)
+                .withName(Constants.KAFKA)
+                .get();
+
         if (kafka != null) {
             deleteResource(kafka);
         }

@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtests.api.features;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactType;

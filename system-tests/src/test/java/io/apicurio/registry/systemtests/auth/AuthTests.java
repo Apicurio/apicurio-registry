@@ -1,6 +1,6 @@
 package io.apicurio.registry.systemtests.auth;
 
-import io.apicurio.registry.operator.api.model.ApicurioRegistry;
+import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.TestBase;
 import io.apicurio.registry.systemtests.auth.features.AnonymousReadAccess;
 import io.apicurio.registry.systemtests.auth.features.ArtifactGroupOwnerOnlyAuthorization;

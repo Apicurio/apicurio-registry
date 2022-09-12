@@ -1,13 +1,10 @@
 package io.apicurio.registry.systemtests.api;
 
 import io.apicur.registry.v1.ApicurioRegistry;
-import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
-import io.apicurio.registry.systemtests.client.ArtifactContent;
-import io.apicurio.registry.systemtests.client.ArtifactList;
-import io.apicurio.registry.systemtests.client.ArtifactType;
-import io.apicurio.registry.systemtests.client.AuthMethod;
-import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
-import io.apicurio.registry.systemtests.framework.KeycloakUtils;
+import io.apicurio.registry.systemtests.TestBase;
+import io.apicurio.registry.systemtests.api.features.CreateArtifact;
+import io.apicurio.registry.systemtests.api.features.CreateReadDelete;
+import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.Disabled;

@@ -111,6 +111,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
         data.setVersion(meta.getVersion());
+        data.setType(artifactType);
         fireEvent(RegistryEventType.ARTIFACT_CREATED, artifactId, data, null);
         return meta;
     }
@@ -126,6 +127,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
         data.setVersion(meta.getVersion());
+        data.setType(artifactType);
         fireEvent(RegistryEventType.ARTIFACT_CREATED, artifactId, data, null);
         return meta;
     }
@@ -171,6 +173,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
         data.setVersion(meta.getVersion());
+        data.setType(artifactType);
         fireEvent(RegistryEventType.ARTIFACT_UPDATED, artifactId, data, null);
         return meta;
     }
@@ -183,6 +186,7 @@ public class EventSourcedRegistryStorage extends RegistryStorageDecorator {
         data.setGroupId(groupId);
         data.setArtifactId(artifactId);
         data.setVersion(meta.getVersion());
+        data.setType(artifactType);
         fireEvent(RegistryEventType.ARTIFACT_UPDATED, artifactId, data, null);
         return meta;
     }

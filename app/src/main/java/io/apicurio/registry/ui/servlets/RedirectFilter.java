@@ -43,11 +43,11 @@ import io.apicurio.common.apps.config.Info;
 public class RedirectFilter implements Filter {
     
     @ConfigProperty(name = "registry.enable-redirects")
-    @Info( category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
+    @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 
     @ConfigProperty(name = "registry.redirects")
-    @Info( category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
+    @Info(category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
 
@@ -85,7 +85,7 @@ public class RedirectFilter implements Filter {
     
             String servletPath = request.getServletPath();
     
-            if (servletPath == null || "".equals(servletPath) || "/".equals(servletPath)) {
+            if (servletPath == null || "".equals(servletPath)) {
                 servletPath = "/";
             }
     

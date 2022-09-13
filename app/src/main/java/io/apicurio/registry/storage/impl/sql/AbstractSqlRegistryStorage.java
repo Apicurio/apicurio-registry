@@ -187,11 +187,11 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     }
 
     @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
-    @Info( category = "store", description = "SQL init", availableSince = "2.0.0.Final")
+    @Info(category = "store", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
     @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-    @Info( category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
+    @Info(category = "store", description = "Datasource jdbc URL", availableSince = "2.1.0.Final")
     String jdbcUrl;
 
     /**
@@ -698,15 +698,23 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     protected void insertReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             references.forEach(reference -> {
-                String sqli = sqlStatements.upsertReference();
-                handle.createUpdate(sqli)
-                        .bind(0, tenantContext.tenantId())
-                        .bind(1, contentId)
-                        .bind(2, normalizeGroupId(reference.getGroupId()))
-                        .bind(3, reference.getArtifactId())
-                        .bind(4, reference.getVersion())
-                        .bind(5, reference.getName())
-                        .execute();
+                try {
+                    String sqli = sqlStatements.upsertReference();
+                    handle.createUpdate(sqli)
+                            .bind(0, tenantContext.tenantId())
+                            .bind(1, contentId)
+                            .bind(2, normalizeGroupId(reference.getGroupId()))
+                            .bind(3, reference.getArtifactId())
+                            .bind(4, reference.getVersion())
+                            .bind(5, reference.getName())
+                            .execute();
+                } catch (Exception e) {
+                    if (sqlStatements.isPrimaryKeyViolation(e)) {
+                        //Do nothing, the reference already exist, only needed for H2
+                    } else {
+                        throw new RegistryStorageException(e);
+                    }
+                }
             });
         }
     }
@@ -728,6 +736,17 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
 
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
+
+        if (groupId != null && !isGroupExists(groupId)) {
+            //Only create group metadata for non-default groups.
+            createGroup(GroupMetaDataDto.builder()
+                    .groupId(groupId)
+                    .createdOn(0)
+                    .modifiedOn(0)
+                    .createdBy(createdBy)
+                    .modifiedBy(createdBy)
+                    .build());
+        }
 
         // Put the content in the DB and get the unique content ID back.
         long contentId = handles.withHandleNoException(handle -> {
@@ -2909,6 +2928,21 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
                     .bind(0, tenantContext().tenantId())
                     .bind(1, normalizeGroupId(groupId))
                     .bind(2, artifactId)
+                    .mapTo(Integer.class)
+                    .one() > 0;
+        });
+    }
+
+    /**
+     * @see RegistryStorage#isGroupExists(String)
+     */
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return handles.withHandleNoException( handle -> {
+            String sql = sqlStatements().selectGroupCountById();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
                     .mapTo(Integer.class)
                     .one() > 0;
         });

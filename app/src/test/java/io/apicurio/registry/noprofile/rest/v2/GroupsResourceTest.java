@@ -2138,7 +2138,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("{ \"content\" : \"http://localhost:8081/api-specifications/registry/v2/openapi.json\" }")
                 .post("/registry/v2/groups/{groupId}/artifacts")
             .then()
-                .statusCode(500);
+                .statusCode(400)
+                .body("message", containsString("hash algorithm not supported"));
 
         // Calculate the SHA on the fly to avoid mismatches on update
         String content = given()

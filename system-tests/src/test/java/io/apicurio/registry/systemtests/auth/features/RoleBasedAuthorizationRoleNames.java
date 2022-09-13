@@ -172,7 +172,7 @@ public class RoleBasedAuthorizationRoleNames extends RoleBasedAuthorization {
         // Initialize clients with user-defined roles
         initializeClientsUserDefinedRoles(apicurioRegistry, hostname);
         // Run test actions
-        testRoleBasedEnabledForbidden();
+        testRoleBasedEnabledAllForbidden();
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY WITH DEFAULT ROLE NAMES AND TEST IT
@@ -191,7 +191,7 @@ public class RoleBasedAuthorizationRoleNames extends RoleBasedAuthorization {
         // Initialize clients with user-defined roles
         initializeClientsUserDefinedRoles(apicurioRegistry, hostname);
         // Run test actions
-        testRoleBasedEnabledForbidden();
+        testRoleBasedEnabledAllForbidden();
 
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY WITH USER-DEFINED ROLE NAMES AND TEST IT
@@ -204,7 +204,7 @@ public class RoleBasedAuthorizationRoleNames extends RoleBasedAuthorization {
 
         // TEST: User-defined values in environment + default role users
         // Run test actions
-        testRoleBasedEnabledForbidden();
+        testRoleBasedEnabledAllForbidden();
 
         // TEST: User-defined values in environment + user-defined role users
         // Initialize clients with user-defined roles

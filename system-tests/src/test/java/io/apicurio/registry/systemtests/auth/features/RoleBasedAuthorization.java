@@ -61,7 +61,7 @@ public abstract class RoleBasedAuthorization {
     // Variable for level of artifact compatibility rule used in test
     protected static CompatibilityLevel artifactCompatibilityLevel;
 
-    public static void testRoleBasedEnabledForbidden() {
+    public static void testRoleBasedEnabledAllForbidden() {
         // --- GLOBAL VALIDITY RULE
         validityLevel = ValidityLevel.SYNTAX_ONLY;
 

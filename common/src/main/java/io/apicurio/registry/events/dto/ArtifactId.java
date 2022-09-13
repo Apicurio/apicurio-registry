@@ -97,13 +97,13 @@ public class ArtifactId {
     }
 
     @JsonProperty("type")
-	public ArtifactType getType() {
-		return type;
-	}
+    public ArtifactType getType() {
+        return type;
+    }
 
     @JsonProperty("type")
-	public void setType(ArtifactType type) {
-		this.type = type;
-	}
+    public void setType(ArtifactType type) {
+        this.type = type;
+    }
 
 }

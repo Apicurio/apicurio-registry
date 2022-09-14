@@ -32,8 +32,5 @@ jobs:
       - name: Install tools
         run: .github/scripts/install-tools.sh
 
-      - name: Check generated code
-        run: ./scripts/validate-generated-code.sh
-
       - name: Run linter
         run: ./scripts/validate-files.sh

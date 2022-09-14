@@ -1,0 +1,107 @@
+{
+  "type": "record",
+  "name": "FinancialSecurityValue",
+  "namespace": "ch.xxx.integration",
+  "doc": "This is a financial security record value in a fictitious stock exchange.",
+  "fields": [
+    {
+      "name": "isin",
+      "type": "string",
+      "doc": "unique id of the financialsecurity"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "doc": "name of the financial security"
+    },
+    {
+      "name": "financialSecurityType",
+      "type": "string",
+      "doc": "type of the financial security, e.g. a stock"
+    },
+    {
+      "name": "quote",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "java-class": "java.math.BigDecimal"
+        }
+      ],
+      "doc": "traded quote of this financial security",
+      "default": null
+    },
+    {
+      "name": "leverage",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "java-class": "java.math.BigDecimal"
+        }
+      ],
+      "doc": "leverage of an option, null for bonds and stocks",
+      "default": null
+    },
+    {
+      "name": "underlyingInstrumentIsin",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "an option bases on an underlying financial instrument, e.g. a stock",
+      "default": null
+    },
+    {
+      "name": "optionType",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "traded quote of this financial security",
+      "default": null
+    },
+    {
+      "name": "quoteEstimated",
+      "type": "boolean",
+      "doc": "if no trade occured marketmakers estimate quotes"
+    },
+    {
+      "name": "quoteTime",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp (milliseconds since epoch) at which this quote got settled"
+    },
+    {
+      "name": "averageVolume",
+      "type": "int",
+      "doc": "average number of stocks being traded on one day"
+    },
+    {
+      "name": "exDividendDate",
+      "type": [
+        "null",
+        {
+          "type": "int",
+          "logicalType": "date"
+        }
+      ],
+      "doc": "date when dividend will be paid",
+      "default": null
+    },
+    {
+      "name": "interestRate",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "java-class": "java.math.BigDecimal"
+        }
+      ],
+      "doc": "interestRate of the bond in percent",
+      "default": null
+    }
+  ]
+}

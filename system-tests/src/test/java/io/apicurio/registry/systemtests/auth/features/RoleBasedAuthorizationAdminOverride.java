@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Assertions;
 
 public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization {
     public static void initializeClients(ApicurioRegistry apicurioRegistry, String hostname) {
-        initializeClients(apicurioRegistry, hostname, true);
+        initializeClients(apicurioRegistry, hostname, "");
     }
-    public static void initializeClients(ApicurioRegistry apicurioRegistry, String hostname, boolean useDefaultAdmin) {
+    public static void initializeClients(ApicurioRegistry apicurioRegistry, String hostname, String adminSuffix) {
         // GET ADMIN API CLIENT
         // Create admin API client
         adminClient = new ApicurioRegistryApiClient(hostname);
@@ -23,7 +23,7 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         adminClient.setToken(
                 KeycloakUtils.getAccessToken(
                         apicurioRegistry,
-                        useDefaultAdmin ? Constants.SSO_ADMIN_USER : Constants.SSO_ADMIN_USER + "-role",
+                        Constants.SSO_ADMIN_USER + adminSuffix,
                         Constants.SSO_USER_PASSWORD
                 )
         );
@@ -190,7 +190,7 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         // Run test actions with default clients
         testRoleBasedEnabledAllForbidden();
         // Initialize clients with user-defined admin role
-        initializeClients(apicurioRegistry, hostname, false);
+        initializeClients(apicurioRegistry, hostname, "-role");
         // Run test actions with user-defined admin role (other clients are still default)
         testRoleBasedEnabledOnlyAdminAllowed();
 

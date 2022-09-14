@@ -1,6 +1,7 @@
 package io.apicurio.registry.systemtests.auth.features;
 
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
+import io.apicurio.registry.systemtests.client.ApicurioRegistryUserRole;
 import io.apicurio.registry.systemtests.client.ArtifactType;
 import io.apicurio.registry.systemtests.framework.CompatibilityLevel;
 import io.apicurio.registry.systemtests.framework.RuleType;
@@ -60,6 +61,389 @@ public abstract class RoleBasedAuthorization {
     protected static ValidityLevel artifactValidityLevel;
     // Variable for level of artifact compatibility rule used in test
     protected static CompatibilityLevel artifactCompatibilityLevel;
+    // Define user ID for role mappings
+    protected static String userId = "some-user";
+    // Define user name for role mappings
+    protected static String userName = "SomeUser";
+
+    public static void testRoleBasedEnabledOnlyAdminAllowed() {
+        // --- GLOBAL VALIDITY RULE
+        validityLevel = ValidityLevel.SYNTAX_ONLY;
+
+        // --- global validity rule by admin
+        // Check that API returns 204 No Content when enabling global validity rule by admin
+        Assertions.assertTrue(adminClient.enableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
+        // Check value of enabled rule
+        Assertions.assertEquals(adminClient.getGlobalValidityRule(), ValidityLevel.FULL);
+        // Check that API returns 200 OK when updating global validity rule by admin
+        Assertions.assertTrue(adminClient.updateGlobalValidityRule(validityLevel));
+        // Get global validity rule level
+        globalValidityLevel = adminClient.getGlobalValidityRule();
+        // Check that API returns 200 OK when getting global validity rule by admin
+        Assertions.assertNotNull(globalValidityLevel);
+        // Check global validity rule after update
+        Assertions.assertEquals(globalValidityLevel, validityLevel);
+        // Check that API returns 204 No Content when disabling global validity rule by admin
+        Assertions.assertTrue(adminClient.disableGlobalValidityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
+
+        // --- global validity rule by developer
+        // Check that API returns 403 Forbidden when enabling global validity rule by developer
+        Assertions.assertTrue(developerClient.enableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when listing global rules by developer
+        Assertions.assertTrue(developerClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting value of validity rule by developer
+        Assertions.assertNull(developerClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating global validity rule by developer
+        Assertions.assertTrue(developerClient.updateGlobalValidityRule(validityLevel, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when disabling global validity rule by developer
+        Assertions.assertTrue(developerClient.disableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+
+        // --- global validity rule by readonly
+        // Check that API returns 403 Forbidden when enabling global validity rule by readonly
+        Assertions.assertTrue(readonlyClient.enableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when listing global rules by readonly
+        Assertions.assertTrue(readonlyClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting value of validity rule by readonly
+        Assertions.assertNull(readonlyClient.getGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating global validity rule by readonly
+        Assertions.assertTrue(readonlyClient.updateGlobalValidityRule(validityLevel, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when disabling global validity rule by readonly
+        Assertions.assertTrue(readonlyClient.disableGlobalValidityRule(HttpStatus.SC_FORBIDDEN));
+
+        // --- GLOBAL COMPATIBILITY RULE
+        compatibilityLevel = CompatibilityLevel.FORWARD_TRANSITIVE;
+
+        // --- global compatibility rule by admin
+        // Check that API returns 204 No Content when enabling global compatibility rule by admin
+        Assertions.assertTrue(adminClient.enableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is present in list of global rules
+        Assertions.assertTrue(ruleList.contains(RuleType.COMPATIBILITY.name()));
+        // Check value of enabled rule
+        Assertions.assertEquals(adminClient.getGlobalCompatibilityRule(), CompatibilityLevel.BACKWARD);
+        // Check that API returns 200 OK when updating global compatibility rule by admin
+        Assertions.assertTrue(adminClient.updateGlobalCompatibilityRule(compatibilityLevel));
+        // Get global compatibility rule level
+        globalCompatibilityLevel = adminClient.getGlobalCompatibilityRule();
+        // Check that API returns 200 OK when getting global compatibility rule by admin
+        Assertions.assertNotNull(globalCompatibilityLevel);
+        // Check global compatibility rule after update
+        Assertions.assertEquals(globalCompatibilityLevel, compatibilityLevel);
+        // Check that API returns 200 OK when getting global compatibility rule by admin
+        Assertions.assertNotNull(adminClient.getGlobalCompatibilityRule());
+        // Check that API returns 204 No Content when disabling global compatibility rule by admin
+        Assertions.assertTrue(adminClient.disableGlobalCompatibilityRule());
+        // Get list of global rules
+        ruleList = adminClient.listGlobalRules();
+        // Check that API returns 200 OK when listing global rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of global rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
+
+        // --- global compatibility rule by developer
+        // Check that API returns 403 Forbidden when enabling global compatibility rule by developer
+        Assertions.assertTrue(developerClient.enableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when listing global rules by developer
+        Assertions.assertTrue(developerClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting value of compatibility rule by developer
+        Assertions.assertNull(developerClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating global compatibility rule by developer
+        Assertions.assertTrue(
+                developerClient.updateGlobalCompatibilityRule(compatibilityLevel, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when disabling global compatibility rule by developer
+        Assertions.assertTrue(developerClient.disableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+
+        // --- global compatibility rule by readonly
+        // Check that API returns 403 Forbidden when enabling global compatibility rule by readonly
+        Assertions.assertTrue(readonlyClient.enableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when listing global rules by readonly
+        Assertions.assertTrue(readonlyClient.listGlobalRules(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting value of compatibility rule by readonly
+        Assertions.assertNull(readonlyClient.getGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating global compatibility rule by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateGlobalCompatibilityRule(compatibilityLevel, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when disabling global compatibility rule by readonly
+        Assertions.assertTrue(readonlyClient.disableGlobalCompatibilityRule(HttpStatus.SC_FORBIDDEN));
+
+        // --- LIST ACTION
+        // Check that API returns 200 OK when listing artifacts by admin
+        Assertions.assertNotNull(adminClient.listArtifacts());
+        // Check that API returns 403 Forbidden when listing artifacts by developer
+        Assertions.assertEquals(0, developerClient.listArtifacts(1, HttpStatus.SC_FORBIDDEN).getCount());
+        // Check that API returns 403 Forbidden when listing artifacts by readonly
+        Assertions.assertEquals(0, readonlyClient.listArtifacts(1, HttpStatus.SC_FORBIDDEN).getCount());
+
+        // --- CREATE ACTION
+        // Check that API returns 200 OK when creating artifact by admin
+        Assertions.assertTrue(adminClient.createArtifact(groupId, adminId, type, initialContent));
+        // Check creation of artifact
+        Assertions.assertTrue(adminClient.listArtifacts().contains(groupId, adminId));
+        // Check content of created artifact
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId), initialContent);
+        // Check that API returns 403 Forbidden when creating artifact by developer
+        Assertions.assertTrue(
+                developerClient.createArtifact(groupId, developerId, type, initialContent, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when creating artifact by readonly
+        Assertions.assertTrue(
+                readonlyClient.createArtifact(groupId, readonlyId, type, initialContent, HttpStatus.SC_FORBIDDEN)
+        );
+
+        // --- ARTIFACT VALIDITY RULE
+        validityLevel = ValidityLevel.NONE;
+
+        // --- artifact validity rule on artifact by admin
+        // Check that API returns 204 No Content when enabling artifact validity rule by admin
+        Assertions.assertTrue(adminClient.enableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is present in list of artifact rules
+        Assertions.assertTrue(ruleList.contains(RuleType.VALIDITY.name()));
+        // Check value of enabled rule
+        Assertions.assertEquals(adminClient.getArtifactValidityRule(groupId, adminId), ValidityLevel.FULL);
+        // Check that API returns 200 OK when updating artifact validity rule by admin
+        Assertions.assertTrue(adminClient.updateArtifactValidityRule(groupId, adminId, validityLevel));
+        // Get artifact validity rule
+        artifactValidityLevel = adminClient.getArtifactValidityRule(groupId, adminId);
+        // Check that API returns 200 OK when getting artifact validity rule by admin
+        Assertions.assertNotNull(artifactValidityLevel);
+        // Check value of artifact validity level after update
+        Assertions.assertEquals(artifactValidityLevel, validityLevel);
+        // Check that API returns 204 No Content when disabling artifact validity rule by admin
+        Assertions.assertTrue(adminClient.disableArtifactValidityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that validity rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.VALIDITY.name()));
+
+        // --- artifact validity rule on artifact by developer
+        // Check that API returns 403 Forbidden when enabling artifact validity rule by developer
+        Assertions.assertTrue(
+                developerClient.enableArtifactValidityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing artifact rules by developer
+        Assertions.assertTrue(
+                developerClient.listArtifactRules(groupId, developerId, HttpStatus.SC_FORBIDDEN).isEmpty()
+        );
+        // Check that API returns 403 Forbidden when getting artifact validity rule by developer
+        Assertions.assertNull(developerClient.getArtifactValidityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating artifact validity rule by developer
+        Assertions.assertTrue(
+                developerClient.updateArtifactValidityRule(groupId, developerId, validityLevel, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when disabling artifact validity rule by developer
+        Assertions.assertTrue(
+                developerClient.disableArtifactValidityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
+        );
+
+        // --- artifact validity rule on artifact by readonly
+        // Check that API returns 403 Forbidden when enabling artifact validity rule by readonly
+        Assertions.assertTrue(readonlyClient.enableArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when listing artifact rules by readonly
+        Assertions.assertTrue(readonlyClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting artifact validity rule by readonly
+        Assertions.assertNull(readonlyClient.getArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating artifact validity rule by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateArtifactValidityRule(groupId, readonlyId, validityLevel, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when disabling artifact validity rule by readonly
+        Assertions.assertTrue(readonlyClient.disableArtifactValidityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+
+        // --- ARTIFACT COMPATIBILITY RULE
+        compatibilityLevel = CompatibilityLevel.FORWARD;
+
+        // --- artifact compatibility rule on artifact by admin
+        // Check that API returns 204 No Content when enabling artifact compatibility rule by admin
+        Assertions.assertTrue(adminClient.enableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is present in list of artifact rules
+        Assertions.assertTrue(ruleList.contains(RuleType.COMPATIBILITY.name()));
+        // Check value of enabled rule
+        Assertions.assertEquals(
+                adminClient.getArtifactCompatibilityRule(groupId, adminId),
+                CompatibilityLevel.BACKWARD
+        );
+        // Check that API returns 200 OK when updating artifact compatibility rule by admin
+        Assertions.assertTrue(adminClient.updateArtifactCompatibilityRule(groupId, adminId, compatibilityLevel));
+        // Get artifact compatibility rule
+        artifactCompatibilityLevel = adminClient.getArtifactCompatibilityRule(groupId, adminId);
+        // Check that API returns 200 OK when getting artifact compatibility rule by admin
+        Assertions.assertNotNull(artifactCompatibilityLevel);
+        // Check value of artifact compatibility level after update
+        Assertions.assertEquals(artifactCompatibilityLevel, compatibilityLevel);
+        // Check that API returns 204 No Content when disabling artifact compatibility rule by admin
+        Assertions.assertTrue(adminClient.disableArtifactCompatibilityRule(groupId, adminId));
+        // Get list of artifact rules
+        ruleList = adminClient.listArtifactRules(groupId, adminId);
+        // Check that API returns 200 OK when listing artifact rules by admin
+        Assertions.assertNotNull(ruleList);
+        // Check that compatibility rule is NOT present in list of artifact rules
+        Assertions.assertFalse(ruleList.contains(RuleType.COMPATIBILITY.name()));
+
+        // --- artifact compatibility rule on own artifact by developer
+        // Check that API returns 403 Forbidden when enabling artifact compatibility rule by developer
+        Assertions.assertTrue(
+                developerClient.enableArtifactCompatibilityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing artifact rules by developer
+        Assertions.assertTrue(
+                developerClient.listArtifactRules(groupId, developerId, HttpStatus.SC_FORBIDDEN).isEmpty()
+        );
+        // Check that API returns 403 Forbidden when getting artifact compatibility rule by developer
+        Assertions.assertNull(
+                developerClient.getArtifactCompatibilityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact compatibility rule by developer
+        Assertions.assertTrue(
+                developerClient.updateArtifactCompatibilityRule(
+                        groupId,
+                        developerId,
+                        compatibilityLevel,
+                        HttpStatus.SC_FORBIDDEN
+                )
+        );
+        // Check that API returns 403 Forbidden when disabling artifact compatibility rule by developer
+        Assertions.assertTrue(
+                developerClient.disableArtifactCompatibilityRule(groupId, developerId, HttpStatus.SC_FORBIDDEN)
+        );
+
+        // --- artifact compatibility rule on own artifact by readonly
+        // Check that API returns 403 Forbidden when enabling artifact compatibility rule by readonly
+        Assertions.assertTrue(
+                readonlyClient.enableArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing artifact rules by readonly
+        Assertions.assertTrue(readonlyClient.listArtifactRules(groupId, readonlyId, HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting artifact compatibility rule by readonly
+        Assertions.assertNull(
+                readonlyClient.getArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact compatibility rule by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateArtifactCompatibilityRule(
+                        groupId,
+                        readonlyId,
+                        compatibilityLevel,
+                        HttpStatus.SC_FORBIDDEN
+                )
+        );
+        // Check that API returns 403 Forbidden when disabling artifact compatibility rule by readonly
+        Assertions.assertTrue(
+                readonlyClient.disableArtifactCompatibilityRule(groupId, readonlyId, HttpStatus.SC_FORBIDDEN)
+        );
+
+        // --- LIST ACTION ON GROUP
+        // Check that API returns 200 OK when listing group artifacts by admin
+        Assertions.assertNotNull(adminClient.listGroupArtifacts(groupId));
+        // Check that API returns 403 Forbidden when listing group artifacts by developer
+        Assertions.assertEquals(0, developerClient.listGroupArtifacts(groupId, HttpStatus.SC_FORBIDDEN).getCount());
+        // Check that API returns 403 Forbidden when listing group artifacts by readonly
+        Assertions.assertEquals(0, readonlyClient.listGroupArtifacts(groupId, HttpStatus.SC_FORBIDDEN).getCount());
+
+        // --- READ ACTION ON ARTIFACT
+        // Check that API returns 200 OK when reading artifact by admin
+        Assertions.assertNotNull(adminClient.readArtifactContent(groupId, adminId));
+        // Check that API returns 403 Forbidden when reading artifact by developer
+        Assertions.assertNull(developerClient.readArtifactContent(groupId, developerId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when reading artifact by readonly
+        Assertions.assertNull(readonlyClient.readArtifactContent(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+
+        // --- UPDATE ACTION ON ARTIFACT
+        // Check that API returns 200 OK when updating admin artifact by admin
+        Assertions.assertTrue(adminClient.updateArtifact(groupId, adminId, updatedContent));
+        // Check artifact content after update
+        Assertions.assertEquals(adminClient.readArtifactContent(groupId, adminId), updatedContent);
+        // Check that API returns 403 Forbidden when updating artifact by developer
+        Assertions.assertTrue(
+                developerClient.updateArtifact(groupId, developerId, updatedContent, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when updating artifact by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateArtifact(groupId, readonlyId, updatedContent, HttpStatus.SC_FORBIDDEN)
+        );
+
+        // --- DELETE ACTION ON ARTIFACT
+        // Check that API returns 204 No Content when deleting artifact by admin
+        Assertions.assertTrue(adminClient.deleteArtifact(groupId, adminId));
+        // Check deletion of artifact
+        Assertions.assertFalse(adminClient.listArtifacts().contains(groupId, adminId));
+        // Check that API returns 403 Forbidden when deleting artifact by developer
+        Assertions.assertTrue(developerClient.deleteArtifact(groupId, developerId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when deleting readonly artifact by readonly
+        Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+
+        // --- ROLE MAPPING OPERATIONS
+
+        // --- role mapping operations by admin
+        // Check that API returns 204 No Content when creating role mapping by admin
+        Assertions.assertTrue(adminClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName));
+        // Check that API returns 200 OK when listing role mappings by admin
+        Assertions.assertFalse(adminClient.getUserList().isEmpty());
+        // Check that API returns 200 OK when getting role mapping by admin
+        Assertions.assertNotNull(adminClient.getUser(userId));
+        // Check that API returns 204 No Content when updating role mapping by admin
+        Assertions.assertTrue(adminClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER));
+        // Check that API returns 204 No Content when deleting role mapping by admin
+        Assertions.assertTrue(adminClient.deleteUser(userId));
+
+        // --- role mapping operations by developer
+        // Check that API returns 403 Forbidden when creating role mapping by developer
+        Assertions.assertTrue(
+                developerClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing role mappings by developer
+        Assertions.assertTrue(developerClient.getUserList(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting role mapping by developer
+        Assertions.assertNull(developerClient.getUser(userId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating role mapping by developer
+        Assertions.assertTrue(
+                developerClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when deleting role mapping by developer
+        Assertions.assertTrue(developerClient.deleteUser(userId, HttpStatus.SC_FORBIDDEN));
+
+        // --- role mapping operations by readonly
+        // Check that API returns 403 Forbidden when creating role mapping by readonly
+        Assertions.assertTrue(
+                readonlyClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing role mappings by readonly
+        Assertions.assertTrue(readonlyClient.getUserList(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting role mapping by readonly
+        Assertions.assertNull(readonlyClient.getUser(userId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating role mapping by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when deleting role mapping by readonly
+        Assertions.assertTrue(readonlyClient.deleteUser(userId, HttpStatus.SC_FORBIDDEN));
+    }
 
     public static void testRoleBasedEnabledAllForbidden() {
         // --- GLOBAL VALIDITY RULE
@@ -326,6 +710,56 @@ public abstract class RoleBasedAuthorization {
         Assertions.assertTrue(developerClient.deleteArtifact(groupId, developerId, HttpStatus.SC_FORBIDDEN));
         // Check that API returns 403 Forbidden when deleting readonly artifact by readonly
         Assertions.assertTrue(readonlyClient.deleteArtifact(groupId, readonlyId, HttpStatus.SC_FORBIDDEN));
+
+        // --- ROLE MAPPING OPERATIONS
+
+        // --- role mapping operations by admin
+        // Check that API returns 403 Forbidden when creating role mapping by admin
+        Assertions.assertTrue(
+                adminClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing role mappings by admin
+        Assertions.assertTrue(adminClient.getUserList(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting role mapping by admin
+        Assertions.assertNull(adminClient.getUser(userId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating role mapping by admin
+        Assertions.assertTrue(
+                adminClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when deleting role mapping by admin
+        Assertions.assertTrue(adminClient.deleteUser(userId, HttpStatus.SC_FORBIDDEN));
+
+        // --- role mapping operations by developer
+        // Check that API returns 403 Forbidden when creating role mapping by developer
+        Assertions.assertTrue(
+                developerClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing role mappings by developer
+        Assertions.assertTrue(developerClient.getUserList(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting role mapping by developer
+        Assertions.assertNull(developerClient.getUser(userId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating role mapping by developer
+        Assertions.assertTrue(
+                developerClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when deleting role mapping by developer
+        Assertions.assertTrue(developerClient.deleteUser(userId, HttpStatus.SC_FORBIDDEN));
+
+        // --- role mapping operations by readonly
+        // Check that API returns 403 Forbidden when creating role mapping by readonly
+        Assertions.assertTrue(
+                readonlyClient.createUser(userId, ApicurioRegistryUserRole.READ_ONLY, userName, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when listing role mappings by readonly
+        Assertions.assertTrue(readonlyClient.getUserList(HttpStatus.SC_FORBIDDEN).isEmpty());
+        // Check that API returns 403 Forbidden when getting role mapping by readonly
+        Assertions.assertNull(readonlyClient.getUser(userId, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 403 Forbidden when updating role mapping by readonly
+        Assertions.assertTrue(
+                readonlyClient.updateUser(userId, ApicurioRegistryUserRole.DEVELOPER, HttpStatus.SC_FORBIDDEN)
+        );
+        // Check that API returns 403 Forbidden when deleting role mapping by readonly
+        Assertions.assertTrue(readonlyClient.deleteUser(userId, HttpStatus.SC_FORBIDDEN));
     }
 
     public static void testRoleBasedDisabled() {

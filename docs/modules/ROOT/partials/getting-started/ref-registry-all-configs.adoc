@@ -170,6 +170,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.0.2.Final`
 |Legacy ID mode (compatibility API)
+|`registry.ccompat.use-canonical-hash`
+|`boolean [dynamic]`
+|`false`
+|`2.2.6.Final`
+|Canonical hash mode (compatibility API)
 |===
 
 == Category `download`:

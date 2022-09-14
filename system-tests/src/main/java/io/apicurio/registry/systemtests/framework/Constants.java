@@ -20,6 +20,7 @@ public class Constants {
     public static final String SSO_READONLY_USER = "registry-user"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_REALM = "registry"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_REALM_ADMIN = "master"; // Default Keycloak admin realm name
+    public static final String SSO_SCOPE = "user-attributes"; // Defined in configs/user-attribute-client-scope.json
     public static final String SSO_TEST_CLIENT_API = "test-client-api"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String SSO_USER_PASSWORD = "changeme"; // Defined in kubefiles/keycloak-realm.yaml
     public static final String TESTSUITE_NAMESPACE = "testsuite-namespace";

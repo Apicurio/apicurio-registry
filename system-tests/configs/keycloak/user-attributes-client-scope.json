@@ -1,0 +1,43 @@
+{
+  "name": "user-attributes",
+  "description": "Map user attributes org-admin and org-role into token claims.",
+  "protocol": "openid-connect",
+  "attributes": {
+    "include.in.token.scope": "true",
+    "display.on.consent.screen": "true",
+    "gui.order": "",
+    "consent.screen.text": ""
+  },
+  "protocolMappers": [
+    {
+      "name": "org-admin",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "consentRequired": false,
+      "config": {
+        "aggregate.attrs": "false",
+        "userinfo.token.claim": "true",
+        "multivalued": "false",
+        "user.attribute": "org-admin",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "org-admin"
+      }
+    },
+    {
+      "name": "admin-role",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "consentRequired": false,
+      "config": {
+        "aggregate.attrs": "false",
+        "userinfo.token.claim": "true",
+        "multivalued": "false",
+        "user.attribute": "admin-role",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "admin-role"
+      }
+    }
+  ]
+}

@@ -54,7 +54,7 @@ public class BasicAuthentication {
         // Set username
         testClient.setUsername(Constants.SSO_TEST_CLIENT_API);
         // Set secret
-        testClient.setPassword(keycloakAdminApiClient.getApiClientSecret());
+        testClient.setPassword(keycloakAdminApiClient.getClientSecret(Constants.SSO_TEST_CLIENT_API));
         // Check that client secret is available
         Assertions.assertNotNull(testClient.getPassword());
         // Set authentication method to basic

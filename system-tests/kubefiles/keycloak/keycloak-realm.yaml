@@ -104,3 +104,43 @@ spec:
         realmRoles:
           - test-readonly-role
         username: registry-user-role
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles: []
+        username: registry-admin-org-admin-true
+        attributes:
+          org-admin:
+            - 'true'
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles: []
+        username: registry-admin-org-admin-yes
+        attributes:
+          org-admin:
+            - 'yes'
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles: []
+        username: registry-admin-admin-role-true
+        attributes:
+          admin-role:
+            - 'true'
+      - credentials:
+          - temporary: false
+            type: password
+            value: changeme
+        enabled: true
+        realmRoles: []
+        username: registry-admin-admin-role-admin
+        attributes:
+          admin-role:
+            - 'admin'

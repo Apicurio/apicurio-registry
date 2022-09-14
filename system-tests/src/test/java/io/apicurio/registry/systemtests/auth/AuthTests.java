@@ -7,6 +7,7 @@ import io.apicurio.registry.systemtests.auth.features.ArtifactGroupOwnerOnlyAuth
 import io.apicurio.registry.systemtests.auth.features.ArtifactOwnerOnlyAuthorization;
 import io.apicurio.registry.systemtests.auth.features.AuthenticatedReads;
 import io.apicurio.registry.systemtests.auth.features.BasicAuthentication;
+import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationAdminOverride;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationApplication;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationRoleNames;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationToken;
@@ -112,6 +113,16 @@ public abstract class AuthTests extends TestBase {
 
         RoleBasedAuthorizationRoleNames.testRoleBasedAuthorizationRoleNames(registry);
     }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    protected void runRoleBasedAuthorizationAdminOverrideTest(
+            ExtensionContext testContext,
+            PersistenceKind persistenceKind,
+            KafkaKind kafkaKind
+    ) throws InterruptedException {
+        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
+
+        RoleBasedAuthorizationAdminOverride.testRoleBasedAuthorizationAdminOverride(registry);
+    }
 
     /* TESTS - PostgreSQL */
 
@@ -168,6 +179,13 @@ public abstract class AuthTests extends TestBase {
             ExtensionContext testContext
     ) throws InterruptedException {
         runRoleBasedAuthorizationRoleNamesTest(testContext, PersistenceKind.SQL, null);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistrySqlKeycloakRoleBasedAuthorizationAdminOverride(
+            ExtensionContext testContext
+    ) throws InterruptedException {
+        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.SQL, null);
     }
 
     /* TESTS - KafkaSQL */
@@ -359,5 +377,26 @@ public abstract class AuthTests extends TestBase {
             ExtensionContext testContext
     ) throws InterruptedException {
         runRoleBasedAuthorizationRoleNamesTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
+    }
+    /* -------------------------------------------------------------------------------------------------------------- */
+    @Test
+    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationAdminOverride(
+            ExtensionContext testContext
+    ) throws InterruptedException {
+        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
+    }
+
+    @Test
+    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationAdminOverride(
+            ExtensionContext testContext
+    ) throws InterruptedException {
+        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
+    }
+
+    @Test
+    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationAdminOverride(
+            ExtensionContext testContext
+    ) throws InterruptedException {
+        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
 }

@@ -148,17 +148,17 @@ public class KeycloakUtils {
         return HttpRequest.BodyPublishers.ofString(stringBuilder.toString());
     }
 
-    public static String getAccessToken(ApicurioRegistry apicurioRegistry, String username, String password) {
-        // Get Keycloak URL of Apicurio Registry
-        String keycloakUrl = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getUrl();
-        // Get Keycloak Realm of Apicurio Registry
-        String keycloakRealm = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getRealm();
+    public static String getAccessToken(
+            String keycloakUrl,
+            String keycloakRealm,
+            String clientId,
+            String username,
+            String password
+    ) {
         // Construct token API URI of Keycloak Realm
         URI keycloakRealmUrl = HttpClientUtils.buildURI(
                 "%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm
         );
-        // Get Keycloak API client ID of Apicurio Registry
-        String clientId = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getApiClientId();
 
         // Prepare request data
         Map<Object, Object> data = new HashMap<>();
@@ -192,6 +192,17 @@ public class KeycloakUtils {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String getAccessToken(ApicurioRegistry apicurioRegistry, String username, String password) {
+        // Get Keycloak URL of Apicurio Registry
+        String keycloakUrl = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getUrl();
+        // Get Keycloak Realm of Apicurio Registry
+        String keycloakRealm = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getRealm();
+        // Get Keycloak API client ID of Apicurio Registry
+        String clientId = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getApiClientId();
+
+        return getAccessToken(keycloakUrl, keycloakRealm, clientId, username, password);
     }
 
     public static String getAdminAccessToken() {

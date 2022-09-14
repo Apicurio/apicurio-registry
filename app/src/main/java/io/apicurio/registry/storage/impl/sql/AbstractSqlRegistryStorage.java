@@ -446,7 +446,7 @@ public abstract class AbstractSqlRegistryStorage extends AbstractRegistryStorage
     /**
      * @see RegistryStorage#updateArtifactState(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactState)
      */
-    @Override
+    @Override @Transactional
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         log.debug("Updating the state of artifact {} {}, version {} to {}", groupId, artifactId, version, state.name());

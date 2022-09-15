@@ -347,6 +347,19 @@ public class GroupRequestsProvider {
                 .build();
     }
 
+    public static Request<ArtifactMetaData> updateArtifactWithReferences(String groupId, String artifactId, Map<String, String> headers, ContentCreateRequest data) throws JsonProcessingException {
+        return new Request.RequestBuilder<ArtifactMetaData>()
+                .operation(Operation.PUT)
+                .path(Routes.ARTIFACT_BASE_PATH)
+                .headers(headers)
+                .pathParams(List.of(groupId, artifactId))
+                .responseType(new TypeReference<ArtifactMetaData>() {
+                })
+                .data(IoUtil.toStream(mapper.writeValueAsBytes(data)))
+                .build();
+    }
+
+
     public static Request<InputStream> getLatestArtifact(String groupId, String artifactId) {
         return new Request.RequestBuilder<InputStream>()
                 .operation(Operation.GET)

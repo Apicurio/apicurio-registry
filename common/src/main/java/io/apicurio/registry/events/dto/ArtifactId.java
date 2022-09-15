@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 
@@ -32,7 +33,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @JsonPropertyOrder({
     "groupId",
     "artifactId",
-    "version"
+    "version",
+    "type"
 })
 @RegisterForReflection
 public class ArtifactId {
@@ -50,6 +52,9 @@ public class ArtifactId {
 
     @JsonProperty("version")
     private String version;
+
+    @JsonProperty("type")
+    private ArtifactType type;
 
     @JsonProperty("groupId")
     public String getGroupId() {
@@ -89,6 +94,16 @@ public class ArtifactId {
     @JsonProperty("version")
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    @JsonProperty("type")
+    public ArtifactType getType() {
+        return type;
+    }
+
+    @JsonProperty("type")
+    public void setType(ArtifactType type) {
+        this.type = type;
     }
 
 }

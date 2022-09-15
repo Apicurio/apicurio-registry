@@ -32,14 +32,18 @@ public class Citizen {
     @JsonProperty("city")
     City city;
 
+    @JsonProperty("identifier")
+    CitizenIdentifier identifier;
+
     public Citizen() {
     }
 
-    public Citizen(String firstName, String lastName, int age, City city) {
+    public Citizen(String firstName, String lastName, int age, City city, CitizenIdentifier identifier) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;
         this.city = city;
+        this.identifier = identifier;
     }
 
     public String getFirstName() {
@@ -72,5 +76,13 @@ public class Citizen {
 
     public void setCity(City city) {
         this.city = city;
+    }
+
+    public CitizenIdentifier getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(CitizenIdentifier identifier) {
+        this.identifier = identifier;
     }
 }

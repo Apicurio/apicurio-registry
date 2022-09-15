@@ -8,6 +8,10 @@
       "type": "com.kubetrade.schema.trade.AvroSchemaA"
     },
     {
+      "name": "schemaA2",
+      "type": "com.kubetrade.schema.trade.AvroSchemaA"
+    },
+    {
       "name": "schemaC",
       "type": "com.kubetrade.schema.trade.AvroSchemaC"
     },

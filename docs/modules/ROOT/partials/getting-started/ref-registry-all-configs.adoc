@@ -170,6 +170,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.0.2.Final`
 |Legacy ID mode (compatibility API)
+|`registry.ccompat.use-canonical-hash`
+|`boolean [dynamic]`
+|`false`
+|`2.3.0.Final`
+|Canonical hash mode (compatibility API)
 |===
 
 == Category `download`:
@@ -677,5 +682,10 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.2.2.Final`
 |UI features settings
+|`registry.ui.root`
+|`string`
+|
+|`2.3.0.Final`
+|Overrides the UI root context (useful when relocating the UI context using an inbound proxy)
 |===
 

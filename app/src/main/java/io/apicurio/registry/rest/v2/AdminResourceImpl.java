@@ -124,14 +124,14 @@ public class AdminResourceImpl implements AdminResource {
 
     @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
     @ConfigProperty(name = "registry.download.href.ttl", defaultValue = "30")
-    @Info( category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
+    @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listGlobalRules()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
         List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
@@ -166,7 +166,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public Rule getGlobalRuleConfig(RuleType rule) {
         RuleConfigurationDto dto;
         try {

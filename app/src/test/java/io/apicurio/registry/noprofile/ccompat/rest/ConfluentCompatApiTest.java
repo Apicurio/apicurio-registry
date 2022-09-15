@@ -16,9 +16,11 @@
 
 package io.apicurio.registry.noprofile.ccompat.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.rest.v1.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
@@ -645,7 +647,6 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testDeleteSchemaVersion() throws Exception {
         final String SUBJECT = "testDeleteSchemaVersion";
-
         final Integer contentId1 = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -765,4 +766,58 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             .statusCode(200);
     }
 
+
+    /**
+     * Endpoint: /schemas/ids/{int: id}/versions
+     */
+    @Test
+    public void testMinifiedSchema() throws Exception {
+        final String SUBJECT = "testMinifiedSchema";
+        String testSchemaExpanded = resourceToString("avro-expanded.avsc");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        SchemaContent schemaContent = new SchemaContent(testSchemaExpanded);
+
+        // POST
+        final Integer contentId1 = given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id");
+
+        Assertions.assertNotNull(contentId1);
+
+        this.waitForArtifact(SUBJECT);
+
+        String minifiedSchema = resourceToString("avro-minified.avsc");
+        SchemaContent minifiedSchemaContent = new SchemaContent(minifiedSchema);
+
+        //Without the canonical hash mode, this will fail with a 404
+        //With the profile
+        given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(minifiedSchemaContent))
+                .post("/ccompat/v6/subjects/{subject}", SUBJECT)
+                .then()
+                .statusCode(404)
+                .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
+
+
+        // POST
+        //Create returns a different id, wrong behaviour with the canonical mode enabled since the schema is the same.
+        Assertions.assertNotEquals(contentId1, given()
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(minifiedSchemaContent))
+                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .extract().body().jsonPath().get("id"));
+    }
 }

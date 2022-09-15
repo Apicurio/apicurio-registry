@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (prop_name VARCHAR(255) NOT NULL, prop_value VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (prop_name);
-INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 10);
+INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version', 11);
 
 CREATE TABLE sequences (tenantId VARCHAR(128) NOT NULL, name VARCHAR(32) NOT NULL, value BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (tenantId, name);
@@ -69,5 +69,4 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 CREATE TABLE artifactreferences (tenantId VARCHAR(128) NOT NULL, contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
 ALTER TABLE artifactreferences ADD PRIMARY KEY (tenantId, contentId, name);
 ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_1 FOREIGN KEY (tenantId, contentId) REFERENCES content(tenantId, contentId) ON DELETE CASCADE;
-ALTER TABLE artifactreferences ADD CONSTRAINT FK_artifactreferences_2 FOREIGN KEY (tenantId, groupId, artifactId, version) REFERENCES versions(tenantId, groupId, artifactId, version);
 

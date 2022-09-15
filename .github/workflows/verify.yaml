@@ -21,6 +21,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TESTCONTAINERS_RYUK_DISABLED: true
+
 jobs:
   build-verify:
     name: Verify Build
@@ -209,3 +212,28 @@ jobs:
            token: ${{ secrets.ACCESS_TOKEN }}
            repository: Apicurio/apicurio-registry-examples
            event-type: on-registry-updated
+
+  # Triggers apicurio-registry-mt-ui build whenever apicurio-registry/ui changes
+  trigger-mt-ui-build:
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    runs-on: ubuntu-latest
+    needs: [build-verify]
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          base: main
+          list-files: 'csv'
+          filters: |
+            registry-ui:
+              - 'ui/**'
+
+      - name: Repository Dispatch
+        if: steps.changes.outputs.registry-ui == 'true'
+        uses: peter-evans/repository-dispatch@v1
+        with:
+           token: ${{ secrets.ACCESS_TOKEN }}
+           repository: Apicurio/apicurio-registry-mt-ui
+           event-type: on-registry-ui-update

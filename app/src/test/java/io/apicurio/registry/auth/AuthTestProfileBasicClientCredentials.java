@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "registry.auth.token.endpoint")
-    @Info( category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
+    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = "authTestGroupId";

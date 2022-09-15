@@ -35,7 +35,7 @@ public class SqlStatementsProducer {
     Logger log;
 
     @ConfigProperty(name = "quarkus.datasource.db-kind", defaultValue = "postgresql")
-    @Info( category = "store", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = "store", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String databaseType;
 
     /**

@@ -74,7 +74,7 @@ public class TenantReaper {
     Instant next;
 
     @ConfigProperty(name = "registry.multitenancy.reaper.max-tenants-reaped", defaultValue = "100")
-    @Info( category = "mt", description = "Multitenancy reaper max tenants reaped", availableSince = "2.1.0.Final")
+    @Info(category = "mt", description = "Multitenancy reaper max tenants reaped", availableSince = "2.1.0.Final")
     int maxTenantsReaped;
 
     @PostConstruct

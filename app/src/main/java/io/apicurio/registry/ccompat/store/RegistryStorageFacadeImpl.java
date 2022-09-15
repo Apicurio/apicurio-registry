@@ -36,6 +36,7 @@ import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
@@ -60,8 +61,11 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
+import org.slf4j.Logger;
 
 /**
  * @author Ales Justin
@@ -85,6 +89,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Inject
     CCompatConfig cconfig;
+
+    @Inject
+    Logger log;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     @Override
     public List<String> getSubjects() {
@@ -163,11 +173,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public Schema getSchema(String subject, SchemaContent schema) throws ArtifactNotFoundException, RegistryStorageException {
-        // Don't canonicalize the content when getting it - Confluent does not.
-        if (schema.getSchema() == null) {
-            throw new ArtifactNotFoundException(subject);
+        ArtifactVersionMetaDataDto amd;
+        if (cconfig.canonicalHashModeEnabled.get()) {
+            amd = storage.getArtifactVersionMetaData(null, subject, true, ContentHandle.create(schema.getSchema()));
+        } else {
+            amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()));
         }
-        ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(null, subject, false, ContentHandle.create(schema.getSchema()));
         StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, amd.getVersion());
         return converter.convert(subject, storedArtifact);
     }
@@ -178,8 +189,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         // if it exists.  If not, then register the new content.
         try {
             ContentHandle content = ContentHandle.create(schema);
-            // Don't canonicalize the content when getting it - Confluent does not.
-            ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(null, subject, false, content);
+            ArtifactVersionMetaDataDto dto;
+            if (cconfig.canonicalHashModeEnabled.get()) {
+                dto = storage.getArtifactVersionMetaData(null, subject, true, content);
+            } else {
+                dto = storage.getArtifactVersionMetaData(null, subject, false, content);
+            }
             return cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - when it happens just move on and create
@@ -276,12 +291,18 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);
         try {
-            if (!doesArtifactExist(subject)) {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.CREATE, resolvedReferences);
-                res = storage.createArtifact(null, subject, null, artifactType, ContentHandle.create(schema), parsedReferences);
+            ContentHandle schemaContent;
+            if (cconfig.canonicalHashModeEnabled.get()) {
+                schemaContent = this.canonicalizeContent(artifactType, ContentHandle.create(schema), references);
             } else {
-                rulesService.applyRules(null, subject, artifactType, ContentHandle.create(schema), RuleApplicationType.UPDATE, resolvedReferences);
-                res = storage.updateArtifact(null, subject, null, artifactType, ContentHandle.create(schema), parsedReferences);
+                schemaContent = ContentHandle.create(schema);
+            }
+            if (!doesArtifactExist(subject)) {
+                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.CREATE, resolvedReferences);
+                res = storage.createArtifact(null, subject, null, artifactType, schemaContent, parsedReferences);
+            } else {
+                rulesService.applyRules(null, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, resolvedReferences);
+                res = storage.updateArtifact(null, subject, null, artifactType, schemaContent, parsedReferences);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -394,5 +415,22 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     private boolean isCcompatManagedType(ArtifactType artifactType) {
         return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF) || artifactType.equals(ArtifactType.JSON);
+    }
+
+    /**
+     * Canonicalize the given content, returns the content unchanged in the case of an error.
+     *
+     * @param artifactType
+     * @param content
+     */
+    private ContentHandle canonicalizeContent(ArtifactType artifactType, ContentHandle content, List<SchemaReference> references) {
+        try {
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
+            return canonicalizer.canonicalize(content, resolveReferences(references));
+        } catch (Exception e) {
+            log.debug("Failed to canonicalize content of type: {}", artifactType.name());
+            return content;
+        }
     }
 }

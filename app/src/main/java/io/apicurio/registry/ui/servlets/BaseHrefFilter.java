@@ -33,6 +33,10 @@ import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import io.apicurio.common.apps.config.Info;
+
 
 /**
  * Note: simple filtering of response content - found on Stack Overflow here:
@@ -43,6 +47,10 @@ import javax.servlet.http.HttpServletResponseWrapper;
  */
 @ApplicationScoped
 public class BaseHrefFilter  implements Filter {
+
+    @ConfigProperty(name = "registry.ui.root")
+    @Info(category = "ui", description = "Overrides the UI root context (useful when relocating the UI context using an inbound proxy)", availableSince = "2.3.0.Final")
+    String uiRoot;
 
     /**
      * @see javax.servlet.Filter#init(javax.servlet.FilterConfig)
@@ -64,7 +72,7 @@ public class BaseHrefFilter  implements Filter {
         byte[] bytes = wrappedResponse.getByteArray();
         if (bytes != null && response.getContentType() != null && response.getContentType().contains("text/html")) {
             String out = new String(bytes, StandardCharsets.UTF_8);
-            out = out.replace("<base href=\"/\">", "<base href=\"/ui/\">");
+            out = out.replace("<base href=\"/\">", "<base href=\"" + uiRoot + "\">");
             byte[] newBytes = out.getBytes(StandardCharsets.UTF_8);
             response.setContentLength(newBytes.length);
             response.getOutputStream().write(newBytes);

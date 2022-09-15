@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests.auth.features;
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.AuthMethod;
+import io.apicurio.registry.systemtests.client.KeycloakAdminApiClient;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.DeploymentUtils;
@@ -10,6 +11,8 @@ import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import org.junit.jupiter.api.Assertions;
+
+import java.io.IOException;
 
 public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization {
     public static void initializeClients(ApicurioRegistry apicurioRegistry, String hostname) {
@@ -55,7 +58,7 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         readonlyClient.setAuthMethod(AuthMethod.TOKEN);
     }
 
-    public static void testRoleBasedAuthorizationAdminOverride(ApicurioRegistry apicurioRegistry) {
+    public static void testRoleBasedAuthorizationAdminOverride(ApicurioRegistry apicurioRegistry) throws IOException {
         /* RUN PRE-TEST ACTIONS */
 
         // GET REGISTRY HOSTNAME
@@ -104,9 +107,39 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
             setName("REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE");
             setValue("sr-admin");
         }};
+        // Set name of admin override claim
+        EnvVar roleBasedAuthAdminOverrideClaim = new EnvVar() {{
+            setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM");
+            setValue("org-admin");
+        }};
+        // Set value of admin override claim
+        EnvVar roleBasedAuthAdminOverrideClaimValue = new EnvVar() {{
+            setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE");
+            setValue("true");
+        }};
 
         // WAIT FOR API AVAILABILITY
         Assertions.assertTrue(adminClient.waitServiceAvailable());
+
+        // CREATE AND MAP KEYCLOAK CLIENT SCOPE FOR MAPPING USER ATTRIBUTES INTO TOKEN
+        // Get Keycloak API admin client
+        KeycloakAdminApiClient keycloakAdminApiClient = new KeycloakAdminApiClient(
+                // Set Keycloak admin URL to default one
+                KeycloakUtils.getDefaultKeycloakAdminURL(),
+                // Get access token for Keycloak admin
+                KeycloakUtils.getAdminAccessToken()
+        );
+        // Create user attributes client scope for mapping user attributes into token
+        Assertions.assertTrue(keycloakAdminApiClient.createUserAttributesClientScope());
+        // Add user attributes client scope to default client scopes of Keycloak API client
+        Assertions.assertTrue(
+                keycloakAdminApiClient.addDefaultClientScopeToClient(
+                        // Get ID of API client (it is NOT clientId)
+                        keycloakAdminApiClient.getClientId(Constants.SSO_CLIENT_API),
+                        // Get ID of client scope (it is NOT client scope name)
+                        keycloakAdminApiClient.getClientScopeId(Constants.SSO_SCOPE)
+                )
+        );
 
         /* RUN TEST ACTIONS */
 
@@ -121,6 +154,9 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedEnabled();
+
+        // REINITIALIZE API CLIENTS TO "REFRESH" TOKENS
+        initializeClients(apicurioRegistry, hostname);
 
         // SET ROLE BASED AUTHORIZATION SOURCE IN REGISTRY TO APPLICATION AND TEST IT
         // Set environment variable ROLE_BASED_AUTHZ_SOURCE of deployment to application
@@ -139,9 +175,6 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedEnabledAllForbidden();
-
-        // REINITIALIZE API CLIENTS TO "REFRESH" TOKENS
-        initializeClients(apicurioRegistry, hostname);
 
         // ENABLE ADMIN OVERRIDE FEATURE IN REGISTRY AND TEST IT
         // Update environment variable value to true
@@ -171,6 +204,9 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedEnabledOnlyAdminAllowed();
+
+        // REINITIALIZE API CLIENTS TO "REFRESH" TOKENS
+        initializeClients(apicurioRegistry, hostname);
 
         // SET ADMIN OVERRIDE ROLE NAME IN REGISTRY TO sr-admin AND TEST IT (SET TO DEFAULT VALUE)
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE of deployment to sr-admin
@@ -208,11 +244,190 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
         // Run test actions with default clients
         testRoleBasedEnabledAllForbidden();
 
-        // TODO: Add tests with claim
-        // * SET ADMIN OVERRIDE INFORMATION TYPE IN REGISTRY TO CLAIM AND TEST IT
-        // * SET ADMIN OVERRIDE CLAIM NAME IN REGISTRY TO org-admin AND TEST IT (SET TO DEFAULT VALUE)
-        // * SET ADMIN OVERRIDE CLAIM NAME IN REGISTRY TO <user-defined-name> AND TEST IT
-        // * SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO true AND TEST IT (SET TO DEFAULT VALUE)
-        // * SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO <user-defined-value> AND TEST IT
+        // SET ADMIN OVERRIDE INFORMATION TYPE IN REGISTRY TO CLAIM AND TEST IT
+        // claim = default (org-admin), value = default (true)
+        // Update environment variable value to claim
+        roleBasedAuthAdminOverrideType.setValue("claim");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE of deployment to claim
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideType);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with default clients
+        testRoleBasedEnabledAllForbidden();
+        // Initialize clients with admin using default claim values org-admin=true
+        initializeClients(apicurioRegistry, hostname, "-org-admin-true");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM NAME IN REGISTRY TO org-admin AND TEST IT (SET TO DEFAULT VALUE)
+        // claim = org-admin, value = default (true)
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM of deployment to org-admin
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaim);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO true AND TEST IT (SET TO DEFAULT VALUE)
+        // claim = org-admin, value = true
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to true
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO yes AND TEST IT
+        // claim = org-admin, value = yes
+        // Update environment variable value to yes
+        roleBasedAuthAdminOverrideClaimValue.setValue("yes");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to yes
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values org-admin=yes
+        initializeClients(apicurioRegistry, hostname, "-org-admin-yes");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO invalid AND TEST IT
+        // claim = org-admin, value = invalid
+        // Update environment variable value to invalid
+        roleBasedAuthAdminOverrideClaimValue.setValue("invalid");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to invalid
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM NAME IN REGISTRY TO admin-role AND TEST IT
+        // claim = admin-role, value = invalid
+        // Update environment variable value to admin-role
+        roleBasedAuthAdminOverrideClaim.setValue("admin-role");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM of deployment to admin-role
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaim);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values admin-role=true
+        initializeClients(apicurioRegistry, hostname, "-admin-role-true");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO true AND TEST IT (SET TO DEFAULT VALUE)
+        // claim = admin-role, value = true
+        // Update environment variable value to true
+        roleBasedAuthAdminOverrideClaimValue.setValue("true");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to true
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO admin AND TEST IT
+        // claim = admin-role, value = admin
+        // Update environment variable value to admin
+        roleBasedAuthAdminOverrideClaimValue.setValue("admin");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to yes
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values admin-role=admin
+        initializeClients(apicurioRegistry, hostname, "-admin-role-admin");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // REMOVE ADMIN OVERRIDE CLAIM VALUE IN REGISTRY AND TEST IT (DEFAULTS TO true)
+        // claim = admin-role, value = default (true)
+        // Remove environment variable
+        DeploymentUtils.deleteDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue.getName());
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values admin-role=true
+        initializeClients(apicurioRegistry, hostname, "-admin-role-true");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM NAME IN REGISTRY TO invalid AND TEST IT
+        // claim = invalid, value = default (true)
+        // Update environment variable value to invalid
+        roleBasedAuthAdminOverrideClaim.setValue("invalid");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM of deployment to invalid
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaim);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values org-admin=true
+        initializeClients(apicurioRegistry, hostname, "-org-admin-true");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO true AND TEST IT
+        // claim = invalid, value = true
+        // Update environment variable value to true
+        roleBasedAuthAdminOverrideClaimValue.setValue("true");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to true
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO yes AND TEST IT
+        // claim = invalid, value = yes
+        // Update environment variable value to yes
+        roleBasedAuthAdminOverrideClaimValue.setValue("yes");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to yes
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values org-admin=yes
+        initializeClients(apicurioRegistry, hostname, "-org-admin-yes");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO invalid AND TEST IT
+        // claim = invalid, value = invalid
+        // Update environment variable value to invalid
+        roleBasedAuthAdminOverrideClaimValue.setValue("invalid");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to invalid
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // REMOVE ADMIN OVERRIDE CLAIM NAME IN REGISTRY AND TEST IT (DEFAULTS TO org-admin)
+        // claim = default (org-admin), value = invalid
+        // Remove environment variable
+        DeploymentUtils.deleteDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaim.getName());
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledAllForbidden();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO yes AND TEST IT
+        // claim = default (org-admin), value = yes
+        // Update environment variable value to yes
+        roleBasedAuthAdminOverrideClaimValue.setValue("yes");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to yes
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
+
+        // SET ADMIN OVERRIDE CLAIM VALUE IN REGISTRY TO true AND TEST IT
+        // claim = default (org-admin), value = true
+        // Update environment variable value to true
+        roleBasedAuthAdminOverrideClaimValue.setValue("true");
+        // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE of deployment to true
+        DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideClaimValue);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // Initialize clients with admin using claim values org-admin=true
+        initializeClients(apicurioRegistry, hostname, "-org-admin-true");
+        // Run test actions with user-defined admin claim (other clients are still default)
+        testRoleBasedEnabledOnlyAdminAllowed();
     }
 }

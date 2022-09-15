@@ -27,13 +27,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
@@ -68,6 +71,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         RegistryClient source = RegistryClientFactory.create(registryFacade.getSourceRegistryUrl());
 
         List<Long> globalIds = new ArrayList<>();
+        HashMap<Long, List<ArtifactReference>> referencesMap = new HashMap<>();
 
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int idx = 0; idx < 50; idx++) {
@@ -80,12 +84,16 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
             String artifactId = "avro-" + idx;
-            var amd = source.createArtifact("avro-schemas", artifactId, avroSchema.generateSchemaStream());
+            List<ArtifactReference> references = idx > 0 ? getSingletonRefList("avro-schemas", "avro-" + (idx - 1), "1", "myRef" + idx) : Collections.emptyList();
+            var amd = source.createArtifact("avro-schemas", artifactId, avroSchema.generateSchemaStream(), references);
             retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
+            referencesMap.put(amd.getGlobalId(), references);
             globalIds.add(amd.getGlobalId());
 
-            var vmd = source.updateArtifact("avro-schemas", artifactId, avroSchema.generateSchemaStream());
+            List<ArtifactReference> updatedReferences = idx > 0 ? getSingletonRefList("avro-schemas", "avro-" + (idx - 1), "2", "myRef" + idx) : Collections.emptyList();
+            var vmd = source.updateArtifact("avro-schemas", artifactId, null, null, null, avroSchema.generateSchemaStream(), updatedReferences);
             retry(() -> source.getContentByGlobalId(vmd.getGlobalId()));
+            referencesMap.put(vmd.getGlobalId(), updatedReferences);
             globalIds.add(vmd.getGlobalId());
         }
 
@@ -106,9 +114,14 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         retry(() -> {
             for (long gid : globalIds) {
                 dest.getContentByGlobalId(gid);
+                if (referencesMap.containsKey(gid)) {
+                    List<ArtifactReference> srcReferences = referencesMap.get(gid);
+                    List<ArtifactReference> destReferences = dest.getArtifactReferencesByGlobalId(gid);
+                    assertTrue(matchesReferences(srcReferences, destReferences));
+                }
             }
-            assertTrue(dest.getArtifactRuleConfig("avro-schemas", "avro-0", RuleType.VALIDITY).getConfig().equals("SYNTAX_ONLY"));
-            assertTrue(dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig().equals("BACKWARD"));
+            assertEquals("SYNTAX_ONLY", dest.getArtifactRuleConfig("avro-schemas", "avro-0", RuleType.VALIDITY).getConfig());
+            assertEquals("BACKWARD", dest.getGlobalRuleConfig(RuleType.COMPATIBILITY).getConfig());
         });
     }
 
@@ -278,6 +291,25 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private List<ArtifactReference> getSingletonRefList(String groupId, String artifactId, String version, String name) {
+        ArtifactReference artifactReference = new ArtifactReference();
+        artifactReference.setGroupId(groupId);
+        artifactReference.setArtifactId(artifactId);
+        artifactReference.setVersion(version);
+        artifactReference.setName(name);
+        return Collections.singletonList(artifactReference);
+    }
+
+    private boolean matchesReferences(List<ArtifactReference> srcReferences, List<ArtifactReference> destReferences) {
+        return destReferences.size() == srcReferences.size() && destReferences.stream().allMatch(
+                srcRef -> srcReferences.stream().anyMatch(destRef ->
+                        Objects.equals(srcRef.getGroupId(), destRef.getGroupId()) &&
+                                Objects.equals(srcRef.getArtifactId(), destRef.getArtifactId()) &&
+                                Objects.equals(srcRef.getVersion(), destRef.getVersion()) &&
+                                Objects.equals(srcRef.getName(), destRef.getName()))
+        );
     }
 
 }

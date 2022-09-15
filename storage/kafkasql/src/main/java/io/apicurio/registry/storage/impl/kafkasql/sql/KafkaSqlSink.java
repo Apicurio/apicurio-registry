@@ -440,6 +440,7 @@ public class KafkaSqlSink {
                     entity.contentHash = key.getContentHash();
                     entity.canonicalHash = value.getCanonicalHash();
                     entity.contentBytes = value.getContent().bytes();
+                    entity.serializedReferences = value.getSerializedReferences();
                     sqlStore.importContent(entity);
                 }
                 return null;

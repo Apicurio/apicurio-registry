@@ -76,7 +76,7 @@ public class KafkaSqlUpgrader {
         @Override
         public void upgrade(Handle dbHandle) throws Exception {
 
-            String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, v.tenantId "
+            String sql = "SELECT c.contentId, c.content, c.canonicalHash, c.contentHash, c.artifactreferences, v.tenantId "
                     + "FROM versions v "
                     + "JOIN content c on c.contentId = v.contentId "
                     + "JOIN artifacts a ON v.tenantId = a.tenantId AND v.groupId = a.groupId AND v.artifactId = a.artifactId "

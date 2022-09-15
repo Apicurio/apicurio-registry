@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.io.IOException;
+
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AuthTests extends TestBase {
@@ -118,7 +120,7 @@ public abstract class AuthTests extends TestBase {
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) throws InterruptedException {
+    ) throws InterruptedException, IOException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
         RoleBasedAuthorizationAdminOverride.testRoleBasedAuthorizationAdminOverride(registry);
@@ -184,7 +186,7 @@ public abstract class AuthTests extends TestBase {
     @Test
     public void testRegistrySqlKeycloakRoleBasedAuthorizationAdminOverride(
             ExtensionContext testContext
-    ) throws InterruptedException {
+    ) throws InterruptedException, IOException {
         runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.SQL, null);
     }
 
@@ -382,21 +384,21 @@ public abstract class AuthTests extends TestBase {
     @Test
     public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationAdminOverride(
             ExtensionContext testContext
-    ) throws InterruptedException {
+    ) throws InterruptedException, IOException {
         runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
     public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationAdminOverride(
             ExtensionContext testContext
-    ) throws InterruptedException {
+    ) throws InterruptedException, IOException {
         runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationAdminOverride(
             ExtensionContext testContext
-    ) throws InterruptedException {
+    ) throws InterruptedException, IOException {
         runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
 }

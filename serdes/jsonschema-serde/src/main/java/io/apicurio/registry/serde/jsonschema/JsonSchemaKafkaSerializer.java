@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -89,7 +90,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 
         if (null == mapper) {
-            this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
         }
     }
 

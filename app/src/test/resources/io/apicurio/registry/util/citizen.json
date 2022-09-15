@@ -19,6 +19,9 @@
     },
     "city": {
       "$ref": "city.json"
+    },
+    "identifier": {
+      "$ref": "citizenIdentifier.json"
     }
   },
   "required": ["city"]

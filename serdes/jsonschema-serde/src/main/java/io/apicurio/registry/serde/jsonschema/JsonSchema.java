@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,7 +59,7 @@ public class JsonSchema {
     private transient String canonicalString;
     private transient int hashCode;
     private static final int NO_HASHCODE = -2147483648;
-    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     public JsonSchema(JsonNode jsonNode) {
         this(jsonNode, Collections.emptyMap(), null);
@@ -238,12 +239,22 @@ public class JsonSchema {
 
             if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
                 for (Map.Entry<String, Schema> schema: ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
-                    if (((ObjectSchema) schemaObj).getRequiredProperties().contains(schema.getKey()) && schema.getValue() instanceof ReferenceSchema) {
-                        (resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue())).validate(((JSONObject) jsonObject).get(schema.getKey()));
+                    if (schema.getValue() instanceof ReferenceSchema) {
+                        if (isRequiredProperty(schema) || objectContainsSchemaKey((JSONObject) jsonObject, schema)) {
+                            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue()).validate(((JSONObject) jsonObject).get(schema.getKey()));
+                        }
                     }
                 }
             }
         }
+    }
+
+    private boolean objectContainsSchemaKey(JSONObject jsonObject, Map.Entry<String, Schema> schema) {
+        return jsonObject.has(schema.getKey());
+    }
+
+    private boolean isRequiredProperty(Map.Entry<String, Schema> schema) {
+        return ((ObjectSchema) schemaObj).getRequiredProperties().contains(schema.getKey());
     }
 
     private static boolean isPrimitive(Object value) {

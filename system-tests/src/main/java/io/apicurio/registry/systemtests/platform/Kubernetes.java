@@ -471,6 +471,14 @@ public final class Kubernetes {
                 .createOrReplace(deployment);
     }
 
+    public static void replaceDeployment(String namespace, Deployment deployment) {
+        getClient()
+                .apps()
+                .deployments()
+                .inNamespace(namespace)
+                .replace(deployment);
+    }
+
     public static void deleteDeployment(String namespace, String name) {
         getClient()
                 .apps()

@@ -16,7 +16,7 @@ public class DeploymentUtils {
 
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
-    public static boolean deploymentEnvVarExists(Deployment deployment, EnvVar envVar) {
+    public static boolean deploymentEnvVarExists(Deployment deployment, String envVarName) {
         return deployment
                 .getSpec()
                 .getTemplate()
@@ -25,7 +25,7 @@ public class DeploymentUtils {
                 .get(0)
                 .getEnv()
                 .stream()
-                .anyMatch(ev -> ev.getName().equals(envVar.getName()));
+                .anyMatch(ev -> ev.getName().equals(envVarName));
     }
 
     public static EnvVar getDeploymentEnvVar(Deployment deployment, String envVarName) {
@@ -42,8 +42,8 @@ public class DeploymentUtils {
                 .orElse(null);
     }
 
-    public static void addDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
-        deployment
+    public static boolean addDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
+        return deployment
                 .getSpec()
                 .getTemplate()
                 .getSpec()
@@ -53,13 +53,24 @@ public class DeploymentUtils {
                 .add(envVar);
     }
 
+    public static boolean removeDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
+        return deployment
+                .getSpec()
+                .getTemplate()
+                .getSpec()
+                .getContainers()
+                .get(0)
+                .getEnv()
+                .remove(envVar);
+    }
+
     public static boolean waitDeploymentReady(String namespace, String name) {
         return waitDeploymentReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
     }
 
     public static boolean waitDeploymentReady(String namespace, String name, TimeoutBudget timeoutBudget) {
         while (!timeoutBudget.timeoutExpired()) {
-            if (Kubernetes.isDeploymentReady(namespace, name)) {
+            if (!Kubernetes.deploymentHasUnavailableReplicas(namespace, name)) {
                 return true;
             }
 
@@ -72,7 +83,7 @@ public class DeploymentUtils {
             }
         }
 
-        if (!Kubernetes.isDeploymentReady(namespace, name)) {
+        if (Kubernetes.deploymentHasUnavailableReplicas(namespace, name)) {
             LOGGER.error("Deployment with name {} in namespace {} failed readiness check.", name, namespace);
 
             return false;
@@ -113,56 +124,114 @@ public class DeploymentUtils {
         return true;
     }
 
+    public static Deployment processChange(String namespace, String name, Deployment deployment) {
+        // Update deployment
+        Kubernetes.createOrReplaceDeployment(namespace, deployment);
+
+        // Wait for deployment reload
+        Assertions.assertTrue(waitDeploymentHasUnavailableReplicas(namespace, name));
+
+        // Wait for deployment readiness
+        Assertions.assertTrue(waitDeploymentReady(namespace, name));
+
+        // Return deployment
+        return Kubernetes.getDeployment(namespace, name);
+    }
+
+    public static void deleteDeploymentEnvVar(Deployment deployment, String envVarName) {
+        deleteDeploymentEnvVars(deployment, Collections.singletonList(envVarName));
+    }
+
+    public static void deleteDeploymentEnvVars(Deployment deployment, List<String> envVarNames) {
+        // Get deployment name
+        String dName = deployment.getMetadata().getName();
+        // Get deployment
+        deployment = Kubernetes.getDeployment(deployment.getMetadata().getNamespace(), dName);
+        // Flag to indicate if deployment was changed
+        boolean changed = false;
+
+        for (String evn : envVarNames) {
+            // If environment variable already exists in deployment
+            if (deploymentEnvVarExists(deployment, evn)) {
+                // Log information about current action
+                LOGGER.info("Deleting environment variable {} of deployment {}.", evn, dName);
+
+                // Delete environment variable
+                LOGGER.info("Deleted: {}", removeDeploymentEnvVar(deployment, getDeploymentEnvVar(deployment, evn)));
+
+                changed = true;
+            } else {
+                // Log information about current action
+                LOGGER.info("Environment variable {} is not present in deployment {}.", evn, dName);
+            }
+        }
+
+        if (changed) {
+            // Process change and get deployment
+            deployment = processChange(deployment.getMetadata().getNamespace(), dName, deployment);
+
+            for (String evn : envVarNames) {
+                // Check deletion of environment variable
+                Assertions.assertNull(
+                        getDeploymentEnvVar(deployment, evn),
+                        MessageFormat.format("Environment variable {0} of deployment {1} was NOT deleted.", evn, dName)
+                );
+            }
+        }
+    }
+
     public static void createOrReplaceDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
         createOrReplaceDeploymentEnvVars(deployment, Collections.singletonList(envVar));
     }
 
     public static void createOrReplaceDeploymentEnvVars(Deployment deployment, List<EnvVar> envVars) {
-        // Get deployment namespace
-        String deploymentNamespace = deployment.getMetadata().getNamespace();
         // Get deployment name
-        String deploymentName = deployment.getMetadata().getName();
+        String dName = deployment.getMetadata().getName();
+        // Flag to indicate if deployment was changed
+        boolean changed = false;
 
         for (EnvVar ev : envVars) {
-            // If environment variable already exists in deployment
-            if (deploymentEnvVarExists(deployment, ev)) {
-                // Log information about current action
-                LOGGER.info("Setting environment variable {} of deployment {} to {}.",
-                        ev.getName(), deploymentName, ev.getValue());
+            String evName = ev.getName();
+            String evValue = ev.getValue();
 
-                // Set value of environment variable
-                getDeploymentEnvVar(deployment, ev.getName()).setValue(ev.getValue());
-            } else {
+            // If environment variable does not exist
+            if (!deploymentEnvVarExists(deployment, evName)) {
                 // Log information about current action
-                LOGGER.info("Adding environment variable {} with value {} to deployment {}.",
-                        ev.getName(), ev.getValue(), deploymentName);
+                LOGGER.info("Adding environment variable {} with value {} to deployment {}.", evName, evValue, dName);
 
                 // Add environment variable if it does not exist yet
-                addDeploymentEnvVar(deployment, ev);
+                LOGGER.info("Added: {}", addDeploymentEnvVar(deployment, new EnvVar(evName, evValue, null)));
+
+                changed = true;
+            } else if (!getDeploymentEnvVar(deployment, evName).getValue().equals(evValue)) {
+                // If environment variable exists, but has another value
+
+                // Log information about current action
+                LOGGER.info("Setting environment variable {} of deployment {} to {}.", evName, dName, evValue);
+
+                // Set value of environment variable
+                getDeploymentEnvVar(deployment, evName).setValue(evValue);
+
+                changed = true;
+            } else {
+                // Log information about current action
+                LOGGER.warn("Environment variable {} of deployment {} is already set to {}.", evName, dName, evValue);
             }
         }
 
-        // Update deployment
-        Kubernetes.createOrReplaceDeployment(deploymentNamespace, deployment);
+        if (changed) {
+            // Process change and get deployment
+            deployment = processChange(deployment.getMetadata().getNamespace(), dName, deployment);
 
-        // Wait for deployment reload
-        Assertions.assertTrue(waitDeploymentHasUnavailableReplicas(deploymentNamespace, deploymentName));
-
-        // Wait for deployment readiness
-        Assertions.assertTrue(waitDeploymentReady(deploymentNamespace, deploymentName));
-
-        // Get deployment
-        deployment = Kubernetes.getDeployment(deploymentNamespace, deploymentName);
-
-        for (EnvVar ev : envVars) {
-            // Check value of environment variable
-            Assertions.assertEquals(
-                    getDeploymentEnvVar(deployment, ev.getName()).getValue(),
-                    ev.getValue(),
-                    MessageFormat.format("Environment variable {0} of deployment {1} was NOT set to {2}.",
-                            ev.getName(), deploymentName, ev.getValue()
-                    )
-            );
+            for (EnvVar ev : envVars) {
+                // Check value of environment variable
+                Assertions.assertEquals(
+                        getDeploymentEnvVar(deployment, ev.getName()).getValue(), ev.getValue(),
+                        MessageFormat.format("Environment variable {0} of deployment {1} was NOT set to {2}.",
+                                ev.getName(), dName, ev.getValue()
+                        )
+                );
+            }
         }
     }
 }

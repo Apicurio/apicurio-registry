@@ -56,12 +56,7 @@ public class KeycloakUtils {
         LOGGER.info("Deploying Keycloak...");
         ResourceManager manager = ResourceManager.getInstance();
         // Deploy Keycloak server
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak.yaml")
-        );
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", getKeycloakFilePath("keycloak.yaml"));
 
         // Wait for Keycloak server to be ready
         Assertions.assertTrue(ResourceUtils.waitStatefulSetReady(namespace, "keycloak"));

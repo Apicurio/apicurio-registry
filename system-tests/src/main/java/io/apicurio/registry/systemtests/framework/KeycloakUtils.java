@@ -79,6 +79,8 @@ public class KeycloakUtils {
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
         );
 
+        Thread.sleep(Duration.ofMinutes(1).toMillis());
+
         // CREATE AND MAP KEYCLOAK CLIENT SCOPE FOR MAPPING USER ATTRIBUTES INTO TOKEN
         // Get Keycloak API admin client
         KeycloakAdminApiClient keycloakAdminApiClient = new KeycloakAdminApiClient(

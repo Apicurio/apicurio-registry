@@ -7,7 +7,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.KafkaResourceTyp
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaUserResourceType;
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.strimzi.api.kafka.model.Kafka;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -75,15 +74,15 @@ public class KafkaUtils {
         return kafka;
     }
 
-    public static Kafka deployDefaultKafkaNoAuth(ExtensionContext testContext) throws InterruptedException {
+    public static Kafka deployDefaultKafkaNoAuth() throws InterruptedException {
         return deployDefaultKafkaByKind(KafkaKind.NO_AUTH);
     }
 
-    public static Kafka deployDefaultKafkaTls(ExtensionContext testContext) throws InterruptedException {
+    public static Kafka deployDefaultKafkaTls() throws InterruptedException {
         return deployDefaultKafkaByKind(KafkaKind.TLS);
     }
 
-    public static Kafka deployDefaultKafkaScram(ExtensionContext testContext) throws InterruptedException {
+    public static Kafka deployDefaultKafkaScram() throws InterruptedException {
         return deployDefaultKafkaByKind(KafkaKind.SCRAM);
     }
 }

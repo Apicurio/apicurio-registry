@@ -8,7 +8,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistry
 import io.apicurio.registry.systemtests.time.TimeoutBudget;
 import io.fabric8.openshift.api.model.Route;
 import io.strimzi.api.kafka.model.Kafka;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.text.MessageFormat;
@@ -47,10 +46,7 @@ public class ApicurioRegistryUtils {
         return null;
     }
 
-    public static ApicurioRegistry deployDefaultApicurioRegistrySql(
-            ExtensionContext testContext,
-            boolean useKeycloak
-    ) throws InterruptedException {
+    public static ApicurioRegistry deployDefaultApicurioRegistrySql(boolean useKeycloak) throws InterruptedException {
         // Get Apicurio Registry
         ApicurioRegistry apicurioRegistrySql = ApicurioRegistryResourceType.getDefaultSql(
                 Constants.REGISTRY,
@@ -68,7 +64,6 @@ public class ApicurioRegistryUtils {
     }
 
     public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlNoAuth(
-            ExtensionContext testContext,
             boolean useKeycloak
     ) throws InterruptedException {
         // Get Apicurio Registry
@@ -88,7 +83,6 @@ public class ApicurioRegistryUtils {
     }
 
     public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlTLS(
-            ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
     ) throws InterruptedException {
@@ -102,14 +96,12 @@ public class ApicurioRegistryUtils {
         ApicurioRegistryResourceType.updateWithDefaultTLS(apicurioRegistryKafkasqlTLS);
 
         CertificateUtils.createTruststore(
-                testContext,
                 kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
                 getTruststoreSecretName(apicurioRegistryKafkasqlTLS)
         );
 
         CertificateUtils.createKeystore(
-                testContext,
                 kafka.getMetadata().getNamespace(),
                 Constants.KAFKA_USER,
                 getKeystoreSecretName(apicurioRegistryKafkasqlTLS),
@@ -127,7 +119,6 @@ public class ApicurioRegistryUtils {
     }
 
     public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlSCRAM(
-            ExtensionContext testContext,
             Kafka kafka,
             boolean useKeycloak
     ) throws InterruptedException {
@@ -141,7 +132,6 @@ public class ApicurioRegistryUtils {
         ApicurioRegistryResourceType.updateWithDefaultSCRAM(apicurioRegistryKafkasqlSCRAM);
 
         CertificateUtils.createTruststore(
-                testContext,
                 kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
                 getTruststoreSecretName(apicurioRegistryKafkasqlSCRAM)

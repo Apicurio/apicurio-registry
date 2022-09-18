@@ -7,10 +7,9 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class DatabaseUtils {
-    public static void deployDefaultPostgresqlDatabase(ExtensionContext testContext) {
+    public static void deployDefaultPostgresqlDatabase() {
         PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql();
         Deployment deployment = DeploymentResourceType.getDefaultPostgresql();
         Service service = ServiceResourceType.getDefaultPostgresql();
@@ -24,7 +23,7 @@ public class DatabaseUtils {
         }
     }
 
-    public static void deployPostgresqlDatabase(ExtensionContext testContext, String name, String namespace) {
+    public static void deployPostgresqlDatabase(String name, String namespace) {
         PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql(
                 name,
                 namespace

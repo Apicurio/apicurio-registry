@@ -15,7 +15,6 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.text.MessageFormat;
 
@@ -25,7 +24,7 @@ public class OLMUpgradeTests extends TestBase {
         LOGGER = LoggerUtils.getLogger();
     }
 
-    public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) throws InterruptedException {
+    public void runUpgradeTest(boolean clusterWide) throws InterruptedException {
         // Install operator from default catalog (do not use catalog source image, it will be used for upgrade)
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(
                 null,
@@ -38,9 +37,9 @@ public class OLMUpgradeTests extends TestBase {
 
         // DEPLOY REGISTRY
         // Deploy PostgreSQL database for registry
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+        DatabaseUtils.deployDefaultPostgresqlDatabase();
         // Deploy registry with PostgreSQL storage
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, false);
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(false);
 
         // Run basic API tests
         CreateReadDelete.testCreateReadDelete(apicurioRegistry);
@@ -107,13 +106,13 @@ public class OLMUpgradeTests extends TestBase {
 
     @Test
     @Disabled
-    public void testUpgradeClusterWide(ExtensionContext testContext) throws InterruptedException {
-        runUpgradeTest(testContext, true);
+    public void testUpgradeClusterWide() throws InterruptedException {
+        runUpgradeTest(true);
     }
 
     @Test
     @Disabled
-    public void testUpgradeNamespaced(ExtensionContext testContext) throws InterruptedException {
-        runUpgradeTest(testContext, false);
+    public void testUpgradeNamespaced() throws InterruptedException {
+        runUpgradeTest(false);
     }
 }

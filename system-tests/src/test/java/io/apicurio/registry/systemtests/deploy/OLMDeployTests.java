@@ -37,11 +37,11 @@ public abstract class OLMDeployTests extends DeployTests {
     }
 
     @Test
-    public void testMultipleNamespaces(ExtensionContext testContext) throws InterruptedException {
+    public void testMultipleNamespaces() throws InterruptedException {
         // Deploy default PostgreSQL database
-        DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+        DatabaseUtils.deployDefaultPostgresqlDatabase();
         // Deploy default Apicurio Registry with default PostgreSQL database
-        ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, false);
+        ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(false);
 
         // Set suffix of second resources
         String suffix = "-multi";
@@ -51,7 +51,7 @@ public abstract class OLMDeployTests extends DeployTests {
         String secondSqlNamespace = "postgresql" + suffix;
 
         // Deploy second PostgreSQL database
-        DatabaseUtils.deployPostgresqlDatabase(testContext, secondSqlName, secondSqlNamespace);
+        DatabaseUtils.deployPostgresqlDatabase(secondSqlName, secondSqlNamespace);
         // Get second Apicurio Registry with second PostgreSQL database
         ApicurioRegistry secondSqlRegistry = ApicurioRegistryResourceType.getDefaultSql(
                 Constants.REGISTRY + suffix,

@@ -10,7 +10,6 @@ import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -18,12 +17,11 @@ public abstract class APITests extends TestBase {
     /* TEST RUNNERS */
 
     protected void runCreateReadDeleteTest(
-            ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
             boolean useKeycloak
     ) throws InterruptedException {
-        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
+        ApicurioRegistry registry = deployTestRegistry(persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
             CreateReadDelete.testCreateReadDelete(
@@ -38,12 +36,11 @@ public abstract class APITests extends TestBase {
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     protected void runCreateArtifactTest(
-            ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
             boolean useKeycloak
     ) throws InterruptedException {
-        ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, useKeycloak);
+        ApicurioRegistry registry = deployTestRegistry(persistenceKind, kafkaKind, useKeycloak);
 
         if (useKeycloak) {
             CreateArtifact.testCreateArtifact(registry, Constants.SSO_ADMIN_USER, Constants.SSO_USER_PASSWORD, true);
@@ -55,84 +52,84 @@ public abstract class APITests extends TestBase {
     /* TESTS - PostgreSQL */
 
     @Test
-    public void testRegistrySqlNoIAMCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, false);
+    public void testRegistrySqlNoIAMCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.SQL, null, false);
     }
 
     @Test
-    public void testRegistrySqlKeycloakCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.SQL, null, true);
+    public void testRegistrySqlKeycloakCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.SQL, null, true);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlNoIAMCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.SQL, null, false);
+    public void testRegistrySqlNoIAMCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.SQL, null, false);
     }
 
     @Test
-    public void testRegistrySqlKeycloakCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.SQL, null, true);
+    public void testRegistrySqlKeycloakCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.SQL, null, true);
     }
 
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoIAMCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
+    public void testRegistryKafkasqlNoAuthNoIAMCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
+    public void testRegistryKafkasqlNoAuthKeycloakCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoIAMCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
+    public void testRegistryKafkasqlTLSNoIAMCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
+    public void testRegistryKafkasqlTLSKeycloakCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoIAMCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
+    public void testRegistryKafkasqlSCRAMNoIAMCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakCreateReadDelete(ExtensionContext testContext) throws InterruptedException {
-        runCreateReadDeleteTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
+    public void testRegistryKafkasqlSCRAMKeycloakCreateReadDelete() throws InterruptedException {
+        runCreateReadDeleteTest(PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthNoIAMCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
+    public void testRegistryKafkasqlNoAuthNoIAMCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false);
     }
 
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
+    public void testRegistryKafkasqlNoAuthKeycloakCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, true);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSNoIAMCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
+    public void testRegistryKafkasqlTLSNoIAMCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.TLS, false);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
+    public void testRegistryKafkasqlTLSKeycloakCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.TLS, true);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoIAMCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
+    public void testRegistryKafkasqlSCRAMNoIAMCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakCreateArtifact(ExtensionContext testContext) throws InterruptedException {
-        runCreateArtifactTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
+    public void testRegistryKafkasqlSCRAMKeycloakCreateArtifact() throws InterruptedException {
+        runCreateArtifactTest(PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, true);
     }
 }

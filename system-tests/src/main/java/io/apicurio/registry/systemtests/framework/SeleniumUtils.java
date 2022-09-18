@@ -8,10 +8,9 @@ import io.apicurio.registry.systemtests.registryinfra.resources.ServiceResourceT
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.openshift.api.model.Route;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class SeleniumUtils {
-    public static void deployDefaultSelenium(ExtensionContext testContext) {
+    public static void deployDefaultSelenium() {
         Deployment deployment = DeploymentResourceType.getDefaultSelenium();
         Service service = ServiceResourceType.getDefaultSelenium();
         Route route = RouteResourceType.getDefaultSelenium();

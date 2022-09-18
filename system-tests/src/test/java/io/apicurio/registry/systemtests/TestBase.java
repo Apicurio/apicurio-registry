@@ -112,36 +112,34 @@ public abstract class TestBase {
     }
 
     protected ApicurioRegistry deployTestRegistry(
-            ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind,
             boolean useKeycloak
     ) throws InterruptedException {
         if (persistenceKind.equals(PersistenceKind.SQL)) {
             // Deploy PostgreSQL with/without Keycloak
-            DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
+            DatabaseUtils.deployDefaultPostgresqlDatabase();
 
-            return ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, useKeycloak);
+            return ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(useKeycloak);
         } else if (persistenceKind.equals(PersistenceKind.KAFKA_SQL)) {
             Kafka kafka;
 
             // Deploy Kafka
             if (kafkaKind.equals(KafkaKind.NO_AUTH)) {
                 // Deploy noAuthKafka
-                KafkaUtils.deployDefaultKafkaNoAuth(testContext);
+                KafkaUtils.deployDefaultKafkaNoAuth();
 
-                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext, useKeycloak);
+                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.TLS)) {
                 // Deploy tlsKafka
-                kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
+                kafka = KafkaUtils.deployDefaultKafkaTls();
 
-                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafka, useKeycloak);
+                return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(kafka, useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.SCRAM)) {
                 // Deploy scramKafka
-                kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
+                kafka = KafkaUtils.deployDefaultKafkaScram();
 
                 return ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(
-                        testContext,
                         kafka,
                         useKeycloak
                 );

@@ -6,7 +6,6 @@ import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -80,7 +79,7 @@ public class CertificateUtils {
     }
 
     private static void createSecret(
-            ExtensionContext testContext, String namespace, String name, Map<String, String> secretData
+            String namespace, String name, Map<String, String> secretData
     ) throws InterruptedException {
         Secret secret = new SecretBuilder()
                 .withNewMetadata()
@@ -94,7 +93,6 @@ public class CertificateUtils {
     }
 
     public static void createTruststore(
-            ExtensionContext testContext,
             String namespace,
             String caCertSecretName,
             String truststoreSecretName
@@ -117,11 +115,10 @@ public class CertificateUtils {
             put("ca.password", Base64Utils.encode(truststorePassword));
         }};
 
-        createSecret(testContext, namespace, truststoreSecretName, secretData);
+        createSecret(namespace, truststoreSecretName, secretData);
     }
 
     public static void createKeystore(
-            ExtensionContext testContext,
             String namespace,
             String clientCertSecretName,
             String keystoreSecretName,
@@ -148,6 +145,6 @@ public class CertificateUtils {
             put("user.password", Base64Utils.encode(keystorePassword));
         }};
 
-        createSecret(testContext, namespace, keystoreSecretName, secretData);
+        createSecret(namespace, keystoreSecretName, secretData);
     }
 }

@@ -28,38 +28,46 @@ public class RoleBasedAuthorizationAdminOverrideClaim extends RoleBasedAuthoriza
         );
         // Initialize environment variable list for test
         List<EnvVar> envVarList = new ArrayList<>();
-        // Add basic environment variable to enable role based authorization
+        // Add basic environment variable to enable role based authorization into list
         envVarList.add(new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_ENABLED");
             setValue("true");
         }});
-        // Add environment variable to set authorization source to application
+        // Add environment variable to set authorization source to application into list
         envVarList.add(new EnvVar() {{
             setName("ROLE_BASED_AUTHZ_SOURCE");
             setValue("application");
         }});
-        // Add environment variable to enable admin override
+        // Add environment variable to enable admin override into list
         envVarList.add(new EnvVar() {{
             setName("REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED");
             setValue("true");
         }});
+        //
         // Environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_FROM to set admin override information source should be set
         // to token by default because only token is currently supported. We do not need to set it here.
-        // Add environment variable that set the type of information used to determine if a user is an admin to claim
+        //
+        // Add environment variable to set type of information used to determine if user is admin to claim into list
         envVarList.add(new EnvVar() {{
             setName("REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE");
             setValue("claim");
         }});
-        // Add environment variable to set name of admin override claim
-        envVarList.add(new EnvVar() {{
-            setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM");
-            setValue(claim.equals("default") ? "org-admin" : claim);
-        }});
-        // Add environment variable to set value of admin override claim
-        envVarList.add(new EnvVar() {{
-            setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE");
-            setValue(claimValue.equals("default") ? "true" : claimValue);
-        }});
+        // If claim should not be default
+        if (!claim.equals("default")) {
+            // Add environment variable to set name of admin override claim into list
+            envVarList.add(new EnvVar() {{
+                setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM");
+                setValue(claim);
+            }});
+        }
+        // If claim value should not be default
+        if (!claimValue.equals("default")) {
+            // Add environment variable to set value of admin override claim into list
+            envVarList.add(new EnvVar() {{
+                setName("REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE");
+                setValue(claimValue);
+            }});
+        }
 
         // GET REGISTRY HOSTNAME
         // Wait for readiness of registry hostname

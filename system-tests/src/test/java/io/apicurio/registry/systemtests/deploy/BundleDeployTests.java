@@ -17,7 +17,7 @@ public class BundleDeployTests extends DeployTests {
 
     @BeforeEach
     public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
-        LOGGER.info("BeforeEach: " + testContext.getDisplayName());
+        LOGGER.info("BeforeEach: " + testContext.getTestMethod().get().getName());
 
         ApicurioRegistryBundleOperatorType registryBundleOperator = new ApicurioRegistryBundleOperatorType();
 

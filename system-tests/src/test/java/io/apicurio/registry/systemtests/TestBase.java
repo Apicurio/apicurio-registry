@@ -89,7 +89,7 @@ public abstract class TestBase {
         LOGGER.info(
                 "[TEST-START] {}.{}-STARTED",
                 testContext.getTestClass().get().getName(),
-                testContext.getDisplayName()
+                testContext.getTestMethod().get().getName()
         );
         LoggerUtils.logDelimiter("#");
         LOGGER.info("");
@@ -106,7 +106,7 @@ public abstract class TestBase {
         LOGGER.info(
                 "[TEST-END] {}.{}-FINISHED",
                 testContext.getTestClass().get().getName(),
-                testContext.getDisplayName()
+                testContext.getTestMethod().get().getName()
         );
         LoggerUtils.logDelimiter("#");
     }

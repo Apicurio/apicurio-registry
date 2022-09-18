@@ -19,7 +19,7 @@ public abstract class OLMAPITests extends APITests {
 
     @BeforeEach
     public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
-        LOGGER.info("BeforeEach: " + testContext.getDisplayName());
+        LOGGER.info("BeforeEach: " + testContext.getTestMethod().get().getName());
 
         ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
 

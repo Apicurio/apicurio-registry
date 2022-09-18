@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class DeploymentUtils {
-
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static boolean deploymentEnvVarExists(Deployment deployment, String envVarName) {
@@ -42,8 +41,8 @@ public class DeploymentUtils {
                 .orElse(null);
     }
 
-    public static boolean addDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
-        return deployment
+    public static void addDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
+        deployment
                 .getSpec()
                 .getTemplate()
                 .getSpec()
@@ -53,15 +52,15 @@ public class DeploymentUtils {
                 .add(envVar);
     }
 
-    public static boolean removeDeploymentEnvVar(Deployment deployment, EnvVar envVar) {
-        return deployment
+    public static void removeDeploymentEnvVar(Deployment deployment, String envVarName) {
+        deployment
                 .getSpec()
                 .getTemplate()
                 .getSpec()
                 .getContainers()
                 .get(0)
                 .getEnv()
-                .remove(envVar);
+                .remove(getDeploymentEnvVar(deployment, envVarName));
     }
 
     public static boolean waitDeploymentReady(String namespace, String name) {
@@ -124,7 +123,10 @@ public class DeploymentUtils {
         return true;
     }
 
-    public static Deployment processChange(String namespace, String name, Deployment deployment) {
+    public static Deployment processChange(Deployment deployment) {
+        String namespace = deployment.getMetadata().getNamespace();
+        String name = deployment.getMetadata().getName();
+
         // Update deployment
         Kubernetes.createOrReplaceDeployment(namespace, deployment);
 
@@ -145,8 +147,6 @@ public class DeploymentUtils {
     public static void deleteDeploymentEnvVars(Deployment deployment, List<String> envVarNames) {
         // Get deployment name
         String dName = deployment.getMetadata().getName();
-        // Get deployment
-        deployment = Kubernetes.getDeployment(deployment.getMetadata().getNamespace(), dName);
         // Flag to indicate if deployment was changed
         boolean changed = false;
 
@@ -157,7 +157,7 @@ public class DeploymentUtils {
                 LOGGER.info("Deleting environment variable {} of deployment {}.", evn, dName);
 
                 // Delete environment variable
-                LOGGER.info("Deleted: {}", removeDeploymentEnvVar(deployment, getDeploymentEnvVar(deployment, evn)));
+                removeDeploymentEnvVar(deployment, evn);
 
                 changed = true;
             } else {
@@ -168,7 +168,7 @@ public class DeploymentUtils {
 
         if (changed) {
             // Process change and get deployment
-            deployment = processChange(deployment.getMetadata().getNamespace(), dName, deployment);
+            deployment = processChange(deployment);
 
             for (String evn : envVarNames) {
                 // Check deletion of environment variable
@@ -199,8 +199,7 @@ public class DeploymentUtils {
                 // Log information about current action
                 LOGGER.info("Adding environment variable {} with value {} to deployment {}.", evName, evValue, dName);
 
-                // Add environment variable if it does not exist yet
-                LOGGER.info("Added: {}", addDeploymentEnvVar(deployment, new EnvVar(evName, evValue, null)));
+                addDeploymentEnvVar(deployment, new EnvVar(evName, evValue, null));
 
                 changed = true;
             } else if (!getDeploymentEnvVar(deployment, evName).getValue().equals(evValue)) {
@@ -221,7 +220,7 @@ public class DeploymentUtils {
 
         if (changed) {
             // Process change and get deployment
-            deployment = processChange(deployment.getMetadata().getNamespace(), dName, deployment);
+            deployment = processChange(deployment);
 
             for (EnvVar ev : envVars) {
                 // Check value of environment variable

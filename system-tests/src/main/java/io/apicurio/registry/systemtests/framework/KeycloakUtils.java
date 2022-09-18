@@ -3,6 +3,7 @@ package io.apicurio.registry.systemtests.framework;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicurio.registry.systemtests.client.KeycloakAdminApiClient;
 import io.apicurio.registry.systemtests.executor.Exec;
 import io.apicurio.registry.systemtests.platform.Kubernetes;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
@@ -13,6 +14,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -33,7 +35,7 @@ public class KeycloakUtils {
         return Paths.get(Environment.TESTSUITE_PATH, "kubefiles", "keycloak", filename).toString();
     }
 
-    public static void deployKeycloak() throws InterruptedException {
+    public static void deployKeycloak() throws InterruptedException, IOException {
         deployKeycloak(Environment.NAMESPACE);
     }
 
@@ -50,7 +52,7 @@ public class KeycloakUtils {
 
     }
 
-    public static void deployKeycloak(String namespace) throws InterruptedException {
+    public static void deployKeycloak(String namespace) throws InterruptedException, IOException {
         LOGGER.info("Deploying Keycloak...");
         ResourceManager manager = ResourceManager.getInstance();
         // Deploy Keycloak server
@@ -80,6 +82,26 @@ public class KeycloakUtils {
                 "apply",
                 "-n", namespace,
                 "-f", getKeycloakFilePath("keycloak-realm.yaml")
+        );
+
+        // CREATE AND MAP KEYCLOAK CLIENT SCOPE FOR MAPPING USER ATTRIBUTES INTO TOKEN
+        // Get Keycloak API admin client
+        KeycloakAdminApiClient keycloakAdminApiClient = new KeycloakAdminApiClient(
+                // Set Keycloak admin URL to default one
+                KeycloakUtils.getDefaultKeycloakAdminURL(namespace),
+                // Get access token for Keycloak admin
+                KeycloakUtils.getAdminAccessToken(namespace)
+        );
+        // Create user attributes client scope for mapping user attributes into token
+        Assertions.assertTrue(keycloakAdminApiClient.createUserAttributesClientScope());
+        // Add user attributes client scope to default client scopes of Keycloak API client
+        Assertions.assertTrue(
+                keycloakAdminApiClient.addDefaultClientScopeToClient(
+                        // Get ID of API client (it is NOT clientId)
+                        keycloakAdminApiClient.getClientId(Constants.SSO_CLIENT_API),
+                        // Get ID of client scope (it is NOT client scope name)
+                        keycloakAdminApiClient.getClientScopeId(Constants.SSO_SCOPE)
+                )
         );
 
         LOGGER.info("Keycloak should be deployed.");
@@ -206,14 +228,18 @@ public class KeycloakUtils {
     }
 
     public static String getAdminAccessToken() {
+        return getAdminAccessToken(Constants.TESTSUITE_NAMESPACE);
+    }
+
+    public static String getAdminAccessToken(String namespace) {
         // Get secret with Keycloak admin credentials
-        Secret secret = Kubernetes.getSecret(Constants.TESTSUITE_NAMESPACE, "credential-" + Constants.SSO_NAME);
+        Secret secret = Kubernetes.getSecret(namespace, "credential-" + Constants.SSO_NAME);
         // Get Keycloak admin username
         String username = Base64Utils.decode(secret.getData().get("ADMIN_USERNAME"));
         // Get Keycloak admin password
         String password = Base64Utils.decode(secret.getData().get("ADMIN_PASSWORD"));
         // Get Keycloak admin URL
-        String url = getKeycloakURL(Constants.TESTSUITE_NAMESPACE, "keycloak", true);
+        String url = getKeycloakURL(namespace, "keycloak", true);
         // Construct token API URI of admin Keycloak Realm
         URI tokenUrl = HttpClientUtils.buildURI(
                 "%s/realms/%s/protocol/openid-connect/token", url, Constants.SSO_REALM_ADMIN

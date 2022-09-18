@@ -3,7 +3,6 @@ package io.apicurio.registry.systemtests.auth.features;
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.AuthMethod;
-import io.apicurio.registry.systemtests.client.KeycloakAdminApiClient;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.DeploymentUtils;
@@ -120,26 +119,6 @@ public class RoleBasedAuthorizationAdminOverride extends RoleBasedAuthorization 
 
         // WAIT FOR API AVAILABILITY
         Assertions.assertTrue(adminClient.waitServiceAvailable());
-
-        // CREATE AND MAP KEYCLOAK CLIENT SCOPE FOR MAPPING USER ATTRIBUTES INTO TOKEN
-        // Get Keycloak API admin client
-        KeycloakAdminApiClient keycloakAdminApiClient = new KeycloakAdminApiClient(
-                // Set Keycloak admin URL to default one
-                KeycloakUtils.getDefaultKeycloakAdminURL(),
-                // Get access token for Keycloak admin
-                KeycloakUtils.getAdminAccessToken()
-        );
-        // Create user attributes client scope for mapping user attributes into token
-        Assertions.assertTrue(keycloakAdminApiClient.createUserAttributesClientScope());
-        // Add user attributes client scope to default client scopes of Keycloak API client
-        Assertions.assertTrue(
-                keycloakAdminApiClient.addDefaultClientScopeToClient(
-                        // Get ID of API client (it is NOT clientId)
-                        keycloakAdminApiClient.getClientId(Constants.SSO_CLIENT_API),
-                        // Get ID of client scope (it is NOT client scope name)
-                        keycloakAdminApiClient.getClientScopeId(Constants.SSO_SCOPE)
-                )
-        );
 
         /* RUN TEST ACTIONS */
 

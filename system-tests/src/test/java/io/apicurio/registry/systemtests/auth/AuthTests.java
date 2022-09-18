@@ -7,7 +7,7 @@ import io.apicurio.registry.systemtests.auth.features.ArtifactGroupOwnerOnlyAuth
 import io.apicurio.registry.systemtests.auth.features.ArtifactOwnerOnlyAuthorization;
 import io.apicurio.registry.systemtests.auth.features.AuthenticatedReads;
 import io.apicurio.registry.systemtests.auth.features.BasicAuthentication;
-import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationAdminOverride;
+import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationAdminOverrideRole;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationApplication;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationRoleNames;
 import io.apicurio.registry.systemtests.auth.features.RoleBasedAuthorizationToken;
@@ -116,14 +116,14 @@ public abstract class AuthTests extends TestBase {
         RoleBasedAuthorizationRoleNames.testRoleBasedAuthorizationRoleNames(registry);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
-    protected void runRoleBasedAuthorizationAdminOverrideTest(
+    protected void runRoleBasedAuthorizationAdminOverrideRoleTest(
             ExtensionContext testContext,
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
     ) throws InterruptedException, IOException {
         ApicurioRegistry registry = deployTestRegistry(testContext, persistenceKind, kafkaKind, true);
 
-        RoleBasedAuthorizationAdminOverride.testRoleBasedAuthorizationAdminOverride(registry);
+        RoleBasedAuthorizationAdminOverrideRole.testRoleBasedAuthorizationAdminOverrideRole(registry);
     }
 
     /* TESTS - PostgreSQL */
@@ -184,10 +184,10 @@ public abstract class AuthTests extends TestBase {
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistrySqlKeycloakRoleBasedAuthorizationAdminOverride(
+    public void testRegistrySqlKeycloakRoleBasedAuthorizationAdminOverrideRole(
             ExtensionContext testContext
     ) throws InterruptedException, IOException {
-        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.SQL, null);
+        runRoleBasedAuthorizationAdminOverrideRoleTest(testContext, PersistenceKind.SQL, null);
     }
 
     /* TESTS - KafkaSQL */
@@ -382,23 +382,23 @@ public abstract class AuthTests extends TestBase {
     }
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
-    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationAdminOverride(
+    public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationAdminOverrideRole(
             ExtensionContext testContext
     ) throws InterruptedException, IOException {
-        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
+        runRoleBasedAuthorizationAdminOverrideRoleTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
-    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationAdminOverride(
+    public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationAdminOverrideRole(
             ExtensionContext testContext
     ) throws InterruptedException, IOException {
-        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
+        runRoleBasedAuthorizationAdminOverrideRoleTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationAdminOverride(
+    public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationAdminOverrideRole(
             ExtensionContext testContext
     ) throws InterruptedException, IOException {
-        runRoleBasedAuthorizationAdminOverrideTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
+        runRoleBasedAuthorizationAdminOverrideRoleTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
 }

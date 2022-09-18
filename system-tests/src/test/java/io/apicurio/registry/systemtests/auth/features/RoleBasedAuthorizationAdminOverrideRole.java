@@ -11,16 +11,6 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
     public static void testRoleBasedAuthorizationAdminOverrideRole(ApicurioRegistry apicurioRegistry) {
         /* RUN PRE-TEST ACTIONS */
 
-        // GET REGISTRY HOSTNAME
-        // Wait for readiness of registry hostname
-        Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
-        // Get registry hostname
-        String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
-
-        // INITIALIZE API CLIENTS
-        // Initialize API clients with default roles
-        initializeClients(apicurioRegistry, hostname);
-
         // PREPARE NECESSARY VARIABLES
         // Get registry deployment
         deployment = Kubernetes.getDeployment(
@@ -58,29 +48,37 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
             setValue("sr-admin");
         }};
 
-        // WAIT FOR API AVAILABILITY
-        Assertions.assertTrue(adminClient.waitServiceAvailable());
+        // GET REGISTRY HOSTNAME
+        // Wait for readiness of registry hostname
+        Assertions.assertTrue(ApicurioRegistryUtils.waitApicurioRegistryHostnameReady(apicurioRegistry));
+        // Get registry hostname
+        String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
 
         /* RUN TEST ACTIONS */
 
         // DO NOT SET ANY ROLE BASED RELATED ENVIRONMENT VARIABLE AND TEST DEFAULT BEHAVIOR
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
+        // Wait for API availability
+        Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedDisabled();
 
         // ENABLE ROLE BASED AUTHORIZATION BY TOKEN IN REGISTRY AND TEST IT
         // Set environment variable ROLE_BASED_AUTHZ_ENABLED of deployment to true
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuth);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedEnabled();
 
-        // REINITIALIZE API CLIENTS TO "REFRESH" TOKENS
-        initializeClients(apicurioRegistry, hostname);
-
         // SET ROLE BASED AUTHORIZATION SOURCE IN REGISTRY TO APPLICATION AND TEST IT
         // Set environment variable ROLE_BASED_AUTHZ_SOURCE of deployment to application
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthSource);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
@@ -91,6 +89,8 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         roleBasedAuthAdminOverride.setValue("false");
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED of deployment to false
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverride);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
@@ -101,6 +101,8 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         roleBasedAuthAdminOverride.setValue("true");
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED of deployment to true
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverride);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
@@ -109,6 +111,8 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         // SET ADMIN OVERRIDE INFORMATION SOURCE IN REGISTRY TO TOKEN AND TEST IT (SET TO DEFAULT VALUE)
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_FROM of deployment to token
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideSource);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
@@ -120,17 +124,18 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         // SET ADMIN OVERRIDE INFORMATION TYPE IN REGISTRY TO ROLE AND TEST IT (SET TO DEFAULT VALUE)
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE of deployment to role
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideType);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
         testRoleBasedEnabledOnlyAdminAllowed();
 
-        // REINITIALIZE API CLIENTS TO "REFRESH" TOKENS
-        initializeClients(apicurioRegistry, hostname);
-
         // SET ADMIN OVERRIDE ROLE NAME IN REGISTRY TO sr-admin AND TEST IT (SET TO DEFAULT VALUE)
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE of deployment to sr-admin
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideRole);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions
@@ -141,6 +146,8 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         roleBasedAuthAdminOverrideRole.setValue("test-admin-role");
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE of deployment to test-admin-role
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideRole);
+        // Initialize API clients with default roles
+        initializeClients(apicurioRegistry, hostname);
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions with default clients
@@ -155,6 +162,8 @@ public class RoleBasedAuthorizationAdminOverrideRole extends RoleBasedAuthorizat
         roleBasedAuthAdminOverrideRole.setValue("invalid-admin-role");
         // Set environment variable REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE of deployment to invalid-admin-role
         DeploymentUtils.createOrReplaceDeploymentEnvVar(deployment, roleBasedAuthAdminOverrideRole);
+        // Initialize clients with user-defined admin role
+        initializeClients(apicurioRegistry, hostname, "-role");
         // Wait for API availability
         Assertions.assertTrue(adminClient.waitServiceAvailable());
         // Run test actions with user-defined admin role (other clients are still default)

@@ -19,7 +19,6 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -300,7 +299,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -345,7 +344,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -357,7 +356,7 @@ public class ApicurioRegistryApiClient {
                     .map(object -> Objects.toString(object, null))
                     .collect(Collectors.toList());
         } else {
-            return new ArrayList<>();
+            return null;
         }
     }
 
@@ -671,7 +670,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -718,7 +717,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -730,7 +729,7 @@ public class ApicurioRegistryApiClient {
                     .map(object -> Objects.toString(object, null))
                     .collect(Collectors.toList());
         } else {
-            return new ArrayList<>();
+            return null;
         }
     }
 
@@ -946,7 +945,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -1086,7 +1085,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -1095,7 +1094,7 @@ public class ApicurioRegistryApiClient {
             if (httpStatus == HttpStatus.SC_OK) {
                 return MAPPER.readValue(response.body(), ArtifactList.class);
             } else {
-                return new ArtifactList();
+                return null;
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -1140,7 +1139,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -1149,7 +1148,7 @@ public class ApicurioRegistryApiClient {
             if (httpStatus == HttpStatus.SC_OK) {
                 return MAPPER.readValue(response.body(), ArtifactList.class);
             } else {
-                return new ArtifactList();
+                return null;
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -1189,7 +1188,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());
@@ -1198,7 +1197,7 @@ public class ApicurioRegistryApiClient {
             if (httpStatus == HttpStatus.SC_OK) {
                 return MAPPER.readValue(response.body(), USER_LIST_COLLECTION_TYPE);
             } else {
-                return new ArrayList<>();
+                return null;
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -1243,7 +1242,7 @@ public class ApicurioRegistryApiClient {
         if (response.statusCode() != httpStatus) {
             LOGGER.error("Response: code={}, body={}", response.statusCode(), response.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", response.statusCode()));
         }
 
         LOGGER.info("Response: code={}, body={}", response.statusCode(), response.body());

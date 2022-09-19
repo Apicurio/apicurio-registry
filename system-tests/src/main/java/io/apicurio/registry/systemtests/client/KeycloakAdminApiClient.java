@@ -71,7 +71,7 @@ public class KeycloakAdminApiClient {
         if (clientsResponse.statusCode() != HttpStatus.SC_OK) {
             LOGGER.error("Response: code={}, body={}", clientsResponse.statusCode(), clientsResponse.body());
 
-            return null;
+            throw new RuntimeException(String.format("Unexpected status code: %d", clientsResponse.statusCode()));
         } else {
             JSONArray obj = new JSONArray(clientsResponse.body());
 

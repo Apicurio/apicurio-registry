@@ -21,8 +21,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
-import java.io.IOException;
-
 @Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AuthTests extends TestBase {
@@ -113,7 +111,7 @@ public abstract class AuthTests extends TestBase {
     protected void runRoleBasedAuthorizationAdminOverrideRoleTest(
             PersistenceKind persistenceKind,
             KafkaKind kafkaKind
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         ApicurioRegistry registry = deployTestRegistry(persistenceKind, kafkaKind, true);
 
         RoleBasedAuthorizationAdminOverrideRole.testRoleBasedAuthorizationAdminOverrideRole(registry);
@@ -126,7 +124,7 @@ public abstract class AuthTests extends TestBase {
             String claimValue,
             String adminSuffix,
             boolean isAdminAllowed
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         LOGGER.info(
                 "TEST PARAMETERS: claim={}, claimValue={}, adminSuffix={}, isAdminAllowed={}",
                 claim, claimValue, adminSuffix, isAdminAllowed
@@ -192,7 +190,7 @@ public abstract class AuthTests extends TestBase {
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
     public void testRegistrySqlKeycloakRoleBasedAuthorizationAdminOverrideRole(
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideRoleTest(PersistenceKind.SQL, null);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
@@ -203,7 +201,7 @@ public abstract class AuthTests extends TestBase {
             String claimValue,
             String adminSuffix,
             boolean isAdminAllowed
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideClaimTest(
                 PersistenceKind.SQL,
                 null,
@@ -353,19 +351,19 @@ public abstract class AuthTests extends TestBase {
     /* -------------------------------------------------------------------------------------------------------------- */
     @Test
     public void testRegistryKafkasqlNoAuthKeycloakRoleBasedAuthorizationAdminOverrideRole(
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideRoleTest(PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH);
     }
 
     @Test
     public void testRegistryKafkasqlTLSKeycloakRoleBasedAuthorizationAdminOverrideRole(
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideRoleTest(PersistenceKind.KAFKA_SQL, KafkaKind.TLS);
     }
 
     @Test
     public void testRegistryKafkasqlSCRAMKeycloakRoleBasedAuthorizationAdminOverrideRole(
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideRoleTest(PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM);
     }
     /* -------------------------------------------------------------------------------------------------------------- */
@@ -376,7 +374,7 @@ public abstract class AuthTests extends TestBase {
             String claimValue,
             String adminSuffix,
             boolean isAdminAllowed
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideClaimTest(
                 PersistenceKind.KAFKA_SQL,
                 KafkaKind.NO_AUTH,
@@ -394,7 +392,7 @@ public abstract class AuthTests extends TestBase {
             String claimValue,
             String adminSuffix,
             boolean isAdminAllowed
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideClaimTest(
                 PersistenceKind.KAFKA_SQL,
                 KafkaKind.TLS,
@@ -412,7 +410,7 @@ public abstract class AuthTests extends TestBase {
             String claimValue,
             String adminSuffix,
             boolean isAdminAllowed
-    ) throws InterruptedException, IOException {
+    ) throws InterruptedException {
         runRoleBasedAuthorizationAdminOverrideClaimTest(
                 PersistenceKind.KAFKA_SQL,
                 KafkaKind.SCRAM,

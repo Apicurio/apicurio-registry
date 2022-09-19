@@ -22,7 +22,15 @@
     },
     "identifier": {
       "$ref": "citizenIdentifier.json"
+    },
+    "qualifications": {
+      "type": "array",
+      "items": {
+        "$ref": "qualification.json"
+      }
     }
   },
-  "required": ["city"]
+  "required": [
+    "city"
+  ]
 }

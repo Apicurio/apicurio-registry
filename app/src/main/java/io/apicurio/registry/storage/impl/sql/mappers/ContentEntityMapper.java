@@ -45,6 +45,7 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
         entity.canonicalHash = rs.getString("canonicalHash");
         entity.contentHash = rs.getString("contentHash");
         entity.contentBytes = rs.getBytes("content");
+        entity.serializedReferences = rs.getString("artifactreferences");
         return entity;
     }
 

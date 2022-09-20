@@ -73,6 +73,20 @@ public class RegistryClientImpl implements RegistryClient {
     }
 
     @Override
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String artifactName, String artifactDescription, InputStream data, List<ArtifactReference> references) {
+        Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
+        ContentCreateRequest contentCreateRequest = new ContentCreateRequest();
+        contentCreateRequest.setContent(IoUtil.toString(data));
+        contentCreateRequest.setReferences(references);
+        try {
+            return apicurioHttpClient.sendRequest(GroupRequestsProvider.updateArtifactWithReferences(normalizeGid(groupId), artifactId, headers, contentCreateRequest));
+        } catch (JsonProcessingException e) {
+            throw parseSerializationError(e);
+        }
+
+    }
+
+    @Override
     public void deleteArtifact(String groupId, String artifactId) {
         apicurioHttpClient.sendRequest(GroupRequestsProvider.deleteArtifact(normalizeGid(groupId), artifactId));
     }
@@ -254,7 +268,7 @@ public class RegistryClientImpl implements RegistryClient {
         if (artifactId != null && !ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
             throw new InvalidArtifactIdException();
         }
-        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, contentType);
+        final Map<String, String> headers = headersFrom(version, artifactName, artifactDescription, ContentTypes.APPLICATION_CREATE_EXTENDED);
         if (artifactId != null) {
             headers.put(Headers.ARTIFACT_ID, artifactId);
         }
@@ -267,7 +281,6 @@ public class RegistryClientImpl implements RegistryClient {
         }
         String content = IoUtil.toString(data);
         if (fromURL != null) {
-            headers.put(Headers.CONTENT_TYPE, ContentTypes.APPLICATION_CREATE_EXTENDED);
             content = " { \"content\" : \"" + fromURL + "\" }";
         }
         final Map<String, List<String>> queryParams = new HashMap<>();

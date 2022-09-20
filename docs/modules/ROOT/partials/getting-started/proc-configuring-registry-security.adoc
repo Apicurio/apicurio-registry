@@ -14,7 +14,7 @@ ifdef::apicurio-registry[]
 see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
 endif::[]
 ifdef::rh-service-registry[]
-see xref:registry-security-keycloak_{context}[]. 
+see xref:registry-security-keycloak[]. 
 endif::[]
 ====
 

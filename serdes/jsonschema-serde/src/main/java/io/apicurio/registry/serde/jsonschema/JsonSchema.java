@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.everit.json.schema.ArraySchema;
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
@@ -58,7 +60,7 @@ public class JsonSchema {
     private transient String canonicalString;
     private transient int hashCode;
     private static final int NO_HASHCODE = -2147483648;
-    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     public JsonSchema(JsonNode jsonNode) {
         this(jsonNode, Collections.emptyMap(), null);
@@ -237,13 +239,39 @@ public class JsonSchema {
             this.rawSchema().validate(jsonObject);
 
             if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
-                for (Map.Entry<String, Schema> schema: ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
-                    if (((ObjectSchema) schemaObj).getRequiredProperties().contains(schema.getKey()) && schema.getValue() instanceof ReferenceSchema) {
-                        (resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue())).validate(((JSONObject) jsonObject).get(schema.getKey()));
+                for (Map.Entry<String, Schema> schema : ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
+                    if (schema.getValue() instanceof ReferenceSchema) {
+                        validateComplexObject((JSONObject) jsonObject, schema);
+                    } else if (isArrayWithComplexType(schema)) {
+                        validateArrayProperty(((JSONObject) jsonObject).getJSONArray(schema.getKey()), ((ArraySchema) schema.getValue()).getAllItemSchema());
                     }
                 }
             }
         }
+    }
+
+    private void validateComplexObject(JSONObject jsonObject, Map.Entry<String, Schema> schema) throws JsonProcessingException {
+        if (isRequiredProperty(schema) || objectContainsSchemaKey(jsonObject, schema)) {
+            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue()).validate(jsonObject.get(schema.getKey()));
+        }
+    }
+
+    private void validateArrayProperty(JSONArray arrayProperty, Schema schema) throws JsonProcessingException {
+        for (int i = 0; i < arrayProperty.length(); i++) {
+            resolvedReferences.get(((ReferenceSchema) schema).getReferenceValue()).validate(arrayProperty.getJSONObject(i));
+        }
+    }
+
+    private boolean isArrayWithComplexType(Map.Entry<String, Schema> schema) {
+        return schema.getValue() instanceof ArraySchema && ((ArraySchema) schema.getValue()).getAllItemSchema() instanceof ReferenceSchema;
+    }
+
+    private boolean objectContainsSchemaKey(JSONObject jsonObject, Map.Entry<String, Schema> schema) {
+        return jsonObject.has(schema.getKey());
+    }
+
+    private boolean isRequiredProperty(Map.Entry<String, Schema> schema) {
+        return ((ObjectSchema) schemaObj).getRequiredProperties().contains(schema.getKey());
     }
 
     private static boolean isPrimitive(Object value) {

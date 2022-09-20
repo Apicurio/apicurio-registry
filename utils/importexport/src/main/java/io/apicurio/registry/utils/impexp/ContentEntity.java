@@ -33,6 +33,7 @@ public class ContentEntity extends Entity {
     public ArtifactType artifactType;
     @JsonIgnore
     public byte[] contentBytes;
+    public String serializedReferences;
 
     /**
      * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()

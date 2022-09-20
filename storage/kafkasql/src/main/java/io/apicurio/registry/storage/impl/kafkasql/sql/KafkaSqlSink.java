@@ -372,6 +372,7 @@ public class KafkaSqlSink {
                 entity.type = key.getRuleType();
                 entity.configuration = value.getConfig().getConfiguration();
                 sqlStore.importArtifactRule(entity);
+                return null;
             default:
                 return unsupported(key, value);
         }
@@ -414,7 +415,6 @@ public class KafkaSqlSink {
             case CLEAR:
                 sqlStore.deleteArtifactVersionMetaData(key.getGroupId(), key.getArtifactId(), key.getVersion());
                 return null;
-            case CREATE:
             default:
                 return unsupported(key, value);
         }
@@ -432,7 +432,7 @@ public class KafkaSqlSink {
                 if (!sqlStore.isContentExists(key.getContentHash())) {
                     sqlStore.storeContent(key.getContentId(), key.getContentHash(), value.getCanonicalHash(), value.getContent(), value.getSerializedReferences());
                 }
-                break;
+                return null;
             case IMPORT:
                 if (!sqlStore.isContentExists(key.getContentId())) {
                     ContentEntity entity = new ContentEntity();
@@ -440,16 +440,16 @@ public class KafkaSqlSink {
                     entity.contentHash = key.getContentHash();
                     entity.canonicalHash = value.getCanonicalHash();
                     entity.contentBytes = value.getContent().bytes();
+                    entity.serializedReferences = value.getSerializedReferences();
                     sqlStore.importContent(entity);
                 }
-                break;
+                return null;
             case UPDATE:
                 sqlStore.updateContentCanonicalHash(value.getCanonicalHash(), key.getContentId(), key.getContentHash());
-                break;
+                return null;
             default:
                 return unsupported(key, value);
         }
-        return null;
     }
 
     /**
@@ -499,7 +499,8 @@ public class KafkaSqlSink {
             case DELETE:
                 sqlStore.deleteRoleMapping(key.getPrincipalId());
                 return null;
-            case IMPORT:
+//            case IMPORT:
+// Should we be importing role mappings?
 //                GlobalRuleEntity entity = new GlobalRuleEntity();
 //                entity.ruleType = key.getRuleType();
 //                entity.configuration = value.getConfig().getConfiguration();

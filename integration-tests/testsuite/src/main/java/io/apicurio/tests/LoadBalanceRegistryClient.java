@@ -118,6 +118,19 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     /**
      * @param groupId
      * @param artifactId
+     * @param data
+     * @param references 
+     * @return
+     * @see io.apicurio.registry.rest.client.RegistryClient#updateArtifact(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.io.InputStream, java.util.List)
+     */
+    @Override
+    public ArtifactMetaData updateArtifact(String groupId, String artifactId, String version, String name, String description, InputStream data, List<ArtifactReference> references) {
+        return getTarget().updateArtifact(groupId, artifactId, version, name, description, data, references);
+    }
+
+    /**
+     * @param groupId
+     * @param artifactId
      * @see io.apicurio.registry.rest.client.RegistryClient#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
@@ -420,6 +433,19 @@ public class LoadBalanceRegistryClient implements RegistryClient {
     @Override
     public ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) {
         return getTarget().createArtifact(groupId, artifactId, data);
+    }
+
+    /**
+     * @param groupId
+     * @param artifactId
+     * @param data
+     * @param references
+     * @return
+     * @see io.apicurio.registry.rest.client.RegistryClient#createArtifact(java.lang.String,  java.lang.String, java.io.InputStream, java.util.List)
+     */
+    @Override
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data, List<ArtifactReference> references) {
+        return getTarget().createArtifact(groupId, artifactId, data, references);
     }
 
     /**

@@ -151,21 +151,19 @@ public class ArtifactGroupOwnerOnlyAuthorization {
         Assertions.assertTrue(
                 testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_FORBIDDEN)
         );
-        // Check that API returns 403 Forbidden when updating test's artifact in owner's group by test
-        Assertions.assertTrue(
-                testClient.updateArtifact(groupId, testArtifactIdTest, updatedContent, HttpStatus.SC_FORBIDDEN)
-        );
+        // Check that API returns 200 OK when updating test's artifact in owner's group by test
+        Assertions.assertTrue(testClient.updateArtifact(groupId, testArtifactIdTest, updatedContent));
         // Check that API returns 403 Forbidden when updating owner's artifact in owner's group by test
         Assertions.assertTrue(
                 testClient.updateArtifact(groupId, testArtifactIdOwner, updatedContent, HttpStatus.SC_FORBIDDEN)
         );
-        // Check that API returns 403 Forbidden when deleting test's artifact in owner's group by test
-        Assertions.assertTrue(testClient.deleteArtifact(groupId, testArtifactIdTest, HttpStatus.SC_FORBIDDEN));
+        // Check that API returns 200 OK when deleting test's artifact in owner's group by test
+        Assertions.assertTrue(testClient.deleteArtifact(groupId, testArtifactIdTest));
         // Check that API returns 403 Forbidden when deleting owner's artifact in owner's group by test
         Assertions.assertTrue(testClient.deleteArtifact(groupId, testArtifactIdOwner, HttpStatus.SC_FORBIDDEN));
         // --- owner part finish
-        // Check that API returns 204 No Content when deleting test's artifact in owner's group by owner
-        Assertions.assertTrue(ownerClient.deleteArtifact(groupId, testArtifactIdTest));
+        // Check that API returns 404 Not Found when deleting test's artifact in owner's group by owner
+        Assertions.assertTrue(ownerClient.deleteArtifact(groupId, testArtifactIdTest, HttpStatus.SC_NOT_FOUND));
         // Check that API returns 204 No Content when deleting second owner's artifact in owner's group by owner
         Assertions.assertTrue(ownerClient.deleteArtifact(groupId, testSecondArtifactIdOwner));
         // Check that API returns 204 No Content when deleting owner's artifact in owner's group by owner

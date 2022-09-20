@@ -91,7 +91,7 @@ public class BasicAuthentication {
         // Wait for API availability
         Assertions.assertTrue(controlClient.waitServiceAvailable());
         // Check that API returns 401 Unauthorized when reading artifacts
-        Assertions.assertNotNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
+        Assertions.assertNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when creating artifact
         Assertions.assertTrue(
                 testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_UNAUTHORIZED)
@@ -129,7 +129,7 @@ public class BasicAuthentication {
         // Wait for API availability
         Assertions.assertTrue(controlClient.waitServiceAvailable());
         // Check that API returns 401 Unauthorized when reading artifacts
-        Assertions.assertNotNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
+        Assertions.assertNull(testClient.listArtifacts(1, HttpStatus.SC_UNAUTHORIZED));
         // Check that API returns 401 Unauthorized when creating artifact
         Assertions.assertTrue(
                 testClient.createArtifact(groupId, failId, type, initialContent, HttpStatus.SC_UNAUTHORIZED)

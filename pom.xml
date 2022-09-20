@@ -243,7 +243,7 @@
         <keycloak-admin-client.version>19.0.2</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.1</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
-        <wiremock-jre8.version>2.33.2</wiremock-jre8.version>
+        <wiremock-jre8.version>2.34.0</wiremock-jre8.version>
     </properties>
 
     <dependencyManagement>

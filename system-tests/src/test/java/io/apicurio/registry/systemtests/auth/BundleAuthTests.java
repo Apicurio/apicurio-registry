@@ -3,8 +3,10 @@ package io.apicurio.registry.systemtests.auth;
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryBundleOperatorType;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+@Tag("bundle")
 public class BundleAuthTests extends AuthTests {
     @Override
     public void setupTestClass() {

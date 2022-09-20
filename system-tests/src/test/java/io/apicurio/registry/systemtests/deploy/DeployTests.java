@@ -3,11 +3,9 @@ package io.apicurio.registry.systemtests.deploy;
 import io.apicurio.registry.systemtests.TestBase;
 import io.apicurio.registry.systemtests.registryinfra.resources.KafkaKind;
 import io.apicurio.registry.systemtests.registryinfra.resources.PersistenceKind;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@Disabled
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class DeployTests extends TestBase {
     /* TESTS - PostgreSQL */

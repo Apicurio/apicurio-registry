@@ -2,10 +2,8 @@ package io.apicurio.registry.systemtests.auth;
 
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-@Disabled
 public abstract class OLMAuthTests extends AuthTests {
     private boolean clusterWide;
 

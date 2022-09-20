@@ -24,9 +24,9 @@ import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.apicurio.rest.client.spi.ApicurioHttpClientFactory;
 import org.junit.jupiter.api.Assertions;
 
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
+import io.apicurio.tenantmanager.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.utils.tests.TestUtils;

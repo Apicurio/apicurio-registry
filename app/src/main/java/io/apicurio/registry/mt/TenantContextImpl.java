@@ -20,7 +20,7 @@ import javax.enterprise.context.ApplicationScoped;
 
 import org.slf4j.MDC;
 
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 /**

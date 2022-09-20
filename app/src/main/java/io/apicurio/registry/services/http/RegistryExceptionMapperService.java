@@ -17,7 +17,7 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.multitenant.client.exception.TenantManagerClientException;
+import io.apicurio.tenantmanager.client.exception.TenantManagerClientException;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;

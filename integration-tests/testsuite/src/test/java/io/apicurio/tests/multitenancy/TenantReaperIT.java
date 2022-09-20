@@ -15,9 +15,9 @@
  */
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.UpdateRegistryTenantRequest;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;

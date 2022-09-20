@@ -121,8 +121,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>client</module>
-        <module>multitenancy/tenant-manager-datamodel</module>
-        <module>multitenancy/tenant-manager-client</module>
 
         <!-- modules for implementing ArtifactTypeUtilProvider -->
         <module>schema-util/common</module>
@@ -183,6 +181,9 @@
 
         <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
         <apicurio-data-models.version>1.1.26</apicurio-data-models.version>
+
+        <!-- Apicurio Tenant Manager -->
+        <apicurio-tenant-manager.version>0.1.0-SNAPSHOT</apicurio-tenant-manager.version>
 
         <!-- GraphQL -->
         <graphql.version>19.2</graphql.version>
@@ -347,13 +348,13 @@
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-tenant-manager-datamodel</artifactId>
-                <version>${project.version}</version>
+                <artifactId>apicurio-tenant-manager-datamodel</artifactId>
+                <version>${apicurio-tenant-manager.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
-                <artifactId>apicurio-registry-tenant-manager-client</artifactId>
-                <version>${project.version}</version>
+                <artifactId>apicurio-tenant-manager-client</artifactId>
+                <version>${apicurio-tenant-manager.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.apicurio</groupId>
@@ -941,12 +942,6 @@
             <modules>
                 <!-- Operator tests module -->
                 <module>system-tests</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>multitenancy</id>
-            <modules>
-                <module>multitenancy/tenant-manager-api</module>
             </modules>
         </profile>
         <profile>

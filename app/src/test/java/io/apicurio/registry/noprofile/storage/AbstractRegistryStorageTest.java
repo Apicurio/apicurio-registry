@@ -17,8 +17,8 @@
 package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.mt.MockTenantMetadataService;
@@ -108,13 +108,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @BeforeEach
     protected void setTenantIds() throws Exception {
         tenantId1 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
-        RegistryTenant rt1 = new RegistryTenant();
+        ApicurioTenant rt1 = new ApicurioTenant();
         rt1.setTenantId(tenantId1.getTenantId());
         rt1.setStatus(tenantId1.getStatus());
         tms.createTenant(rt1);
 
         tenantId2 = new RegistryTenantContext(UUID.randomUUID().toString(), null, null, TenantStatusValue.READY, null);
-        RegistryTenant rt2 = new RegistryTenant();
+        ApicurioTenant rt2 = new ApicurioTenant();
         rt2.setTenantId(tenantId2.getTenantId());
         rt2.setStatus(tenantId2.getStatus());
         tms.createTenant(rt2);

@@ -54,7 +54,7 @@ build-all:
 	@echo "----------------------------------------------------------------------"
 	@echo "                   Building All Modules                               "
 	@echo "----------------------------------------------------------------------"
-	./mvnw clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
+	./mvnw clean install -Pprod -Psql -Pkafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 .PHONY: build-sql-native ## Builds sql storage variant native executable. Variables available for override [SKIP_TESTS, BUILD_FLAGS]
 build-sql-native:
@@ -69,13 +69,6 @@ build-kafkasql-native:
 	@echo "             Building Kafkasql Storage Variant Natively               "
 	@echo "----------------------------------------------------------------------"
 	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pkafkasql -pl storage/kafkasql -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
-
-.PHONY: build-tenant-manager-native ## Builds tenant manager natively [SKIP_TESTS, BUILD_FLAGS]
-build-tenant-manager-native:
-	@echo "----------------------------------------------------------------------"
-	@echo "                Building Tenant Manager Natively                      "
-	@echo "----------------------------------------------------------------------"
-	./mvnw package -Pnative -Dquarkus.native.container-build=true -Pprod -Pmultitenancy -pl 'multitenancy/tenant-manager-api' -DskipTests=$(SKIP_TESTS) $(BUILD_FLAGS)
 
 
 
@@ -275,18 +268,18 @@ multiarch-registry-images: mem-multiarch-images sql-multiarch-images kafkasql-mu
 
 .PHONY: pr-check ## Builds and runs basic tests for multitenant registry pipelines
 pr-check:
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -Pmultitenancy -am -pl storage/sql,multitenancy/tenant-manager-api \
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl storage/sql,multitenancy/tenant-manager-api \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 	./scripts/clean-postgres.sh
-	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Pmultitenancy -Psql -am -pl integration-tests/testsuite \
+	CURRENT_ENV=mas NO_DOCKER=true mvn verify -Pintegration-tests -Psql -am -pl integration-tests/testsuite \
 		-Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: build-project ## Builds the components for multitenant registry pipelines
 build-project:
 # run unit tests for app module
-	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -Pmultitenancy -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
+	CURRENT_ENV=mas mvn clean install -Pno-docker -Dskip.npm -Pprod -Psql -am -pl app -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 # build everything without running tests in order to be able to build container images
-	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Pmultitenancy -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
+	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
 .PHONY: build-integration-tests-common ## Builds integration-tests-common
 build-integration-tests-common:

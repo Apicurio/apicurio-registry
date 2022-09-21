@@ -328,6 +328,9 @@ run-multitenancy-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running Multitenancy Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
+	rm -rf multitenancy
+	git clone https://github.com/andreaTP/apicurio-tenant-manager.git --branch="make-it-happen" --depth 1 multitenancy
+	( cd multitenancy && .././mvnw clean install -DskipTests=true )
 	./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests

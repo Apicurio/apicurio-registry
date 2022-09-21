@@ -2,7 +2,7 @@ package io.apicurio.registry.systemtests.upgrade;
 
 import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.TestBase;
-import io.apicurio.registry.systemtests.api.features.CreateReadDelete;
+import io.apicurio.registry.systemtests.api.features.CreateReadUpdateDelete;
 import io.apicurio.registry.systemtests.client.ApicurioRegistryApiClient;
 import io.apicurio.registry.systemtests.client.ArtifactContent;
 import io.apicurio.registry.systemtests.client.ArtifactList;
@@ -42,7 +42,7 @@ public class OLMUpgradeTests extends TestBase {
         ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(false);
 
         // Run basic API tests
-        CreateReadDelete.testCreateReadDelete(apicurioRegistry);
+        CreateReadUpdateDelete.testCreateReadUpdateDelete(apicurioRegistry);
 
         // CREATE ARTIFACTS TO CHECK REGISTRY OPERABILITY AFTER UPGRADE
         // Get registry hostname
@@ -90,7 +90,7 @@ public class OLMUpgradeTests extends TestBase {
         ApicurioRegistryUtils.waitApicurioRegistryReady(apicurioRegistry);
 
         // Run basic API tests
-        CreateReadDelete.testCreateReadDelete(apicurioRegistry);
+        CreateReadUpdateDelete.testCreateReadUpdateDelete(apicurioRegistry);
 
         // CHECK PRESENCE OF ARTIFACTS AFTER UPGRADE
         // Get list of artifacts

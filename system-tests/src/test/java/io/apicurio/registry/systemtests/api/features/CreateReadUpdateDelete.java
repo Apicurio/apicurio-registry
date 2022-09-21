@@ -10,12 +10,12 @@ import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.KeycloakUtils;
 import org.junit.jupiter.api.Assertions;
 
-public class CreateReadDelete {
-    public static void testCreateReadDelete(ApicurioRegistry apicurioRegistry) {
-        testCreateReadDelete(apicurioRegistry, null, null, false);
+public class CreateReadUpdateDelete {
+    public static void testCreateReadUpdateDelete(ApicurioRegistry apicurioRegistry) {
+        testCreateReadUpdateDelete(apicurioRegistry, null, null, false);
     }
 
-    public static void testCreateReadDelete(
+    public static void testCreateReadUpdateDelete(
             ApicurioRegistry apicurioRegistry,
             String username,
             String password,
@@ -28,6 +28,7 @@ public class CreateReadDelete {
         String artifactGroupId = "registry-test-group";
         String artifactId = "registry-test-id";
         String artifactContent = ArtifactContent.DEFAULT_AVRO;
+        String updatedArtifactContent = "{\"key\":\"id\"}";
         String hostname = ApicurioRegistryUtils.getApicurioRegistryHostname(apicurioRegistry);
 
         // Get API client
@@ -59,6 +60,11 @@ public class CreateReadDelete {
         // Check creation of artifact
         Assertions.assertTrue(artifactList.contains(artifactGroupId, artifactId));
         Assertions.assertEquals(client.readArtifactContent(artifactGroupId, artifactId), artifactContent);
+
+        // Update artifact
+        Assertions.assertTrue(client.updateArtifact(artifactGroupId, artifactId, updatedArtifactContent));
+        // Check update of artifact
+        Assertions.assertEquals(client.readArtifactContent(artifactGroupId, artifactId), updatedArtifactContent);
 
         // Delete artifact
         Assertions.assertTrue(client.deleteArtifact(artifactGroupId, artifactId));

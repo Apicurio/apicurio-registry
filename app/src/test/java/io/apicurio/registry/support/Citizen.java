@@ -18,6 +18,8 @@ package io.apicurio.registry.support;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 public class Citizen {
 
     @JsonProperty("firstName")
@@ -35,15 +37,18 @@ public class Citizen {
     @JsonProperty("identifier")
     CitizenIdentifier identifier;
 
+    @JsonProperty("qualifications")
+    List<Qualification> qualifications;
+
     public Citizen() {
     }
 
-    public Citizen(String firstName, String lastName, int age, City city, CitizenIdentifier identifier) {
+    public Citizen(String firstName, String lastName, int age, City city, CitizenIdentifier identifier, List<Qualification> qualifications) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;
         this.city = city;
-        this.identifier = identifier;
+        this.qualifications = qualifications;
     }
 
     public String getFirstName() {
@@ -84,5 +89,13 @@ public class Citizen {
 
     public void setIdentifier(CitizenIdentifier identifier) {
         this.identifier = identifier;
+    }
+
+    public List<Qualification> getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(List<Qualification> qualifications) {
+        this.qualifications = qualifications;
     }
 }

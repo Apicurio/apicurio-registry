@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.everit.json.schema.ArraySchema;
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
@@ -238,15 +239,31 @@ public class JsonSchema {
             this.rawSchema().validate(jsonObject);
 
             if (this.schemaObj instanceof ObjectSchema && jsonObject instanceof JSONObject) {
-                for (Map.Entry<String, Schema> schema: ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
+                for (Map.Entry<String, Schema> schema : ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
                     if (schema.getValue() instanceof ReferenceSchema) {
-                        if (isRequiredProperty(schema) || objectContainsSchemaKey((JSONObject) jsonObject, schema)) {
-                            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue()).validate(((JSONObject) jsonObject).get(schema.getKey()));
-                        }
+                        validateComplexObject((JSONObject) jsonObject, schema);
+                    } else if (isArrayWithComplexType(schema)) {
+                        validateArrayProperty(((JSONObject) jsonObject).getJSONArray(schema.getKey()), ((ArraySchema) schema.getValue()).getAllItemSchema());
                     }
                 }
             }
         }
+    }
+
+    private void validateComplexObject(JSONObject jsonObject, Map.Entry<String, Schema> schema) throws JsonProcessingException {
+        if (isRequiredProperty(schema) || objectContainsSchemaKey(jsonObject, schema)) {
+            resolvedReferences.get(((ReferenceSchema) schema.getValue()).getReferenceValue()).validate(jsonObject.get(schema.getKey()));
+        }
+    }
+
+    private void validateArrayProperty(JSONArray arrayProperty, Schema schema) throws JsonProcessingException {
+        for (int i = 0; i < arrayProperty.length(); i++) {
+            resolvedReferences.get(((ReferenceSchema) schema).getReferenceValue()).validate(arrayProperty.getJSONObject(i));
+        }
+    }
+
+    private boolean isArrayWithComplexType(Map.Entry<String, Schema> schema) {
+        return schema.getValue() instanceof ArraySchema && ((ArraySchema) schema.getValue()).getAllItemSchema() instanceof ReferenceSchema;
     }
 
     private boolean objectContainsSchemaKey(JSONObject jsonObject, Map.Entry<String, Schema> schema) {

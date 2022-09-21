@@ -281,6 +281,15 @@ build-project:
 # build everything without running tests in order to be able to build container images
 	CURRENT_ENV=mas mvn clean install -Pprod -Pno-docker -Dskip.npm -Psql -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false -DskipTests
 
+.PHONY: build-integration-tests-multitenancy ## Builds Tenant manager
+build-integration-tests-multitenancy:
+	@echo "----------------------------------------------------------------------"
+	@echo "           Building Tenant Manager for Integration Tests              "
+	@echo "----------------------------------------------------------------------"
+	rm -rf multitenancy
+	git clone https://github.com/andreaTP/apicurio-tenant-manager.git --branch="make-it-happen" --depth 1 multitenancy
+	( cd multitenancy && .././mvnw clean install -DskipTests=true )
+
 .PHONY: build-integration-tests-common ## Builds integration-tests-common
 build-integration-tests-common:
 	@echo "----------------------------------------------------------------------"
@@ -328,9 +337,6 @@ run-multitenancy-integration-tests: build-integration-tests-common
 	@echo "----------------------------------------------------------------------"
 	@echo "               Running Multitenancy Integration Tests                 "
 	@echo "----------------------------------------------------------------------"
-	rm -rf multitenancy
-	git clone https://github.com/andreaTP/apicurio-tenant-manager.git --branch="make-it-happen" --depth 1 multitenancy
-	( cd multitenancy && .././mvnw clean install -DskipTests=true )
 	./mvnw verify -Pintegration-tests -Pmultitenancy -Psql -pl integration-tests/testsuite -Dmaven.javadoc.skip=true --no-transfer-progress -DtrimStackTrace=false
 
 .PHONY: run-sql-migration-integration-tests ## Runs sql migration integration tests

@@ -130,6 +130,9 @@ jobs:
         run: |
           make build-sql-native build-tenant-manager-native
 
+      - name: Prepare Tenant Manager
+        run: make build-integration-tests-multitenancy
+
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
       - name: Run Integration Tests - sql

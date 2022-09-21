@@ -87,12 +87,15 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             List<ArtifactReference> references = idx > 0 ? getSingletonRefList("avro-schemas", "avro-" + (idx - 1), "1", "myRef" + idx) : Collections.emptyList();
             var amd = source.createArtifact("avro-schemas", artifactId, avroSchema.generateSchemaStream(), references);
             retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
+            assertTrue(matchesReferences(references, source.getArtifactReferencesByGlobalId(amd.getGlobalId())));
             referencesMap.put(amd.getGlobalId(), references);
             globalIds.add(amd.getGlobalId());
 
+            avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             List<ArtifactReference> updatedReferences = idx > 0 ? getSingletonRefList("avro-schemas", "avro-" + (idx - 1), "2", "myRef" + idx) : Collections.emptyList();
             var vmd = source.updateArtifact("avro-schemas", artifactId, null, null, null, avroSchema.generateSchemaStream(), updatedReferences);
             retry(() -> source.getContentByGlobalId(vmd.getGlobalId()));
+            assertTrue(matchesReferences(updatedReferences, source.getArtifactReferencesByGlobalId(vmd.getGlobalId())));
             referencesMap.put(vmd.getGlobalId(), updatedReferences);
             globalIds.add(vmd.getGlobalId());
         }
@@ -150,6 +153,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             retry(() -> source.getContentByGlobalId(amd.getGlobalId()));
             artifacts.put("avro-schemas:" + artifactId, content);
 
+            avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
             var vmd = source.updateArtifact("avro-schemas", artifactId, IoUtil.toStream(content2));
             retry(() -> source.getContentByGlobalId(vmd.getGlobalId()));

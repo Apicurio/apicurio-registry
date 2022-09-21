@@ -329,6 +329,8 @@ public class RegistryFacade {
     }
 
     private void runTenantManager(Map<String, String> registryAppEnv) throws Exception {
+        // TODO: This should run as test-containers
+
         Map<String, String> appEnv = new HashMap<>();
         appEnv.put("DATASOURCE_URL", registryAppEnv.get("REGISTRY_DATASOURCE_URL"));
         appEnv.put("DATASOURCE_USERNAME", registryAppEnv.get("REGISTRY_DATASOURCE_USERNAME"));
@@ -350,71 +352,7 @@ public class RegistryFacade {
 
         var nativeExec = getTenantManagerNativeExecutablePath();
 
-        Exec executor = new Exec();
-        if (nativeExec.isPresent()) {
-            LOGGER.info("Starting Tenant Manager Native Executable app from: {}", nativeExec.get());
-            CompletableFuture.supplyAsync(() -> {
-                try {
-
-                    List<String> cmd = new ArrayList<>();
-                    cmd.add(nativeExec.get());
-                    int timeout = executor.execute(cmd, appEnv);
-                    return timeout == 0;
-                } catch (Exception e) {
-                    LOGGER.error("Failed to start native tenant-manager.", e);
-                    System.exit(1);
-                    return false;
-                }
-            }, runnable -> new Thread(runnable).start());
-        } else {
-            String path = getTenantManagerJarPath();
-            LOGGER.info("Starting Tenant Manager app from: {}", path);
-            CompletableFuture.supplyAsync(() -> {
-                try {
-
-                    List<String> cmd = new ArrayList<>();
-                    cmd.add("java");
-                    cmd.addAll(Arrays.asList(
-                            // "-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-                            "-jar", path));
-                    int timeout = executor.execute(cmd, appEnv);
-                    return timeout == 0;
-                } catch (Exception e) {
-                    LOGGER.error("Failed to start tenant manager (could not find runner JAR).", e);
-                    System.exit(1);
-                    return false;
-                }
-            }, runnable -> new Thread(runnable).start());
-        }
-
-        processes.add(new RegistryTestProcess() {
-
-            @Override
-            public String getName() {
-                return "tenant-manager";
-            }
-
-            @Override
-            public void close() throws Exception {
-                executor.stop();
-            }
-
-            @Override
-            public String getStdOut() {
-                return executor.stdOut();
-            }
-
-            @Override
-            public String getStdErr() {
-                return executor.stdErr();
-            }
-
-            @Override
-            public boolean isContainer() {
-                return false;
-            }
-
-        });
+        // TODO: Go on from here!
     }
 
     private void runKeycloakMock(Map<String, String> appEnv) throws Exception {
@@ -931,25 +869,6 @@ public class RegistryFacade {
         if (!runnerExists(path)) {
             LOGGER.info("No runner JAR found.  Throwing an exception.");
             throw new IllegalStateException("Could not determine where to find the executable jar for the server. " +
-                "This may happen if you are using an IDE to debug.");
-        }
-        return path;
-    }
-
-    private Optional<String> getTenantManagerNativeExecutablePath() throws IOException {
-        String path = findRunner(findTenantManagerModuleDir(), null);
-        if (runnerExists(path)) {
-            return Optional.of(path);
-        }
-        return Optional.empty();
-    }
-
-    private String getTenantManagerJarPath() throws IOException {
-        String path = findTenantManagerJar();
-        LOGGER.info("Checking tenant manager runner JAR path: " + path);
-        if (!runnerExists(path)) {
-            LOGGER.info("No runner JAR found.  Throwing an exception.");
-            throw new IllegalStateException("Could not determine where to find the executable jar for the tenant manager app. " +
                 "This may happen if you are using an IDE to debug.");
         }
         return path;

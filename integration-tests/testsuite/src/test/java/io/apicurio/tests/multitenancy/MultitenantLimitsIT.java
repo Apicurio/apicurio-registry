@@ -16,7 +16,7 @@
 
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.tenantmanager.api.datamodel.NewRegistryTenantRequest;
+import io.apicurio.tenantmanager.api.datamodel.NewApicurioTenantRequest;
 import io.apicurio.tenantmanager.api.datamodel.ResourceType;
 import io.apicurio.tenantmanager.api.datamodel.TenantResource;
 import io.apicurio.tenantmanager.client.TenantManagerClient;
@@ -143,7 +143,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
         String username = UUID.randomUUID().toString();
 
-        NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
+        NewApicurioTenantRequest tenantReq = new NewApicurioTenantRequest();
         tenantReq.setOrganizationId(UUID.randomUUID().toString());
         tenantReq.setTenantId(UUID.randomUUID().toString());
         tenantReq.setCreatedBy(username);

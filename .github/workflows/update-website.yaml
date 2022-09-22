@@ -7,7 +7,7 @@ on:
 jobs:
   update-website:
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
 
       - name: Apicurio Website Checkout
@@ -68,7 +68,7 @@ jobs:
 
       - name: Google Chat Notification
         if: ${{ failure() }}
-        uses: Co-qn/google-chat-notification@releases/v1
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
         with:
           name: ${{ github.job }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}

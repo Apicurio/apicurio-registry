@@ -12,7 +12,7 @@ concurrency:
 jobs:
   build-push-mem-image:
     name: Docker image from PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-ubuntu-20.04
     if: github.repository_owner == 'Apicurio'
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

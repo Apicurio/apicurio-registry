@@ -14,33 +14,31 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.v6.impl;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-
-import java.util.List;
-
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.BadRequestException;
-
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.rest.v6.SubjectVersionsResource;
+import io.apicurio.registry.ccompat.rest.v7.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.BadRequestException;
+import java.util.List;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+
 /**
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
@@ -50,54 +48,45 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     FacadeConverter converter;
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<Integer> listVersions(String subject) throws Exception {
         return facade.getVersions(subject);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public SchemaId register(String subject, SchemaInfo request) throws Exception {
-        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), false);
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public SchemaId register(String subject, SchemaInfo request, Boolean normalize) throws Exception {
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), normalize);
         int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public Schema getSchemaByVersion(
-            String subject,
-            String version) throws Exception {
-
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public Schema getSchemaByVersion(String subject, String version) throws Exception {
         return facade.getSchema(subject, version);
     }
 
     @Override
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID, "1", KEY_VERSION})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public int deleteSchemaVersion(
-            String subject,
-            String version) throws Exception {
-
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public int deleteSchemaVersion(String subject, String version, Boolean permanent) throws Exception {
         try {
-            return facade.deleteSchema(subject, version, false);
+            return facade.deleteSchema(subject, version, permanent);
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException(ex); // TODO
         }
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public String getSchemaOnly(
-            String subject,
-            String version) throws Exception {
-
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public String getSchemaOnly(String subject, String version) throws Exception {
         return facade.getSchema(subject, version).getSchema();
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<Long> getSchemasReferencedBy(String subject, String version) throws Exception {
         return facade.getContentIdsReferencingArtifact(subject, version);
     }

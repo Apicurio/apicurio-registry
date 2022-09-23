@@ -17,10 +17,13 @@
 package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonSchemaWrapperVisitor;
+import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.CombinedSchemaWrapper;
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.ObjectSchemaWrapper;
 import io.apicurio.registry.rules.compatibility.jsonschema.wrapper.SchemaWrapper;
+import org.everit.json.schema.CombinedSchema;
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.StringSchema;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -300,8 +303,18 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     @Override
     public void visitPropertySchema(String propertyName, SchemaWrapper schema) {
         if (original.getPropertySchemas().containsKey(propertyName)) {
+            Schema originalPropertySchema = original.getPropertySchemas().get(propertyName);
+            if (originalPropertySchema instanceof StringSchema
+                && schema instanceof CombinedSchemaWrapper) {
+                originalPropertySchema = CombinedSchema
+                    .builder()
+                    .criterion(CombinedSchema.ANY_CRITERION)
+                    .subschema(originalPropertySchema)
+                    .build();
+            }
+
             schema.accept(new SchemaDiffVisitor(ctx.sub("properties/" + propertyName),
-                original.getPropertySchemas().get(propertyName))); // TODO null/invalid schema
+                originalPropertySchema)); // TODO null/invalid schema
         }
         super.visitPropertySchema(propertyName, schema);
     }

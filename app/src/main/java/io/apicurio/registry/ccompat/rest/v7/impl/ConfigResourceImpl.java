@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.v6.impl;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
+import io.apicurio.common.apps.logging.audit.AuditingConstants;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
-import io.apicurio.registry.ccompat.rest.v6.ConfigResource;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
-import io.apicurio.common.apps.logging.audit.AuditingConstants;
+import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -33,19 +33,17 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
 import javax.interceptor.Interceptors;
-
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {
-
 
     private CompatibilityLevelParamDto getCompatibilityLevel(Supplier<String> supplyLevel) {
         try {
@@ -60,7 +58,6 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             return new CompatibilityLevelParamDto(CompatibilityLevelDto.Level.NONE.name());
         }
     }
-
 
     private void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
                                           Consumer<RuleConfigurationDto> updater,
@@ -80,34 +77,34 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         }
     }
 
-
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
         return getCompatibilityLevel(() ->
                 facade.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }
 
-
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_RULE})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public CompatibilityLevelDto updateGlobalCompatibilityLevel(
-            CompatibilityLevelDto request) {
-
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public CompatibilityLevelDto updateGlobalCompatibilityLevel(CompatibilityLevelDto request) {
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateGlobalRule(RuleType.COMPATIBILITY, dto),
                 () -> facade.deleteGlobalRule(RuleType.COMPATIBILITY));
         return request;
     }
 
-
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
-    public CompatibilityLevelDto updateSubjectCompatibilityLevel(
-            String subject,
-            CompatibilityLevelDto request) {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
+        return getCompatibilityLevel(() ->
+                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request) {
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> facade.createOrUpdateArtifactRule(subject, RuleType.COMPATIBILITY, dto),
                 () -> facade.deleteArtifactRule(subject, RuleType.COMPATIBILITY));
@@ -115,9 +112,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
-    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject) {
-        return getCompatibilityLevel(() ->
-                facade.getArtifactRule(subject, RuleType.COMPATIBILITY).getConfiguration());
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public void deleteSubjectCompatibility(String subject) {
+        Arrays.stream(RuleType.values()).forEach(ruleType -> facade.deleteArtifactRule(subject, ruleType));
     }
 }

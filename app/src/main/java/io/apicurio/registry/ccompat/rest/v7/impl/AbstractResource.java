@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.v6.impl;
+package io.apicurio.registry.ccompat.rest.v7.impl;
+
+
+import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
+import org.slf4j.Logger;
 
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-
-import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
-
 /**
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 public abstract class AbstractResource {
 
@@ -35,3 +34,4 @@ public abstract class AbstractResource {
     Logger log;
 
 }
+

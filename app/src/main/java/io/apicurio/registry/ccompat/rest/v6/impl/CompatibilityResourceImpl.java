@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,6 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             String versionString,
             SchemaContent request) throws Exception {
 
-        return facade.testCompatibilityBySubjectName(subject, versionString, request);
+        return facade.testCompatibilityByVersion(subject, versionString, request, false);
     }
 }

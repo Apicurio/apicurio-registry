@@ -34,7 +34,9 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  * <p/>
  * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html#exporters">API specification</a> is owned by Confluent.
  *
- * The contexts resource allows you to query the information or manipulate the lifecycle of schema contexts..
+ * The contexts resource allows you to query the information or manipulate the lifecycle of schema contexts.
+ *
+ * We do not support this endpoint, if it's used, the default context will be returned.
  *
  * @author Carles Arnal
  */

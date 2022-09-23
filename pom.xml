@@ -203,6 +203,7 @@
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.10.0</kafka-oauth-client.version>
         <kafka-clients.version>2.8.1</kafka-clients.version>
+        <snakeyaml.version>1.32</snakeyaml.version>
 
         <!-- Kafka Connect -->
         <connect.version>2.8.1</connect.version>
@@ -578,6 +579,11 @@
                 <groupId>io.sentry</groupId>
                 <artifactId>sentry</artifactId>
                 <version>${sentry.version}</version><!--$NO-MVN-MAN-VER$-->
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
 
             <!-- GraphQL -->

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
@@ -24,6 +24,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import java.util.List;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
@@ -34,12 +35,11 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#schemas">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html#schemas">API specification</a> is owned by Confluent.
  *
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
-@Path("/apis/ccompat/v6/schemas")
+@Path("/apis/ccompat/v7/schemas")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SchemasResource {
@@ -52,6 +52,8 @@ public interface SchemasResource {
      * Parameters:
      *
      * @param id (int) – the globally unique identifier of the schema
+     * @param subject (string) - add ?subject=<someSubjectName> at the end of this request to look for the subject in all contexts starting with the default context,
+     *                           and return the schema with the id from that context.
      *
      * Response JSON Object:
      *
@@ -66,7 +68,29 @@ public interface SchemasResource {
      */
     @GET
     @Path("/ids/{id}")
-    SchemaInfo getSchema(@PathParam("id") int id);
+    SchemaInfo getSchema(@PathParam("id") int id, @QueryParam("subject") String subject);
+
+    // ----- Path: /schemas/types -----
+
+    /**
+     * Get the schema types that are registered with Schema Registry.
+     *
+     *
+     *
+     * Response JSON Object:
+     *
+     *      schema (string) – Schema types currently available on Schema Registry.
+     *
+     * Status Codes:
+     *
+     *     404 Not Found –
+     *         Error code 40403 – Schema not found
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend datastore
+     */
+    @GET
+    @Path("types")
+    List<String> getRegisteredTypes();
 
     // ----- PATH: /schemas/ids/{int: id}/versions -----
 
@@ -92,26 +116,4 @@ public interface SchemasResource {
     @GET
     @Path("/ids/{id}/versions")
     List<SubjectVersion> getSubjectVersions(@PathParam("id") int id);
-
-    // ----- Path: /schemas/types -----
-
-    /**
-     * Get the schema types that are registered with Schema Registry.
-     *
-     *
-     *
-     * Response JSON Object:
-     *
-     *      schema (string) – Schema types currently available on Schema Registry.
-     *
-     * Status Codes:
-     *
-     *     404 Not Found –
-     *         Error code 40403 – Schema not found
-     *     500 Internal Server Error –
-     *         Error code 50001 – Error in the backend datastore
-     */
-    @GET
-    @Path("types")
-    List<String> getRegisteredTypes();
 }

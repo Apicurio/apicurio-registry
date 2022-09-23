@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v6.impl;
 
 import io.apicurio.registry.ccompat.dto.ModeDto;
-import io.apicurio.registry.ccompat.rest.ModeResource;
+import io.apicurio.registry.ccompat.rest.v6.ModeResource;
 import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;

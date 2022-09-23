@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v6.impl;
 
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.ccompat.rest.SchemasResource;
+import io.apicurio.registry.ccompat.dto.Schema;
+import io.apicurio.registry.ccompat.dto.SchemaContent;
+import io.apicurio.registry.ccompat.rest.v6.SubjectsResource;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.types.ArtifactType;
 
 import javax.interceptor.Interceptors;
-import java.util.Arrays;
+
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import java.util.List;
 
 /**
@@ -37,23 +38,26 @@ import java.util.List;
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
-
-    @Override
-    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public SchemaInfo getSchema(int id) {
-        return facade.getSchemaById(id);
-    }
-
-    @Override
-    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public List<SubjectVersion> getSubjectVersions(int id) {
-        return facade.getSubjectVersions(id);
-    }
+public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
     @Override
     @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public List<String> getRegisteredTypes() {
-        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
+    public List<String> listSubjects() {
+        return facade.getSubjects();
     }
+
+    @Override
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
+    public Schema findSchemaByContent(String subject, SchemaContent request) throws Exception {
+        return facade.getSchema(subject, request);
+    }
+
+    @Override
+    @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
+    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    public List<Integer> deleteSubject(String subject) throws Exception {
+
+        return facade.deleteSubject(subject);
+    }
+
 }

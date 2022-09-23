@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -39,10 +40,9 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
  *
  * The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.
  *
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
-@Path("/apis/ccompat/v6/config")
+@Path("/apis/ccompat/v7/config")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface ConfigResource {
@@ -125,4 +125,25 @@ public interface ConfigResource {
     CompatibilityLevelDto updateSubjectCompatibilityLevel(
             @PathParam("subject") String subject,
             @NotNull CompatibilityLevelDto request);
+
+    /**
+     * Deletes the specified subject-level compatibility level config and reverts to the global default.
+     *
+     * @param subject (string) – Name of the subject
+     *
+     * Request:
+     *     - compatibility (string) – New compatibility level for the subject. Must be one of
+     *       BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
+     *
+     * Status Codes:
+     *     422 Unprocessable Entity –
+     *         Error code 42203 – Invalid compatibility level
+     *     500 Internal Server Error –
+     *         Error code 50001 – Error in the backend data store
+     *         Error code 50003 – Error while forwarding the request to the primary
+     */
+    @Path("/{subject}")
+    @DELETE
+    void deleteSubjectCompatibility(
+            @PathParam("subject") String subject);
 }

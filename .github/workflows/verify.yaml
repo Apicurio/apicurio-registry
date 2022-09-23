@@ -128,7 +128,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-tenant-manager-native
+          make build-sql-native
 
       - name: Prepare Tenant Manager
         run: make build-integration-tests-multitenancy
@@ -161,7 +161,7 @@ jobs:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-tenant-manager-native-image
+          make build-sql-native-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
@@ -173,7 +173,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-tenant-manager-native-image
+          make push-sql-native-image
 
       - name: List All The Images
         run: docker images

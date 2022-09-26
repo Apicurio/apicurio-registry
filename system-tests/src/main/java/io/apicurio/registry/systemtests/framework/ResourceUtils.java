@@ -15,7 +15,7 @@ public class ResourceUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static boolean waitStatefulSetReady(String namespace, String name) {
-        return waitStatefulSetReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
+        return waitStatefulSetReady(namespace, name, TimeoutBudget.ofDuration(Duration.ofMinutes(7)));
     }
 
     public static boolean waitStatefulSetReady(String namespace, String name, TimeoutBudget timeoutBudget) {

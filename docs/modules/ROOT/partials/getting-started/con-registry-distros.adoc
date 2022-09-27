@@ -9,7 +9,7 @@
 ifdef::apicurio-registry[]
 
 .{registry} images 
-[%header,cols=2*] 
+[%header,cols="2,4"] 
 |===
 |Distribution option
 |Container Image

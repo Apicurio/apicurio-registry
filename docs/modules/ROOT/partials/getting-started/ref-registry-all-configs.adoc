@@ -3,6 +3,22 @@
 
 This section contains a list of the configuration options available for {registry}.
 
+== Category ``:
+.Category `` configuration options
+[.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`registry.build-number`
+|`string`
+|
+|
+|Application build number
+|===
+
 == Category `api`:
 .Category `api` configuration options
 [.table-expandable,width="100%",cols="5,2,5,3,4",options="header"]
@@ -78,6 +94,11 @@ This section contains a list of the configuration options available for {registr
 |`false`
 |`2.1.4.Final`
 |Authenticated read access
+|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|`integer`
+|`10`
+|`2.2.6.Final`
+|Client credentials token expiration time
 |`registry.auth.basic-auth-client-credentials.enabled`
 |`boolean [dynamic]`
 |`false`

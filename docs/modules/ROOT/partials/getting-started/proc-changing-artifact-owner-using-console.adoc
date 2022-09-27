@@ -5,7 +5,7 @@
 = Changing an artifact owner using the {registry} web console
 
 [role="_abstract"]
-As an administrator or as a schema or API artifact owner, you can use the {registry} web console to change the artifact owner to 
+As an administrator or as an owner of a schema or API artifact, you can use the {registry} web console to change the artifact owner to 
 ifdef::apicurio-registry[]
 another user account.
 endif::[] 
@@ -13,10 +13,10 @@ ifdef::rh-openshift-sr[]
 another user account or service account.
 endif::[] 
 
-This feature is useful if *Artifact owner-only authorization* is set for the {registry} instance on the *Settings* tab so that only owners or administrators can modify artifacts. For example, you might need to change owner if the owner user leaves the organization or the owner account is deleted. 
+For example, this feature is useful if the *Artifact owner-only authorization* option is set for the {registry} instance on the *Settings* tab so that only owners or administrators can modify artifacts. You might need to change owner if the owner user leaves the organization or the owner account is deleted. 
 
 ifdef::apicurio-registry,rh-service-registry[]
-NOTE: The *Owner* field and the *Artifact owner-only authorization* setting are only displayed in the web console if authentication was already enabled when the {registry} instance was deployed. For more details, see 
+NOTE: The artifact *Owner* field and the *Artifact owner-only authorization* setting are only displayed in the web console if authentication was already enabled when the {registry} instance was deployed. For more details, see 
 endif::[] 
 ifdef::apicurio-registry[]
 xref:../getting-started/assembly-configuring-the-registry.adoc[].

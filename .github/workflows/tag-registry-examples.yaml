@@ -20,7 +20,7 @@ on:
 
 jobs:
   tag-registry-examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Set Versions
         run: |
@@ -53,7 +53,7 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
 
       - name: Checkout Apicurio Registry Tag ${{ env.RELEASE_VERSION }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            ref: ${{ env.RELEASE_VERSION }}
            path: apicurio-registry
@@ -64,7 +64,7 @@ jobs:
         run: cd apicurio-registry && make build-all
 
       - name: Checkout Apicurio Registry Examples
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
            repository: Apicurio/apicurio-registry-examples
            path: apicurio-registry-examples
@@ -109,7 +109,7 @@ jobs:
 
       - name: Google Chat Notification
         if: ${{ failure() }}
-        uses: Co-qn/google-chat-notification@releases/v1
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
         with:
           name: ${{ github.workflow }}
           url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}

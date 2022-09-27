@@ -100,7 +100,8 @@ public class ConfigJsServlet extends HttpServlet {
      */
     private void configureAuth(ConfigJs config) {
         if (uiConfig.isAuthenticationEnabled()) {
-            if (uiConfig.getUiAuthType().equals("keycloakjs")) {
+            //when auth is enabled but the type is not set, default to keycloak
+            if (uiConfig.getUiAuthType().equals("keycloakjs") || uiConfig.getUiAuthType().equals("none")) {
                 config.auth.type = "keycloakjs";
                 config.auth.options = uiConfig.getKeycloakProperties();
             } else if (uiConfig.getUiAuthType().equals("oidc")) {

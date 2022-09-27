@@ -27,14 +27,14 @@ env:
 jobs:
   build-verify:
     name: Verify Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     strategy:
       matrix:
         jdk-version: [11, 17]
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up JDK ${{ matrix.jdk-version }}
         uses: actions/setup-java@v3
@@ -91,11 +91,11 @@ jobs:
 
   build-native-images:
     name: Build native images
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up JDK 11
         uses: actions/setup-java@v3
@@ -177,14 +177,14 @@ jobs:
 
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         language: [go, js, python]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@b2feaf19c27470162a626bd6fa8438ae5b263721
         id: changes
         with:
           base: main
@@ -194,7 +194,7 @@ jobs:
 
       - name: Repository Dispatch
         if: steps.changes.outputs.openapi == 'true'
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@ce5485de42c9b2622d2ed064be479e8ed65e76f4
         with:
            token: ${{ secrets.ACCESS_TOKEN }}
            repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
@@ -203,11 +203,11 @@ jobs:
 
   trigger-examples-build:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [build-verify]
     steps:
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@ce5485de42c9b2622d2ed064be479e8ed65e76f4
         with:
            token: ${{ secrets.ACCESS_TOKEN }}
            repository: Apicurio/apicurio-registry-examples
@@ -216,12 +216,12 @@ jobs:
   # Triggers apicurio-registry-mt-ui build whenever apicurio-registry/ui changes
   trigger-mt-ui-build:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [build-verify]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@b2feaf19c27470162a626bd6fa8438ae5b263721
         id: changes
         with:
           base: main
@@ -232,7 +232,7 @@ jobs:
 
       - name: Repository Dispatch
         if: steps.changes.outputs.registry-ui == 'true'
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@ce5485de42c9b2622d2ed064be479e8ed65e76f4
         with:
            token: ${{ secrets.ACCESS_TOKEN }}
            repository: Apicurio/apicurio-registry-mt-ui

@@ -23,17 +23,14 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install tools
         run: .github/scripts/install-tools.sh
-
-      - name: Check generated code
-        run: ./scripts/validate-generated-code.sh
 
       - name: Run linter
         run: ./scripts/validate-files.sh

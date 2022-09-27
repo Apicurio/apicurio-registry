@@ -24,11 +24,11 @@ concurrency:
 jobs:
   kubernetes-tests-basic:
     name: Kubernetes Tests Basic
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - uses: actions/setup-go@v2
         with:
@@ -76,11 +76,11 @@ jobs:
 
   kubernetes-tests-clustered:
     name: Kubernetes Tests Clustered
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - uses: actions/setup-go@v2
         with:

@@ -4,6 +4,7 @@ import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.systemtests.framework.ApicurioRegistryUtils;
 import io.apicurio.registry.systemtests.framework.Constants;
 import io.apicurio.registry.systemtests.framework.DatabaseUtils;
+import io.apicurio.registry.systemtests.framework.Environment;
 import io.apicurio.registry.systemtests.operator.types.ApicurioRegistryOLMOperatorType;
 import io.apicurio.registry.systemtests.registryinfra.ResourceManager;
 import io.apicurio.registry.systemtests.registryinfra.resources.ApicurioRegistryResourceType;
@@ -55,7 +56,7 @@ public abstract class OLMDeployTests extends DeployTests {
         // Get second Apicurio Registry with second PostgreSQL database
         ApicurioRegistry secondSqlRegistry = ApicurioRegistryResourceType.getDefaultSql(
                 Constants.REGISTRY + suffix,
-                Constants.TESTSUITE_NAMESPACE + suffix,
+                Environment.NAMESPACE + suffix,
                 secondSqlName,
                 secondSqlNamespace
         );

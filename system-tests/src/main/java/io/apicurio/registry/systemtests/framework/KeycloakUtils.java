@@ -144,7 +144,7 @@ public class KeycloakUtils {
     }
 
     public static String getDefaultKeycloakAdminURL() {
-        return getDefaultKeycloakAdminURL(Constants.TESTSUITE_NAMESPACE);
+        return getDefaultKeycloakAdminURL(Environment.NAMESPACE);
     }
 
     public static String getDefaultKeycloakAdminURL(String namespace) {
@@ -225,7 +225,7 @@ public class KeycloakUtils {
     }
 
     public static String getAdminAccessToken() {
-        return getAdminAccessToken(Constants.TESTSUITE_NAMESPACE);
+        return getAdminAccessToken(Environment.NAMESPACE);
     }
 
     public static String getAdminAccessToken(String namespace) {

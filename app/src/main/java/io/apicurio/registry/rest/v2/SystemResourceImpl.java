@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest.v2;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
@@ -46,6 +47,7 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     @ConfigProperty(name = "registry.build-number")
+    @Info(description = "Application build number")
     String buildNumber;
 
     @Inject
@@ -55,7 +57,7 @@ public class SystemResourceImpl implements SystemResource {
      * @see io.apicurio.registry.rest.v2.SystemResource#getSystemInfo()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public SystemInfo getSystemInfo() {
         SystemInfo info = new SystemInfo();
         info.setName(system.getName());

@@ -76,6 +76,7 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     Supplier<Boolean> fakeBasicAuthEnabled;
 
     @ConfigProperty(name = "registry.auth.basic-auth-client-credentials.cache-expiration", defaultValue = "10")
+    @Info(category = "auth", description = "Client credentials token expiration time", availableSince = "2.2.6.Final")
     Integer accessTokenExpiration;
 
     @ConfigProperty(name = "registry.auth.token.endpoint")

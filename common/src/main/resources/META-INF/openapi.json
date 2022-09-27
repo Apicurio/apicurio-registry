@@ -3106,6 +3106,9 @@
                     "builtOn": {
                         "format": "date-time",
                         "type": "string"
+                    },
+                    "buildNumber": {
+                        "type": "string"
                     }
                 },
                 "example": {

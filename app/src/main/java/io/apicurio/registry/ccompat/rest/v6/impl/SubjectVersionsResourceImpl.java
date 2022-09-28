@@ -81,9 +81,9 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             String version) throws Exception {
 
         try {
-            return facade.deleteSchema(subject, version, false);
+            return facade.deleteSchema(subject, version, true);
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException(ex); // TODO
+            throw new BadRequestException(ex);
         }
     }
 

@@ -33,6 +33,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import javax.enterprise.inject.Typed;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import java.util.Map;
 
 
 @QuarkusTest
+@Typed(ConfluentClientV7Test.class)
 public class ConfluentClientV7Test extends ConfluentClientTest {
 
     @Override
@@ -61,11 +63,10 @@ public class ConfluentClientV7Test extends ConfluentClientTest {
         config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
         config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v7");
         config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, TestCmmn.UUID.class.getName());
-        config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_KEY_TYPE, TestCmmn.UUID.class.getName());
 
 
         try (KafkaProtobufSerializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer<>(client);
-             KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer<>(client)){
+             KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer<>(client)) {
 
             serializer.configure(config, false);
             deserializer.configure(config, false);

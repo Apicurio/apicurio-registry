@@ -56,7 +56,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject) throws Exception {
-        return facade.deleteSubject(subject, false);
+        return facade.deleteSubject(subject, true);
     }
 
 }

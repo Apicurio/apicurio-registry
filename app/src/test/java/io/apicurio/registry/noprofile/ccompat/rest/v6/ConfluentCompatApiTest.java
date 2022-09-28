@@ -773,7 +773,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testMinifiedSchema() throws Exception {
         final String SUBJECT = "testMinifiedSchema";
-        String testSchemaExpanded = resourceToString("avro-expanded.avsc");
+        String testSchemaExpanded = resourceToString("../avro-expanded.avsc");
 
         ObjectMapper objectMapper = new ObjectMapper();
         SchemaContent schemaContent = new SchemaContent(testSchemaExpanded);
@@ -793,7 +793,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         this.waitForArtifact(SUBJECT);
 
-        String minifiedSchema = resourceToString("avro-minified.avsc");
+        String minifiedSchema = resourceToString("../avro-minified.avsc");
         SchemaContent minifiedSchemaContent = new SchemaContent(minifiedSchema);
 
         //Without the canonical hash mode, this will fail with a 404

@@ -160,9 +160,10 @@
         <!-- Schema types -->
         <avro.version>1.11.1</avro.version>
         <json-schema-validator.version>1.0.73</json-schema-validator.version>
-        <wire-schema.version>3.7.1</wire-schema.version>
-        <wire-compiler.version>3.7.1</wire-compiler.version>
-        <jimfs.version>1.1</jimfs.version>
+        <wire-schema.version>4.3.0</wire-schema.version>
+        <wire-compiler.version>4.3.0</wire-compiler.version>
+        <okio-jvm.version>3.2.0</okio-jvm.version>
+        <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
         <icu4j.version>71.1</icu4j.version>
         <protobuf.version>3.21.7</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
@@ -174,7 +175,7 @@
         <picocli.version>4.6.3</picocli.version>
 
         <!-- Confluent API / client -->
-        <confluent.version>6.1.1</confluent.version>
+        <confluent.version>7.2.1</confluent.version>
 
         <!-- Default Quarkus configuration profile -->
         <quarkus.profile>dev</quarkus.profile>
@@ -527,14 +528,19 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>com.google.jimfs</groupId>
-                <artifactId>jimfs</artifactId>
-                <version>${jimfs.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>${okio-jvm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-fakefilesystem</artifactId>
+                <version>${okio-fake-file-system.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>

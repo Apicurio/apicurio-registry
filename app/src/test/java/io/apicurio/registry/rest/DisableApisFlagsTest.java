@@ -28,7 +28,7 @@ import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.noprofile.ccompat.rest.ConfluentCompatApiTest;
+import io.apicurio.registry.noprofile.ccompat.rest.v6.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.utils.tests.TestUtils;

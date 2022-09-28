@@ -57,7 +57,8 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request, Boolean normalize) throws Exception {
-        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), normalize);
+        final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), fnormalize);
         int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
@@ -73,7 +74,8 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public int deleteSchemaVersion(String subject, String version, Boolean permanent) throws Exception {
         try {
-            return facade.deleteSchema(subject, version, permanent);
+            final boolean fnormalize = permanent == null ? Boolean.FALSE : permanent;
+            return facade.deleteSchema(subject, version, fnormalize);
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException(ex); // TODO
         }

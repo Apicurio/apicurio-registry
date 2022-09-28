@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.noprofile.ccompat.rest.ConfluentCompatApiTest;
+import io.apicurio.registry.noprofile.ccompat.rest.v6.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.mt.MockTenantMetadataService;
 import io.quarkus.test.junit.QuarkusTest;

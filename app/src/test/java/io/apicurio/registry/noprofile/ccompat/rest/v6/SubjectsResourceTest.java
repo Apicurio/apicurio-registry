@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;

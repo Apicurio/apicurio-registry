@@ -97,7 +97,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     ArtifactTypeUtilProviderFactory factory;
 
     @Override
-    public List<String> getSubjects(Boolean deleted) {
+    public List<String> getSubjects(boolean deleted) {
         return storage.searchArtifacts(Set.of(SearchFilter.ofGroup(null)), OrderBy.createdOn, OrderDirection.asc, 0, 1000)
                 .getArtifacts()
                 .stream()
@@ -128,7 +128,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public List<Integer> deleteSubject(String subject, Boolean permanent) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<Integer> deleteSubject(String subject, boolean permanent) throws ArtifactNotFoundException, RegistryStorageException {
         if (permanent) {
             return storage.deleteArtifact(null, subject)
                     .stream()
@@ -192,7 +192,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Schema getSchema(String subject, SchemaContent schema, Boolean normalize) throws ArtifactNotFoundException, RegistryStorageException {
+    public Schema getSchema(String subject, SchemaContent schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException {
         ArtifactVersionMetaDataDto amd;
         if (cconfig.canonicalHashModeEnabled.get() || normalize) {
             amd = storage.getArtifactVersionMetaData(null, subject, true, ContentHandle.create(schema.getSchema()));
@@ -204,7 +204,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, Boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
+    public Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
         // Check to see if this content is already registered - return the global ID of that content
         // if it exists.  If not, then register the new content.
         try {
@@ -257,7 +257,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     @Override
-    public int deleteSchema(String subject, String versionString, Boolean permanent) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+    public int deleteSchema(String subject, String versionString, boolean permanent) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return VersionUtil.toInteger(parseVersionString(subject, versionString, version -> {
             if (permanent) {
                 storage.deleteArtifactVersion(null, subject, version);
@@ -288,7 +288,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version,
-                                                                 SchemaContent request, Boolean verbose) {
+                                                                 SchemaContent request, boolean verbose) {
         return parseVersionString(subject, version, v -> {
             try {
                 final ArtifactVersionMetaDataDto artifact = storage
@@ -308,7 +308,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject,
-                                                                     SchemaContent request, Boolean verbose) {
+                                                                     SchemaContent request, boolean verbose) {
         try {
             final List<String> versions = storage
                     .getArtifactVersions(null, subject);
@@ -334,7 +334,7 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return ContentHandle.create(QUOTED_BRACKETS.matcher(content).replaceAll(":{}"));
     }
 
-    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references, Boolean normalize) {
+    private ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, ArtifactType artifactType, List<SchemaReference> references, boolean normalize) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references);
         final Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(parsedReferences);

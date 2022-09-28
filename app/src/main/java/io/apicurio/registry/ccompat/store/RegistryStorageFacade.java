@@ -40,14 +40,14 @@ import io.apicurio.registry.types.RuleType;
  */
 public interface RegistryStorageFacade {
 
-    List<String> getSubjects(Boolean deleted);
+    List<String> getSubjects(boolean deleted);
 
     List<SubjectVersion> getSubjectVersions(int contentId);
 
     /**
      * @return List of <b>schema versions</b> in the deleted subject
      */
-    List<Integer> deleteSubject(String subject, Boolean permanent) throws ArtifactNotFoundException, RegistryStorageException;
+    List<Integer> deleteSubject(String subject, boolean permanent) throws ArtifactNotFoundException, RegistryStorageException;
 
 
     /**
@@ -55,7 +55,7 @@ public interface RegistryStorageFacade {
      *
      * @return contentId
      */
-    Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, Boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
+    Long createSchema(String subject, String schema, String schemaType, List<SchemaReference> references, boolean normalize) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException;
 
 
     SchemaInfo getSchemaById(int contentId) throws RegistryStorageException;
@@ -67,7 +67,7 @@ public interface RegistryStorageFacade {
     List<Integer> getVersions(String subject) throws ArtifactNotFoundException, RegistryStorageException;
 
 
-    Schema getSchema(String subject, SchemaContent schema, Boolean normalize) throws ArtifactNotFoundException, RegistryStorageException;
+    Schema getSchema(String subject, SchemaContent schema, boolean normalize) throws ArtifactNotFoundException, RegistryStorageException;
 
 
     /**
@@ -75,7 +75,7 @@ public interface RegistryStorageFacade {
      *
      * @throws java.lang.IllegalArgumentException if the version string is not an int or "latest"
      */
-    int deleteSchema(String subject, String version, Boolean permanent) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+    int deleteSchema(String subject, String version, boolean permanent) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
 
     void createOrUpdateArtifactRule(String subject, RuleType type, RuleConfigurationDto dto);
@@ -83,10 +83,10 @@ public interface RegistryStorageFacade {
     void createOrUpdateGlobalRule(RuleType type, RuleConfigurationDto dto);
 
     CompatibilityCheckResponse testCompatibilityBySubjectName(String subject,
-            SchemaContent request, Boolean verbose);
+            SchemaContent request, boolean verbose);
 
     CompatibilityCheckResponse testCompatibilityByVersion(String subject, String version,
-                                                              SchemaContent request, Boolean verbose);
+                                                              SchemaContent request, boolean verbose);
 
     <T> T parseVersionString(String subject, String versionString, Function<String, T> then);
 

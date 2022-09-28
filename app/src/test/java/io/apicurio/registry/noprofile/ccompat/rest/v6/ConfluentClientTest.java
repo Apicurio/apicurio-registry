@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
@@ -69,7 +69,7 @@ import io.quarkus.test.junit.QuarkusTest;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
-    private SchemaRegistryClient buildClient() {
+    public SchemaRegistryClient buildClient() {
 
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
@@ -209,13 +209,13 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         final Properties config = new Properties();
         config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
+        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
 
-        try (KafkaProtobufSerializer serializer = new KafkaProtobufSerializer(client, new HashMap(config));
-                KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)){
+        try (KafkaProtobufSerializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer(client, new HashMap(config));
+                KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer(client, config)){
 
             byte[] bytes = serializer.serialize(subject, record);
-            Object deserialized = deserializer.deserialize(subject, bytes);
+            TestCmmn.UUID deserialized = deserializer.deserialize(subject, bytes);
             Assertions.assertEquals(record, deserialized);
         }
     }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;

@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,7 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -569,7 +571,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title));
+            List<ArtifactReference> refs = idx > 0 ? getSingletonRefList(group, "Empty-" + (idx - 1), "1", "ref") : Collections.emptyList();
+            this.createArtifactWithReferences(group, artifactId, ArtifactType.OPENAPI, artifactContent.replaceAll("Empty API", title), refs);
             waitForArtifact(group, artifactId);
         }
 
@@ -1003,6 +1006,15 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             .then()
                 .statusCode(400);
 
+    }
+
+    private List<ArtifactReference> getSingletonRefList(String groupId, String artifactId, String version, String name) {
+        ArtifactReference artifactReference = new ArtifactReference();
+        artifactReference.setGroupId(groupId);
+        artifactReference.setArtifactId(artifactId);
+        artifactReference.setVersion(version);
+        artifactReference.setName(name);
+        return Collections.singletonList(artifactReference);
     }
 
 }

@@ -6,7 +6,7 @@
 
 [role="_abstract"]
 As an administrator or as an owner of a schema or API artifact, you can use the {registry} web console to change the artifact owner to 
-ifdef::apicurio-registry[]
+ifdef::apicurio-registry,rh-service-registry[]
 another user account.
 endif::[] 
 ifdef::rh-openshift-sr[]
@@ -22,12 +22,12 @@ ifdef::apicurio-registry[]
 xref:../getting-started/assembly-configuring-the-registry.adoc[].
 endif::[] 
 ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
 endif::[] 
 
 .Prerequisites
 
-* The {registry} instance is already deployed and the artifact has been created. 
+* The {registry} instance is already deployed and the artifact is created. 
 * You are logged in to the {registry} web console as the artifact's current owner or as an administrator:
 +
 `{registry-url}`

@@ -15,9 +15,11 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import java.text.MessageFormat;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class OLMUpgradeTests extends TestBase {
     @Override
     public void setupTestClass() {

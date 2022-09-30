@@ -7,7 +7,7 @@ labels: Bug
 
 <!--
 
-In order to better investigate the bug, fill in as much relevant information as is reasonable in the format below.
+In order for us to better investigate the bug, please fill in as much relevant information as is reasonable in the format below.
 
 Before proceeding, consider the following:
 

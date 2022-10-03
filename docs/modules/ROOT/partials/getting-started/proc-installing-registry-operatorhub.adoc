@@ -36,8 +36,8 @@ endif::[]
 
 . Select your subscription settings, for example:
 ** *Update Channel*: Select one of the following:
-*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x automatically ignores 2.1.x.
-*** *2.x*: Includes all minor and patch updates, such as 2.1.0 and 2.0.1. For example, an installation on 2.0.x automatically upgrades to 2.1.x. 
+*** *2.x*: Includes all minor and patch updates, such as 2.3.0 and 2.0.3. For example, an installation on 2.0.x will upgrade to 2.3.x. 
+*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x will ignore 2.3.x.
 ** *Installation Mode*: Select one of the following: 
 *** *All namespaces on the cluster (default)*
 *** *A specific namespace on the cluster*  and then *my-project*

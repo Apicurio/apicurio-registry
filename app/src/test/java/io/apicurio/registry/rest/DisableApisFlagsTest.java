@@ -16,24 +16,22 @@
 
 package io.apicurio.registry.rest;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.UUID;
-
-import javax.inject.Inject;
-
-import org.junit.jupiter.api.Test;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.noprofile.ccompat.rest.v6.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Test;
+
+import javax.inject.Inject;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Fabian Martinez
@@ -86,7 +84,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
         given()
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(ConfluentCompatApiTest.SCHEMA_SIMPLE_WRAPPED)
+                .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
                 .post("/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
             .then()
                 .statusCode(404);

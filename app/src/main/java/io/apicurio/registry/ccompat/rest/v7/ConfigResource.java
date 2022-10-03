@@ -131,10 +131,6 @@ public interface ConfigResource {
      *
      * @param subject (string) – Name of the subject
      *
-     * Request:
-     *     - compatibility (string) – New compatibility level for the subject. Must be one of
-     *       BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE
-     *
      * Status Codes:
      *     422 Unprocessable Entity –
      *         Error code 42203 – Invalid compatibility level
@@ -144,6 +140,6 @@ public interface ConfigResource {
      */
     @Path("/{subject}")
     @DELETE
-    void deleteSubjectCompatibility(
+    CompatibilityLevelParamDto deleteSubjectCompatibility(
             @PathParam("subject") String subject);
 }

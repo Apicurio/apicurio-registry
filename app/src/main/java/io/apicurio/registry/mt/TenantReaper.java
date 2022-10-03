@@ -17,12 +17,12 @@
 package io.apicurio.registry.mt;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.RegistryTenantList;
-import io.apicurio.multitenant.api.datamodel.SortBy;
-import io.apicurio.multitenant.api.datamodel.SortOrder;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenantList;
+import io.apicurio.tenantmanager.api.datamodel.SortBy;
+import io.apicurio.tenantmanager.api.datamodel.SortOrder;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;
@@ -129,14 +129,14 @@ public class TenantReaper {
      * This is a defensive approach to ensure that the while loop is always bounded.
      */
     void reap() {
-        List<RegistryTenant> page;
+        List<ApicurioTenant> page;
         int tenantsProcessed = 0;
         do {
-            RegistryTenantList tenants = tenantManagerClient.get().listTenants(
+            ApicurioTenantList tenants = tenantManagerClient.get().listTenants(
                 TenantStatusValue.TO_BE_DELETED,
                 0, 10, SortOrder.asc, SortBy.tenantId);
             page = tenants.getItems();
-            for (RegistryTenant tenant : page) {
+            for (ApicurioTenant tenant : page) {
                 final String tenantId = tenant.getTenantId();
                 try {
                     log.debug("Deleting tenant '{}' data", tenantId);

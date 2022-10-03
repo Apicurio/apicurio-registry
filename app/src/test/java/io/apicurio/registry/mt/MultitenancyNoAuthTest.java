@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.AdminClient;
@@ -115,14 +115,14 @@ public class MultitenancyNoAuthTest extends AbstractRegistryTestBase {
         }
 
         String tenantId1 = UUID.randomUUID().toString();
-        var tenant1 = new RegistryTenant();
+        var tenant1 = new ApicurioTenant();
         tenant1.setTenantId(tenantId1);
         tenant1.setOrganizationId("aaa");
         tenant1.setStatus(TenantStatusValue.READY);
         tenantMetadataService.createTenant(tenant1);
 
         String tenantId2 = UUID.randomUUID().toString();
-        var tenant2 = new RegistryTenant();
+        var tenant2 = new ApicurioTenant();
         tenant2.setTenantId(tenantId2);
         tenant2.setOrganizationId("bbb");
         tenant2.setStatus(TenantStatusValue.READY);

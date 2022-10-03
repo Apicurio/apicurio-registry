@@ -16,13 +16,13 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.exception.RegistryTenantForbiddenException;
-import io.apicurio.multitenant.client.exception.RegistryTenantNotAuthorizedException;
-import io.apicurio.multitenant.client.exception.RegistryTenantNotFoundException;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.UpdateApicurioTenantRequest;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.tenantmanager.client.exception.ApicurioTenantNotFoundException;
 import io.apicurio.registry.utils.OptionalBean;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
@@ -47,17 +47,17 @@ public class TenantMetadataService {
             TenantNotAuthorizedException.class, TenantForbiddenException.class
     }) // 3 retries, 200ms jitter
     @Timeout(TIMEOUT_MS)
-    public RegistryTenant getTenant(String tenantId) throws TenantNotFoundException {
+    public ApicurioTenant getTenant(String tenantId) throws TenantNotFoundException {
         if (tenantManagerClient.isEmpty()) {
             throw new UnsupportedOperationException("Multitenancy is not enabled");
         }
         try {
             return tenantManagerClient.get().getTenant(tenantId);
-        } catch (RegistryTenantNotFoundException e) {
+        } catch (ApicurioTenantNotFoundException e) {
             throw new TenantNotFoundException(e.getMessage());
-        } catch (RegistryTenantNotAuthorizedException e) {
+        } catch (NotAuthorizedException e) {
             throw new TenantNotAuthorizedException(e.getMessage());
-        } catch (RegistryTenantForbiddenException e) {
+        } catch (ForbiddenException e) {
             throw new TenantForbiddenException(e.getMessage());
         }
     }
@@ -72,14 +72,14 @@ public class TenantMetadataService {
             throw new UnsupportedOperationException("Multitenancy is not enabled");
         }
         try {
-            UpdateRegistryTenantRequest ureq = new UpdateRegistryTenantRequest();
+            UpdateApicurioTenantRequest ureq = new UpdateApicurioTenantRequest();
             ureq.setStatus(TenantStatusValue.DELETED);
             tenantManagerClient.get().updateTenant(tenantId, ureq);
-        } catch (RegistryTenantNotFoundException e) {
+        } catch (ApicurioTenantNotFoundException e) {
             throw new TenantNotFoundException(e.getMessage());
-        } catch (RegistryTenantNotAuthorizedException e) {
+        } catch (NotAuthorizedException e) {
             throw new TenantNotAuthorizedException(e.getMessage());
-        } catch (RegistryTenantForbiddenException e) {
+        } catch (ForbiddenException e) {
             throw new TenantForbiddenException(e.getMessage());
         }
     }

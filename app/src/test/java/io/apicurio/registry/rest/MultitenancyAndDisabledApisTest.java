@@ -25,8 +25,8 @@ import javax.inject.Inject;
 
 import org.junit.jupiter.api.Test;
 
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.noprofile.ccompat.rest.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
@@ -48,7 +48,7 @@ public class MultitenancyAndDisabledApisTest {
     public void testRestApi() throws Exception {
         DisableApisFlagsTest.doTestDisabledApis(true);
 
-        var tenant1 = new RegistryTenant();
+        var tenant1 = new ApicurioTenant();
         tenant1.setTenantId("abc");
         tenant1.setOrganizationId("aaa");
         tenant1.setStatus(TenantStatusValue.READY);

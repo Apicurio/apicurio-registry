@@ -101,7 +101,7 @@ jobs:
           mvn install
 
       - name: Build All Variants
-        run: mvn clean install -Pprod -Psql -Pkafkasql -Pmultitenancy -Psystem-tests -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+        run: mvn clean install -Pprod -Psql -Pkafkasql -Psystem-tests -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Build The Tagged Docker Images
         run: |

@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.mt.limits.TenantLimitsConfiguration;
 
 /**

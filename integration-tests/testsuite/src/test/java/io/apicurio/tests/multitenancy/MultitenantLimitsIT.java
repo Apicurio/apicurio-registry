@@ -16,11 +16,11 @@
 
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.multitenant.api.datamodel.NewRegistryTenantRequest;
-import io.apicurio.multitenant.api.datamodel.ResourceType;
-import io.apicurio.multitenant.api.datamodel.TenantResource;
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
+import io.apicurio.tenantmanager.api.datamodel.NewApicurioTenantRequest;
+import io.apicurio.tenantmanager.api.datamodel.ResourceType;
+import io.apicurio.tenantmanager.api.datamodel.TenantResource;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.rest.client.exception.LimitExceededException;
@@ -143,7 +143,7 @@ public class MultitenantLimitsIT extends ApicurioRegistryBaseIT {
 
         String username = UUID.randomUUID().toString();
 
-        NewRegistryTenantRequest tenantReq = new NewRegistryTenantRequest();
+        NewApicurioTenantRequest tenantReq = new NewApicurioTenantRequest();
         tenantReq.setOrganizationId(UUID.randomUUID().toString());
         tenantReq.setTenantId(UUID.randomUUID().toString());
         tenantReq.setCreatedBy(username);

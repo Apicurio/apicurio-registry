@@ -66,6 +66,9 @@ jobs:
         - name: Set test profile to all
           run: echo "test_profile=all" >> $GITHUB_ENV
 
+        - name: Prepare Tenant Manager
+          run: make build-integration-tests-multitenancy
+
         - name: Build integration-tests-common
           if: github.event.inputs.skip-tests == 'false'
           run: cd registry && ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common

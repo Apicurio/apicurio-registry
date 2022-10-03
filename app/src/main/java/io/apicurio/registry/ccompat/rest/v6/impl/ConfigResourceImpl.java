@@ -104,7 +104,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,
             CompatibilityLevelDto request) {

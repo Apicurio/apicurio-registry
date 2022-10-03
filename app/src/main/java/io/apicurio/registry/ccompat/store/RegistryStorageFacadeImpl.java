@@ -400,7 +400,11 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
 
     @Override
     public void deleteArtifactRule(String subject, RuleType ruleType) {
-        storage.deleteArtifactRule(null, subject, ruleType);
+        try {
+            storage.deleteArtifactRule(null, subject, ruleType);
+        } catch (RuleNotFoundException e) {
+            //Ignore, fail only when the artifact is not found
+        }
     }
 
     @Override

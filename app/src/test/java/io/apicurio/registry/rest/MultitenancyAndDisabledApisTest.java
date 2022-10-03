@@ -28,9 +28,9 @@ import org.junit.jupiter.api.Test;
 import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.noprofile.ccompat.rest.v6.ConfluentCompatApiTest;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.mt.MockTenantMetadataService;
+import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
@@ -59,7 +59,7 @@ public class MultitenancyAndDisabledApisTest {
             .baseUri("http://localhost:8081")
             .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(ConfluentCompatApiTest.SCHEMA_SIMPLE_WRAPPED)
+                .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
                 .post("/t/abc/apis/ccompat/v6/subjects/{subject}/versions", UUID.randomUUID().toString())
             .then()
                 .statusCode(404);

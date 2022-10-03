@@ -29,11 +29,11 @@ import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.rest.v2.beans.GroupMetaData;
@@ -81,17 +81,6 @@ import io.apicurio.registry.utils.JAXRSClientUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.jose4j.base64url.Base64;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.NotAllowedException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -109,23 +98,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.interceptor.Interceptors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.NotAllowedException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
 import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 
@@ -587,7 +572,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @see io.apicurio.registry.rest.v2.GroupsResource#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.GroupAndArtifact, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersion(String groupId, String artifactId, String version) {
         if (!restConfig.isArtifactVersionDeletionEnabled()) {
             throw new NotAllowedException("Artifact version deletion operation is not enabled.", HttpMethod.GET, (String[]) null);

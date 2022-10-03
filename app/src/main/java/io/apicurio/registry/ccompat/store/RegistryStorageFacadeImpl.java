@@ -66,6 +66,8 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
 /**
  * @author Ales Justin
  * @author Jakub Senko 'jsenko@redhat.com'
@@ -170,9 +172,6 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
         return parseVersionString(subject, versionString,
                 version -> {
                     ArtifactVersionMetaDataDto artifactVersionMetaDataDto = storage.getArtifactVersionMetaData(null, subject, version);
-                    if (ArtifactState.DISABLED.equals(artifactVersionMetaDataDto.getState())) {
-                        throw new VersionNotFoundException(null, subject, version);
-                    }
                     StoredArtifactDto storedArtifact = storage.getArtifactVersion(null, subject, version);
                     return converter.convert(subject, storedArtifact, artifactVersionMetaDataDto.getType());
                 });
@@ -398,8 +397,12 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
     }
 
     private String getLatestArtifactVersionForSubject(String subject) {
-        ArtifactMetaDataDto latest = storage.getArtifactMetaData(null, subject);
-        return latest.getVersion();
+        try {
+            ArtifactMetaDataDto latest = storage.getArtifactMetaData(null, subject);
+            return latest.getVersion();
+        } catch (ArtifactNotFoundException ex) {
+            throw new VersionNotFoundException(null, subject, "latest");
+        }
     }
 
     @Override
@@ -437,10 +440,9 @@ public class RegistryStorageFacadeImpl implements RegistryStorageFacade {
                 version -> storage.getContentIdsReferencingArtifact(null, subject, version));
     }
 
-
     private boolean doesArtifactExist(String artifactId) {
         try {
-            storage.getArtifact(null, artifactId);
+            storage.getArtifact(null, artifactId, DEFAULT);
             return true;
         } catch (ArtifactNotFoundException ignored) {
             return false;

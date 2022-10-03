@@ -15,6 +15,8 @@
  */
 package io.apicurio.tests.smokeTests.apicurio;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException;
 import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.client.exception.InvalidArtifactIdException;
@@ -37,13 +39,12 @@ import io.apicurio.tests.ApicurioV2BaseIT;
 import io.apicurio.tests.common.Constants;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.utils.ArtifactUtils;
-
-import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -53,15 +54,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static io.apicurio.registry.utils.tests.TestUtils.assertClientError;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(Constants.SMOKE)
 class ArtifactsIT extends ApicurioV2BaseIT {
@@ -238,7 +236,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
 
         // Verify (expect 404)
         retryOp((rc) -> {
-            ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
+            VersionMetaData actualMD = rc.getArtifactVersionMetaData(groupId, artifactId, metaData.getVersion());
             assertEquals(ArtifactState.DISABLED, actualMD.getState());
             assertClientError(ArtifactNotFoundException.class.getSimpleName(), 404, () -> rc.getLatestArtifact(groupId, artifactId), errorCodeExtractor);
         });
@@ -282,8 +280,7 @@ class ArtifactsIT extends ApicurioV2BaseIT {
         // Verify artifact
         retryOp((rc) -> {
             ArtifactMetaData actualMD = rc.getArtifactMetaData(groupId, artifactId);
-            assertEquals(ArtifactState.DISABLED, actualMD.getState());
-            assertEquals("3", actualMD.getVersion());
+            assertEquals("2", actualMD.getVersion());
 
             // Verify v1
             VersionMetaData actualVMD = rc.getArtifactVersionMetaData(groupId, artifactId, String.valueOf(v1MD.getVersion()));

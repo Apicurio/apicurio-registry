@@ -72,7 +72,6 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -86,14 +85,10 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Carles Arnal 'carnalca@redhat.com'
@@ -536,6 +531,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         clientV2.listArtifactsInGroup(groupId);
         String root = "testSearchDisabledArtifact" + ThreadLocalRandom.current().nextInt(1000000);
         List<String> artifactIds = new ArrayList<>();
+        List<String> versions = new ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
             String artifactId = root + UUID.randomUUID().toString();
@@ -544,9 +540,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     ("{\"type\":\"record\",\"title\":\"" + name + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}")
                             .getBytes(StandardCharsets.UTF_8));
 
-            clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData);
+            ArtifactMetaData md = clientV2.createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData);
             waitForArtifact(groupId, artifactId);
             artifactIds.add(artifactId);
+            versions.add(md.getVersion());
         }
 
         //Execution
@@ -565,9 +562,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         UpdateState us = new UpdateState();
         us.setState(ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactIds.get(0), us);
-        waitForArtifactState(groupId, artifactIds.get(0), ArtifactState.DISABLED);
+        waitForVersionState(groupId, artifactIds.get(0), versions.get(0), ArtifactState.DISABLED);
         clientV2.updateArtifactState(groupId, artifactIds.get(3), us);
-        waitForArtifactState(groupId, artifactIds.get(3), ArtifactState.DISABLED);
+        waitForVersionState(groupId, artifactIds.get(3), versions.get(0), ArtifactState.DISABLED);
 
         //Execution
         // Check the search results still include the DISABLED artifacts
@@ -871,7 +868,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         assertNotEquals(secondVersionMetadata.getContentId(), versionMetaData.getContentId());
     }
-
 
 
     @Test

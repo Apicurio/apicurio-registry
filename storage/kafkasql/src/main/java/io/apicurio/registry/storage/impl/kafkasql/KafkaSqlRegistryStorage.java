@@ -118,6 +118,8 @@ import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
 /**
  * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
  * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
@@ -487,6 +489,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifact(java.lang.String, java.lang.String, io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior)
+     */
+    @Override
+    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStore.getArtifact(groupId, artifactId, behavior);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactByContentId(long)
      */
     @Override
@@ -566,6 +576,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior)
+     */
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior) throws ArtifactNotFoundException, RegistryStorageException {
+        return sqlStore.getArtifactMetaData(groupId, artifactId, behavior);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#getArtifactVersionMetaData(java.lang.String, java.lang.String, boolean, io.apicurio.registry.content.ContentHandle, java.util.List)
      */
     @Override
@@ -602,7 +620,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner) throws ArtifactNotFoundException, RegistryStorageException {
         // Note: the next line will throw ArtifactNotFoundException if the artifact does not exist, so there is no need for an extra check.
-        ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId);
+        ArtifactMetaDataDto metaDataDto = sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
 
         UUID reqId = ConcurrentUtil.get(submitter.submitArtifactOwner(tenantContext.tenantId(), groupId, artifactId, ActionType.UPDATE, owner.getOwner()));
         coordinator.waitForResponse(reqId);
@@ -877,7 +895,7 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
-        ArtifactMetaDataDto metadata = sqlStore.getArtifactMetaData(groupId, artifactId);
+        ArtifactMetaDataDto metadata = sqlStore.getArtifactMetaData(groupId, artifactId, DEFAULT);
         EditableArtifactMetaDataDto metaDataDto = new EditableArtifactMetaDataDto();
         metaDataDto.setName(metadata.getName());
         metaDataDto.setDescription(metadata.getDescription());

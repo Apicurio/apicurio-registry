@@ -41,5 +41,5 @@ public class SubjectVersion {
     private String subject;
 
     @JsonProperty("version")
-    private Long version;
+    private Long version; // TODO How is this used?
 }

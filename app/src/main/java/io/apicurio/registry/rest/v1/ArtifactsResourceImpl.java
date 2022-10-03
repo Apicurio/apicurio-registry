@@ -17,12 +17,12 @@
 
 package io.apicurio.registry.rest.v1;
 
+import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.Headers;
@@ -57,6 +57,13 @@ import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.util.VersionUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
@@ -65,23 +72,9 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 /**
  * Implements the {@link ArtifactsResource} interface.
@@ -265,11 +258,11 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public Response getLatestArtifact(String artifactId) {
-        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(null, artifactId);
+        ArtifactMetaDataDto metaData = storage.getArtifactMetaData(null, artifactId, DEFAULT);
         if (ArtifactState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, artifactId);
         }
-        StoredArtifactDto artifact = storage.getArtifact(null, artifactId);
+        StoredArtifactDto artifact = storage.getArtifact(null, artifactId, DEFAULT);
 
         MediaType contentType = factory.getArtifactMediaType(metaData.getType());
 
@@ -446,7 +439,7 @@ public class ArtifactsResourceImpl implements ArtifactsResource, Headers {
     @Override
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaData(String artifactId) {
-        ArtifactMetaDataDto dto = storage.getArtifactMetaData(null, artifactId);
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(null, artifactId, DEFAULT);
         return V1ApiUtil.dtoToMetaData(artifactId, dto.getType(), dto);
     }
 

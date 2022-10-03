@@ -16,12 +16,6 @@
 
 package io.apicurio.registry.storage.decorator;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
@@ -57,6 +51,12 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * @author Fabian Martinez
@@ -202,17 +202,21 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @return
-     * @throws ArtifactNotFoundException
-     * @throws RegistryStorageException
      * @see RegistryStorage#getArtifact(java.lang.String, java.lang.String)
      */
     @Override
     public StoredArtifactDto getArtifact(String groupId, String artifactId)
-        throws ArtifactNotFoundException, RegistryStorageException {
+            throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifact(groupId, artifactId);
+    }
+
+    /**
+     * @see RegistryStorage#getArtifact(java.lang.String, java.lang.String, io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior)
+     */
+    @Override
+    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+        throws ArtifactNotFoundException, RegistryStorageException {
+        return delegate.getArtifact(groupId, artifactId, behavior);
     }
 
     /**
@@ -315,17 +319,21 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @param groupId
-     * @param artifactId
-     * @return
-     * @throws ArtifactNotFoundException
-     * @throws RegistryStorageException
      * @see RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String)
      */
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
-        throws ArtifactNotFoundException, RegistryStorageException {
+            throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactMetaData(groupId, artifactId);
+    }
+
+    /**
+     * @see RegistryStorage#getArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior)
+     */
+    @Override
+    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+        throws ArtifactNotFoundException, RegistryStorageException {
+        return delegate.getArtifactMetaData(groupId, artifactId, behavior);
     }
 
     /**
@@ -923,7 +931,7 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.common.apps.config.DynamicConfigStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
+     * @see io.apicurio.registry.storage.RegistryStorage#getTenantsWithStaleConfigProperties(java.time.Instant)
      */
     @Override
     public List<String> getTenantsWithStaleConfigProperties(Instant since) {

@@ -10,6 +10,8 @@ import io.quarkus.security.identity.SecurityIdentity;
 import javax.inject.Inject;
 import javax.interceptor.InvocationContext;
 
+import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
+
 public abstract class AbstractAccessController implements IAccessController {
 
     @Inject
@@ -57,7 +59,7 @@ public abstract class AbstractAccessController implements IAccessController {
 
     private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {
         try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId, DEFAULT);
             String createdBy = dto.getCreatedBy();
             return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {

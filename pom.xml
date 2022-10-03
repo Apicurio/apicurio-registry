@@ -164,7 +164,7 @@
         <wire-compiler.version>3.7.1</wire-compiler.version>
         <jimfs.version>1.1</jimfs.version>
         <icu4j.version>71.1</icu4j.version>
-        <protobuf.version>3.21.6</protobuf.version>
+        <protobuf.version>3.21.7</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.9.4</protobuf.googleapi.types.version>
         <wsdl4j.version>1.6.3</wsdl4j.version>

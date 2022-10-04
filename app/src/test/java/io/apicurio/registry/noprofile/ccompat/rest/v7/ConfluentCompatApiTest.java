@@ -37,11 +37,11 @@ import static org.hamcrest.Matchers.anything;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Tests that the REST API exposed at endpoint "/ccompat/v6" follows the
- * <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html">Confluent API specification</a>,
+ * Tests that the REST API exposed at endpoint "/ccompat/v7" follows the
+ * <a href="https://docs.confluent.io/7.2.1/schema-registry/develop/api.html">Confluent API specification</a>,
  * unless otherwise stated.
  *
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @QuarkusTest
 @Typed(ConfluentCompatApiTest.class)

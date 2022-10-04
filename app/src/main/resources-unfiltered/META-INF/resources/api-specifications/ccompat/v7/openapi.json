@@ -170,12 +170,6 @@
           "Config"
         ],
         "responses": {
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          },
           "200": {
             "content": {
               "application/json": {
@@ -200,6 +194,12 @@
               }
             },
             "description": "Request:\n- compatibility (string) – Compatibility level for the subject. Will be one of\nBACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
           }
         },
         "summary": "Get compatibility level for a subject."
@@ -284,6 +284,23 @@
         "summary": "Update compatibility level for the specified subject.",
         "description": "When there are multiple instances of Schema Registry running in the same cluster, the update request will be forwarded to one of the instances designated as the primary. If the primary is not available, the client will get an error code indicating that the forwarding has failed."
       },
+      "delete": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
+                }
+              }
+            },
+            "description": "Returns the deleted configuration, if it was present."
+          }
+        },
+        "operationId": "deleteSubjectCompatibilityConfig",
+        "summary": "Delete subject configuration.",
+        "description": "Deletes the specified subject-level compatibility level config and reverts to the global default."
+      },
       "parameters": [
         {
           "name": "subject",
@@ -332,6 +349,16 @@
         },
         "tags": [
           "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "verbose",
+            "description": "Add ?verbose=true at the end of this request to output the reason a schema fails the compatibility test, in cases where it fails. The default is false (the reason a schema fails compatibility test is not given).",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
         ],
         "responses": {
           "200": {
@@ -579,6 +606,24 @@
         "tags": [
           "Subjects"
         ],
+        "parameters": [
+          {
+            "name": "deleted",
+            "description": "Return also soft deleted subjects (subjects whose status is disabled).",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "subjectPrefix",
+            "description": "Add ?subjectPrefix= (as an empty string) at the end of this request to list subjects in the default context. If this flag is not included, GET /subjects returns all subjects across all contexts.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -669,6 +714,16 @@
         "tags": [
           "Subjects"
         ],
+        "parameters": [
+          {
+            "name": "normalize",
+            "description": "Normalize the content when comparing.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -713,6 +768,16 @@
       "delete": {
         "tags": [
           "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "permanent",
+            "description": "Makes the delete operation permanent",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
         ],
         "responses": {
           "200": {
@@ -893,6 +958,16 @@
         "tags": [
           "Subjects"
         ],
+        "parameters": [
+          {
+            "name": "normalize",
+            "description": "Add ?normalize=true at the end of this request to normalize the schema. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Empty Response"
@@ -978,6 +1053,16 @@
       "delete": {
         "tags": [
           "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "permanent",
+            "description": "Add ?permanent=true at the end of this request to specify a hard delete for a specific version of the subject, which removes all associated metadata including the schema ID. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
         ],
         "responses": {
           "200": {
@@ -1192,6 +1277,336 @@
           "required": true
         }
       ]
+    },
+    "/contexts": {
+      "summary": "Operations around contexts",
+      "description": "The contexts resource allows you to query the information or manipulate the lifecycle of schema contexts.",
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "description": "Gets a list of contexts. The list will always include the default context, and any custom contexts that were created in the registry."
+          }
+        },
+        "operationId": "getContexts",
+        "summary": "Get the list of configured contexts.",
+        "description": "Returns a list of configured contexts."
+      }
+    },
+    "/exporters": {
+      "summary": "The exporters resource allows you to query the information or manipulate the lifecycle of schema exporters.",
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "description": "List of exporters"
+          }
+        },
+        "operationId": "getExportersList",
+        "summary": "Gets a list of schema exporters that have been created."
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Exporter name"
+          }
+        },
+        "operationId": "createExporter",
+        "summary": "Creates a new schema exporter. All attributes in request body are optional except config."
+      }
+    },
+    "/exporters/{exporter}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterDto"
+                }
+              }
+            },
+            "description": "Schema exporter object"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "getSchemaExporter",
+        "summary": "Gets the information of the schema exporter."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Name of the exporter"
+          }
+        },
+        "operationId": "updateExporter",
+        "summary": "Updates the information or configurations of the schema exporter. All attributes in request body are optional."
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Empty response"
+          }
+        },
+        "operationId": "deleteSchemaExporter",
+        "summary": "Deletes the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/exporters/{exporter}/pause": {
+      "put": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Name of the exporter"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "pauseExporter",
+        "summary": "Pauses the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/exporters/{exporter}/reset": {
+      "put": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Name of the exporter"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "resetSchemaExporter",
+        "summary": "Resets the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/exporters/{exporter}/status": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                }
+              }
+            },
+            "description": "Exporter status"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Exporter not found"
+          }
+        },
+        "operationId": "getExporterStatus",
+        "summary": "Gets the status of the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/exporters/{exporter}/config": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "Exporter configuration"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "getExporterConfig",
+        "summary": "Gets the configurations of the schema exporter."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Name of the exporter"
+          }
+        },
+        "operationId": "updateSchemaExporterConfig",
+        "summary": "Updates the configurations of the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/exporters/{exporter}/resume": {
+      "put": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Name of the exporter"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "resumeSchemaExporter",
+        "summary": "Resume the schema exporter."
+      },
+      "parameters": [
+        {
+          "name": "exporter",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {
@@ -1342,6 +1757,68 @@
         "example": {
           "schema": "",
           "schemaType": "AVRO"
+        }
+      },
+      "ExporterStatus": {
+        "description": "",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "",
+            "type": "string"
+          },
+          "state": {
+            "description": "",
+            "type": "string"
+          },
+          "offset": {
+            "description": "",
+            "type": "number"
+          },
+          "ts": {
+            "description": "",
+            "type": "number"
+          },
+          "trace": {
+            "description": "",
+            "type": "string"
+          }
+        }
+      },
+      "ExporterDto": {
+        "description": "",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "",
+            "type": "string"
+          },
+          "contextType": {
+            "description": "",
+            "type": "string"
+          },
+          "context": {
+            "description": "",
+            "type": "string"
+          },
+          "subjects": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectRenameFormat": {
+            "description": "",
+            "type": "number"
+          },
+          "config": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },

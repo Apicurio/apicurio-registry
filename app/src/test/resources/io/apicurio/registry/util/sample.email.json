@@ -1,0 +1,37 @@
+{
+
+    "$schema": "http://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "entityTypeCd",
+      "effectiveDate"
+    ],
+    "properties": {
+      "emailAddress": {
+        "description": "E-mail address associated with the account.",
+        "type": "string",
+        "maxLength": 255
+      },
+      "isPrimary": {
+        "description": "Whether this email is the primary  email for the corresponding Entity_Id of type Entity_Type_Cd (e.g. Party) for the Tenant (Tenant_Cd) and for the specified email type (Email_Relation_Type_Cd).  Only one email per Entity. Tenant. and email type can be the primary. 1= True 0 = False",
+        "type": "boolean"
+      },
+      "entityTypeCd": {
+        "description": "Defines the entity that Entity_Id refers to such as PARTY for Party_Id. ACCOUNT for Account_Id. etc.",
+        "type": "string",
+        "maxLength": 50
+      },
+      "effectiveDate": {
+        "description": "Indicates when the entity started using this email. If unknown. set to a minimum date (eg: 1/1/1900)",
+        "type": "string",
+        "format": "date-time"
+      },
+      "expirationDate": {
+        "description": "This points to the entity defined by Entity_Type_Cd. It can be a Party_Id. an Employee_Id. etc.",
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  }
+

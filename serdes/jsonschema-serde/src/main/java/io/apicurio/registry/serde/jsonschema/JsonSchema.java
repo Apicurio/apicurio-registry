@@ -242,7 +242,7 @@ public class JsonSchema {
                 for (Map.Entry<String, Schema> schema : ((ObjectSchema) schemaObj).getPropertySchemas().entrySet()) {
                     if (schema.getValue() instanceof ReferenceSchema) {
                         validateComplexObject((JSONObject) jsonObject, schema);
-                    } else if (isArrayWithComplexType(schema)) {
+                    } else if (isArrayWithComplexType(schema) && ((JSONObject) jsonObject).has(schema.getKey())) {
                         validateArrayProperty(((JSONObject) jsonObject).getJSONArray(schema.getKey()), ((ArraySchema) schema.getValue()).getAllItemSchema());
                     }
                 }

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft/2019-09/schema",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "phoneRelationTypeCd",
+    "effectiveDate"
+  ],
+  "properties": {
+    "phoneCountryCd": {
+      "type": "string",
+      "maxLength": 50,
+      "description": ""
+    },
+    "phoneAreaCode": {
+      "type": "string",
+      "maxLength": 20,
+      "description": ""
+    },
+    "phoneRelationTypeCd": {
+      "description": "Unique identifier                    for the type of phone number associated with the entity. It could be a home address or business address for an account. or the HQ or a retail phone associated with a retail account.",
+      "type": "string",
+      "maxLength": 50
+    },
+    "phoneNumber": {
+      "description": "Phone number. Any standardized format is acceptable.",
+      "type": "string",
+      "maxLength": 50
+    },
+    "isPrimary": {
+      "description": "Whether this phone is the primary phone for the corresponding Entity_Id of type Entity_Type_Cd (e.g. Party) for the Tenant (Tenant_Cd) and for the specified phone type (Phone_Relation_Type_Cd).  Only one phone per Entity. Tenant. and phone type can be the primary. 1= True 0 = False",
+      "type": "boolean"
+    },
+    "phoneNumberExt": {
+      "description": "Phone number extension.",
+      "type": "string",
+      "maxLength": 20
+    },
+    "phoneIddCode": {
+      "type": "string",
+      "maxLength": 50,
+      "description": ""
+    },
+    "effectiveDate": {
+      "description": "Indicates when the entity started using this phone. If unknown. set to a minimum date (eg: 1/1/1900)",
+      "type": "string",
+      "format": "date-time"
+    },
+    "expirationDate": {
+      "description": "Indicates when the entity stopped using this phone. If unknown or active address. set to a maximum date (eg: 31/12/2099)",
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
+

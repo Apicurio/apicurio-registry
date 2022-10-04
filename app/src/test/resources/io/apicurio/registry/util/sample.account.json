@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft/2019-09/schema",
+  "$meta-schema": "",
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "Unique             Id for the account.An institution could have accounts from different sources with the same account number",
+      "type": "string",
+      "maxLength": 50,
+      "enum": [
+        "abc",
+        "xyz"
+      ]
+    },
+    "accountEmails": {
+      "type": "array",
+      "items": {
+        "$ref": "sample.email.json"
+      },
+      "description": "abcdef       "
+    },
+    "accountPhones": {
+      "type": "array",
+      "items": {
+        "$ref": "sample.phone.json"
+      },
+      "description": "abc"
+    },
+    "accountAddresses": {
+      "type": "array",
+      "items": {
+        "$ref": "sample.address.json"
+      },
+      "description": ""
+    },
+    "acctCurrStTotalNetWorth": {
+      "description": "Total net worth as                      stated by the responsible parties for the account. Populated in the Main System Currency.",
+      "type": "number"
+    },
+    "emailUpdateDate": {
+      "description": "The       date that the account's e-mail address was last changed (from ANY channel).",
+      "type": "string",
+      "format": "date-time"
+    },
+    "investmentExperienceFi": {
+      "type": "number",
+      "description": "                                                                   "
+    }
+  }
+}
+

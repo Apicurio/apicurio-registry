@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.anything;
 
-import org.junit.jupiter.api.Test;
+import io.apicurio.registry.ccompat.store.RegistryStorageFacade;
+import org.slf4j.Logger;
 
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.quarkus.test.junit.QuarkusTest;
+import javax.inject.Inject;
 
-@QuarkusTest
-public class SubjectsResourceTest extends AbstractResourceTestBase {
+/**
+ * @author Carles Arnal
+ */
+public abstract class AbstractResource {
 
-    @Test
-    public void testListSubjectsEndpoint() {
-        given()
-            .when().contentType(CT_JSON).get("/ccompat/v6/subjects")
-            .then()
-            .statusCode(200)
-            .body(anything());
-    }
+    @Inject
+    RegistryStorageFacade facade;
+
+    @Inject
+    Logger log;
 
 }
+

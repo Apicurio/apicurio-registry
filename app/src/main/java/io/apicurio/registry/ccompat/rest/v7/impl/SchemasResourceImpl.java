@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.ccompat.rest.SchemasResource;
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.ccompat.rest.v7.SchemasResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.types.ArtifactType;
@@ -32,28 +32,28 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
     @Override
-    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public SchemaInfo getSchema(int id) {
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    public SchemaInfo getSchema(int id, String subject) {
+        //subject is not used since contexts are not supported
         return facade.getSchemaById(id);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.GlobalId, level=AuthorizedLevel.Read)
-    public List<SubjectVersion> getSubjectVersions(int id) {
-        return facade.getSubjectVersions(id);
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public List<String> getRegisteredTypes() {
+        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public List<String> getRegisteredTypes() {
-        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(), ArtifactType.AVRO.value());
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    public List<SubjectVersion> getSubjectVersions(int id) {
+        return facade.getSubjectVersions(id);
     }
 }

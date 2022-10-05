@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v6.impl;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
@@ -31,7 +31,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaId;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.rest.SubjectVersionsResource;
+import io.apicurio.registry.ccompat.rest.v6.SubjectVersionsResource;
 import io.apicurio.registry.ccompat.store.FacadeConverter;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
@@ -59,7 +59,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Audited(extractParameters = {"0", KEY_ARTIFACT_ID})
     @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
     public SchemaId register(String subject, SchemaInfo request) throws Exception {
-        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences());
+        Long id = facade.createSchema(subject, request.getSchema(), request.getSchemaType(), request.getReferences(), false);
         int sid = converter.convertUnsigned(id);
         return new SchemaId(sid);
     }
@@ -81,9 +81,9 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             String version) throws Exception {
 
         try {
-            return facade.deleteSchema(subject, version);
+            return facade.deleteSchema(subject, version, true);
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException(ex); // TODO
+            throw new BadRequestException(ex);
         }
     }
 

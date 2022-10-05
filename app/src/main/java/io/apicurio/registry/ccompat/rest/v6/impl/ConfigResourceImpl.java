@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v6.impl;
 
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
-import io.apicurio.registry.ccompat.rest.ConfigResource;
+import io.apicurio.registry.ccompat.rest.v6.ConfigResource;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.common.apps.logging.audit.AuditingConstants;
@@ -104,7 +104,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
-    @Authorized(style=AuthorizedStyle.ArtifactOnly, level=AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(
             String subject,
             CompatibilityLevelDto request) {

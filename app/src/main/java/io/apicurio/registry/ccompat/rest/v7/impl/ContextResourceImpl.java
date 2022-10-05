@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,38 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.ModeDto;
-import io.apicurio.registry.ccompat.rest.ModeResource;
-import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.ccompat.rest.v7.ContextResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 
 import javax.interceptor.Interceptors;
+import java.util.List;
 
 /**
- * We <b>DO NOT</b> support this endpoint. Fails with 404.
- *
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class ModeResourceImpl extends AbstractResource implements ModeResource {
-
-
-    @Override
-    public ModeDto getGlobalMode() {
-        Errors.operationNotSupported();
-        return null;
-    }
-
+public class ContextResourceImpl extends AbstractResource implements ContextResource {
 
     @Override
-    public ModeDto updateGlobalMode(ModeDto request) {
-        Errors.operationNotSupported();
-        return null;
+    public List<String> getContexts() throws Exception {
+        return List.of(":.:");
     }
 }

@@ -77,7 +77,7 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
-                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(contentId1)))
                 .extract().body().jsonPath().get("id"));
     }
 }

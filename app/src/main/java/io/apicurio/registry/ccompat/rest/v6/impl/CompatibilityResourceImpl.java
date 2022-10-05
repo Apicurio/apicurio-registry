@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest.impl;
+package io.apicurio.registry.ccompat.rest.v6.impl;
 
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.rest.CompatibilityResource;
+import io.apicurio.registry.ccompat.rest.v6.CompatibilityResource;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -46,6 +46,6 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             String versionString,
             SchemaContent request) throws Exception {
 
-        return facade.testCompatibilityBySubjectName(subject, versionString, request);
+        return facade.testCompatibilityByVersion(subject, versionString, request, false);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.ccompat.rest;
+package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -27,6 +27,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import java.util.List;
 
 import static io.apicurio.registry.ccompat.rest.ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST;
@@ -37,21 +38,22 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/5.5.0/schema-registry/develop/api.html#subjects">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html">API specification</a> is owned by Confluent.
  *
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal
  */
-@Path("/apis/ccompat/v6/subjects")
+@Path("/apis/ccompat/v7/subjects")
 @Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 @Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
 public interface SubjectsResource {
 
     // ----- Path: /subjects -----
 
-
     /**
      * Get a list of registered subjects.
+     * @param subjectPrefix (string) Add ?subjectPrefix= (as an empty string) at the end of this request to list subjects in the default context. If this flag is not included, GET /subjects returns all subjects across all contexts.
+     * @param deleted (boolean) Add ?deleted=true at the end of this request to list both current and soft-deleted subjects. The default is false. If this flag is not included, only current subjects are listed (not those that have been soft-deleted). Hard and soft delete are explained below in the description of the delete API.
+     *
      * Response JSON Array of Objects:
      *
      *
@@ -62,10 +64,8 @@ public interface SubjectsResource {
      *     500 Internal Server Error –
      *         Error code 50001 – Error in the backend datastore
      */
-    // TODO Possibly costly operation
     @GET
-    List<String> listSubjects();
-
+    List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix, @QueryParam("deleted") Boolean deleted);
 
     // ----- Path: /subjects/{subject} -----
 
@@ -75,7 +75,8 @@ public interface SubjectsResource {
      * its version under this subject and the subject name.
      * Parameters:
      *
-     *     subject (string) – Subject under which the schema will be registered
+     *  @param subject (string) – Subject under which the schema will be registered.
+     *  @param normalize (boolean) - Add ?normalize=true at the end of this request to normalize the schema. The default is false.
      *
      * Response JSON Object:
      *
@@ -96,9 +97,7 @@ public interface SubjectsResource {
     @Path("/{subject}")
     Schema findSchemaByContent(
             @PathParam("subject") String subject,
-            @NotNull SchemaContent request) throws Exception;
-
-
+            @NotNull SchemaContent request, @QueryParam("normalize") Boolean normalize) throws Exception;
 
     /**
      * Deletes the specified subject and its associated compatibility level if registered.
@@ -106,10 +105,11 @@ public interface SubjectsResource {
      *
      * Parameters:
      *
-     *     subject (string) – the name of the subject
+     *   @param subject (string) – the name of the subject
+     *   @param permanent (boolean) –  Add ?permanent=true at the end of this request to specify a hard delete of the subject, which removes all associated metadata including the schema ID.
+     *                                The default is false. If the flag is not included, a soft delete is performed.
      *
      * Response JSON Array of Objects:
-     *
      *
      *     version (int) – version of the schema deleted under this subject
      *
@@ -123,5 +123,5 @@ public interface SubjectsResource {
     @DELETE
     @Path("/{subject}")
     List<Integer> deleteSubject(
-            @PathParam("subject") String subject) throws Exception;
+            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent) throws Exception;
 }

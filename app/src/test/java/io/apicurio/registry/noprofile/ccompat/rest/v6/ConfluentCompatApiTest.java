@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -32,11 +32,14 @@ import io.restassured.path.json.JsonPath;
 import io.restassured.response.ResponseBodyExtractionOptions;
 import io.restassured.response.ValidatableResponse;
 import org.hamcrest.Matchers;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.*;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anything;
@@ -55,36 +58,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
 
-    private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
+    @NotNull
+    public String getBasePath() {
+        return V6_BASE_PATH;
+    }
 
-    private static final String SCHEMA_SIMPLE_DEFAULT_QUOTED = "{\"name\": \"EloquaContactRecordData\", \"type\": \"record\", \"fields\": [{\"name\": \"eloqua_contact_record\", \"type\": {\"name\": \"EloquaContactRecord\", \"type\": \"record\", \"fields\": [{\"name\": \"contact_id\", \"type\": \"string\", \"default\": \"\"}, {\"name\": \"field_map\", \"type\": {\"type\": \"map\", \"values\": \"string\"}, \"default\": \"{}\"}]}}]}";
-    public static final String SCHEMA_SIMPLE_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\"}";
-
-    private static final String SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\": \\\"string\\\"}\","
-            + "\"schemaType\": \"AVRO\"}";
-
-    private static final String PROTOBUF_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"message SearchRequest { required string query = 1; optional int32 page_number = 2;  optional int32 result_per_page = 3; }\",\"schemaType\": \"PROTOBUF\"}";
-
-    private static final String JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE = "{\"schema\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"f1\\\":{\\\"type\\\":\\\"string\\\"}}}\"}\",\"schemaType\": \"JSON\"}";
-
-    private static final String SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED = "{\"schema\": \"{\\\"name\\\": \\\"EloquaContactRecordData\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"eloqua_contact_record\\\", \\\"type\\\": {\\\"name\\\": \\\"EloquaContactRecord\\\", \\\"type\\\": \\\"record\\\", \\\"fields\\\": [{\\\"name\\\": \\\"contact_id\\\", \\\"type\\\": \\\"string\\\", \\\"default\\\": \\\"\\\"}, {\\\"name\\\": \\\"field_map\\\", \\\"type\\\": {\\\"type\\\": \\\"map\\\", \\\"values\\\": \\\"string\\\"}, \\\"default\\\": \\\"{}\\\"}]}}]}\"}";
-
-    private static final String SCHEMA_1_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
-            "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"} ] }\"}\"";
-
-    private static final String SCHEMA_2_WRAPPED = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test1\\\", " +
-            "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
-            "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\"}\"";
-
-    private static final String SCHEMA_3_WRAPPED_TEMPLATE = "{\"schema\": \"{\\\"type\\\": \\\"record\\\", \\\"name\\\": \\\"test2\\\", " +
-            "\\\"fields\\\": [ {\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field1\\\"}, " +
-            "{\\\"type\\\": \\\"string\\\", \\\"name\\\": \\\"field2\\\"} ] }\", \"references\": [{\"name\": \"testname\", \"subject\": \"%s\", \"version\": %d}]}";
-
-    private static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
-
-    private static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}\"";
-
-    private static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";
     /**
      * Endpoint: /subjects/(string: subject)/versions
      */
@@ -93,29 +71,30 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final String SUBJECT = "subject1";
         // POST
         ValidatableResponse res = given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-        /*int id = */res.extract().jsonPath().getInt("id");
+        /*int id = */
+        res.extract().jsonPath().getInt("id");
 
         this.waitForArtifact(SUBJECT);
 
         // Verify
         given()
-            .when()
+                .when()
                 .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
-            .then()
+                .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
 
         // Verify
         given()
                 .when()
-                .get("/ccompat/v6/subjects/").then().body(Matchers.containsString("subject1"));
+                .get(getBasePath() + "/subjects/").then().body(Matchers.containsString("subject1"));
     }
 
     /**
@@ -129,11 +108,12 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-        /*int id = */res.extract().jsonPath().getInt("id");
+        /*int id = */
+        res.extract().jsonPath().getInt("id");
 
         this.waitForArtifact(SUBJECT);
 
@@ -154,11 +134,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final String SUBJECT = "testCreateDuplicateContent";
         // POST content1
         ValidatableResponse res = given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id1 = res.extract().jsonPath().getInt("id");
@@ -167,11 +147,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         // POST content2
         res = given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id2 = res.extract().jsonPath().getInt("id");
@@ -180,11 +160,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         // POST content3 (duplicate of content1)
         res = given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
         int id3 = res.extract().jsonPath().getInt("id");
@@ -201,39 +181,39 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final String SUBJECT = "testCompatibilityCheck";
         // Prepare
         given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body(anything());
         this.waitForArtifact(SUBJECT);
         given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .put("/ccompat/v6/config/{subject}", SUBJECT)
-            .then()
+                .put(getBasePath() + "/config/{subject}", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body(anything());
 
         // POST
         TestUtils.retry(() -> {
             given()
-                .when()
+                    .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .body(SCHEMA_1_WRAPPED)
-                    .post("/ccompat/v6/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-                .then()
+                    .post(getBasePath() + "/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                    .then()
                     .statusCode(200)
                     .body("is_compatible", equalTo(true));
             given()
-                .when()
+                    .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .body(SCHEMA_SIMPLE_WRAPPED)
-                    .post("/ccompat/v6/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-                .then()
+                    .post(getBasePath() + "/compatibility/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                    .then()
                     .statusCode(200)
                     .body("is_compatible", equalTo(false));
         });
@@ -252,7 +232,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(VALID_AVRO_SCHEMA)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -263,7 +243,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .put("/ccompat/v6/config/{subject}", SUBJECT)
+                .put(getBasePath() + "/config/{subject}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -276,7 +256,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                     .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                     .body(SCHEMA_INVALID_WRAPPED)
-                    .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                    .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                     .then()
                     .statusCode(422)
                     .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(42201)));
@@ -288,11 +268,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         final String SUBJECT = "subject3";
         // Prepare
         given()
-            .when()
+                .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
 
@@ -300,9 +280,9 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         //verify
         given()
-            .when()
+                .when()
                 .get("/registry/v1/artifacts/{artifactId}", SUBJECT)
-            .then()
+                .then()
                 .statusCode(200)
                 .body("", equalTo(new JsonPath(SCHEMA_SIMPLE).getMap("")));
 
@@ -310,20 +290,20 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         UpdateState updateState = new UpdateState();
         updateState.setState(ArtifactState.DISABLED);
         given()
-           .when()
-               .contentType(ContentTypes.JSON)
-               .body(updateState)
-               .put("/registry/v1/artifacts/{artifactId}/state", SUBJECT)
-           .then()
-               .statusCode(204);
+                .when()
+                .contentType(ContentTypes.JSON)
+                .body(updateState)
+                .put("/registry/v1/artifacts/{artifactId}/state", SUBJECT)
+                .then()
+                .statusCode(204);
 
         // GET - shouldn't return as the state has been changed to DISABLED
         TestUtils.retry(() -> {
             given()
-                .when()
+                    .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                    .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "latest")
-                .then()
+                    .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "latest")
+                    .then()
                     .statusCode(404)
                     .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
         });
@@ -331,11 +311,11 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         // GET schema only - shouldn't return as the state has been changed to DISABLED
         TestUtils.retry(() -> {
             given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
-                .then()
-                .statusCode(404)
+                    .when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .get(getBasePath() + "/subjects/{subject}/versions/{version}/schema", SUBJECT, "latest")
+                    .then()
+                    .statusCode(404)
                     .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40402)));
         });
     }
@@ -345,10 +325,10 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         //verify
         String[] types = given()
                 .when()
-                .get("/ccompat/v6/schemas/types")
+                .get(getBasePath() + "/schemas/types")
                 .then()
                 .statusCode(200)
-        .extract().as(String[].class);
+                .extract().as(String[].class);
 
         assertEquals(3, types.length);
         assertEquals("JSON", types[0]);
@@ -366,12 +346,12 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         // POST
         given()
                 .when()
-                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                    .body(SCHEMA_SIMPLE_WRAPPED_WITH_TYPE)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(SCHEMA_SIMPLE_WRAPPED_WITH_TYPE)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
-                    .statusCode(200)
-                    .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
+                .statusCode(200)
+                .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
     }
 
 
@@ -391,7 +371,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     private void registerSchemaAndVerify(String schema, String subject, String schemaTye) throws Exception {
         registerSchemaInSubject(schema, subject);
         this.waitForArtifact(subject);
-        final Integer avroSchemaGlobalId = given().when().get("/ccompat/v6/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
+        final Integer avroSchemaGlobalId = given().when().get(getBasePath() + "/subjects/{subject}/versions/latest", subject).body().jsonPath().get("id");
         verifySchemaType(avroSchemaGlobalId, schemaTye);
     }
 
@@ -400,7 +380,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(schema)
-                .post("/ccompat/v6/subjects/{subject}/versions", subject)
+                .post(getBasePath() + "/subjects/{subject}/versions", subject)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
@@ -411,7 +391,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         Assertions.assertEquals(given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/schemas/ids/{id}", globalId)
+                .get(getBasePath() + "/schemas/ids/{id}", globalId)
                 .then()
                 .extract()
                 .body().jsonPath().get("schemaType"), schemaType);
@@ -431,7 +411,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -446,7 +426,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -463,7 +443,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SECOND_SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SECOND_SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -479,7 +459,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
             final ResponseBodyExtractionOptions body = given()
                     .when()
                     .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                    .get("/ccompat/v6/schemas/ids/{id}/versions", contentId1)
+                    .get(getBasePath() + "/schemas/ids/{id}/versions", contentId1)
                     .then()
                     .statusCode(200)
                     .extract().body();
@@ -504,7 +484,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         // Create first artifact
         // POST
         final Integer contentId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_1_WRAPPED).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT_1).then()
+                .body(SCHEMA_1_WRAPPED).post(getBasePath() + "/subjects/{subject}/versions", SUBJECT_1).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
                 .extract().body().jsonPath().get("id");
@@ -517,7 +497,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         // POST
         System.out.printf((SCHEMA_3_WRAPPED_TEMPLATE) + "%n", SUBJECT_1, 1);
         final Integer contentId2 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(String.format(SCHEMA_3_WRAPPED_TEMPLATE, SUBJECT_1, 1)).post("/ccompat/v6/subjects/{subject}/versions", SUBJECT_2).then()
+                .body(String.format(SCHEMA_3_WRAPPED_TEMPLATE, SUBJECT_1, 1)).post(getBasePath() + "/subjects/{subject}/versions", SUBJECT_2).then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(1)))
                 .extract().body().jsonPath().get("id");
@@ -528,7 +508,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         //Verify
         Integer[] versions = given().when()
-                .get("/ccompat/v6/subjects/{subject}/versions/{version}/referencedby", SUBJECT_1, 1L).then().statusCode(200)
+                .get(getBasePath() + "/subjects/{subject}/versions/{version}/referencedby", SUBJECT_1, 1L).then().statusCode(200)
                 .extract().as(Integer[].class);
 
         assertEquals(1, versions.length);
@@ -546,7 +526,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .put("/ccompat/v6/config/")
+                .put(getBasePath() + "/config/")
                 .then()
                 .statusCode(200)
                 .extract().as(CompatibilityLevelDto.class);
@@ -554,7 +534,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/config/")
+                .get(getBasePath() + "/config/")
                 .then()
                 .statusCode(200)
                 .extract().as(CompatibilityLevelParamDto.class);
@@ -573,7 +553,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body(anything());
@@ -583,7 +563,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .put("/ccompat/v6/config/{subject}", SUBJECT)
+                .put(getBasePath() + "/config/{subject}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(CompatibilityLevelDto.class);
@@ -593,7 +573,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(CONFIG_BACKWARD)
-                .get("/ccompat/v6/config/{subject}", SUBJECT)
+                .get(getBasePath() + "/config/{subject}", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(CompatibilityLevelParamDto.class);
@@ -606,7 +586,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         String[] types = given()
                 .when()
                 .accept(ContentTypes.JSON)
-                .get("/ccompat/v6/schemas/types")
+                .get(getBasePath() + "/schemas/types")
                 .then()
                 .statusCode(200)
                 .extract().as(String[].class);
@@ -617,7 +597,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         types = given()
                 .when()
                 .accept(ContentTypes.COMPAT_SCHEMA_REGISTRY_V1)
-                .get("/ccompat/v6/schemas/types")
+                .get(getBasePath() + "/schemas/types")
                 .then()
                 .statusCode(200)
                 .extract().as(String[].class);
@@ -628,7 +608,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         types = given()
                 .when()
                 .accept(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/schemas/types")
+                .get(getBasePath() + "/schemas/types")
                 .then()
                 .statusCode(200)
                 .extract().as(String[].class);
@@ -651,7 +631,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_1_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -664,7 +644,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_2_WRAPPED)
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -676,27 +656,27 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         //check versions list
         var versionsConfluent = given()
-            .when()
-            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-            .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
-            .then()
-            .statusCode(200)
-            .extract().as(Integer[].class);
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
+                .then()
+                .statusCode(200)
+                .extract().as(Integer[].class);
 
         assertEquals(2, versionsConfluent.length);
 
         given()
-            .when()
-            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
-            .then()
-            .statusCode(200);
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "1")
+                .then()
+                .statusCode(200);
         given()
-            .when()
-            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
-            .then()
-            .statusCode(200);
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "2")
+                .then()
+                .statusCode(200);
 
 
         var versionsApicurio = given()
@@ -711,28 +691,28 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         //delete version 2
         given()
-            .when()
-            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-            .delete("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "2")
-            .then()
-            .statusCode(200);
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .delete(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "2")
+                .then()
+                .statusCode(200);
 
         versionsConfluent = given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .get(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .extract().as(Integer[].class);
 
-            assertEquals(1, versionsConfluent.length);
+        assertEquals(1, versionsConfluent.length);
 
         given()
-            .when()
-            .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-            .get("/ccompat/v6/subjects/{subject}/versions/{version}", SUBJECT, "1")
-            .then()
-            .statusCode(200);
+                .when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .get(getBasePath() + "/subjects/{subject}/versions/{version}", SUBJECT, "1")
+                .then()
+                .statusCode(200);
 
         versionsApicurio = given()
                 .when()
@@ -745,25 +725,25 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
         assertEquals(1, versionsApicurio.size());
 
         given()
-            .when()
-            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1", SUBJECT)
-            .then()
-            .statusCode(200);
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions/1", SUBJECT)
+                .then()
+                .statusCode(200);
         given()
-            .when()
-            .get("/registry/v2/groups/default/artifacts/{subject}/versions/1/meta", SUBJECT)
-            .then()
-            .statusCode(200);
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/versions/1/meta", SUBJECT)
+                .then()
+                .statusCode(200);
         given()
-            .when()
-            .get("/registry/v2/groups/default/artifacts/{subject}/meta", SUBJECT)
-            .then()
-            .statusCode(200);
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}/meta", SUBJECT)
+                .then()
+                .statusCode(200);
         given()
-            .when()
-            .get("/registry/v2/groups/default/artifacts/{subject}", SUBJECT)
-            .then()
-            .statusCode(200);
+                .when()
+                .get("/registry/v2/groups/default/artifacts/{subject}", SUBJECT)
+                .then()
+                .statusCode(200);
     }
 
 
@@ -773,7 +753,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testMinifiedSchema() throws Exception {
         final String SUBJECT = "testMinifiedSchema";
-        String testSchemaExpanded = resourceToString("avro-expanded.avsc");
+        String testSchemaExpanded = resourceToString("../avro-expanded.avsc");
 
         ObjectMapper objectMapper = new ObjectMapper();
         SchemaContent schemaContent = new SchemaContent(testSchemaExpanded);
@@ -783,7 +763,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))
@@ -793,7 +773,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
 
         this.waitForArtifact(SUBJECT);
 
-        String minifiedSchema = resourceToString("avro-minified.avsc");
+        String minifiedSchema = resourceToString("../avro-minified.avsc");
         SchemaContent minifiedSchemaContent = new SchemaContent(minifiedSchema);
 
         //Without the canonical hash mode, this will fail with a 404
@@ -802,7 +782,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}", SUBJECT)
                 .then()
                 .statusCode(404)
                 .body("error_code", Matchers.allOf(Matchers.isA(Integer.class), Matchers.equalTo(40401)));
@@ -814,7 +794,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(minifiedSchemaContent))
-                .post("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
+                .post(getBasePath() + "/subjects/{subject}/versions", SUBJECT)
                 .then()
                 .statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)))

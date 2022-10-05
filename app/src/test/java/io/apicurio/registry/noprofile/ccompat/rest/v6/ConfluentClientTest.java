@@ -14,27 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.registry.noprofile.ccompat.rest;
-
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+package io.apicurio.registry.noprofile.ccompat.rest.v6;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
@@ -60,16 +40,36 @@ import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializerConfig;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 
 @QuarkusTest
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
 
-    private SchemaRegistryClient buildClient() {
+    public SchemaRegistryClient buildClient() {
 
         final List<SchemaProvider> schemaProviders = Arrays
                 .asList(new JsonSchemaProvider(), new AvroSchemaProvider(), new ProtobufSchemaProvider());
@@ -207,15 +207,20 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         final SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
 
-        final Properties config = new Properties();
+        final Map<String, Object> config = new HashMap<>();
         config.put(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
-        config.put(KafkaJsonSchemaSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
+        config.put(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081/apis/ccompat/v6");
+        config.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, TestCmmn.UUID.class.getName());
 
-        try (KafkaProtobufSerializer serializer = new KafkaProtobufSerializer(client, new HashMap(config));
-                KafkaProtobufDeserializer deserializer = new KafkaProtobufDeserializer(client, config)){
+
+        try (KafkaProtobufSerializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer<>(client);
+             KafkaProtobufDeserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer<>(client)) {
+
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
 
             byte[] bytes = serializer.serialize(subject, record);
-            Object deserialized = deserializer.deserialize(subject, bytes);
+            TestCmmn.UUID deserialized = deserializer.deserialize(subject, bytes);
             Assertions.assertEquals(record, deserialized);
         }
     }

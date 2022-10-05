@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -26,13 +25,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
- * Immutable.
- *
- * @author Ales Justin
- * @author Jakub Senko 'jsenko@redhat.com'
+ * @author Carles Arnal 'carnalca@redhat.com'
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
@@ -41,19 +38,20 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 @EqualsAndHashCode
 @ToString
 @RegisterForReflection
-public class CompatibilityCheckResponse {
+public class ExporterStatus {
 
-    public static final CompatibilityCheckResponse IS_COMPATIBLE = new CompatibilityCheckResponse(true, null);
+    @JsonProperty("name")
+    private String name;
 
-    public static final CompatibilityCheckResponse IS_NOT_COMPATIBLE = new CompatibilityCheckResponse(false, null);
+    @JsonProperty("state")
+    private String state;
 
-    public static CompatibilityCheckResponse create(boolean isCompatible) {
-        return isCompatible ? IS_COMPATIBLE : IS_NOT_COMPATIBLE;
-    }
+    @JsonProperty("offset")
+    private long offset;
 
-    @JsonProperty("is_compatible")
-    private boolean isCompatible;
+    @JsonProperty("ts")
+    private long ts;
 
-    @JsonProperty("reason")
-    private String reason;
+    @JsonProperty("trace")
+    private String trace;
 }

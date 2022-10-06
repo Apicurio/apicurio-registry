@@ -144,7 +144,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION`
+|`REGISTRY_AUTH_OBAC_ENABLED`
 |`registry.auth.owner-only-authorization`
 |Boolean
 |`false`

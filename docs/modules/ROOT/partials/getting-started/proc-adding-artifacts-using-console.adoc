@@ -31,7 +31,7 @@ endif::[]
 NOTE:  {registry} cannot automatically detect the *Kafka Connect Schema* artifact type. You must manually select this artifact type.
 +
 ** *Artifact*: Specify the artifact location using either of the following options: 
-*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-schema.json` or `my-openapi.json`.
+*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`.
 *** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
 . Click *Upload* and view the artifact details: 
 +

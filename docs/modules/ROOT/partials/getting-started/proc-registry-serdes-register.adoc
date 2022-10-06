@@ -47,7 +47,6 @@ endif::[]
 <1> Simple Avro schema artifact.
 <2> OpenShift route name that exposes {registry}.
 
-
 [discrete]
 == Maven plug-in example
 

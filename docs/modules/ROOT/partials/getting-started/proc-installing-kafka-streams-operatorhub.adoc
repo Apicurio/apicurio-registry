@@ -7,14 +7,16 @@
 = Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
-If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-understanding-operatorhub.html[OpenShift documentation].
+If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
+
 
 .Prerequisites
 
 * You must have cluster administrator access to an OpenShift cluster 
 ifdef::rh-service-registry[]
-* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+* See link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
+
 
 .Procedure
 
@@ -46,5 +48,5 @@ endif::[]
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 
 .Additional resources
-* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
-* link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift] 
+* link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
+* link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]

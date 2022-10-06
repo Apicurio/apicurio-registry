@@ -91,4 +91,4 @@ http://example-apicurioregistry-sql.my-project.my-domain-name.com/
 .Additional resources
 
  * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
- * https://github.com/Apicurio/apicurio-registry-operator/blob/main/docs/minikube-quickstart.md[Apicurio Registry Operator QuickStart]
+ * https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator QuickStart]

@@ -215,7 +215,7 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |The name of a JWT token claim to use for determining admin-override.
 |String
 |`org-admin`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM-VALUE`
+|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
 |The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`

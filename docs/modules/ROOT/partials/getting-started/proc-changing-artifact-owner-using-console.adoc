@@ -16,7 +16,7 @@ endif::[]
 This feature is useful if *Artifact owner-only authorization* is set for the {registry} instance on the *Settings* tab so that only owners or administrators can modify artifacts. For example, you might need to change owner if the owner user leaves the organization or the owner account is deleted. 
 
 ifdef::apicurio-registry,rh-service-registry[]
-NOTE: The *Owner* field and the *Artifact owner-only authorization* setting are only displayed in the web console if authentication was already enabled when the {registry} instance was deployed. For more details, see 
+NOTE: The *Artifact owner-only authorization* setting and the artifact *Owner* field are displayed _only if_ authentication was enabled when the {registry} instance was deployed. For more details, see 
 endif::[] 
 ifdef::apicurio-registry[]
 xref:../getting-started/assembly-configuring-the-registry.adoc[].
@@ -27,7 +27,7 @@ endif::[]
 
 .Prerequisites
 
-* The {registry} instance is already deployed and the artifact is created. 
+* The {registry} instance is deployed and the artifact is created. 
 * You are logged in to the {registry} web console as the artifact's current owner or as an administrator:
 +
 `{registry-url}`
@@ -36,15 +36,15 @@ endif::[]
 
 
 ifdef::rh-openshift-sr[]
-. In the {registry} web console, click the existing {registry} instance. 
+. In the {registry} web console, click the {registry} instance containing the artifact that you want to reassign. 
 endif::[]
 . On the *Artifacts* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact. You can select from the list to search by criteria such as name, group, labels, or global ID.  
 
-. Click the artifact and view the *Owner* field in the *Version metadata*.
+. Click the artifact that you want to reassign.
 
-. Click the pencil icon next to the *Owner* field. 
+. In the *Version metadata* section, click the pencil icon next to the *Owner* field. 
 
-. Select or enter an account name in the *New owner* field and confirm the new account name. 
+. In the *New owner* field, select or enter an account name. 
 
 . Click *Change owner*.
 

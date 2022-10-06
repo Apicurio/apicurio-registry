@@ -7,7 +7,7 @@
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
-You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see the link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/understanding/olm-understanding-operatorhub.html[OpenShift documentation].
+You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
 
 NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 
@@ -46,5 +46,6 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+
+* link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]

@@ -243,7 +243,7 @@
         <!-- Test containers version, should be aligned with version used in Quarkus -->
         <test-containers.version>1.16.3</test-containers.version>
         <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-        <keycloak-admin-client.version>19.0.2</keycloak-admin-client.version>
+        <keycloak-admin-client.version>19.0.3</keycloak-admin-client.version>
         <embedded-postgres.version>2.0.1</embedded-postgres.version>
         <strimzi.version>0.102.0</strimzi.version>
         <wiremock-jre8.version>2.34.0</wiremock-jre8.version>
@@ -814,7 +814,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.7.1</version>
+                    <version>4.7.2</version>
                     <configuration>
                         <recompileMode>incremental</recompileMode>
                         <args>

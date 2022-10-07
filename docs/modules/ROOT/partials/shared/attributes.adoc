@@ -51,12 +51,12 @@ endif::[]
 :version: 2022.Q3
 :attachmentsdir: files
 :registry-release: 2.3.0.Final
-:registry-ocp-version: 4.6
+:registry-ocp-version: 4.11
 :registry-db-version: 12
 :registry-url: \http://MY_REGISTRY_URL/ui
 
 //integration products
-:amq-version: 2022.q3
+:amq-version: 2.1
 :fuse-version: 7.11
 :3scale-version: 2.12
 

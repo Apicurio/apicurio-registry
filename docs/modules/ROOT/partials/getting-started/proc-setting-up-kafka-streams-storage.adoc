@@ -29,7 +29,7 @@ endif::[]
 .. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
 .. Edit the custom resource definition as appropriate, and click *Create*.
 +
-WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
+WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
 
 . After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*.
 
@@ -89,5 +89,5 @@ endif::[]
 
 ifdef::rh-service-registry[]
 //* For more details, including how to configure Transport Layer Security (TLS) and Salted Challenge Response Authentication Mechanism (SCRAM), see the link:https://github.com/redhat-integration/apicurio-registry-install-examples[example custom resource definitions] provided for registry installation.
-* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift].
+* For more details on creating Kafka clusters and topics using {kafka-streams}, see link:https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{amq-version}/html/deploying_and_upgrading_amq_streams_on_openshift/index[Deploying and Upgrading AMQ Streams on OpenShift].
 endif::[]

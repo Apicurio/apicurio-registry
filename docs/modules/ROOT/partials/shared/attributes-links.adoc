@@ -157,13 +157,25 @@
 :LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/red_hat_integration/{version}/html-single/migrating_service_registry_deployments/index
 :NameServiceRegistryMigration: Migrating Service Registry deployments
 
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/{registry-ocp-version}/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
 // AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.1
 
-:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html-single/using_amq_streams_on_openshift/index
-:NameStreamsOpenShift: Using AMQ Streams on OpenShift
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
 
-:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq/{amq-version}/html-single/using_amq_streams_on_rhel/index
-:NameStreamsRhel: Using AMQ Streams on RHEL
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_upgrading_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Upgrading {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
 
 // Debezium titles
 

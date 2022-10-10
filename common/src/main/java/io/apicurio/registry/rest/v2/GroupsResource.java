@@ -699,22 +699,11 @@ public interface GroupsResource {
       @PathParam("artifactId") String artifactId, ArtifactOwner data);
 
   /**
-   * Gets a list of all groups configured in the registry (if any).
+   * Returns a group using the specified id.
    *
    * This operation can fail for the following reasons:
    *
-   * * A server error occurred (HTTP error `500`)
-   */
-  @GET
-  @Produces("application/json")
-  List<String> getGroups();
-
-  /**
-   * Creates a new group.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * No group exist with the specified id (HTTP error `404`)
+   * * No group exists with the specified ID (HTTP error `404`)
    * * A server error occurred (HTTP error `500`)
    */
   @Path("/{groupId}")
@@ -723,22 +712,7 @@ public interface GroupsResource {
   GroupMetaData getGroupById(@PathParam("groupId") String groupId);
 
   /**
-   * Creates a new group.
-   *
-   * This operation can fail for the following reasons:
-   *
-   * * A server error occurred (HTTP error `500`)
-   * * The group already exist (HTTP error `409`)
-   *
-   */
-  @Path("/{groupId}")
-  @POST
-  @Produces("application/json")
-  @Consumes("application/json")
-  GroupMetaData createGroup(@PathParam("groupId") String groupId, CreateGroupMetaData data);
-
-  /**
-   * Deletes a group by identidier.
+   * Deletes a group by identifier.
    *
    * This operation can fail for the following reasons:
    *
@@ -749,4 +723,26 @@ public interface GroupsResource {
   @Path("/{groupId}")
   @DELETE
   void deleteGroupById(@PathParam("groupId") String groupId);
+
+  /**
+   * Returns a list of all groups.  This list is paged.
+   */
+  @GET
+  @Produces("application/json")
+  List<String> listGroups(@QueryParam("limit") Integer limit, @QueryParam("offset") Integer offset,
+      @QueryParam("order") SortOrder order, @QueryParam("orderby") SortBy orderby);
+
+  /**
+   * Creates a new group.
+   *
+   * This operation can fail for the following reasons:
+   *
+   * * A server error occurred (HTTP error `500`)
+   * * The group already exist (HTTP error `409`)
+   *
+   */
+  @POST
+  @Produces("application/json")
+  @Consumes("application/json")
+  GroupMetaData createGroup(CreateGroupMetaData data);
 }

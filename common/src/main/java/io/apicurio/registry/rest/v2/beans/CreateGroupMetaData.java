@@ -20,7 +20,8 @@ import io.apicurio.registry.types.ArtifactType;
 @JsonPropertyOrder({
     "description",
     "properties",
-    "type"
+    "type",
+    "id"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -42,6 +43,14 @@ public class CreateGroupMetaData {
     @JsonProperty("type")
     @JsonPropertyDescription("")
     private ArtifactType type;
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    @JsonPropertyDescription("")
+    private String id;
 
     @JsonProperty("description")
     public String getDescription() {
@@ -85,6 +94,26 @@ public class CreateGroupMetaData {
     @JsonProperty("type")
     public void setType(ArtifactType type) {
         this.type = type;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * 
+     * (Required)
+     * 
+     */
+    @JsonProperty("id")
+    public void setId(String id) {
+        this.id = id;
     }
 
 }

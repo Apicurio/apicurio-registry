@@ -350,297 +350,12 @@ objects:
         app: apicurio-registry
         template: multitenant-apicurio-registry
 
-# tenant-manager resources
-# TODO revisit app-interface metrics and alerts
-- apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-      component: tenant-manager-envoy
-    annotations:
-      description: Exposes and load balances the tenant-manager pods going through envoy beforehand
-      service.alpha.openshift.io/serving-cert-secret-name: tenant-manager-envoy-tls
-    name: tenant-manager-envoy
-  spec:
-    ports:
-    - port: 9001
-      protocol: TCP
-      targetPort: 9001
-      name: api-envoy
-    selector:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-
-- apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-      component: tenant-manager-envoy-metrics
-    name: tenant-manager-envoy-metrics
-  spec:
-    ports:
-    - port: 9000
-      protocol: TCP
-      targetPort: 9000
-      name: metrics-envoy
-    selector:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-
-- apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-      component: tenant-manager
-    name: tenant-manager
-  spec:
-    ports:
-    - port: 8585
-      protocol: TCP
-      targetPort: 8585
-      name: http
-    selector:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-
-- apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    labels:
-      app: tenant-manager
-      template: multitenant-apicurio-registry
-    name: tenant-manager
-  spec:
-    selector:
-      matchLabels:
-        app: tenant-manager
-        template: multitenant-apicurio-registry
-    replicas: ${{TENANT_MANAGER_REPLICAS}}
-    strategy:
-      rollingUpdate:
-        maxSurge: 25%
-        maxUnavailable: 25%
-      type: RollingUpdate
-    template:
-      metadata:
-        labels:
-          app: tenant-manager
-          template: multitenant-apicurio-registry
-      spec:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                    - tenant-manager
-                  - key: template
-                    operator: In
-                    values:
-                    - multitenant-apicurio-registry
-                topologyKey: failure-domain.beta.kubernetes.io/zone
-              weight: 100
-        serviceAccount: ${SERVICE_ACCOUNT_NAME}
-        serviceAccountName: ${SERVICE_ACCOUNT_NAME}
-        volumes:
-        - name: envoy-config
-          configMap:
-            name: ${TENANT_MANAGER_ENVOY_CONFIG_CM_NAME}
-        - name: envoy-unix-sockets
-          emptyDir:
-            medium: Memory
-        - name: db-ssl-ca
-          secret:
-            secretName: ${DATABASE_SSL_CA_SECRET_NAME}
-        - name: envoy-tls
-          secret:
-            secretName: tenant-manager-envoy-tls
-
-        containers:
-        - name: tenant-manager
-          image: ${IMAGE_REGISTRY}/${TENANT_MANAGER_IMAGE_REPOSITORY}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-          - name: db-ssl-ca
-            mountPath: /config/db-ssl-ca.pem
-            subPath: ca.pem
-          env:
-          - name: DB_HOST
-            valueFrom:
-              secretKeyRef:
-                name:  ${DATABASE_SECRET_NAME}
-                key:  db.host
-          - name: DB_PORT
-            valueFrom:
-              secretKeyRef:
-                name:  ${DATABASE_SECRET_NAME}
-                key:  db.port
-          - name: DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name:  ${DATABASE_SECRET_NAME}
-                key:  db.name
-          - name: DATASOURCE_URL
-            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
-          - name: DATASOURCE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name:  ${DATABASE_SECRET_NAME}
-                key:  db.user
-          - name: DATASOURCE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name:  ${DATABASE_SECRET_NAME}
-                key:  db.password
-
-          #TODO this env will be deleted, this is not useful
-          - name: REGISTRY_ROUTE_URL
-            value: http://localhost:8080
-          - name: QUARKUS_HTTP_PORT
-            value: "8585"
-          - name: LOG_LEVEL
-            value: ${TENANT_MANAGER_QUARKUS_LOG_LEVEL}
-          - name: TENANT_MANAGER_LOG_LEVEL
-            value: ${TENANT_MANAGER_LOG_LEVEL}
-          - name: ENABLE_ACCESS_LOG
-            value: ${ENABLE_ACCESS_LOG}
-
-          - name: ENABLE_SENTRY
-            value: ${ENABLE_SENTRY}
-          - name: SENTRY_DSN
-            valueFrom:
-              secretKeyRef:
-                name:  ${SENTRY_DSN_SECRET_NAME}
-                key:  sentry-dsn
-
-          - name: AUTH_ENABLED
-            value: ${AUTH_ENABLED}
-          - name: KEYCLOAK_URL
-            value: ${KEYCLOAK_URL}
-          - name: KEYCLOAK_REALM
-            value: ${KEYCLOAK_REALM}
-          - name: KEYCLOAK_API_CLIENT_ID
-            valueFrom:
-              secretKeyRef:
-                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
-                key: client-id
-          - name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR
-            value: ${TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR}
-          - name: TENANT_MANAGER_REAPER_PERIOD_SECONDS
-            value: ${TENANT_MANAGER_REAPER_PERIOD_SECONDS}
-          - name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
-            value: ${TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT}
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /q/health/live
-              port: 8585
-              scheme: HTTP
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-          ports:
-          - containerPort: 8585
-            protocol: TCP
-            name: http
-          readinessProbe:
-            failureThreshold: 5
-            httpGet:
-              path: /q/health/ready
-              port: 8585
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources:
-            limits:
-              cpu: ${TENANT_MANAGER_CPU_LIMIT}
-              memory: ${TENANT_MANAGER_MEMORY_LIMIT}
-            requests:
-              cpu: ${TENANT_MANAGER_CPU_REQUEST}
-              memory: ${TENANT_MANAGER_MEMORY_REQUEST}
-          terminationMessagePath: /dev/termination-log
-        - name: envoy
-          image: ${ENVOY_IMAGE}
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-          - name: envoy-tls
-            mountPath: /secrets/tls
-          - name: envoy-config
-            mountPath: /configs/envoy
-          - name: envoy-unix-sockets
-            mountPath: /sockets
-          command:
-          - envoy
-          - --config-path
-          - /configs/envoy/main.yaml
-          ports:
-          - name: api-envoy
-            protocol: TCP
-            containerPort: 9001
-          - name: metrics-envoy
-            protocol: TCP
-            containerPort: 9000
-          livenessProbe:
-            httpGet:
-              path: /ready
-              port: 9000
-            initialDelaySeconds: 10
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 10
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 9000
-            initialDelaySeconds: 10
-            timeoutSeconds: 1
-            periodSeconds: 10
-            successThreshold: 1
-            failureThreshold: 10
-          resources:
-            requests:
-              memory: 256Mi
-              cpu: 250m
-            limits:
-              memory: 512Mi
-              cpu: 500m
-
-- kind: PodDisruptionBudget
-  apiVersion: policy/v1
-  metadata:
-    name: tenant-manager-pdb
-  spec:
-    maxUnavailabe: "50%"
-    selector:
-      matchLabels:
-        app: tenant-manager
-        template: multitenant-apicurio-registry
-
 parameters:
 
 - name: REGISTRY_LOG_LEVEL
   value: DEBUG
 
 - name: REGISTRY_QUARKUS_LOG_LEVEL
-  value: INFO
-
-- name: TENANT_MANAGER_LOG_LEVEL
-  value: DEBUG
-
-- name: TENANT_MANAGER_QUARKUS_LOG_LEVEL
   value: INFO
 
 - name: ENABLE_ACCESS_LOG
@@ -653,9 +368,6 @@ parameters:
 - name: REPLICAS
   description: Number of replicas for apicurio-registry deployment.
   value: "3"
-- name: TENANT_MANAGER_REPLICAS
-  description: Number of replicas for tenant-manager deployment.
-  value: "3"
 
 - name: IMAGE_REGISTRY
   displayName: Image Registry
@@ -665,12 +377,8 @@ parameters:
   displayName: Apicurio Registry Image Repository
   required: true
 
-- name: TENANT_MANAGER_IMAGE_REPOSITORY
-  displayName: Tenant Manager Image Repository
-  required: true
-
 - name: IMAGE_TAG
-  displayName: Image tag for Apicurio Registry and Tenant Manager
+  displayName: Image tag for Apicurio Registry
   value: latest
 
 
@@ -690,22 +398,6 @@ parameters:
   description: Apicurio Registry CPU limit.
   value: "1000m"
 
-
-- name: TENANT_MANAGER_MEMORY_REQUEST
-  description: Tenant Manager Memory request.
-  value: "600Mi"
-
-- name: TENANT_MANAGER_MEMORY_LIMIT
-  description: Tenant Manager  Memory limit.
-  value: "1000Mi"
-
-- name: TENANT_MANAGER_CPU_REQUEST
-  description: Tenant Manager  CPU request.
-  value: "200m"
-
-- name: TENANT_MANAGER_CPU_LIMIT
-  description: Tenant Manager CPU limit.
-  value: "500m"
 
 - name: DATABASE_SECRET_NAME
   description: Secret name with database connection details
@@ -785,8 +477,6 @@ parameters:
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager
   required: true
-- name: TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS
-  description: milliseconds to reduce the expiration time each auth token to tenant-manager, this should help reduce the number of requests to tenant-manager that use an expired token
 
 - name: ENVOY_IMAGE
   description: Envoy image.
@@ -794,9 +484,6 @@ parameters:
 - name: ENVOY_CONFIG_CM_NAME
   description: ConfigMap containing Envoy config file
   value: apicurio-registry-envoy-config
-- name: TENANT_MANAGER_ENVOY_CONFIG_CM_NAME
-  description: ConfigMap containing Envoy config file for tenant-manager
-  value: tenant-manager-envoy-config
 
 - name: ENABLE_SENTRY
   value: "false"
@@ -832,10 +519,3 @@ parameters:
 - name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
   description: "When true, the 'UI Read Only Mode' dynamic property is exposed to admins."
   value: "true"
-  # Tenant Manager Reaper Configuration
-- name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR
-  value: "1m"
-- name: TENANT_MANAGER_REAPER_PERIOD_SECONDS
-  value: "10800" # 3 * 60 * 60 = 3 hours
-- name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
-  value: "100"

@@ -152,7 +152,7 @@
         <node.version>16.17.0</node.version>
         
         <!-- Quarkus Version -->
-        <quarkus.version>2.7.6.Final</quarkus.version>
+        <quarkus.version>999-SNAPSHOT</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>1.1.1</jandex.version>
@@ -1089,6 +1089,17 @@
                 </activation>
             <repositories>
                 <repository>
+                    <id>maven-snapshots</id>
+                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+                    <layout>default</layout>
+                    <releases>
+                       <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                       <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
                     <id>confluent</id>
                     <name>Confluent</name>
                     <url>https://packages.confluent.io/maven/</url>
@@ -1098,6 +1109,19 @@
                     <url>https://jitpack.io</url>
                 </repository>
             </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>maven-snapshots</id>
+                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+                    <layout>default</layout>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
         </profile>
     </profiles>
     

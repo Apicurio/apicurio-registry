@@ -472,6 +472,11 @@ parameters:
 
 - name: TENANT_MANAGER_URL
   value: http://tenant-manager:8585
+- name: TENANT_MANAGER_CA_BUNDLE
+  description: path to tenant-manager service CA bundle
+- name: TENANT_MANAGER_CLIENT_SECRET_NAME
+  description: k8s secret name with client-id and client-secret to access tenant-manager
+  required: true
 
 - name: ENVOY_IMAGE
   description: Envoy image.

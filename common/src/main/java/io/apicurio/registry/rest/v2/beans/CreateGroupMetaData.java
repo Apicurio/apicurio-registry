@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.apicurio.registry.types.ArtifactType;
 
 
 /**
@@ -20,7 +19,7 @@ import io.apicurio.registry.types.ArtifactType;
 @JsonPropertyOrder({
     "description",
     "properties",
-    "type"
+    "id"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
@@ -38,10 +37,12 @@ public class CreateGroupMetaData {
     private Map<String, String> properties;
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
+    @JsonProperty("id")
     @JsonPropertyDescription("")
-    private ArtifactType type;
+    private String id;
 
     @JsonProperty("description")
     public String getDescription() {
@@ -73,18 +74,22 @@ public class CreateGroupMetaData {
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public ArtifactType getType() {
-        return type;
+    @JsonProperty("id")
+    public String getId() {
+        return id;
     }
 
     /**
      * 
+     * (Required)
+     * 
      */
-    @JsonProperty("type")
-    public void setType(ArtifactType type) {
-        this.type = type;
+    @JsonProperty("id")
+    public void setId(String id) {
+        this.id = id;
     }
 
 }

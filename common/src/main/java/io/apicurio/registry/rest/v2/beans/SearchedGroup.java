@@ -2,7 +2,6 @@
 package io.apicurio.registry.rest.v2.beans;
 
 import java.util.Date;
-import java.util.Map;
 import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -12,25 +11,22 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * Root Type for GroupMetaData
- * <p>
- * 
+ * Models a single group from the result set returned when searching for groups.
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "id",
     "description",
-    "createdBy",
     "createdOn",
-    "modifiedBy",
+    "createdBy",
     "modifiedOn",
-    "properties"
+    "modifiedBy"
 })
 @Generated("jsonschema2pojo")
 @io.quarkus.runtime.annotations.RegisterForReflection
 @lombok.ToString
-public class GroupMetaData {
+public class SearchedGroup {
 
     /**
      * An ID of a single artifact group.
@@ -46,14 +42,8 @@ public class GroupMetaData {
      * 
      */
     @JsonProperty("description")
+    @JsonPropertyDescription("")
     private String description;
-    /**
-     * 
-     * (Required)
-     * 
-     */
-    @JsonProperty("createdBy")
-    private String createdBy;
     /**
      * 
      * (Required)
@@ -61,14 +51,16 @@ public class GroupMetaData {
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("createdOn")
+    @JsonPropertyDescription("")
     private Date createdOn;
     /**
      * 
      * (Required)
      * 
      */
-    @JsonProperty("modifiedBy")
-    private String modifiedBy;
+    @JsonProperty("createdBy")
+    @JsonPropertyDescription("")
+    private Object createdBy;
     /**
      * 
      * (Required)
@@ -76,15 +68,16 @@ public class GroupMetaData {
      */
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     @JsonProperty("modifiedOn")
+    @JsonPropertyDescription("")
     private Date modifiedOn;
     /**
-     * User-defined name-value pairs. Name and value must be strings.
+     * 
      * (Required)
      * 
      */
-    @JsonProperty("properties")
-    @JsonPropertyDescription("User-defined name-value pairs. Name and value must be strings.")
-    private Map<String, String> properties;
+    @JsonProperty("modifiedBy")
+    @JsonPropertyDescription("")
+    private String modifiedBy;
 
     /**
      * An ID of a single artifact group.
@@ -131,26 +124,6 @@ public class GroupMetaData {
      * (Required)
      * 
      */
-    @JsonProperty("createdBy")
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    /**
-     * 
-     * (Required)
-     * 
-     */
-    @JsonProperty("createdBy")
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    /**
-     * 
-     * (Required)
-     * 
-     */
     @JsonProperty("createdOn")
     public Date getCreatedOn() {
         return createdOn;
@@ -171,9 +144,9 @@ public class GroupMetaData {
      * (Required)
      * 
      */
-    @JsonProperty("modifiedBy")
-    public String getModifiedBy() {
-        return modifiedBy;
+    @JsonProperty("createdBy")
+    public Object getCreatedBy() {
+        return createdBy;
     }
 
     /**
@@ -181,9 +154,9 @@ public class GroupMetaData {
      * (Required)
      * 
      */
-    @JsonProperty("modifiedBy")
-    public void setModifiedBy(String modifiedBy) {
-        this.modifiedBy = modifiedBy;
+    @JsonProperty("createdBy")
+    public void setCreatedBy(Object createdBy) {
+        this.createdBy = createdBy;
     }
 
     /**
@@ -207,23 +180,23 @@ public class GroupMetaData {
     }
 
     /**
-     * User-defined name-value pairs. Name and value must be strings.
+     * 
      * (Required)
      * 
      */
-    @JsonProperty("properties")
-    public Map<String, String> getProperties() {
-        return properties;
+    @JsonProperty("modifiedBy")
+    public String getModifiedBy() {
+        return modifiedBy;
     }
 
     /**
-     * User-defined name-value pairs. Name and value must be strings.
+     * 
      * (Required)
      * 
      */
-    @JsonProperty("properties")
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
+    @JsonProperty("modifiedBy")
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
     }
 
 }

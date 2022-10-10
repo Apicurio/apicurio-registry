@@ -28,3 +28,5 @@ pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
 apicurio-codegen
+/multitenancy/
+/docs/.jbang/

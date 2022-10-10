@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.mt;
 
-import io.apicurio.multitenant.client.TenantManagerClient;
-import io.apicurio.multitenant.client.TenantManagerClientImpl;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
+import io.apicurio.tenantmanager.client.TenantManagerClientImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.OptionalBean;

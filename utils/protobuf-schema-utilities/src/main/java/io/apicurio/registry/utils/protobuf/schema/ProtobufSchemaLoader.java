@@ -4,21 +4,18 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Feature;
-import com.google.common.jimfs.Jimfs;
-import com.google.common.jimfs.PathType;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.ProtoFile;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.SchemaLoader;
+import okio.FileHandle;
+import okio.FileSystem;
+import okio.fakefilesystem.FakeFileSystem;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
@@ -68,14 +65,9 @@ public class ProtobufSchemaLoader {
     private final static String DECIMAL_PROTO = "decimal.proto";
 
     private static FileSystem getFileSystem() throws IOException {
-        final FileSystem inMemoryFileSystem =
-            Jimfs.newFileSystem(
-                Configuration.builder(PathType.unix())
-                    .setRoots("/")
-                    .setWorkingDirectory("/")
-                    .setAttributeViews("basic")
-                    .setSupportedFeatures(Feature.SYMBOLIC_LINKS)
-                    .build());
+        final FakeFileSystem inMemoryFileSystem = new FakeFileSystem();
+        inMemoryFileSystem.setWorkingDirectory(okio.Path.get("/"));
+        inMemoryFileSystem.setAllowSymlinks(true);
 
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
@@ -94,25 +86,27 @@ public class ProtobufSchemaLoader {
         return inMemoryFileSystem;
     }
 
-    private static void loadProtoFiles(FileSystem inMemoryFileSystem, ClassLoader classLoader, Set<String> protos,
+    private static void loadProtoFiles(FakeFileSystem inMemoryFileSystem, ClassLoader classLoader, Set<String> protos,
                                        String protoPath)
             throws IOException {
         for (String proto : protos) {
             //Loads the proto file resource files.
             final InputStream inputStream = classLoader.getResourceAsStream(protoPath + proto);
             final String fileContents = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-            final Path path = inMemoryFileSystem.getPath("/", protoPath, proto);
-            Files.write(path, fileContents.getBytes());
+            final okio.Path path = okio.Path.get("/" + protoPath + "/" + proto);
+            FileHandle fileHandle = inMemoryFileSystem.openReadWrite(path);
+            fileHandle.write(0, fileContents.getBytes(StandardCharsets.UTF_8), 0, fileContents.getBytes(StandardCharsets.UTF_8).length);
+            fileHandle.close();
         }
     }
 
     private static String createDirectory(String[] dirs, FileSystem fileSystem) throws IOException {
         String dirPath = "";
-        for (String dir: dirs) {
+        for (String dir : dirs) {
             dirPath = dirPath + "/" + dir;
-            Path path = fileSystem.getPath(dirPath);
-            if (Files.notExists(path)) {
-                Files.createDirectory(path);
+            final okio.Path path = okio.Path.get(dirPath);
+            if (!fileSystem.exists(path)) {
+                fileSystem.createDirectory(path);
             }
         }
 
@@ -132,32 +126,37 @@ public class ProtobufSchemaLoader {
         throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
 
-        String [] dirs = {};
+        String[] dirs = {};
         if (packageName.isPresent()) {
             dirs = packageName.get().split("\\.");
         }
         String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
+        FileHandle fileHandle = null;
         try {
             String dirPath = createDirectory(dirs, inMemoryFileSystem);
-            Path path = inMemoryFileSystem.getPath(dirPath, protoFileName);
-            Files.write(path, schemaDefinition.getBytes());
+            okio.Path path = okio.Path.get((dirPath + "/" + protoFileName));
+            final byte[] schemaBytes = schemaDefinition.getBytes(StandardCharsets.UTF_8);
+            fileHandle = inMemoryFileSystem.openReadWrite(path);
+            fileHandle.write(0, schemaBytes, 0, schemaBytes.length);
+            fileHandle.close();
 
-            try (SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem)) {
-                schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
+            SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
+            schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
 
-                Schema schema = schemaLoader.loadSchema();
-                ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
+            Schema schema = schemaLoader.loadSchema();
+            ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
 
-                if (protoFile == null) {
-                    throw new RuntimeException("Error loading Protobuf File: " + protoFileName);
-                }
-
-                return new ProtobufSchemaLoaderContext(schema, protoFile);
+            if (protoFile == null) {
+                throw new RuntimeException("Error loading Protobuf File: " + protoFileName);
             }
+
+            return new ProtobufSchemaLoaderContext(schema, protoFile);
         } catch (Exception e) {
             throw e;
         } finally {
-            inMemoryFileSystem.close();
+            if (fileHandle != null) {
+                fileHandle.close();
+            }
         }
     }
 

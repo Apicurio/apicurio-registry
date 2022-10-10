@@ -15,9 +15,9 @@
  */
 package io.apicurio.tests.multitenancy;
 
-import io.apicurio.multitenant.api.datamodel.TenantStatusValue;
-import io.apicurio.multitenant.api.datamodel.UpdateRegistryTenantRequest;
-import io.apicurio.multitenant.client.TenantManagerClient;
+import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
+import io.apicurio.tenantmanager.api.datamodel.UpdateApicurioTenantRequest;
+import io.apicurio.tenantmanager.client.TenantManagerClient;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.exception.RestClientException;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
@@ -133,7 +133,7 @@ public class TenantReaperIT extends ApicurioRegistryBaseIT {
     }
 
     private void updateTenantStatus(TenantManagerClient tenantManager, String tenantId, TenantStatusValue status) throws Exception {
-        UpdateRegistryTenantRequest request = new UpdateRegistryTenantRequest();
+        UpdateApicurioTenantRequest request = new UpdateApicurioTenantRequest();
         request.setStatus(status);
         tenantManager.updateTenant(tenantId, request);
         TestUtils.retry(() -> Assertions.assertEquals(status, tenantManager.getTenant(tenantId).getStatus()));

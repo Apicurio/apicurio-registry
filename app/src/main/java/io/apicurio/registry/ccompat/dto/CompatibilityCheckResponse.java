@@ -43,9 +43,9 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 @RegisterForReflection
 public class CompatibilityCheckResponse {
 
-    public static final CompatibilityCheckResponse IS_COMPATIBLE = new CompatibilityCheckResponse(true);
+    public static final CompatibilityCheckResponse IS_COMPATIBLE = new CompatibilityCheckResponse(true, null);
 
-    public static final CompatibilityCheckResponse IS_NOT_COMPATIBLE = new CompatibilityCheckResponse(false);
+    public static final CompatibilityCheckResponse IS_NOT_COMPATIBLE = new CompatibilityCheckResponse(false, null);
 
     public static CompatibilityCheckResponse create(boolean isCompatible) {
         return isCompatible ? IS_COMPATIBLE : IS_NOT_COMPATIBLE;
@@ -53,4 +53,7 @@ public class CompatibilityCheckResponse {
 
     @JsonProperty("is_compatible")
     private boolean isCompatible;
+
+    @JsonProperty("reason")
+    private String reason;
 }

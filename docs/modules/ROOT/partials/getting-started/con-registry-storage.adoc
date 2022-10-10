@@ -6,22 +6,29 @@
 [role="_abstract"]
 {registry} provides the following options for the underlying storage of registry data: 
 
+.{registry} data storage options 
+[%header,cols="2,4"] 
+|===
+|Storage option
+|Description
+
 ifdef::apicurio-registry[]
-
-* In-memory 
-* PostgreSQL {registry-db-version} database 
-* Apache Kafka 2.6
-
-NOTE: The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
-
+|In-memory
+|The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
 endif::[]
 
+|PostgreSQL {registry-db-version} database  
+|PostgreSQL is the recommended data storage option for performance, stability, and data management (backup/restore, and so on) in a production environment.
+
+ifdef::apicurio-registry[]
+|Apache Kafka {registry-kafka-version}
+endif::[]
 ifdef::rh-service-registry[]
-
-* PostgreSQL {registry-db-version} database 
-* AMQ Streams {registry-streams-version} 
-
+|{kafka-streams} {registry-streams-version} 
 endif::[]
+|Kafka storage is provided for production environments where database management expertise is not available, or where storage in Kafka is a specific requirement.
+|===
+
 
 [role="_additional-resources"]
 .Additional resources
@@ -31,5 +38,5 @@ ifdef::apicurio-registry[]
 * {installing-the-registry-storage-openshift}
 endif::[]
 ifdef::rh-service-registry[]
-* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
+* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
 endif::[]

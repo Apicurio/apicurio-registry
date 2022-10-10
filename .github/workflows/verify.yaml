@@ -104,6 +104,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Workaround jackson-coreutils
+        run: |
+          # upstream issue: https://github.com/java-json-tools/jackson-coreutils/issues/59
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
@@ -128,7 +135,10 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          make build-sql-native build-tenant-manager-native
+          make build-sql-native
+
+      - name: Prepare Tenant Manager
+        run: make build-integration-tests-multitenancy
 
       - name: Build integration-tests-common
         run: ./mvnw install -Pintegration-tests -pl integration-tests/integration-tests-common
@@ -158,7 +168,7 @@ jobs:
           IMAGE_REPO: quay.io
           IMAGE_TAG: latest-snapshot
         run: |
-          make build-sql-native-image build-tenant-manager-native-image
+          make build-sql-native-image
 
       - name: Login to Quay.io Registry
         if: github.event_name == 'push'
@@ -170,7 +180,7 @@ jobs:
           IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
-          make push-sql-native-image push-tenant-manager-native-image
+          make push-sql-native-image
 
       - name: List All The Images
         run: docker images

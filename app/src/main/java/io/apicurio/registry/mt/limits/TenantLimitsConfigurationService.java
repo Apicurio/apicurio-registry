@@ -17,9 +17,9 @@
 package io.apicurio.registry.mt.limits;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.multitenant.api.datamodel.RegistryTenant;
-import io.apicurio.multitenant.api.datamodel.ResourceType;
-import io.apicurio.multitenant.api.datamodel.TenantResource;
+import io.apicurio.tenantmanager.api.datamodel.ApicurioTenant;
+import io.apicurio.tenantmanager.api.datamodel.ResourceType;
+import io.apicurio.tenantmanager.api.datamodel.TenantResource;
 import io.apicurio.registry.mt.MultitenancyProperties;
 import io.apicurio.registry.mt.TenantContext;
 import io.quarkus.runtime.StartupEvent;
@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+
+import static io.apicurio.tenantmanager.api.datamodel.ResourceType.*;
 
 /**
  * @author Fabian Martinez
@@ -179,7 +181,7 @@ public class TenantLimitsConfigurationService {
     /**
      * @param tenantMetadata
      */
-    public TenantLimitsConfiguration fromTenantMetadata(RegistryTenant tenantMetadata) {
+    public TenantLimitsConfiguration fromTenantMetadata(ApicurioTenant tenantMetadata) {
         TenantLimitsConfiguration c = new TenantLimitsConfiguration();
 
         if (tenantMetadata.getResources() == null || tenantMetadata.getResources().isEmpty()) {
@@ -187,11 +189,12 @@ public class TenantLimitsConfigurationService {
             return defaultLimitsConfiguration;
         }
 
-        Map<ResourceType, TenantResource> config = tenantMetadata.getResources()
+        // TODO: refactor this code
+        Map<String, TenantResource> config = tenantMetadata.getResources()
             .stream()
             .collect(Collectors.toMap(tr -> tr.getType(), tr -> tr));
 
-        for (ResourceType type : ResourceType.values()) {
+        for (String type : ResourceType.values()) {
 
             Long limit = Optional.ofNullable(config.get(type))
                     .map(TenantResource::getLimit)
@@ -239,7 +242,7 @@ public class TenantLimitsConfigurationService {
                     break;
 
                 default:
-                    logger.error("Resource Type unhandled " + type.name());
+                    logger.error("Resource Type unhandled " + type);
                     break;
             }
         }

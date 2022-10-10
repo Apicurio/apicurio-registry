@@ -13,10 +13,6 @@ IMAGE_TAG="${VERSION}"
 SERVICE_REGISTRY_IMAGE_NAME="srs-service-registry"
 SERVICE_REGISTRY_DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.sql.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${SERVICE_REGISTRY_IMAGE_NAME}:${IMAGE_TAG} ./distro/docker/target/docker"
 
-TENANT_MANAGER_IMAGE_NAME="srs-tenant-manager"
-TENANT_MANAGER_DOCKER_BUILD_COMMAND="docker build -f ./distro/docker/target/docker/Dockerfile.tenant-manager.jvm -t ${IMAGE_REGISTRY}/${IMAGE_ORG}/${TENANT_MANAGER_IMAGE_NAME}:${IMAGE_TAG} ./distro/docker/target/docker"
-
-
 
 display_usage() {
     cat <<EOT
@@ -163,14 +159,12 @@ main() {
 
     # building images
     build_image "${SERVICE_REGISTRY_IMAGE_NAME}" "${SERVICE_REGISTRY_DOCKER_BUILD_COMMAND}"
-    build_image "${TENANT_MANAGER_IMAGE_NAME}" "${TENANT_MANAGER_DOCKER_BUILD_COMMAND}"
 
     # logging to quay
     quay_login
 
     # pushing the images to quay
     push_image ${SERVICE_REGISTRY_IMAGE_NAME}
-    push_image ${TENANT_MANAGER_IMAGE_NAME}
 
 }
 

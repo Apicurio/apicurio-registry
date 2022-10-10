@@ -865,15 +865,15 @@ public class RegistryFacade {
     }
 
     private File findTenantManagerModuleDir() {
-        File file = new File("../../multitenancy/tenant-manager-api");
+        File file = new File("../../multitenancy/api");
         if (file.isDirectory()) {
             return file;
         }
-        file = new File("../multitenancy/tenant-manager-api");
+        file = new File("../multitenancy/api");
         if (file.isDirectory()) {
             return file;
         }
-        file = new File("./multitenancy/tenant-manager-api");
+        file = new File("./multitenancy/api");
         if (file.isDirectory()) {
             return file;
         }

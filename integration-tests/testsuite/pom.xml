@@ -47,7 +47,7 @@
 
         <dependency>
             <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-tenant-manager-client</artifactId>
+            <artifactId>apicurio-tenant-manager-client</artifactId>
 
             <exclusions>
                 <exclusion>
@@ -137,10 +137,16 @@
             <groupId>com.squareup.wire</groupId>
             <artifactId>wire-compiler</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
+
+
         <dependency>
-            <groupId>com.google.jimfs</groupId>
-            <artifactId>jimfs</artifactId>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio-jvm</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio-fakefilesystem</artifactId>
         </dependency>
 
         <dependency>

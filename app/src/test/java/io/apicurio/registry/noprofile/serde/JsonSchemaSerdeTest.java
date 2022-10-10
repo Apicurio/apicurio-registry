@@ -16,42 +16,57 @@
 
 package io.apicurio.registry.noprofile.serde;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.RegistryClientFactory;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.SerdeHeaders;
+import io.apicurio.registry.serde.jsonschema.JsonSchema;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaParser;
+import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.support.Citizen;
+import io.apicurio.registry.support.CitizenIdentifier;
+import io.apicurio.registry.support.City;
+import io.apicurio.registry.support.Person;
+import io.apicurio.registry.support.Qualification;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.everit.json.schema.ValidationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.SerdeHeaders;
-import io.apicurio.registry.support.Citizen;
-import io.apicurio.registry.support.CitizenIdentifier;
-import io.apicurio.registry.support.City;
-import io.apicurio.registry.support.Qualification;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
-import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
-import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.support.Person;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Fabian Martinez
@@ -211,15 +226,21 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier.json");
         InputStream qualificationSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/qualification.json");
 
+        InputStream addressSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
+
         Assertions.assertNotNull(citizenSchema);
         Assertions.assertNotNull(citySchema);
         Assertions.assertNotNull(citizenIdentifier);
         Assertions.assertNotNull(qualificationSchema);
+        Assertions.assertNotNull(addressSchema);
+
 
         String groupId = TestUtils.generateGroupId();
         String cityArtifactId = generateArtifactId();
         String qualificationsId = generateArtifactId();
         String identifierArtifactId = generateArtifactId();
+        String addressId = generateArtifactId();
+
 
         final Integer cityDependencyGlobalId = createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema));
         this.waitForGlobalId(cityDependencyGlobalId);
@@ -232,6 +253,15 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         qualificationsReference.setGroupId(groupId);
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
+
+        final Integer addressGlobalID = createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema));
+        this.waitForGlobalId(addressGlobalID);
+
+        final ArtifactReference addressReference = new ArtifactReference();
+        addressReference.setVersion("1");
+        addressReference.setGroupId(groupId);
+        addressReference.setArtifactId(addressId);
+        addressReference.setName("sample.address.json");
 
         final ArtifactReference cityReference = new ArtifactReference();
         cityReference.setVersion("1");
@@ -250,7 +280,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference));
+        final Integer globalId = createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema), List.of(qualificationsReference, cityReference, identifierReference, addressReference));
         this.waitForGlobalId(globalId);
 
         City city = new City("New York", 10001);
@@ -313,7 +343,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             citizen.setIdentifier(null);
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
-            //valid visited city, should pass
+            //valid qualification, should pass
             citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), 7), new Qualification(UUID.randomUUID().toString(), 8)));
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
@@ -324,6 +354,108 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 Assertions.fail();
             } catch (Exception ignored) {
             }
+        }
+    }
+
+    @Test
+    public void complexObjectValidation() throws Exception {
+        String version = "8";
+
+        RegistryClient client = createRestClientV2();
+
+        InputStream account = getClass().getClassLoader()
+                .getResourceAsStream("/io/apicurio/registry/util/sample.account.json");
+        InputStream address = getClass().getClassLoader()
+                .getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
+        InputStream email = getClass().getClassLoader()
+                .getResourceAsStream("/io/apicurio/registry/util/sample.email.json");
+        InputStream phone = getClass().getClassLoader()
+                .getResourceAsStream("/io/apicurio/registry/util/sample.phone.json");
+
+        Assertions.assertNotNull(account);
+        Assertions.assertNotNull(address);
+        Assertions.assertNotNull(email);
+        Assertions.assertNotNull(phone);
+
+        final ArtifactMetaData amdAddress =
+                client.createArtifact("GLOBAL", "sample.address.json", version,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
+                        ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, address,
+                        null);
+
+        final ArtifactMetaData amdEmail =
+                client.createArtifact("GLOBAL", "sample.email.json", version,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
+                        ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, email,
+                        null);
+        final ArtifactMetaData amdPhone =
+                client.createArtifact("GLOBAL", "sample.phone.json", version,
+                        ArtifactType.JSON, IfExists.UPDATE, false, null, null,
+                        ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, phone,
+                        null);
+
+
+        final ArtifactReference addressReference = new ArtifactReference();
+        addressReference.setVersion(amdAddress.getVersion());
+        addressReference.setGroupId(amdAddress.getGroupId());
+        addressReference.setArtifactId(amdAddress.getId());
+        addressReference.setName("sample.address.json");
+
+        final ArtifactReference emailReference = new ArtifactReference();
+        emailReference.setVersion(amdEmail.getVersion());
+        emailReference.setGroupId(amdEmail.getGroupId());
+        emailReference.setArtifactId(amdEmail.getId());
+        emailReference.setName("sample.email.json");
+
+        final ArtifactReference phoneReference = new ArtifactReference();
+        phoneReference.setVersion(amdPhone.getVersion());
+        phoneReference.setGroupId(amdPhone.getGroupId());
+        phoneReference.setArtifactId(amdPhone.getId());
+        phoneReference.setName("sample.phone.json");
+
+        List<ArtifactReference> artifactReferences = new ArrayList<>();
+
+        artifactReferences.add(addressReference);
+        artifactReferences.add(emailReference);
+        artifactReferences.add(phoneReference);
+
+        client.createArtifact("GLOBAL", "sample.account.json", version,
+                ArtifactType.JSON, IfExists.UPDATE, false, null, null,
+                ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, account,
+                artifactReferences);
+
+        String data = "{\n" + "  \"id\": \"abc\",\n" + "  \n" + "  \"accountPhones\": [{\n"
+                + "  \"phoneRelationTypeCd\": \"ABCDEFGHIJ\",\n"
+                + "  \"effectiveDate\": \"201-09-29T18:46:19Z\"\n" + "  \n" + "  \n" + "  }]\n" + "}";
+
+        ObjectMapper objectMapper = new ObjectMapper().configure(
+                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        JsonNode validationFor = objectMapper.readTree(data);
+
+        ArtifactMetaData global = client.getArtifactMetaData("GLOBAL", "sample.account.json");
+        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference.builder().globalId(global.getGlobalId())
+                .groupId("GLOBAL")//.version("4")
+                .artifactId("sample.account.json").build();
+
+        SchemaResolverConfigurer src = new SchemaResolverConfigurer(client);
+
+        SchemaResolver sr = src.getSchemaResolver();
+        Map<String, String> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT,
+                DefaultSchemaResolver.class.getName());
+        configs.put(SchemaResolverConfig.CHECK_PERIOD_MS, "600000");
+        sr.configure(configs, new JsonSchemaParser());
+        ParsedSchema ps = sr.resolveSchemaByArtifactReference((artifactReference)).getParsedSchema();
+
+        validateDataWithSchema(ps, objectMapper.writeValueAsBytes(validationFor), objectMapper);
+    }
+
+    protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data,
+                                                 ObjectMapper mapper) throws IOException {
+        try {
+            schema.getParsedSchema().validate(mapper.readTree(data));
+        } catch (ValidationException e) {
+            System.out.println(e.getAllMessages());
         }
     }
 }

@@ -22,12 +22,12 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-app</artifactId>
-            <exclusions>
+            <!-- <exclusions>
                 <exclusion>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-jdbc-h2</artifactId>
                 </exclusion>
-            </exclusions>
+            </exclusions> -->
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -40,10 +40,10 @@
             <artifactId>apicurio-registry-app</artifactId>
             <type>test-jar</type>
             <exclusions>
-                <exclusion>
+                <!-- <exclusion>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-jdbc-h2</artifactId>
-                </exclusion>
+                </exclusion> -->
                 <exclusion>
                     <groupId>io.apicurio</groupId>
                     <artifactId>apicurio-registry-schema-util-provider</artifactId>

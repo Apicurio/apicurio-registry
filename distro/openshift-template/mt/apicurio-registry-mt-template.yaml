@@ -477,6 +477,8 @@ parameters:
 - name: TENANT_MANAGER_CLIENT_SECRET_NAME
   description: k8s secret name with client-id and client-secret to access tenant-manager
   required: true
+- name: TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS
+  description: milliseconds to reduce the expiration time each auth token to tenant-manager, this should help reduce the number of requests to tenant-manager that use an expired token
 
 - name: ENVOY_IMAGE
   description: Envoy image.

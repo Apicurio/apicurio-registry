@@ -16,17 +16,13 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import org.slf4j.Logger;
-
 import java.io.IOException;
-import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -42,9 +38,6 @@ public class HSTSFilter implements Filter {
     public static void addHstsHeaders(HttpServletResponse httpResponse) {
         httpResponse.setHeader("Strict-Transport-Security", HSTS_HEADER);
     }
-
-    @Inject
-    Logger log;
 
     /**
      * C'tor
@@ -64,7 +57,6 @@ public class HSTSFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        log.debug("HSTSFilter is executed on request URI {}", ((HttpServletRequest)request).getRequestURI());
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         addHstsHeaders(httpResponse);
         chain.doFilter(request, response);

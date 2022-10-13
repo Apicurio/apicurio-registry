@@ -16,12 +16,16 @@
 
 package io.apicurio.registry.ui.servlets;
 
+import io.apicurio.common.apps.config.Info;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -30,12 +34,9 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.WriteListener;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import io.apicurio.common.apps.config.Info;
 
 
 /**
@@ -52,6 +53,9 @@ public class BaseHrefFilter  implements Filter {
     @Info(category = "ui", description = "Overrides the UI root context (useful when relocating the UI context using an inbound proxy)", availableSince = "2.3.0.Final")
     String uiRoot;
 
+    @Inject
+    Logger log;
+
     /**
      * @see javax.servlet.Filter#init(javax.servlet.FilterConfig)
      */
@@ -66,6 +70,7 @@ public class BaseHrefFilter  implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        log.debug("BaseHrefFilter is executed on request URI {}", ((HttpServletRequest)request).getRequestURI());
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) response);
         chain.doFilter(request, wrappedResponse);
         

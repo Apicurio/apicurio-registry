@@ -901,13 +901,15 @@ public class FileDescriptorUtils {
                     descriptor.getOptions().getNoStandardDescriptorAccessor(), false);
             options.add(option);
         }
+
+        //TODO handle extend declarations and group elements
         return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
                 reserved.build(), fields.build(),
                 oneofs.stream()
                         //Ignore oneOfs with no fields (like Proto3 Optional)
                         .filter(e -> e.getValue().build().size() != 0)
                         .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
-                extensions.build(), Collections.emptyList());
+                extensions.build(), Collections.emptyList(), Collections.emptyList());
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {

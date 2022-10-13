@@ -24,6 +24,7 @@ import io.apicurio.registry.rest.client.exception.ArtifactNotFoundException;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.services.auth.CustomAuthenticationMechanism;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.IoUtil;
@@ -46,9 +47,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -72,6 +75,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     ApicurioHttpClient httpClient;
 
+    @Inject
+    CustomAuthenticationMechanism customAuthenticationMechanism;
+
     /**
      * @see io.apicurio.registry.AbstractResourceTestBase#createRestClientV2()
      */
@@ -83,7 +89,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     }
 
     @Override
-    protected AdminClient createAdminClientV2(){
+    protected AdminClient createAdminClientV2() {
         httpClient = ApicurioHttpClientFactory.create(authServerUrlConfigured, new AuthErrorHandler());
         Auth auth = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         return this.createAdminClient(auth);
@@ -209,6 +215,20 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         } finally {
             client.deleteArtifact(groupId, artifactId);
         }
+    }
+
+    @Test
+    public void testAdminRoleBasicAuthWrongCreds() throws Exception {
+        Auth auth = new BasicAuth(JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString());
+        RegistryClient client = createClient(auth);
+        String artifactId = TestUtils.generateArtifactId();
+
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            client.listArtifactsInGroup(groupId);
+        });
+        Assertions.assertThrows(NotAuthorizedException.class, () -> {
+            client.createArtifact(groupId, artifactId, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+        });
     }
 
     @Test

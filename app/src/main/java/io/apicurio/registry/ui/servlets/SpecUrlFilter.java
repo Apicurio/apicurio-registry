@@ -16,15 +16,12 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import org.slf4j.Logger;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -48,9 +45,6 @@ import javax.servlet.http.HttpServletResponseWrapper;
 @ApplicationScoped
 public class SpecUrlFilter implements Filter {
 
-    @Inject
-    Logger log;
-
     /**
      * @see javax.servlet.Filter#init(javax.servlet.FilterConfig)
      */
@@ -63,7 +57,6 @@ public class SpecUrlFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
-        log.debug("SpecUrlFilter is executed on request URI {}", ((HttpServletRequest)req).getRequestURI());
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) resp);
         chain.doFilter(req, wrappedResponse);
 

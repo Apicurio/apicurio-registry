@@ -80,7 +80,7 @@ public class RegistryApplicationServletFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        log.debug("RegistryApplicationServletFilter is executed on request URI {}", ((HttpServletRequest)request).getRequestURI());
+
         StringBuilder rewriteContext = new StringBuilder();
 
         HttpServletRequest req = (HttpServletRequest) request;

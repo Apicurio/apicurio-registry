@@ -16,10 +16,9 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.Date;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -30,6 +29,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
 
 /**
  * {@link Filter} to add cache control headers for resources such as CSS and images.
@@ -72,8 +73,8 @@ public class ResourceCacheControlFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        log.debug("ResourceCacheControlFilter is executed on request URI {}", ((HttpServletRequest)request).getRequestURI());
         String requestURI = ((HttpServletRequest) request).getRequestURI();
+        log.debug("Running cache control filter on: " + requestURI);
         Date now = new Date();
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         httpResponse.setDateHeader("Date", now.getTime()); //$NON-NLS-1$

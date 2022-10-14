@@ -16,16 +16,12 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import io.apicurio.common.apps.config.Info;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -34,6 +30,10 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import io.apicurio.common.apps.config.Info;
 
 
 /**
@@ -50,9 +50,6 @@ public class RedirectFilter implements Filter {
     @Info(category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
-
-    @Inject
-    Logger log;
 
     @PostConstruct
     void init() {
@@ -82,7 +79,6 @@ public class RedirectFilter implements Filter {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
             throws IOException, ServletException {
-        log.debug("RedirectFilter is executed on request URI {}", ((HttpServletRequest)req).getRequestURI());
         if (redirectsEnabled != null && redirectsEnabled) {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;

@@ -16,12 +16,9 @@
 
 package io.apicurio.registry.ui.servlets;
 
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.Date;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -36,7 +33,6 @@ import javax.servlet.http.HttpServletResponse;
  *
  * @author eric.wittmann@gmail.com
  */
-@ApplicationScoped
 public class ResourceCacheControlFilter implements Filter {
 
     public static void disableHttpCaching(HttpServletResponse httpResponse) {
@@ -50,10 +46,7 @@ public class ResourceCacheControlFilter implements Filter {
     private static long expiredSinceYesterday(Date now) {
         return now.getTime() - 86400000L;
     }
-
-    @Inject
-    Logger log;
-
+    
     /**
      * C'tor
      */
@@ -72,7 +65,6 @@ public class ResourceCacheControlFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        log.debug("ResourceCacheControlFilter is executed on request URI {}", ((HttpServletRequest)request).getRequestURI());
         String requestURI = ((HttpServletRequest) request).getRequestURI();
         Date now = new Date();
         HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -90,11 +82,9 @@ public class ResourceCacheControlFilter implements Filter {
         }
         
         if (disableCaching) {
-            log.debug("    |-> Caching is disabled.");
             disableHttpCaching(httpResponse);
         } else {
             // Cache most files for one year
-            log.debug("    |-> Caching for one year.");
             httpResponse.setDateHeader("Expires", expiresInOneYear(now)); //$NON-NLS-1$
             httpResponse.setHeader("Cache-control", "public, max-age=31536000"); //$NON-NLS-1$ //$NON-NLS-2$
         }

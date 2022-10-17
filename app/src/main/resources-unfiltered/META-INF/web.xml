@@ -31,6 +31,8 @@
     <filter-mapping>
         <filter-name>ResourceCacheControlFilter</filter-name>
         <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
 
     <filter>
@@ -41,6 +43,8 @@
     <filter-mapping>
         <filter-name>HSTSFilter</filter-name>
         <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
 
     <filter>
@@ -50,6 +54,8 @@
     <filter-mapping>
         <filter-name>BaseHrefFilter</filter-name>
         <url-pattern>/ui/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
 
     <filter>
@@ -70,6 +76,8 @@
         <url-pattern>/apis/ibmcompat/v1/</url-pattern>
         <url-pattern>/apis/cncf/v0</url-pattern>
         <url-pattern>/apis/cncf/v0/</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
 
     <servlet>

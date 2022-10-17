@@ -230,7 +230,6 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return jwtToken;
     }
 
-
     private String getCredentialsHash(String credentials) {
         return DigestUtils.sha256Hex(credentials);
     }

@@ -1,0 +1,543 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: multitenant-apicurio-registry
+labels:
+  template: multitenant-apicurio-registry
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry
+    name: apicurio-registry
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+      name: http
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry-envoy
+    annotations:
+      description: Exposes and load balances the apicurio-registry pods going through envoy beforehand
+      service.alpha.openshift.io/serving-cert-secret-name: apicurio-registry-envoy-tls
+    name: apicurio-registry-envoy
+  spec:
+    ports:
+    - port: 9001
+      protocol: TCP
+      targetPort: 9001
+      name: api-envoy
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+      component: apicurio-registry-envoy-metrics
+    name: apicurio-registry-envoy-metrics
+  spec:
+    ports:
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+      name: metrics-envoy
+    selector:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: apicurio-registry
+      template: multitenant-apicurio-registry
+    name: apicurio-registry
+  spec:
+    selector:
+      matchLabels:
+        app: apicurio-registry
+        template: multitenant-apicurio-registry
+    replicas: ${{REPLICAS}}
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apicurio-registry
+          template: multitenant-apicurio-registry
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - apicurio-registry
+                  - key: template
+                    operator: In
+                    values:
+                    - multitenant-apicurio-registry
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+              weight: 100
+        serviceAccount: ${SERVICE_ACCOUNT_NAME}
+        serviceAccountName: ${SERVICE_ACCOUNT_NAME}
+        volumes:
+        - name: envoy-config
+          configMap:
+            name: ${ENVOY_CONFIG_CM_NAME}
+        - name: envoy-unix-sockets
+          emptyDir:
+            medium: Memory
+        - name: db-ssl-ca
+          secret:
+            secretName: ${DATABASE_SSL_CA_SECRET_NAME}
+        - name: envoy-tls
+          secret:
+            secretName: apicurio-registry-envoy-tls
+
+        containers:
+        - name: apicurio-registry
+          image: ${IMAGE_REGISTRY}/${APICURIO_REGISTRY_IMAGE_REPOSITORY}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: db-ssl-ca
+            mountPath: /config/db-ssl-ca.pem
+            subPath: ca.pem
+          env:
+          - name: REGISTRY_ENABLE_MULTITENANCY
+            value: "true"
+          - name: REGISTRY_LOG_LEVEL
+            value: ${REGISTRY_LOG_LEVEL}
+          - name: LOG_LEVEL
+            value: ${REGISTRY_QUARKUS_LOG_LEVEL}
+          - name: QUARKUS_PROFILE
+            value: prod
+          - name: ENABLE_ACCESS_LOG
+            value: ${ENABLE_ACCESS_LOG}
+
+          - name: ENABLE_SENTRY
+            value: ${ENABLE_SENTRY}
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name:  ${SENTRY_DSN_SECRET_NAME}
+                key:  sentry-dsn
+
+          - name: DB_HOST
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.host
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.port
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.name
+          - name: REGISTRY_DATASOURCE_URL
+            value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require&sslrootcert=/config/db-ssl-ca.pem
+          - name: REGISTRY_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.user
+          - name: REGISTRY_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name:  ${DATABASE_SECRET_NAME}
+                key:  db.password
+
+          - name: AUTH_ENABLED
+            value: ${AUTH_ENABLED}
+          - name: KEYCLOAK_URL
+            value: ${KEYCLOAK_URL}
+          - name: KEYCLOAK_REALM
+            value: ${KEYCLOAK_REALM}
+          - name: KEYCLOAK_API_CLIENT_ID
+            value: ${KEYCLOAK_API_CLIENT_ID}
+          - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
+            value: ${CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED}
+
+          - name: REGISTRY_AUTH_RBAC_ENABLED
+            value: ${REGISTRY_AUTH_RBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_ENABLED
+            value: ${REGISTRY_AUTH_OBAC_ENABLED}
+          - name: REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS
+            value: ${REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS}
+          - name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
+            value: ${REGISTRY_AUTH_ANONYMOUS_READS_ENABLED}
+          - name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+            value: ${REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED}
+          - name: REGISTRY_AUTH_ROLES_READONLY
+            value: ${REGISTRY_AUTH_ROLES_READONLY}
+          - name: REGISTRY_AUTH_ROLES_DEVELOPER
+            value: ${REGISTRY_AUTH_ROLES_DEVELOPER}
+          - name: REGISTRY_AUTH_ROLES_ADMIN
+            value: ${REGISTRY_AUTH_ROLES_ADMIN}
+          - name: REGISTRY_AUTH_ROLE_SOURCE
+            value: ${REGISTRY_AUTH_ROLE_SOURCE}
+          - name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
+            value: ${REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN}
+
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_FROM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM}
+          - name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
+            value: ${REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE}
+          - name: ORGANIZATION_ID_CLAIM
+            value: ${ORGANIZATION_ID_CLAIM}
+
+          - name: BASIC_ACCESS_TOKEN_CACHE_EXPIRATION
+            value: ${BASIC_ACCESS_TOKEN_CACHE_EXPIRATION}
+
+          - name: REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW
+            value: ${REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW}
+          - name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW
+            value: ${REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW}
+          - name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS_DYNAMIC_ALLOW
+            value: ${REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS_DYNAMIC_ALLOW}
+          - name: REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+            value: ${REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED_DYNAMIC_ALLOW}
+          - name: REGISTRY_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+            value: ${REGISTRY_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED_DYNAMIC_ALLOW}
+          - name: REGISTRY_AUTH_BASIC_AUTH_CLIENT_CREDENTIALS_ENABLED_DYNAMIC_ALLOW
+            value: ${REGISTRY_AUTH_BASIC_AUTH_CLIENT_CREDENTIALS_ENABLED_DYNAMIC_ALLOW}
+          - name: REGISTRY_CCOMPAT_LEGACY_ID_MODE_ENABLED_DYNAMIC_ALLOW
+            value: ${REGISTRY_CCOMPAT_LEGACY_ID_MODE_ENABLED_DYNAMIC_ALLOW}
+          - name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
+            value: ${REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW}
+
+          - name: CORS_ALLOWED_ORIGINS
+            value: ${CORS_ALLOWED_ORIGINS}
+
+          - name: TENANT_MANAGER_URL
+            value: ${TENANT_MANAGER_URL}
+          - name: REGISTRY_TENANT_MANAGER_SSL_CA_PATH
+            value: ${TENANT_MANAGER_CA_BUNDLE}
+          - name: TENANT_MANAGER_AUTH_URL
+            value: ${KEYCLOAK_URL}
+          - name: TENANT_MANAGER_REALM
+            value: ${KEYCLOAK_REALM}
+          - name: TENANT_MANAGER_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
+                key: client-id
+          - name: TENANT_MANAGER_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: ${TENANT_MANAGER_CLIENT_SECRET_NAME}
+                key: client-secret
+          - name: TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS
+            value: ${TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS}
+
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: ${APICURIO_REGISTRY_CPU_LIMIT}
+              memory: ${APICURIO_REGISTRY_MEMORY_LIMIT}
+            requests:
+              cpu: ${APICURIO_REGISTRY_CPU_REQUEST}
+              memory: ${APICURIO_REGISTRY_MEMORY_REQUEST}
+          terminationMessagePath: /dev/termination-log
+        - name: envoy
+          image: ${ENVOY_IMAGE}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: envoy-tls
+            mountPath: /secrets/tls
+          - name: envoy-config
+            mountPath: /configs/envoy
+          - name: envoy-unix-sockets
+            mountPath: /sockets
+          command:
+          - envoy
+          - --config-path
+          - /configs/envoy/main.yaml
+          ports:
+          - name: api-envoy
+            protocol: TCP
+            containerPort: 9001
+          - name: metrics-envoy
+            protocol: TCP
+            containerPort: 9000
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+
+- kind: PodDisruptionBudget
+  apiVersion: policy/v1
+  metadata:
+    name: apicurio-registry-pdb
+  spec:
+    maxUnavailabe: "50%"
+    selector:
+      matchLabels:
+        app: apicurio-registry
+        template: multitenant-apicurio-registry
+
+parameters:
+
+- name: REGISTRY_LOG_LEVEL
+  value: DEBUG
+
+- name: REGISTRY_QUARKUS_LOG_LEVEL
+  value: INFO
+
+- name: ENABLE_ACCESS_LOG
+  value: "false"
+
+- name: SERVICE_ACCOUNT_NAME
+  displayName: Service Account to use for the deployment
+  required: true
+
+- name: REPLICAS
+  description: Number of replicas for apicurio-registry deployment.
+  value: "3"
+
+- name: IMAGE_REGISTRY
+  displayName: Image Registry
+  required: true
+
+- name: APICURIO_REGISTRY_IMAGE_REPOSITORY
+  displayName: Apicurio Registry Image Repository
+  required: true
+
+- name: IMAGE_TAG
+  displayName: Image tag for Apicurio Registry
+  value: latest
+
+
+- name: APICURIO_REGISTRY_MEMORY_REQUEST
+  description: Apicurio Registry Memory request.
+  value: "600Mi"
+
+- name: APICURIO_REGISTRY_MEMORY_LIMIT
+  description: Apicurio Registry Memory limit.
+  value: "1300Mi"
+
+- name: APICURIO_REGISTRY_CPU_REQUEST
+  description: Apicurio Registry CPU request.
+  value: "200m"
+
+- name: APICURIO_REGISTRY_CPU_LIMIT
+  description: Apicurio Registry CPU limit.
+  value: "1000m"
+
+
+- name: DATABASE_SECRET_NAME
+  description: Secret name with database connection details
+  required: true
+- name: DATABASE_SSL_CA_SECRET_NAME
+  description: Secret name with database SSL CA
+  required: true
+
+- name: AUTH_ENABLED
+  description: flag to enable/disable authentication
+  value: "false"
+- name: KEYCLOAK_URL
+  description: Keycloak base url
+  value: "http://localhost:8090"
+- name: KEYCLOAK_REALM
+  description: Keycloak realm
+  value: "apicurio-registry"
+- name: KEYCLOAK_API_CLIENT_ID
+  description: client id for Apicurio Registry API
+  value: registry-api
+- name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
+  description: flag to enable/disable feature to allow basic authentication using service-account clientId and client secret as credentials
+  value: "true"
+
+- name: REGISTRY_AUTH_RBAC_ENABLED
+  description: flag to enable/disable role based authorization
+  value: "false"
+- name: REGISTRY_AUTH_OBAC_ENABLED
+  description: flag to enable/disable owner-only authorization
+  value: "false"
+- name: REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS
+  description: flag to enable/disable limiting of group access when using owner-only authorization
+  value: "false"
+- name: REGISTRY_AUTH_ANONYMOUS_READS_ENABLED
+  description: flag to enable/disable anonymous read access
+  value: "false"
+- name: REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED
+  description: flag to enable/disable authenticated read access
+  value: "false"
+- name: REGISTRY_AUTH_ROLES_READONLY
+  description: property to set the name of the role that enables ReadOnly access when using token based RBAC
+  value: "sr-readonly"
+- name: REGISTRY_AUTH_ROLES_DEVELOPER
+  description: property to set the name of the role that enables Developer access when using token based RBAC
+  value: "sr-developer"
+- name: REGISTRY_AUTH_ROLES_ADMIN
+  description: property to set the name of the role that enables Admin access when using token based RBAC
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ROLE_SOURCE
+  description: property to set the source of auth roles when checking authorization (e.g. token or application)
+  value: "token"
+- name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
+  value: "false"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
+  description: flag to enable/disable the admin-override auth feature
+  value: "false"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
+  description: property to set where to get admin-override meta-data from (e.g. token)
+  value: "token"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
+  description: property to set the type of admin-override meta-data (e.g. role or claim)
+  value: "role"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
+  description: property to set the role that activates admin-override (e.g. sr-admin)
+  value: "sr-admin"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM
+  description: property to set the claim that potentially activates admin-override
+  value: "is_org_admin"
+- name: REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE
+  description: property to set the claim value that must match to activate admin-override
+  value: "true"
+
+- name: TENANT_MANAGER_URL
+  value: http://tenant-manager:8585
+- name: TENANT_MANAGER_CA_BUNDLE
+  description: path to tenant-manager service CA bundle
+- name: TENANT_MANAGER_CLIENT_SECRET_NAME
+  description: k8s secret name with client-id and client-secret to access tenant-manager
+  required: true
+- name: TENANT_MANAGER_AUTH_TOKEN_EXP_REDUCTION_MS
+  description: milliseconds to reduce the expiration time each auth token to tenant-manager, this should help reduce the number of requests to tenant-manager that use an expired token
+
+- name: ENVOY_IMAGE
+  description: Envoy image.
+  value: envoyproxy/envoy:v1.16.1
+- name: ENVOY_CONFIG_CM_NAME
+  description: ConfigMap containing Envoy config file
+  value: apicurio-registry-envoy-config
+
+- name: ENABLE_SENTRY
+  value: "false"
+- name: SENTRY_DSN_SECRET_NAME
+  description: Secret name containing dsn for connecting to sentry
+  value: sentry-dsn-secret
+
+- name: CORS_ALLOWED_ORIGINS
+  description: List of allowed origins for CORS. The expected value is a regex to be used as a pattern.
+  value: ""
+
+- name: REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW
+  description: "When true, the 'Download HREF TTL' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW
+  description: "When true, the 'Owner Only Auth' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS_DYNAMIC_ALLOW
+  description: "When true, the 'Owner Only Auth (Limit Groups)' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow Anonymous Read Access' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow Authenticated Read Access' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_AUTH_BASIC_AUTH_CLIENT_CREDENTIALS_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'Allow BASIC Authentication' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_CCOMPAT_LEGACY_ID_MODE_ENABLED_DYNAMIC_ALLOW
+  description: "When true, the 'CCompat Compatibility' dynamic property is exposed to admins."
+  value: "true"
+- name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
+  description: "When true, the 'UI Read Only Mode' dynamic property is exposed to admins."
+  value: "true"
+
+  # Tenant Manager Reaper Configuration
+- name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR
+  value: "1m"
+- name: TENANT_MANAGER_REAPER_PERIOD_SECONDS
+  value: "10800" # 3 * 60 * 60 = 3 hours
+- name: TENANT_MANAGER_REAPER_MAX_TENANTS_REAPED_COUNT
+  value: "100"
+
+- name: ORGANIZATION_ID_CLAIM
+  value: "rh-org-id,org_id"
+
+- name: BASIC_ACCESS_TOKEN_CACHE_EXPIRATION
+  description: "Expiration time for the access token in the basic authentication feature."
+  value: "10"

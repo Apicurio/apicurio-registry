@@ -1,0 +1,27 @@
+FROM quay.io/app-sre/postgres:12
+
+ENV POSTGRES_PASSWORD test
+ENV POSTGRES_USER test
+ENV POSTGRES_DB test
+
+RUN apt-get update
+RUN apt-get install -y make openjdk-11-jdk curl
+
+RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
+  && curl -fsSL -o /tmp/apache-maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz \
+  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
+  && rm -f /tmp/apache-maven.tar.gz \
+  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
+
+# copy over the kas-fleet-manager
+RUN mkdir -p /opt/srs/apicurio-registry
+COPY . /opt/srs/apicurio-registry
+
+# Docker built / owned  as 'root' but the 'postgres' user runs the image
+RUN chown -R postgres:postgres /opt/srs/apicurio-registry /usr/bin/mvn
+
+WORKDIR /opt/srs/apicurio-registry
+
+USER postgres
+
+ENTRYPOINT ["./pr_check_docker.sh"]

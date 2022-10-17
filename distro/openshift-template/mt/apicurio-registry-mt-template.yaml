@@ -413,23 +413,23 @@ parameters:
 
 - name: AUTH_ENABLED
   description: flag to enable/disable authentication
-  value: "false"
+  value: "true"
 - name: KEYCLOAK_URL
   description: Keycloak base url
-  value: "http://localhost:8090"
+  value: "https://sso.redhat.com:443/auth"
 - name: KEYCLOAK_REALM
   description: Keycloak realm
-  value: "apicurio-registry"
+  value: "redhat-external"
 - name: KEYCLOAK_API_CLIENT_ID
   description: client id for Apicurio Registry API
-  value: registry-api
+  value: registry-api-stage
 - name: CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED
   description: flag to enable/disable feature to allow basic authentication using service-account clientId and client secret as credentials
   value: "true"
 
 - name: REGISTRY_AUTH_RBAC_ENABLED
   description: flag to enable/disable role based authorization
-  value: "false"
+  value: "true"
 - name: REGISTRY_AUTH_OBAC_ENABLED
   description: flag to enable/disable owner-only authorization
   value: "false"
@@ -453,18 +453,18 @@ parameters:
   value: "sr-admin"
 - name: REGISTRY_AUTH_ROLE_SOURCE
   description: property to set the source of auth roles when checking authorization (e.g. token or application)
-  value: "token"
+  value: "application"
 - name: REGISTRY_AUTH_TENANT_OWNER_IS_ADMIN
-  value: "false"
+  value: "true"
 - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED
   description: flag to enable/disable the admin-override auth feature
-  value: "false"
+  value: "true"
 - name: REGISTRY_AUTH_ADMIN_OVERRIDE_FROM
   description: property to set where to get admin-override meta-data from (e.g. token)
   value: "token"
 - name: REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE
   description: property to set the type of admin-override meta-data (e.g. role or claim)
-  value: "role"
+  value: "claim"
 - name: REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE
   description: property to set the role that activates admin-override (e.g. sr-admin)
   value: "sr-admin"
@@ -504,16 +504,16 @@ parameters:
 
 - name: REGISTRY_DOWNLOAD_HREF_TTL_DYNAMIC_ALLOW
   description: "When true, the 'Download HREF TTL' dynamic property is exposed to admins."
-  value: "true"
+  value: "false"
 - name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_DYNAMIC_ALLOW
   description: "When true, the 'Owner Only Auth' dynamic property is exposed to admins."
   value: "true"
 - name: REGISTRY_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS_DYNAMIC_ALLOW
   description: "When true, the 'Owner Only Auth (Limit Groups)' dynamic property is exposed to admins."
-  value: "true"
+  value: "false"
 - name: REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
   description: "When true, the 'Allow Anonymous Read Access' dynamic property is exposed to admins."
-  value: "true"
+  value: "false"
 - name: REGISTRY_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED_DYNAMIC_ALLOW
   description: "When true, the 'Allow Authenticated Read Access' dynamic property is exposed to admins."
   value: "true"
@@ -525,7 +525,7 @@ parameters:
   value: "true"
 - name: REGISTRY_UI_FEATURES_READONLY_DYNAMIC_ALLOW
   description: "When true, the 'UI Read Only Mode' dynamic property is exposed to admins."
-  value: "true"
+  value: "false"
 
   # Tenant Manager Reaper Configuration
 - name: TENANT_MANAGER_REAPER_CHECK_PERIOD_DURATION_EXPR

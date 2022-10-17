@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 echo "Merging latest changes from the main branch!"
 git fetch upstream main

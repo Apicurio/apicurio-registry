@@ -358,7 +358,7 @@ objects:
 parameters:
 
 - name: REGISTRY_LOG_LEVEL
-  value: DEBUG
+  value: INFO
 
 - name: REGISTRY_QUARKUS_LOG_LEVEL
   value: INFO
@@ -493,7 +493,7 @@ parameters:
   value: apicurio-registry-envoy-config
 
 - name: ENABLE_SENTRY
-  value: "false"
+  value: "true"
 - name: SENTRY_DSN_SECRET_NAME
   description: Secret name containing dsn for connecting to sentry
   value: sentry-dsn-secret

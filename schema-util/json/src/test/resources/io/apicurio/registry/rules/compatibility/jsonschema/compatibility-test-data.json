@@ -540,7 +540,7 @@
     {
       "enabled": true,
       "id": "Object: properties 1",
-      "compatibility": "backward",
+      "compatibility": "both",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -1081,7 +1081,7 @@
     {
       "enabled": true,
       "id": "Object: property added 1",
-      "compatibility": "backward",
+      "compatibility": "both",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -1092,8 +1092,7 @@
           "street": {
             "type": "string"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1114,7 +1113,7 @@
     {
       "enabled": true,
       "id": "Object: property added 2",
-      "compatibility": "backward",
+      "compatibility": "both",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -1125,8 +1124,7 @@
           "street": {
             "type": "string"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1141,43 +1139,6 @@
           "country": {
             "type": "string"
           }
-        },
-        "additionalProperties": false
-      }
-    },
-    {
-      "enabled": true,
-      "id": "Object: property added 3",
-      "compatibility": "backward",
-      "original": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "postal_code": {
-            "type": "number"
-          },
-          "street": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "updated": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "postal_code": {
-            "type": "number"
-          },
-          "street": {
-            "type": "string"
-          },
-          "country": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": {
-          "type": "string"
         }
       }
     },
@@ -1381,7 +1342,7 @@
     {
       "enabled": true,
       "id": "Array: tuples 4",
-      "compatibility": "backward",
+      "compatibility": "both",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "array",
@@ -1730,7 +1691,7 @@
     {
       "enabled": true,
       "id": "Array: items removed 2",
-      "compatibility": "backward",
+      "compatibility": "both",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "array",
@@ -1741,8 +1702,7 @@
           {
             "type": "number"
           }
-        ],
-        "additionalItems": true
+        ]
       },
       "updated": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1751,8 +1711,7 @@
           {
             "type": "string"
           }
-        ],
-        "additionalItems": true
+        ]
       }
     },
     {

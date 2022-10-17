@@ -221,7 +221,7 @@ public class DiffUtil {
         } else {
             if (originalSchemaOfAdditional == null) {
                 // original schema: additional = true
-                ctx.addDifference(narrowedType, true, addedSchemas);
+                ctx.addDifference(extendedType, true, addedSchemas);
             } else {
                 // original schema: additional = schema
                 if (!updatedPermitsAdditional &&

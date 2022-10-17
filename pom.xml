@@ -142,7 +142,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
-        <mas.build.number>52</mas.build.number>
+        <mas.build.number>53</mas.build.number>
 
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>

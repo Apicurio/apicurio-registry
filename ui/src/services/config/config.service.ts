@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig, Principal} from "./config.type";
+import { Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig, Principal } from "./config.type";
 import { Service } from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {

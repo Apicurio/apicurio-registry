@@ -119,7 +119,7 @@ export interface Principal {
 export interface ConfigType {
     artifacts: ArtifactsConfig;
     auth: OidcJsAuthConfig | NoneAuthConfig | GetTokenAuthConfig;
-    principals?: Principal[];
+    principals?: Principal[] | (() => Principal[]);
     features?: FeaturesConfig;
     ui: UiConfig;
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig } from "./config.type";
+import {Alerts, ConfigType, FeaturesConfig, GetTokenAuthConfig, OidcJsAuthConfig, Principal} from "./config.type";
 import { Service } from "../baseService";
 
 const DEFAULT_CONFIG: ConfigType = {
@@ -169,7 +169,7 @@ export class ConfigService implements Service {
         };
     }
 
-    public principals() {
+    public principals(): Principal[] | (() => Principal[]) | undefined {
         return this.config.principals;
     }
 

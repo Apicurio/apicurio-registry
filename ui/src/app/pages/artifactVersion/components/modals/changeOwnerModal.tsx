@@ -21,7 +21,10 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
     const [isValid, setValid] = useState(false);
     const [newOwner, setNewOwner] = useState<string>();
     const [isAccountToggled, setAccountToggled] = useState(false);
-    const principals: Principal[] | undefined = Services.getConfigService().principals();
+    const principals: Principal[] | (() => Principal[]) | undefined = Services.getConfigService().principals();
+    const getPrincipals: () => Principal[] = (typeof principals === "function") ? (principals as () => Principal[]) : () => {
+        return principals || [];
+    };
 
     // Validate the inputs.
     useEffect(() => {
@@ -47,7 +50,7 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
             onEscapePress={onEscapePressed}
             className="change-owner pf-m-redhat-font"
             actions={[
-                <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={() => { onChangeOwner(newOwner || "") }} isDisabled={!isValid}>Change owner</Button>,
+                <Button key="edit" variant="primary" data-testid="modal-btn-edit" onClick={() => { onChangeOwner(newOwner || ""); }} isDisabled={!isValid}>Change owner</Button>,
                 <Button key="cancel" variant="link" data-testid="modal-btn-cancel" onClick={onClose}>Cancel</Button>
             ]}
         >
@@ -68,7 +71,7 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
                                     setNewOwner(id);
                                 }}
                                 isUsersOnly={false}
-                                initialOptions={principals || []}
+                                initialOptions={getPrincipals}
                                 isUpdateAccess={false}
                             />:
                             <TextInput

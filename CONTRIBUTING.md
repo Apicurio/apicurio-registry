@@ -72,7 +72,8 @@ Also don't forget the documentation (reference documentation, javadoc...).
 Be sure to test your pull request using all storage variants:
 
 1. SQL storage (using the `-Psql` profile)
-2. KafkaSQL storage (using the `-Pkafkasql` profile)
+2. SQL Server storage (using the `-Pmssql` profile)
+3. KafkaSQL storage (using the `-Pkafkasql` profile)
 
 
 ## The small print

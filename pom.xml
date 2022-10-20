@@ -164,7 +164,7 @@
         <wire-compiler.version>4.3.0</wire-compiler.version>
         <okio-jvm.version>3.2.0</okio-jvm.version>
         <okio-fake-file-system.version>3.2.0</okio-fake-file-system.version>
-        <icu4j.version>71.1</icu4j.version>
+        <icu4j.version>72.1</icu4j.version>
         <protobuf.version>3.21.7</protobuf.version>
         <xmlsec.version>3.0.1</xmlsec.version>
         <protobuf.googleapi.types.version>2.9.6</protobuf.googleapi.types.version>

@@ -25,7 +25,9 @@ import io.apicurio.rest.client.JdkHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
 import io.apicurio.rest.client.auth.exception.AuthException;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
+import io.apicurio.rest.client.error.ApicurioRestClientException;
 import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import io.quarkus.oidc.runtime.BearerAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
@@ -105,11 +107,13 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private ApicurioHttpClient httpClient;
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
+    private ConcurrentHashMap<String, WrappedValue<ApicurioRestClientException>> cachedAuthFailures;
 
     @PostConstruct
     public void init() {
         if (authEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
+            cachedAuthFailures = new ConcurrentHashMap<>();
             httpClient = new JdkHttpClientProvider().create(authServerUrl, Collections.emptyMap(), null, new AuthErrorHandler());
             bearerAuth = new BearerAuthenticationMechanism();
         }
@@ -213,7 +217,9 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials, RoutingContext context, IdentityProviderManager identityProviderManager) {
         String jwtToken;
         String credentialsHash = getCredentialsHash(clientCredentials.getLeft() + clientCredentials.getRight());
-        if (cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired()) {
+        if (authFailureIsCached(credentialsHash)) {
+            throw cachedAuthFailures.get(credentialsHash).getValue();
+        } else if (accessTokenIsCached(credentialsHash)) {
             jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
         } else {
             jwtToken = getAccessToken(clientCredentials, credentialsHash);
@@ -222,12 +228,25 @@ public class CustomAuthenticationMechanism implements HttpAuthenticationMechanis
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
     }
 
+    private boolean authFailureIsCached(String credentialsHash) {
+        return cachedAuthFailures.containsKey(credentialsHash) && !cachedAuthFailures.get(credentialsHash).isExpired();
+    }
+
+    private boolean accessTokenIsCached(String credentialsHash) {
+        return cachedAccessTokens.containsKey(credentialsHash) && !cachedAccessTokens.get(credentialsHash).isExpired();
+    }
+
     @Retry(retryOn = AuthException.class, maxRetries = 4)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(), clientCredentials.getRight());
-        String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
-        cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
-        return jwtToken;
+        try {
+            String jwtToken = oidcAuth.authenticate();//If we manage to get a token from basic credentials, try to authenticate it using the fetched token using the identity provider manager
+            cachedAccessTokens.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), jwtToken));
+            return jwtToken;
+        } catch (NotAuthorizedException | ForbiddenException ex) {
+            cachedAuthFailures.put(credentialsHash, new WrappedValue<>(Duration.ofMinutes(accessTokenExpiration), Instant.now(), ex));
+            throw ex;
+        }
     }
 
     private String getCredentialsHash(String credentials) {
